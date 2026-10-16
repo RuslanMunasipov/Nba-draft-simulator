@@ -40,7 +40,10 @@ export function renderTiming(state){
   }
   if(r.forecastSensitivity?.length){
    const sensitivity=document.createElement('details');sensitivity.append(text('summary','Устойчивость к прогнозу rookie'));
-   for(const s of r.forecastSensitivity)sensitivity.append(text('p',s.name+': '+s.decision+(s.valid?` · сейчас минус ожидание [${Math.round(s.min)}; ${Math.round(s.max)}] ФО состава.`:'. Нет допустимого продолжения.'));
+   for(const s of r.forecastSensitivity){
+    const range=s.valid?` · сейчас минус ожидание [${Math.round(s.min)}; ${Math.round(s.max)}] ФО состава.`:'. Нет допустимого продолжения.';
+    sensitivity.append(text('p',s.name+': '+s.decision+range));
+   }
    sensitivity.append(text('p','Это крайние сценарии: сезонные границы rookie и ветеранов меняются в противоположные стороны. Они проверяют устойчивость, но не являются вероятностями или совместным прогнозом всех игроков.'));
    box.append(sensitivity);
   }
