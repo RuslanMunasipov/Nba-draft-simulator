@@ -16,5 +16,5 @@ function render(){
 }
 season.onchange=render;search.oninput=render;
 fetch(import.meta.env.BASE_URL+'data/nba-history.json').then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
- .then(data=>{history=data;document.getElementById('history-status').textContent=`${data.players.length} игроков за три сезона. Источник: загруженные Parquet / kaggle_v515. 2024/25: неполное покрытие матчей. Формат минут требует проверки источника. Позиции Yahoo, актуальные команды, травмы и прогнозы 2026/27 не подтверждены.`;render();})
+ .then(data=>{history=data;document.getElementById('history-status').textContent=`${data.players.length} игроков за три сезона. Источник: загруженные Parquet / kaggle_v515. 2024/25: неполное покрытие матчей. По документации загрузчика минуты десятичные; построчная сверка с NBA не выполнена. Позиции Yahoo, актуальные команды, травмы и прогнозы 2026/27 не подтверждены.`;render();})
  .catch(()=>{document.getElementById('history-status').textContent='Исторические данные сейчас недоступны. Текущий драфт сохранён; можно использовать ручной импорт.';});

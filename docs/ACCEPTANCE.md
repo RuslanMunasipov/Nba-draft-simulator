@@ -27,3 +27,12 @@ Deadline: 18 October 2026. Target: 8 teams, 10 straight rounds, 2 slots per posi
 LIMITED: usable for recording picks and controlled simulations with explicitly supplied valid inputs. NO GO as the primary analytical advisor until the above data and analytical gates pass.
 
 Do not convert historical averages into a season prediction, invent missing prices, derive Yahoo positions from box scores, or treat the latest historical team as the current team.
+
+## Experimental baseline milestone
+- A single held-out 2025/26 comparison uses only 2023/24 and 2024/25 inputs.
+- Models: previous-season means versus 75% recent / 25% earlier season.
+- MAE is reported for base FP per game, minutes and observed games. Cohort excludes players with fewer than 20 games in recent training or test season.
+- The lower base-FP MAE selects a candidate for 2026/27, refit using the allowed past seasons. Model selection has no second independent test.
+- Outputs are ESTIMATED, high uncertainty, exclude result bonuses and current roster/injury/role effects, and are not imported as full projectedFP.
+- D-01/D-08 remain partial; this does not clear the analytical GO gate.
+- Upstream documents decimal minutes and seven missing game IDs for 2024/25. This explains provenance, not independent statistical verification.

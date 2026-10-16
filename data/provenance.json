@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-10-16",
+  "datasetCard": "https://huggingface.co/datasets/cbratkovics/nba-game-logs",
+  "parserSource": "https://github.com/cbratkovics/nba-ai-ml/blob/main/nba/ingest/kaggle_dump.py",
+  "sourceLabel": "kaggle_v515",
+  "minuteFormat": "DECIMAL_MINUTES_UPSTREAM_DOCUMENTED",
+  "independentRowVerification": false,
+  "knownMissing2024_25": ["0022400524", "0022400532", "0022400537", "0022400538", "0022400617", "0022400627", "0022400988"]
+}

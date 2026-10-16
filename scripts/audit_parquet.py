@@ -9,6 +9,7 @@ import pyarrow.parquet as pq
 
 SEASONS = ('2023-24', '2024-25', '2025-26')
 STATS = ('pts','reb','ast','stl','blk','fga','fgm','fta','ftm','tov','pf','minutes')
+provenance=json.loads(Path('data/provenance.json').read_text())
 report = {'status':'INSPECTED_NOT_INDEPENDENTLY_VERIFIED','seasons':{},'warnings':[]}
 players = {}
 failed = False
@@ -38,6 +39,9 @@ for season in SEASONS:
                    'columns':[{'name':f.name,'dtype':str(f.type)} for f in table.schema],
                    'null_counts':{k:table.column(k).null_count for k in table.column_names},
                    'duplicate_player_game_keys':duplicates,'invalid_rows':len(invalid)}
+        details['teamGameCoverage']={team:len({r['game_id'] for r in rows if r['team']==team}) for team in sorted({r['team'] for r in rows})}
+        if season=='2024-25':
+            details['documentedMissingGameIds']=[g for g in provenance['knownMissing2024_25'] if g not in {r['game_id'] for r in rows}]
         report['seasons'][season]=details
         if games!=1230:
             report['warnings'].append(f'{season}: {games}/1230 regular-season games; coverage is incomplete or game classification needs verification')
@@ -57,11 +61,12 @@ for season in SEASONS:
     except Exception as exc:
         failed=True
         report['warnings'].append(f'{season}: {type(exc).__name__}: {exc}')
+report['provenance']=provenance
 report['limitations']=['User-supplied Kaggle-derived data; source authenticity is not independently verified.',
     'No Yahoo positions or 2026/27 roster validation.', 'No official prices or rookie verification.',
     'Core FP excludes result bonuses and is not full FBL FP.',
     'Historical averages are not 2026/27 projections; missing games affect totals and availability estimates.',
-    'Minute encoding requires source verification before minute-based modelling.']
+    'Upstream parser documents decimal minutes; uploaded rows are not independently cross-checked.']
 Path('data/reports').mkdir(parents=True,exist_ok=True)
 Path('data/reports/parquet-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(report,ensure_ascii=False,indent=2))

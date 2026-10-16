@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'data/raw/**'
+      - 'data/provenance.json'
       - 'scripts/audit_parquet.py'
       - '.github/workflows/nba-data.yml'
 permissions:

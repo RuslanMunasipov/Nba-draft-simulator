@@ -1,3 +1,4 @@
+import './baseline.js';
 import './history.js';
 import {newDraft,pick,undo,exportDraft,importDraft,recommendations} from './engine.js';
 import {advanceBots,simulateDraft,draftSummary,batchSimulations,currentTeam} from './simulation.js';
