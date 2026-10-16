@@ -7,6 +7,10 @@ from collections import defaultdict
 from pathlib import Path
 import pyarrow.parquet as pq
 try:
+    from season_accuracy import cohort, SeasonModel, evaluate
+except ImportError:
+    from scripts.season_accuracy import cohort, SeasonModel, evaluate
+try:
     from minute_encoding import normalize_minutes
 except ImportError:
     from scripts.minute_encoding import normalize_minutes
@@ -65,17 +69,15 @@ def build(data,rows_by_season):
         bonuses[year],coverage[year]=result_bonuses(rows)
         groups[year]=profiles(rows,bonuses[year])
         if coverage[year]['usableGames']<1000:raise ValueError('Insufficient complete games for full scoring '+year)
-    # Freeze residual scenarios on 23/24 -> 24/25 before evaluating 25/26.
+    # Freeze every model choice before evaluating the next season.
+    train_rows=cohort(groups[SEASONS[0]],groups[SEASONS[1]])
+    test_rows=cohort(groups[SEASONS[1]],groups[SEASONS[2]])
+    frozen=SeasonModel(train_rows)
+    validation=evaluate(frozen,test_rows,train_rows)
+    validation.pop('details')
+    production=SeasonModel(train_rows+test_rows)
     train=changes(groups[SEASONS[0]],groups[SEASONS[1]])
     test=changes(groups[SEASONS[1]],groups[SEASONS[2]])
-    errors=[];covered=0;total=0
-    for pid,p in groups[SEASONS[1]].items():
-        actual=groups[SEASONS[2]].get(pid)
-        if not actual or p['games']<20 or p['minutes']<10:continue
-        predicted=p['full']*p['games'];observed=actual['full']*actual['games']
-        errors.append(abs(predicted-observed))
-        scenarios=season_scenarios(p['full'],p['games'],train)
-        covered+=quantile(scenarios,.1)<=observed<=quantile(scenarios,.9);total+=1
     latest=groups[SEASONS[-1]]
     donors=[p for p in latest.values() if p['games']>=20 and p['minutes']>=10]
     scales=[statistics.pstdev(p['features'][j] for p in donors) or 1 for j in range(9)]
@@ -110,31 +112,39 @@ def build(data,rows_by_season):
                 score=centre+(partial(row)-donor['partial'])*ratio-pf+minute_bonus+result
                 scores.append(score);fouls.append(pf);participation.append(minute_bonus);results.append(result)
         mean=statistics.mean(scores)
-        seasonal=season_scenarios(mean,games,residuals)
-        player['forecast']={'version':1,'metric':'FBL_FULL_FORMULA_ESTIMATE','origin':origin,
+        scenario_input={'full':mean,'games':games,'minutes':minutes}
+        season_estimate,season_low,season_high=production.interval(scenario_input)
+        # ESPN remains the provider centre; only historical fallback gets learned correction.
+        raw_mean=mean
+        if origin=='HISTORICAL_BASELINE':
+            mean=season_estimate/games
+            centre+=mean-raw_mean
+        season_low=min(mean*games,season_low)
+        season_high=max(mean*games,season_high)
+        player['forecast']={'version':2,'metric':'FBL_FULL_FORMULA_ESTIMATE','origin':origin,
           'meanPerGame':mean,'games':games,'minutes':minutes,'meanSeason':mean*games,
-          'gameFloor':quantile(scores,.1),'gameCeiling':quantile(scores,.9),
-          'seasonFloor':min(mean*games,quantile(seasonal,.1)),'seasonCeiling':max(mean*games,quantile(seasonal,.9)),
+          'gameFloor':quantile(scores,.1)+(mean-raw_mean),'gameCeiling':quantile(scores,.9)+(mean-raw_mean),
+          'seasonFloor':season_low,'seasonCeiling':season_high,
           'components':{'countingAndMisses':centre,'personalFouls':-statistics.mean(fouls),'participation':statistics.mean(participation),'teamResult':statistics.mean(results)},
           'sampleGames':len(scores),'analogs':[{'name':d['name'],'id':d['id']} for d in selected],
           'rookieExtrapolation':bool(player.get('isRookie')),'rulesSource':RULES,
           'teamResultBasis':'2025-26 team game outcomes reconstructed from complete player logs',
-          'rangeMeaning':'P10/P90 of empirical scenarios; not calibrated personal probabilities. Career ceiling is not estimated.',
-          'seasonRangeBasis':'paired observed changes in per-game FP and games, not independent extremes',
+          'rangeMeaning':'Split-conformal season range targets 80% marginal coverage; ESPN/rookie transfer not independently validated. Game P90 descriptive; career ceiling not estimated.',
+          'seasonRangeBasis':'conditional paired transitions including zero-game seasons; grouped split-conformal calibration',
           'asOf':data['generatedAt']}
         forecasts+=1
     audit={'status':'EXPERIMENTAL_FULL_FORMULA_ESTIMATES','rulesSource':RULES,'checkedAt':data['generatedAt'],
       'minuteEncoding':encoding,'coverage':coverage,'forecastPlayers':forecasts,'rookieForecasts':sum(bool(p.get('isRookie') and p.get('forecast')) for p in data['players']),
-      'holdout':{'trainResiduals':['2023-24','2024-25'],'testSeason':'2025-26','players':total,
-        'historicalPersistenceSeasonMAE':statistics.mean(errors),'empirical80RangeCoverage':covered/total,
-        'target':'Full formula, games reconstructed from supplied logs',
-        'limitation':'Tests historical persistence/scenario construction, NOT historical ESPN forecasts or rookie forecast accuracy.'},
+      'seasonModel':production.report(),
+      'holdout':dict(validation,trainResiduals=['2023-24','2024-25'],testSeason='2025-26',
+        frozenModel=frozen.report(),target='Full formula, including zero-game target seasons',
+        limitation='Historical fallback validation only; not ESPN forecast or rookie validation.'),
       'limitations':['No career-peak model. Game upside is P90 for one game; season upside is a separate paired scenario.',
         'ESPN counting stats/games/minutes are provider forecasts. PF and participation are historical-role estimates.',
         'Team bonuses reflect previous season, not current roster strength or confirmed future outcomes.',
         '2023/24 minutes are truncated integers; seconds cannot be recovered. Team-minute intervals are checked, which is weaker than exact conservation.',
         'Rookie analog ranges are an extrapolation and have no independent rookie holdout calibration.',
-        'Players absent from the target season are excluded from holdout: availability error for these players is not measured.',
+        'Zero-game target seasons included; absence may mean injury, retirement or departure. Marginal conformal coverage can fail under season shift.',
         'Yahoo positions, FBL cap/prices, draft order and any FBL-specific departures from Sports.ru still require league confirmation.']}
     data['forecastAudit']=audit
     return data,audit
