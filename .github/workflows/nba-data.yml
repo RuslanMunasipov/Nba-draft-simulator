@@ -1,0 +1,30 @@
+name: Audit NBA Parquet datasets
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'data/raw/**'
+      - 'scripts/audit_parquet.py'
+      - '.github/workflows/nba-data.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Parquet dependencies
+        run: python -m pip install --disable-pip-version-check 'pandas>=2.2,<3' 'pyarrow>=17,<24'
+      - name: Inspect three NBA seasons
+        run: python scripts/audit_parquet.py
+      - name: Upload schema and quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nba-parquet-audit
+          path: data/reports/parquet-audit.json
+          if-no-files-found: warn
