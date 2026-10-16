@@ -68,7 +68,7 @@ report['limitations']=['User-supplied Kaggle-derived data; source authenticity i
     'No Yahoo positions or 2026/27 roster validation.', 'No official prices or rookie verification.',
     'Core FP excludes result bonuses and is not full FBL FP.',
     'Historical averages are not 2026/27 projections; missing games affect totals and availability estimates.',
-    'Minute encoding is detected by team-minute conservation: 2024/25–2025/26 MM.SS; 2023/24 integer minutes lack seconds.']
+    'Minute encoding is detected by team-minute conservation: 2024/25–2025/26 MM.SS with explicit decimal patch rows preserved; 2023/24 integer minutes lack seconds.']
 Path('data/reports').mkdir(parents=True,exist_ok=True)
 Path('data/reports/parquet-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(report,ensure_ascii=False,indent=2))
