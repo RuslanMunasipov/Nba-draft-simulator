@@ -7,7 +7,7 @@ import {installDatabase} from './database.js';
 const $=id=>document.getElementById(id);
 let state;try{state=importDraft(localStorage.getItem('fbl-draft')||'');}catch{state=newDraft();}
 let database;
-let mode='LIVE';
+let mode=localStorage.getItem('fbl-mode')||'LIVE';
 function save(){localStorage.setItem('fbl-draft',exportDraft(state));render();}
 function showError(error){$('simulation-status').textContent='Не удалось выполнить: '+error.message;}
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
@@ -47,7 +47,7 @@ function render(){
  const used=new Set(state.picks.map(p=>p.playerId));
  const available=state.players.filter(p=>!used.has(p.id)&&matches(p,query)&&(!$('rookies-only').checked||p.isRookie));
  available.sort((a,b)=>(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||riskPriority(a)-riskPriority(b)||(b.projectedFP??-Infinity)-(a.projectedFP??-Infinity));
- $('candidates').replaceChildren(...available.slice(0,30).map(card));
+ $('candidates').replaceChildren(...available.slice(0,30).map(p=>card(p)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
  $('advice').replaceChildren();const a=analyzeRecommendations(state);
  if(!a.length)$('advice').append(text('p',state.players.length?'Нет допустимых рекомендаций для текущего ростера.':'Загружается последняя база…'));
@@ -68,7 +68,7 @@ async function loadDatabase(force=false){
  }
 }
 $('search').oninput=render;$('rookies-only').onchange=render;
-$('draft-mode').onchange=()=>{mode=$('draft-mode').value;$('bots').hidden=mode!=='INTERACTIVE';};
+$('draft-mode').onchange=()=>{mode=$('draft-mode').value;localStorage.setItem('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
 $('undo').onclick=()=>{state=undo(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state={...newDraft(state.players,state.cap,state.priceMode),...(state.databaseVersion?{databaseVersion:state.databaseVersion}:{})};save();}};
 $('price-mode').onchange=()=>{try{state=importDraft(exportDraft({...state,priceMode:$('price-mode').checked?'ON':'OFF'}));save();}catch(e){showError(e);render();}};
@@ -87,4 +87,5 @@ $('batch').onclick=()=>{
  worker.onmessage=({data})=>{finish();$('simulation-status').textContent=data.error?'Ошибка: '+data.error:`100 сценариев; допустимых: ${data.result.eligibleRuns}/100. `+(data.result.wins?'Лучшие суммы базовых оценок: '+data.result.wins.map((n,i)=>`GM ${i+1}: ${n}`).join(', '):'Победитель сценария не определяется.')+' Результаты зависят от оценочных позиций и прогнозов, это не вероятность победы в FBL.';};
  worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1});
 };
+$('draft-mode').value=mode;$('bots').hidden=mode!=='INTERACTIVE';
 render();loadDatabase();

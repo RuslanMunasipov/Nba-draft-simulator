@@ -1,1 +1,17 @@
-{"name":"fbl-draft-intelligence","version":"0.2.2","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","dev":"vite --host 0.0.0.0","build":"vite build","verify":"npm test && npm run build && node scripts/verify-build.js"},"devDependencies":{"vite":"^6.3.0"}}
+{
+  "name": "fbl-draft-intelligence",
+  "version": "0.2.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "verify": "npm test && npm run build && node scripts/verify-build.js",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "vite": "^6.3.0"
+  }
+}

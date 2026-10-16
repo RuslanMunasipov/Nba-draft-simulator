@@ -37,6 +37,10 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Test, build and verify
         run: npm run verify
+      - name: Install browser for mobile smoke tests
+        run: npx playwright install --with-deps chromium
+      - name: Verify automatic mobile startup and draft
+        run: npm run test:browser
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
