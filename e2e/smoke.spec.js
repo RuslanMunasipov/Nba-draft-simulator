@@ -101,3 +101,12 @@ test('rookie timing worker compares all ten rounds while the mobile UI remains u
  await expect(page.locator('#timing-result')).toContainText('предпочтения семи GM неизвестны');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
+
+test('published mobile batch completes 100 drafts without blocking input',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.locator('#batch').click();
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Jokic');
+ await expect(page.locator('#candidates')).toContainText('Jokic');
+ await expect(page.locator('#simulation-status')).toContainText('допустимых: 100/100',{timeout:180000});
+ await expect(page.locator('#batch')).toBeEnabled();
+});
