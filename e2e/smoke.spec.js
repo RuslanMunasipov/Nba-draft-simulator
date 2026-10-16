@@ -148,7 +148,7 @@ test('player name toggles a formatted full report and roster progress stays visi
  await expect(card.getByText('Плюсы пика',{exact:true})).toBeVisible();
  await card.locator('h3').click();await expect(details).not.toHaveAttribute('open','');
  await expect(page.locator('#my-roster')).toContainText('0/10');
- await card.getByRole('button').click();await expect(page.locator('#my-roster')).toContainText('1/10');
+ await card.locator('button').click();await expect(page.locator('#my-roster')).toContainText('1/10');
  await expect(page.getByRole('progressbar',{name:'Прогресс драфта'})).toHaveAttribute('aria-valuenow','1');
  for(const width of [360,768,1280]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);}
 });
