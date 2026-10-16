@@ -9,7 +9,7 @@ export function currentTeam(state) { return state.picks.length % TEAM_COUNT; }
 export function teamRoster(state,team) {
   return state.picks.filter(p=>p.team===team).map(p=>state.players.find(x=>x.id===p.playerId));
 }
-export function teamCost(state,team) { return teamRoster(state,team).reduce((sum,p)=>sum+(p.price??0),0); }
+export function teamCost(state,team) { const roster=teamRoster(state,team);return roster.some(p=>!Number.isFinite(p.price))?null:roster.reduce((sum,p)=>sum+p.price,0); }
 export function isComplete(state) { return state.picks.length === TEAM_COUNT*ROUNDS; }
 export function availableCandidates(state) {
   if(isComplete(state)) return [];

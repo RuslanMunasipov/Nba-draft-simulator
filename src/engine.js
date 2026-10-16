@@ -31,7 +31,7 @@ export function pick(state,playerId){
  if(!rosterFits([...roster,player]))throw Error('Невозможно назначить позиции');
  if(state.priceMode==='ON'&&[...roster,player].some(p=>p.priceStatus!=='VERIFIED'||!Number.isFinite(p.price)))throw Error('Цена не подтверждена');
  if(roster.length===9&&![...roster,player].some(p=>p.isRookie===true))throw Error('В составе нужен минимум один подтверждённый новичок');
- const cost=[...roster,player].reduce((s,p)=>s+(p.price??0),0);
+ const cost=[...roster,player].every(p=>Number.isFinite(p.price))?[...roster,player].reduce((s,p)=>s+p.price,0):null;
  if(state.priceMode==='ON'&&cost>state.cap)throw Error('Превышен Salary Cap');
  return {...state,picks:[...state.picks,{number:state.picks.length+1,team,playerId}]};
 }
