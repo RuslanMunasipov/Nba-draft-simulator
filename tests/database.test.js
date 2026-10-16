@@ -20,3 +20,10 @@ test('pick confidence is reproducible scenario stability, not a promise',()=>{
  const state=newDraft(players);const a=analyzeRecommendations(state),b=analyzeRecommendations(state);assert.deepEqual(a,b);assert.equal(a.length,5);
  for(const r of a){assert.ok(r.stability>=0&&r.stability<=100);assert.ok(r.pressure>=0&&r.pressure<=100);assert.ok(r.advantages.length);assert.ok(r.drawbacks.length);assert.match(r.method,/Не вероятность/);}
 });
+
+test('searched candidate outside top twenty receives an honest comparison',()=>{
+ const state=newDraft(players),focus=players[90],report=analyzeRecommendations(state,focus);
+ assert.equal(report.length,1);assert.equal(report[0].player.id,focus.id);
+ assert.ok(report[0].advantages.length);assert.ok(report[0].drawbacks.some(x=>x.includes('Альтернатива')));
+ assert.match(report[0].conclusion,/Сравнить/);
+});

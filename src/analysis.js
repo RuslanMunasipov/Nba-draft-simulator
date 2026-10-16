@@ -25,17 +25,19 @@ export function selectionPressure(pool,player,seed){
  }
  return lost;
 }
-export function analyzeRecommendations(state){
+export function analyzeRecommendations(state,focus=null){
  const used=new Set(state.picks.map(p=>p.playerId));
  const pool=state.players.filter(p=>!used.has(p.id)&&Number.isFinite(p.projectedFP)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>b.projectedFP-a.projectedFP).slice(0,20);
+ if(focus&&!pool.some(p=>p.id===focus.id)&&!used.has(focus.id)&&Number.isFinite(focus.projectedFP)){try{pick(state,focus.id);if(pool.length===20)pool.pop();pool.push(focus);}catch{}}
  const random=randomFromSeed(101+state.picks.length),wins=new Map(pool.map(p=>[p.id,0]));
  for(let scenario=0;scenario<100;scenario++){
   let best=null,score=-Infinity;
   for(const p of pool){const risk=riskProfile(p);const value=p.projectedFP*(risk.minFactor+random()*(risk.maxFactor-risk.minFactor));if(value>score){score=value;best=p.id;}}
   if(best!==null)wins.set(best,wins.get(best)+1);
  }
- return pool.sort((a,b)=>wins.get(b.id)-wins.get(a.id)||b.projectedFP-a.projectedFP).slice(0,5).map((p,index,array)=>{
-  const risk=riskProfile(p),alternative=array.find(x=>x.id!==p.id),advantages=[`Базовая оценка ${p.projectedFP.toFixed(2)} ФО за матч по ${p.projectionBaseSeason||'группе молодых игроков'}`,'Допустим для текущего позиционного состава'];
+ pool.sort((a,b)=>wins.get(b.id)-wins.get(a.id)||b.projectedFP-a.projectedFP);
+ return (focus?pool.filter(p=>p.id===focus.id):pool.slice(0,5)).map(p=>{
+  const risk=riskProfile(p),alternative=pool.find(x=>x.id!==p.id),advantages=[`Базовая оценка ${p.projectedFP.toFixed(2)} ФО за матч по ${p.projectionBaseSeason||'группе молодых игроков'}`,'Допустим для текущего позиционного состава'];
   if(p.isRookie)advantages.push('Закрывает обязательное требование rookie');
   if(p.positions.length>1)advantages.push('Гибкость позиций '+p.positions.join('/')+' в используемом источнике');
   if(!risk.flags.length)advantages.push('В загруженных данных не обнаружены дополнительные флаги риска; это не гарантия здоровья');
@@ -44,7 +46,7 @@ export function analyzeRecommendations(state){
   if(alternative)drawbacks.push(`Альтернатива сейчас: ${alternative.name} (${alternative.projectedFP.toFixed(2)} базовых ФО/матч)`);
   const stability=wins.get(p.id),pressure=selectionPressure(pool,p,551+state.picks.length);
   return {player:p,risk,advantages,drawbacks,stability,pressure,
-   conclusion:index===0?(stability>=60?'Предпочтительный выбор в этом стресс-тесте':'Однозначного пика нет: лидер зависит от допущений'):'Сравнить с лидером, особенно если нужен этот слот или rookie',
+   conclusion:p.id===pool[0]?.id?(stability>=60?'Предпочтительный выбор в этом стресс-тесте':'Однозначного пика нет: лидер зависит от допущений'):'Сравнить с лидером, особенно если нужен этот слот или rookie',
    method:`${stability} из 100 условных сценариев дали лучший результат среди ${pool.length} допустимых кандидатов. Нагрузка/роль: ${Math.round(risk.minFactor*100)}–${Math.round(risk.maxFactor*100)}% базовой оценки — стресс-допущение, не прогноз. Не вероятность победы и не калиброванная уверенность. Потребность других GM до следующего пика не подтверждена.`};
  });
 }

@@ -33,3 +33,15 @@ test('rookies and all requested explanation fields appear without settings',asyn
  await expect(page.locator('#candidates .player-card').first()).toContainText('групповая историческая оценка');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
+
+test('searched Kawhi and Maxey have risk, comparison and scenario confidence',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ for(const name of ['Kawhi','Maxey']){
+  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill(name);
+  const card=page.locator('#candidates .player-card').first();
+  await expect(card).toContainText('Уверенность пика:');
+  await expect(card).toContainText('Плюсы пика');await expect(card).toContainText('Минусы и альтернативы');
+  await expect(card).toContainText('Альтернатива сейчас:');
+ }
+ await expect(page.locator('#candidates')).toContainText('Изменение роли:');
+});

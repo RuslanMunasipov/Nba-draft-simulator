@@ -47,7 +47,7 @@ function render(){
  const used=new Set(state.picks.map(p=>p.playerId));
  const available=state.players.filter(p=>!used.has(p.id)&&matches(p,query)&&(!$('rookies-only').checked||p.isRookie));
  available.sort((a,b)=>(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||riskPriority(a)-riskPriority(b)||(b.projectedFP??-Infinity)-(a.projectedFP??-Infinity));
- $('candidates').replaceChildren(...available.slice(0,30).map(p=>card(p)));
+ $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p,query.length>=2&&index<5?analyzeRecommendations(state,p)[0]:null)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
  $('advice').replaceChildren();const a=analyzeRecommendations(state);
  if(!a.length)$('advice').append(text('p',state.players.length?'Нет допустимых рекомендаций для текущего ростера.':'Загружается последняя база…'));
