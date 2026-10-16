@@ -1,3 +1,6 @@
+import {readStored,writeStored,storageFailed} from './storage.js';
+import {fetchDatabase} from './database-loader.js';
+import './theme.js';
 import {reportElement} from './rookie-reports.js';
 import './baseline.js';
 import './history.js';
@@ -9,10 +12,15 @@ import {rookieRecommendations} from './rookies.js';
 import {pickCompletion} from './completion.js';
 import {installDatabase} from './database.js';
 const $=id=>document.getElementById(id);
-let state;try{state=importDraft(localStorage.getItem('fbl-draft')||'');}catch{state=newDraft();}
+let state;try{state=importDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
 let database;
-let mode=localStorage.getItem('fbl-mode')||'LIVE';
-function save(){localStorage.setItem('fbl-draft',exportDraft(state));render();}
+let mode=readStored('fbl-mode')||'LIVE';
+function save(){writeStored('fbl-draft',exportDraft(state));render();updateSaveStatus();}
+function updateSaveStatus(){
+ const message=storageFailed()?'Хранилище недоступно: пики только до закрытия страницы. Сохрани резервную копию в настройках.':'Сохранение на устройстве';
+ $('save-state').textContent=message;$('storage-status').textContent=storageFailed()?message:'';
+ $('storage-status').hidden=!storageFailed();
+}
 function showError(error){$('simulation-status').textContent='Не удалось выполнить: '+error.message;}
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
 function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
@@ -124,21 +132,36 @@ function render(){
  renderRookies();
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · сумма базовых оценок ${t.projectedFP?.toFixed(2)??'—'} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
+let databaseLoading=false;
 async function loadDatabase(force=false){
+ if(databaseLoading)return;databaseLoading=true;
+ $('load-retry').hidden=true;$('startup-status').textContent='Загружаю базу игроков…';
+ // Render a valid cached database before waiting for the network.
+ if(!state.players.length){
+  try{const cached=JSON.parse(readStored('fbl-default-db')||'null');if(cached){state=installDatabase(state,cached);database=cached;save();$('startup-status').textContent='Сохранённая база готова. Проверяю обновление…';}}catch{}
+ }
  $('database-status').textContent='Обновляю базу игроков…';
  try{
-  const response=await fetch(import.meta.env.BASE_URL+'data/default-draft.json',{cache:'no-cache'});if(!response.ok)throw Error('Источник недоступен');
-  const candidate=await response.json();newDraft(candidate.players,20000,'OFF');database=candidate;
-  localStorage.setItem('fbl-default-db',JSON.stringify(database));
-  if(force||!state.players.length||(state.databaseVersion&&state.databaseVersion!=='manual')||(!state.picks.length&&!state.databaseVersion)){state=installDatabase(state,database);save();}
-  $('database-status').textContent=`База ${database.coverage.players} игроков · rookie ${database.coverage.rookies} · обновлена ${new Date(database.generatedAt).toLocaleString('ru-RU')}. Источник позиций — ESPN, не Yahoo. Оценки экспериментальные, ФО без бонуса результата.`;
+  const candidate=await fetchDatabase(import.meta.env.BASE_URL+'data/default-draft.json');
+  newDraft(candidate.players,20000,'OFF');
+  if(force||!state.players.length||(state.databaseVersion&&state.databaseVersion!=='manual')||(!state.picks.length&&!state.databaseVersion)){
+   const installed=installDatabase(state,candidate);
+   state=installed;database=candidate;
+   // Applying the fetched database must not depend on storage capacity.
+   save();
+  }else database=candidate;
+  writeStored('fbl-default-db',JSON.stringify(candidate));updateSaveStatus();
+  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Источник позиций — ESPN, не Yahoo. Оценки экспериментальные, ФО без бонуса результата.`;
+  $('startup-status').textContent=`База готова · ${state.players.length} игроков`;
  }catch(e){
-  try{database=JSON.parse(localStorage.getItem('fbl-default-db'));if(database&&(!state.players.length||force)){state=installDatabase(state,database);save();}}catch{}
-  $('database-status').textContent=state.players.length?'Источник обновления недоступен. Используется сохранённая база; пики сохранены.':'Не удалось получить базу. Нажмите «Обновить базу» в настройках; файл от вас не требуется.';
- }
+  const message=state.players.length?'Источник обновления недоступен. Используется сохранённая база; пики сохранены.':'Не удалось загрузить базу. Нажми «Повторить загрузку».';
+  $('database-status').textContent=message;$('startup-status').textContent=message;$('load-retry').hidden=false;
+  if(!state.players.length)$('advice').replaceChildren(text('p',message));
+ }finally{databaseLoading=false;updateSaveStatus();}
 }
+$('load-retry').onclick=()=>loadDatabase(true);
 $('search').oninput=render;$('rookies-only').onchange=render;
-$('draft-mode').onchange=()=>{mode=$('draft-mode').value;localStorage.setItem('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
+$('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
 $('undo').onclick=()=>{state=undo(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state={...newDraft(state.players,state.cap,state.priceMode),...(state.databaseVersion?{databaseVersion:state.databaseVersion}:{})};save();}};
 $('price-mode').onchange=()=>{try{state=importDraft(exportDraft({...state,priceMode:$('price-mode').checked?'ON':'OFF'}));save();}catch(e){showError(e);render();}};
@@ -158,4 +181,4 @@ $('batch').onclick=()=>{
  worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1});
 };
 $('draft-mode').value=mode;$('bots').hidden=mode!=='INTERACTIVE';
-render();loadDatabase();
+render();updateSaveStatus();loadDatabase();

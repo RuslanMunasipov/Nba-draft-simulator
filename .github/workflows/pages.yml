@@ -38,7 +38,7 @@ jobs:
       - name: Test, build and verify
         run: npm run verify
       - name: Install browser for mobile smoke tests
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - name: Verify automatic mobile startup and draft
         run: npm run test:browser
       - uses: actions/configure-pages@v5
@@ -61,7 +61,7 @@ jobs:
           node-version: '22'
       - name: Install published-site verification dependencies
         run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - name: Verify published mobile site
         env:
           PLAYWRIGHT_BASE_URL: ${{ steps.deployment.outputs.page_url }}

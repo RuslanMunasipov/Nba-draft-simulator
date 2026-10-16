@@ -6,7 +6,11 @@ export function renderTiming(state){
  if(!state.players.length){$('timing-status').textContent='Жду базу индивидуальных прогнозов…';return;}
  if(state.picks.some(p=>p.team===0&&state.players.find(x=>x.id===p.playerId)?.isRookie)){$('timing-status').textContent='Ваш обязательный rookie уже выбран. Расчёт первого rookie больше не нужен.';return;}
  $('timing-status').textContent='Сравниваю раунды выбора в сценариях раннего, среднего, позднего и смешанного спроса GM… Интерфейс доступен.';
- const snapshot=state,current=new Worker(new URL('./rookie-timing-worker.js',import.meta.url),{type:'module'});worker=current;
+ const snapshot=state;let current;
+ try{current=new Worker(new URL('./rookie-timing-worker.js',import.meta.url),{type:'module'});}catch{
+  $('timing-status').textContent='Расчёт сценариев недоступен в этом браузере. База, рекомендации и ручной драфт работают.';return;
+ }
+ worker=current;
  current.onerror=()=>{current.terminate();if(previous===snapshot)$('timing-status').textContent='Не удалось завершить расчёт. Точный раунд не будет выдуман.';};
  current.onmessage=({data})=>{
   current.terminate();if(previous!==snapshot)return;
