@@ -21,6 +21,7 @@ test('training automatically executes seven bots and full default draft',async({
  await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
  await page.getByRole('button',{name:'Завершить симуляцию',exact:true}).click();
  await expect(page.locator('#turn')).toHaveText('Драфт завершён');
+ await expect(page.locator('#advice')).toHaveText('Драфт завершён. Все 80 выборов сохранены.');
  await expect(page.locator('#history li')).toHaveCount(80);
  await expect(page.locator('#results li')).toHaveCount(8);
 });
