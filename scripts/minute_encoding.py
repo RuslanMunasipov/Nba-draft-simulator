@@ -11,10 +11,11 @@ def normalize_minutes(rows,season):
     if not fractional:
         mode='TRUNCATED_INTEGER_MINUTES'
     elif converted/len(teams)>=.8 and converted>raw:
-        if any(round((r['minutes']%1)*100)>=60 for r in rows):raise ValueError('Invalid clock seconds '+season)
+        bad=[r for r in rows if round((r['minutes']%1)*100)>60]
+        if bad:raise ValueError('Invalid clock seconds '+str((season,len(bad),[(r.get('player_name'),r['minutes']) for r in bad[:8]])))
         mode='MM_SS_NUMERIC'
     elif raw/len(teams)>=.8:
         mode='DECIMAL_MINUTES'
     else:raise ValueError('Unresolved minute encoding '+str((season,raw,converted,len(teams))))
     result=[{**r,'minutes':clock(r['minutes']) if mode=='MM_SS_NUMERIC' else r['minutes'],'minuteEncoding':mode} for r in rows]
-    return result,{'encoding':mode,'rawConservedTeamGames':raw,'clockConservedTeamGames':converted,'teamGames':len(teams),'fractionalRows':fractional,'secondsMissing':mode=='TRUNCATED_INTEGER_MINUTES'}
+    return result,{'encoding':mode,'rawConservedTeamGames':raw,'clockConservedTeamGames':converted,'teamGames':len(teams),'fractionalRows':fractional,'secondsMissing':mode=='TRUNCATED_INTEGER_MINUTES','carried60SecondRows':sum(round((r['minutes']%1)*100)==60 for r in rows)}
