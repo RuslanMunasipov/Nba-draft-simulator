@@ -9,7 +9,7 @@ export function currentTeam(state) { return state.picks.length % TEAM_COUNT; }
 export function teamRoster(state,team) {
   return state.picks.filter(p=>p.team===team).map(p=>state.players.find(x=>x.id===p.playerId));
 }
-export function teamCost(state,team) { return teamRoster(state,team).reduce((sum,p)=>sum+p.price,0); }
+export function teamCost(state,team) { return teamRoster(state,team).reduce((sum,p)=>sum+(p.price??0),0); }
 export function isComplete(state) { return state.picks.length === TEAM_COUNT*ROUNDS; }
 export function availableCandidates(state) {
   if(isComplete(state)) return [];
@@ -19,12 +19,14 @@ export function availableCandidates(state) {
 export function botPick(state,random=randomFromSeed(1),style='balanced') {
   let candidates=availableCandidates(state);
   const roster=teamRoster(state,currentTeam(state));
-  // Take a rookie before the supply is exhausted; reserve budget for every slot.
+  // Reserve a rookie; budget is only relevant when official prices exist.
   if(!roster.some(p=>p.isRookie===true)) candidates=candidates.filter(p=>p.isRookie===true);
-  const remaining=ROUNDS-roster.length;
-  const affordable=candidates.filter(p=>p.price<=(state.cap-teamCost(state,currentTeam(state)))/remaining);
-  if(affordable.length)candidates=affordable;
-  if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, цены, cap и справочник');
+  if(state.priceMode==='ON'){
+    const remaining=ROUNDS-roster.length;
+    const affordable=candidates.filter(p=>p.price<=(state.cap-teamCost(state,currentTeam(state)))/remaining);
+    if(affordable.length)candidates=affordable;
+  }
+  if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
   const ranked=candidates.filter(p=>Number.isFinite(p.projectedFP)).sort((a,b)=>b.projectedFP-a.projectedFP);
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
@@ -63,7 +65,7 @@ export function batchSimulations(state,{runs=100,seed=1}={}) {
   for(let i=0;i<runs;i++){
     const completed=simulateDraft(state,{seed:seed+i});
     const summary=draftSummary(completed);
-    const eligible=summary.every((t,i)=>t.projectedFP!==null&&t.rookieRule==='PASS'&&t.cost<=completed.cap&&rosterFits(teamRoster(completed,i)));
+    const eligible=summary.every((t,i)=>t.projectedFP!==null&&t.rookieRule==='PASS'&&(completed.priceMode!=='ON'||t.cost<=completed.cap)&&rosterFits(teamRoster(completed,i)));
     const best=eligible?Math.max(...summary.map(t=>t.projectedFP)):null;
     results.push({seed:seed+i,teams:summary,winners:best===null?[]:summary.filter(t=>t.projectedFP===best).map(t=>t.team),eligible});
   }
