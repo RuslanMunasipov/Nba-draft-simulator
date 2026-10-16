@@ -41,6 +41,7 @@ function card(p,analysis=null){
   evidence.append(text('p','Статистическая база: '+(p.projectionBaseSeason||'групповой ориентир')+'. Историческое среднее не гарантирует такую же роль и нагрузку.'));
   if(p.rosterSource){const source=document.createElement('a');source.href=p.rosterSource;source.textContent='Источник ростера и статусов ESPN';evidence.append(source);}el.append(evidence);
  }
+ if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
  if(analysis?.completion?.possible===false){b.disabled=true;b.title=analysis.completion.reason;}
@@ -61,6 +62,9 @@ function render(){
  $('advice').replaceChildren();const a=analyzeRecommendations(state);
  if(!a.length)$('advice').append(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':state.players.length?'Нет допустимых рекомендаций: проверьте позиции, rookie и бюджет полного состава.':'Загружается последняя база…'));
  for(const analysis of a)$('advice').append(card(analysis.player,analysis));
+ $('risky-advice').replaceChildren();const risky=analyzeRecommendations(state,null,true).slice(0,3);
+ for(const analysis of risky)$('risky-advice').append(card(analysis.player,analysis));
+ $('risk-section').hidden=!risky.length;
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · сумма базовых оценок ${t.projectedFP?.toFixed(2)??'—'} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 async function loadDatabase(force=false){

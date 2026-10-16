@@ -59,3 +59,9 @@ Do not convert historical averages into a season prediction, invent missing pric
 - A min-cost circulation finds the cheapest legal full roster, not merely a cheap player per slot; multiposition players cannot fill two slots. Tests compare it with exhaustive independent subset enumeration, plus specific rookie/position/budget traps.
 - This is a bound at current availability, not a global eight-team allocation or a guarantee against the next seven opponent choices. Simulator bots retain their heuristic policy; arbitrary externally imported histories are still recordable through the core engine.
 - Pros/cons compare the candidate's base FP and identified risk with a named alternative. A 0% first-place frequency is explicitly not a claim that the player is useless. Season availability and total season FP remain unvalidated.
+
+## Availability-first candidate selection
+- The top-20 cutoff now follows an availability-aware index, not raw per-game FP. Recent historical game counts have double the prior season weight, divided by 82. This is a transparent caution policy, not expected games or calibrated injury probability. Role-change and OUT factors are explicit stress assumptions.
+- Main recommendations use feasible non-HIGH-risk candidates whenever any exist. HIGH-risk candidates remain searchable and in a separate collapsed section. Required rookies/only legal high-risk completions fall back with explicit speculative wording; no names are blacklisted.
+- Bots use the same availability-aware ordering; full 100-run acceptance must pass again.
+- ESPN screenshots supplied on 16 October show one expert 8-team roto mock (Embiid pick 71, Davis pick 19). Those ranks are context, not ADP, FBL FP or season projections. No ESPN numeric projections were imported: the projections page rendered no player table in the inspected browser, and the attempted public feed returned HTTP 400. Never replace unavailable forecasts with invented numbers.

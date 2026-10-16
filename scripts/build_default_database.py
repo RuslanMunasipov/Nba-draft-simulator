@@ -100,6 +100,7 @@ def make_database(history,baseline,current,now):
     history_by_id={p['id']:p for p in history['players']}
     for p in players.values():
         historical=history_by_id.get(p.get('nbaId'))
+        p['historyReferenceSeason']='2025-26'
         p['historyGames']={year:season['games'] for year,season in historical['seasons'].items()} if historical else {}
         competition=[]
         for other in players.values():
@@ -133,6 +134,8 @@ if __name__=='__main__':
     history=json.loads(Path('public/data/nba-history.json').read_text())
     baseline=json.loads(Path('public/data/experimental-baseline.json').read_text())
     data=make_database(history,baseline,current,now)
+    market=json.loads(Path('data/market-context.json').read_text())
+    for p in data['players']:p['marketContext']=market.get(str(p['id']))
     notes=json.loads(Path('data/player-notes.json').read_text())
     for p in data['players']:p['roleContext']=notes.get(str(p['id']))
     if data['coverage']['rookies']<8:raise ValueError('Insufficient source-reported rookies')
