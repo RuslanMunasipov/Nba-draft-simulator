@@ -24,6 +24,10 @@ test('training automatically executes seven bots and full default draft',async({
  await expect(page.locator('#advice')).toHaveText('Драфт завершён. Все 80 выборов сохранены.');
  await expect(page.locator('#history li')).toHaveCount(80);
  await expect(page.locator('#results li')).toHaveCount(8);
+ await expect(page.locator('#results')).toContainText('ФО за сезон');
+ await expect(page.locator('#simulation-status')).toContainText('сезонных прогнозов ФО');
+ await expect(page.locator('#simulation-status')).not.toContainText('ФО/матч');
+ await expect(page.locator('#rookie-status')).toContainText('Драфт завершён');
 });
 test('rookies and all requested explanation fields appear without settings',async({page})=>{
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
