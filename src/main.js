@@ -25,7 +25,7 @@ function card(p,analysis=null){
  el.append(text('p',[p.team,p.positions.join('/')].filter(Boolean).join(' · ')));
  if(individualRookie)el.append(text('strong',`Индивидуальный прогноз: ${individualRookie.componentFPPerGame.toFixed(1)} частичных ФО/матч; фолы и бонусы не учтены. Сравнение — в блоке rookie.`));
  else if(Number.isFinite(p.projectedFP))el.append(text('strong','Основа оценки: '+p.projectedFP.toFixed(2)+' ФО/матч'));else el.append(text('span',''));
- if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&!individualRookie)el.append(text('p','Групповой исторический ориентир; индивидуальный разбор — ниже.'));
+ if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&!individualRookie)el.append(text('p','Групповой исторический ориентир, не персональный прогноз.'));
  if(p.coverageStatus==='EARLIER_SEASON')el.append(text('p','Пропуск/малая выборка последнего сезона: автоматически использована база '+p.projectionBaseSeason+'. Текущая нагрузка неизвестна.'));
  if(p.injuries?.length)el.append(text('p','Статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
  if(p.returnContext)el.append(text('p',p.returnContext.note));

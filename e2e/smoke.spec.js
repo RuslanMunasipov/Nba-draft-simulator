@@ -31,7 +31,7 @@ test('rookies and all requested explanation fields appear without settings',asyn
  await expect(first).toContainText('Риск:');await expect(first).toContainText('Уверенность пика:');
  await expect(first).toContainText('Плюсы пика');await expect(first).toContainText('Минусы и альтернативы');
  await page.getByRole('checkbox',{name:'Только rookie',exact:true}).check();
- await expect(page.locator('#candidates .player-card').first()).toContainText(/групповая историческая оценка|Индивидуальный прогноз/);
+ await expect(page.locator('#candidates .player-card').first()).toContainText(/Групповой исторический ориентир|Индивидуальный прогноз/);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
 
