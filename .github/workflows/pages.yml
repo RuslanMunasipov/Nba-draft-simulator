@@ -30,6 +30,8 @@ jobs:
           python scripts/build_baseline.py
       - name: Fetch current rosters and build automatic draft database
         run: python scripts/build_default_database.py
+      - name: Audit historical projection provenance
+        run: python scripts/audit_projection_archive.py
       - name: Build and audit full-formula forecasts and ceilings
         run: python scripts/build_forecasts.py
       - uses: actions/setup-node@v4

@@ -36,3 +36,11 @@ test('valid full forecasts do not depend on obsolete projectedFP being populated
  const state=simulateDraft(newDraft(players.map(p=>({...p,projectedFP:null}))),{seed:3});
  assert.equal(state.picks.length,80);assert.ok(draftSummary(state).every(t=>t.score!==null));
 });
+
+test('forecast stress scenarios use distinct rookie and veteran season bounds without changing units',()=>{
+ const ps=players.map(p=>({...p,forecast:{...p.forecast,seasonFloor:100+p.id,seasonCeiling:4000+p.id}}));
+ const state=newDraft(ps),r=simulateRookieTiming(state,timingCohort(state),2,DEMAND_PROFILES[1],4,'rookieUpside');
+ const picked=r.picks.filter(p=>p.team===0).map(p=>ps.find(x=>x.id===p.playerId));
+ assert.equal(r.teamScore,picked.reduce((s,p)=>s+(p.isRookie?p.forecast.seasonCeiling:p.forecast.seasonFloor),0));
+ assert.equal(r.valid,true);
+});

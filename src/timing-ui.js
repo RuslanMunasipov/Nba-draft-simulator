@@ -17,7 +17,7 @@ export function renderTiming(state){
   if(data.error){$('timing-status').textContent=data.error;return;}
   const r=data.result,unit=r.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО':'частичных ФО';
   if(r.covered){$('timing-status').textContent=r.message;return;}
-  $('timing-status').textContent=`Проверено ${r.totalDrafts} условных драфтов · ${r.cohort} сопоставимых прогнозов · ${r.rookies} rookie.`;
+  $('timing-status').textContent=`Проверено ${r.totalDrafts} условных драфтов · ${r.cohort} сопоставимых прогнозов · ${r.rookies} rookie.${r.sensitivityDrafts?' Дополнительно '+r.sensitivityDrafts+' стресс-прогонов прогноза.':''}`;
   const box=$('timing-result');
   box.append(text('h3',r.decision),text('p',r.reason));
   if(r.recommendedRound===null){box.append(text('strong','Нет проверенного решения: стратегии содержат недопустимые прогоны.'));return;}
@@ -37,6 +37,12 @@ export function renderTiming(state){
    }
    comparison.append(text('small','Сравниваются два плана на одинаковых сценариях. Во время чужого хода варианты относятся к нашему следующему пику; до него доступность может измениться.'));
    box.append(comparison);
+  }
+  if(r.forecastSensitivity?.length){
+   const sensitivity=document.createElement('details');sensitivity.append(text('summary','Устойчивость к прогнозу rookie'));
+   for(const s of r.forecastSensitivity)sensitivity.append(text('p',s.name+': '+s.decision+(s.valid?` · сейчас минус ожидание [${Math.round(s.min)}; ${Math.round(s.max)}] ФО состава.`:'. Нет допустимого продолжения.'));
+   sensitivity.append(text('p','Это крайние сценарии: сезонные границы rookie и ветеранов меняются в противоположные стороны. Они проверяют устойчивость, но не являются вероятностями или совместным прогнозом всех игроков.'));
+   box.append(sensitivity);
   }
   const advanced=document.createElement('details');advanced.append(text('summary','Математика и сценарии'));box.append(advanced);
   for(const p of r.paired??[]){

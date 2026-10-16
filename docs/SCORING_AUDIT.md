@@ -37,3 +37,7 @@ LIMITED. This change makes scores comparable and exposes a testable complete-for
 - Full-formula scores drive rookie timing, bot selection, draft summaries and batch winners; no per-game/season or partial/full mixing.
 - Availability candidates include historical absolute next-season games (median/mean) and paired changes, selected on fit-only player-excluded season MAE alongside persistence.
 - Rookie missing-component transfer is tested using first-year NBA profiles, prior-season donors and current ESPN experience. Actual counting stats/minutes are known inputs, so this does not validate future rookie ESPN predictions. Current-roster survivorship remains a limitation.
+
+- Forecast sensitivity pairs rookie-upside/veteran-downside and the reverse, using identical seeds and demand profiles for now-versus-next choices. A conflicting stress decision changes the headline to unstable. Bounds are deliberate extremes, not joint probabilities.
+- Six surviving historical rookies passed the component-test cohort in the first run; donor transfer did not improve the zero-net-component comparator. This limitation is displayed rather than presented as successful rookie validation.
+- Historical ESPN season endpoints are inspected in Actions; live past-season projections are excluded from forecast backtesting without independently dated preseason provenance.

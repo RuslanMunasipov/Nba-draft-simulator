@@ -32,10 +32,14 @@ export function compatibleProfile(state,players,profile){
 }
 // One complete straight draft. Common seed and per-turn randomness pair round
 // strategies without pretending that ADP supplies a calibrated pick probability.
-export function simulateRookieTiming(state,players,targetRound,profile,seed){
+export function simulateRookieTiming(state,players,targetRound,profile,seed,scenario='base'){
  const byId=new Map(players.map(p=>[p.id,p])),used=new Set(),rosters=Array.from({length:8},()=>[]),picks=[];
  const metric=scoringMetric(state);
- const value=p=>metric===FULL_SEASON?fullSeason(p):p.espnContext.individualProjection.componentSeasonTotal;
+ const value=p=>{
+  if(metric!==FULL_SEASON)return p.espnContext.individualProjection.componentSeasonTotal;
+  const key=scenario==='rookieUpside'?(p.isRookie?'seasonCeiling':'seasonFloor'):scenario==='veteranUpside'?(p.isRookie?'seasonFloor':'seasonCeiling'):'meanSeason';
+  return Number.isFinite(p.forecast[key])?p.forecast[key]:fullSeason(p);
+ };
  const valueOrder=[...players].sort((a,b)=>value(b)-value(a)||String(a.id).localeCompare(String(b.id)));
  const marketOrder=[...players].sort((a,b)=>(a.espnContext?.adp??9999)-(b.espnContext?.adp??9999)||value(b)-value(a));
  for(const choice of state.picks){const p=byId.get(choice.playerId);used.add(p.id);rosters[choice.team].push(p);picks.push({...choice});}
@@ -137,8 +141,25 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
   return {rookieNow,veteranNow,alternatives,lost,observed:observed.length,id:p.id,name:p.name,mean:delta.reduce((a,b)=>a+b,0)/delta.length,min:delta[0],max:delta.at(-1),nowNames:p.names,nextNames:other.names};
  }):[];
  const now=paired.length>0&&paired.every(p=>p.min>0),wait=paired.length>0&&paired.every(p=>p.max<0);
- const decision=!next&&current?.valid?'Брать сейчас':now?'Брать сейчас':wait?'Можно ждать до следующего хода':'Результат неустойчив';
- const reason=!next&&current?.valid?'Следующего нашего хода для выполнения обязательного rookie нет.':now?'Во всех парных прогонах текущий выбор дал больший итог состава.':wait?'Во всех парных прогонах ожидание дало больший итог состава.':'Знак преимущества меняется, равен нулю или есть невалидные продолжения.';
- return {metric:scoringMetric(state),decision,reason,paired,ourPick:current?.pick??null,nextPick:next?.pick??null,teamsNeedingRookie:Array.from({length:7},(_,i)=>i+1).filter(team=>!state.picks.some(p=>p.team===team&&players.find(x=>x.id===p.playerId)?.isRookie)).length,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
+ let decision=!next&&current?.valid?'Брать сейчас':now?'Брать сейчас':wait?'Можно ждать до следующего хода':'Результат неустойчив';
+ let reason=!next&&current?.valid?'Следующего нашего хода для выполнения обязательного rookie нет.':now?'Во всех парных прогонах текущий выбор дал больший итог состава.':wait?'Во всех парных прогонах ожидание дало больший итог состава.':'Знак преимущества меняется, равен нулю или есть невалидные продолжения.';
+ const forecastSensitivity=[];
+ if(scoringMetric(state)===FULL_SEASON&&current?.valid&&next?.valid){
+  for(const [scenario,name] of [['rookieUpside','Сильный rookie / слабые ветераны'],['veteranUpside','Слабый rookie / сильные ветераны']]){
+   const deltas=[];let valid=true;
+   for(const profile of profilesToUse)for(let i=0;i<3;i++){
+    const now=simulateRookieTiming(state,players,current.round,profile,seed+i,scenario);
+    const wait=simulateRookieTiming(state,players,next.round,profile,seed+i,scenario);
+    if(!now.valid||!wait.valid)valid=false;else deltas.push(now.teamScore-wait.teamScore);
+   }
+   const min=valid?Math.min(...deltas):null,max=valid?Math.max(...deltas):null;
+   forecastSensitivity.push({name,valid,min,max,decision:valid&&min>0?'Брать сейчас':valid&&max<0?'Можно ждать до следующего хода':'Результат неустойчив'});
+  }
+  if(forecastSensitivity.some(s=>!s.valid||s.decision!==decision)){
+   decision='Результат неустойчив';
+   reason='Совет меняется при сильном/слабом сценарии rookie относительно ветеранов. Базовый прогноз не даёт устойчивого преимущества по моменту пика.';
+  }
+ }
+ return {sensitivityDrafts:forecastSensitivity.length*profilesToUse.length*3*2,forecastSensitivity,metric:scoringMetric(state),decision,reason,paired,ourPick:current?.pick??null,nextPick:next?.pick??null,teamsNeedingRookie:Array.from({length:7},(_,i)=>i+1).filter(team=>!state.picks.some(p=>p.team===team&&players.find(x=>x.id===p.playerId)?.isRookie)).length,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
   method:'Основной критерий — максимальная средняя сумма сезонных оценок полного состава в единой метрике при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. Для автоматической базы учитываются все компоненты формулы, включая оценочные фолы и бонусы. Импорт без полной модели сравнивается отдельно по частичным ФО. Позиции ESPN не подтверждены по Yahoo. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
 }
