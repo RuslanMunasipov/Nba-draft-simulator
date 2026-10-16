@@ -20,6 +20,20 @@ export function renderTiming(state){
   box.append(text('h3',`Условный лучший план: раунд ${r.recommendedRound}, наш пик №${r.recommendedPick}`));
   box.append(text('p',r.stable?'Этот раунд лидирует во всех совместимых заданных сценариях. Это не гарантия реальных действий GM.':`Единого устойчивого раунда нет: сценарные лидеры — от ${r.profileRange[0]} до ${r.profileRange[1]} раунда. После реальных пиков расчёт обновится.`));
   box.append(text('p',`Отрыв от следующего плана по среднему результату: ${r.meanGap?.toFixed(0)??'—'} частичных ФО за сезон всего состава. Малые разницы не доказывают преимущество: PF и бонусы не учтены.`));
+  if(r.paired?.length){
+   const comparison=document.createElement('section');comparison.id='rookie-tradeoff';
+   comparison.append(text('h3','Rookie сейчас или ветеран сейчас'),text('p',`Наш пик №${r.ourPick} → следующий №${r.nextPick}. Соперников без rookie: ${r.teamsNeedingRookie}/7.`));
+   const names=counts=>Object.entries(counts).map(([name,n])=>`${name} (${n})`).join(', ')||'нет допустимого варианта';
+   for(const p of r.paired){
+    comparison.append(text('strong',p.name),
+     text('p','Rookie сейчас: '+names(p.rookieNow)+'. Ветеран сейчас при ожидании: '+names(p.veteranNow)+'.'),
+     text('p',`Потеря rookie до следующего хода: ${p.lost}/${p.observed} сценариев. Это частота в модели, не вероятность реального выбора GM.`),
+     text('p','Выбор на следующем ходу при ожидании: '+names(p.alternatives)+'.'),
+     text('p',`Rookie сейчас минус ожидание: ${Math.round(p.mean)} частичных ФО всего состава; диапазон [${Math.round(p.min)}; ${Math.round(p.max)}]. Числа в скобках у имён — количество прогонов.`));
+   }
+   comparison.append(text('small','Сравниваются два плана на одинаковых сценариях. Во время чужого хода варианты относятся к нашему следующему пику; до него доступность может измениться.'));
+   box.append(comparison);
+  }
   const advanced=document.createElement('details');advanced.append(text('summary','Математика и сценарии'));box.append(advanced);
   for(const p of r.paired??[]){
    advanced.append(text('p',`${p.name}: сейчас минус следующий ход — среднее ${Math.round(p.mean)}, диапазон [${Math.round(p.min)}; ${Math.round(p.max)}] частичных ФО состава. Это диапазон симуляций, не доверительный интервал.`));

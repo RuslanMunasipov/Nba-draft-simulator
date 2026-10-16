@@ -87,7 +87,10 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed){
  const valid=rosters.every(r=>r.length===10&&r.some(p=>p.isRookie)&&rosterFits(r)&&(state.priceMode!=='ON'||r.reduce((s,p)=>s+p.price,0)<=state.cap));
  const human=rosters[0],rookie=human.filter(p=>p.isRookie).reduce((s,p)=>s+value(p),0),veterans=human.filter(p=>!p.isRookie).reduce((s,p)=>s+value(p),0);
  const topThree=new Set(valueOrder.filter(p=>p.isRookie).slice(0,3).map(p=>p.id));
- return {valid,picks,actualRookieRound,topTier:human.some(p=>topThree.has(p.id)),rookieScore:rookie,veteranScore:veterans,teamScore:rookie+veterans,rookieNames:human.filter(p=>p.isRookie).map(p=>p.name)};
+ const future=picks.slice(state.picks.length),humanChoices=future.filter(p=>p.team===0);
+ const firstChoice=humanChoices[0],nextChoice=humanChoices[1];
+ const atNextTurn=nextChoice?future.filter(p=>p.number<nextChoice.number).map(p=>p.playerId):null;
+ return {firstChoice,nextChoice,atNextTurn,valid,picks,actualRookieRound,topTier:human.some(p=>topThree.has(p.id)),rookieScore:rookie,veteranScore:veterans,teamScore:rookie+veterans,rookieNames:human.filter(p=>p.isRookie).map(p=>p.name)};
 }
 export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
  if(!Number.isInteger(runs)||runs<1||runs>100)throw Error('Для расчёта раунда допустимо 1–100 прогонов на сценарий');
@@ -98,7 +101,7 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
    const outcomes=Array.from({length:runs},(_,i)=>simulateRookieTiming(state,players,round,profile,seed+i));
    const valid=outcomes.filter(r=>r.valid),mean=key=>valid.length?valid.reduce((sum,r)=>sum+r[key],0)/valid.length:null;
    const names={};for(const r of valid)for(const name of r.rookieNames)names[name]=(names[name]||0)+1;
-   return {id:profile.id,name:profile.name,runs,validRuns:valid.length,topTierRuns:valid.filter(r=>r.topTier).length,meanTeam:mean('teamScore'),meanRookie:mean('rookieScore'),meanVeterans:mean('veteranScore'),meanActualRound:mean('actualRookieRound'),names,scores:outcomes.map(r=>r.valid?r.teamScore:null)};
+   return {id:profile.id,name:profile.name,runs,validRuns:valid.length,topTierRuns:valid.filter(r=>r.topTier).length,meanTeam:mean('teamScore'),meanRookie:mean('rookieScore'),meanVeterans:mean('veteranScore'),meanActualRound:mean('actualRookieRound'),names,branches:round<=firstRound+1?outcomes.map(r=>({valid:r.valid,firstChoice:r.firstChoice,nextChoice:r.nextChoice,atNextTurn:r.atNextTurn})):[],scores:outcomes.map(r=>r.valid?r.teamScore:null)};
   });
   rows.push({round,pick:(round-1)*8+1,profiles});
  }
@@ -123,11 +126,16 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
  const current=rows[0],next=rows[1];
  const paired=current?.valid&&next?.valid?current.profiles.map(p=>{
   const other=next.profiles.find(q=>q.id===p.id),delta=p.scores.map((v,i)=>v-other.scores[i]).sort((a,b)=>a-b);
-  return {id:p.id,name:p.name,mean:delta.reduce((a,b)=>a+b,0)/delta.length,min:delta[0],max:delta.at(-1),nowNames:p.names,nextNames:other.names};
+  const counts=choices=>{const result={};for(const c of choices){const player=players.find(x=>x.id===c?.playerId);if(player)result[player.name]=(result[player.name]||0)+1;}return result;};
+  const rookieNow=counts(p.branches.map(b=>b.firstChoice)),veteranNow=counts(other.branches.map(b=>b.firstChoice));
+  const alternatives=counts(other.branches.map(b=>b.nextChoice));
+  const losses=p.branches.map((b,i)=>other.branches[i].atNextTurn?.includes(b.firstChoice?.playerId)??null);
+  const observed=losses.filter(x=>x!==null),lost=observed.filter(Boolean).length;
+  return {rookieNow,veteranNow,alternatives,lost,observed:observed.length,id:p.id,name:p.name,mean:delta.reduce((a,b)=>a+b,0)/delta.length,min:delta[0],max:delta.at(-1),nowNames:p.names,nextNames:other.names};
  }):[];
  const now=paired.length>0&&paired.every(p=>p.min>0),wait=paired.length>0&&paired.every(p=>p.max<0);
  const decision=!next&&current?.valid?'Брать сейчас':now?'Брать сейчас':wait?'Можно ждать до следующего хода':'Результат неустойчив';
  const reason=!next&&current?.valid?'Следующего нашего хода для выполнения обязательного rookie нет.':now?'Во всех парных прогонах текущий выбор дал больший итог состава.':wait?'Во всех парных прогонах ожидание дало больший итог состава.':'Знак преимущества меняется, равен нулю или есть невалидные продолжения.';
- return {decision,reason,paired,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
+ return {decision,reason,paired,ourPick:current?.pick??null,nextPick:next?.pick??null,teamsNeedingRookie:Array.from({length:7},(_,i)=>i+1).filter(team=>!state.picks.some(p=>p.team===team&&players.find(x=>x.id===p.playerId)?.isRookie)).length,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
   method:'Основной критерий — максимальная средняя сумма частичных ФО полного состава при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. PF и бонусы не учтены; позиции ESPN не подтверждены по Yahoo. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
 }

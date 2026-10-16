@@ -110,3 +110,17 @@ test('published mobile batch completes 100 drafts without blocking input',async(
  await expect(page.locator('#simulation-status')).toContainText('допустимых: 100/100',{timeout:180000});
  await expect(page.locator('#batch')).toBeEnabled();
 });
+
+test('specific rookie tradeoff updates after seven bots and disappears after our rookie pick',async({page})=>{
+ await page.goto('./');
+ await expect(page.locator('#rookie-tradeoff')).toContainText('Наш пик №1 → следующий №9',{timeout:180000});
+ await expect(page.locator('#rookie-tradeoff')).toContainText('Потеря rookie до следующего хода:');
+ await page.getByRole('combobox',{name:'Режим',exact:true}).selectOption('INTERACTIVE');
+ await page.locator('#advice .player-card button').first().click();
+ await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
+ await expect(page.locator('#rookie-tradeoff')).toContainText('Наш пик №9 → следующий №17',{timeout:180000});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+ await page.locator('#rookie-advice button').first().click();
+ await expect(page.locator('#timing-status')).toContainText('rookie уже выбран');
+ await expect(page.locator('#rookie-tradeoff')).toHaveCount(0);
+});

@@ -50,3 +50,21 @@ test('real opponent rookie picks update demand and remove taken rookie alternati
  assert.equal(a.rows[0].pick,9);assert.equal(a.bestByProfile.length,1);assert.equal(a.bestByProfile[0].id,'mixed');
  for(const row of a.rows)for(const p of row.profiles)assert.ok(!Object.hasOwn(p.names,players[120].name));
 });
+
+test('specific rookie loss counts equal opponent selections before the next human turn',()=>{
+ const state=newDraft(players),a=rookieTimingStudy(state,{runs:3});
+ assert.equal(a.ourPick,1);assert.equal(a.nextPick,9);assert.equal(a.teamsNeedingRookie,7);
+ for(const p of a.paired){
+  const profile=DEMAND_PROFILES.find(x=>x.id===p.id);
+  let lost=0;
+  for(let i=0;i<3;i++){
+   const now=simulateRookieTiming(state,players,1,profile,2026+i),wait=simulateRookieTiming(state,players,2,profile,2026+i);
+   assert.equal(players.find(x=>x.id===now.firstChoice.playerId).isRookie,true);
+   assert.equal(players.find(x=>x.id===wait.firstChoice.playerId).isRookie,false);
+   if(wait.picks.some(x=>x.number<9&&x.playerId===now.firstChoice.playerId))lost++;
+  }
+  assert.equal(p.observed,3);assert.equal(p.lost,lost);
+  assert.equal(Object.values(p.rookieNow).reduce((x,y)=>x+y,0),3);
+  assert.equal(Object.values(p.veteranNow).reduce((x,y)=>x+y,0),3);
+ }
+});
