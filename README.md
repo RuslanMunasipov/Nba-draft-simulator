@@ -1,18 +1,11 @@
-# FBL Draft Intelligence — alpha 0.1
+# FBL Draft Intelligence
 
-Mobile-first draft prototype. Run `npm install && npm test && npm run build`.
+Mobile browser draft tracker and simulation prototype for FBL 2026/27, 18 October 2026.
 
-## Implemented
-- Straight 8-team, 10-round draft with pick history and local persistence.
-- Position matching, price verification, salary-cap checks, undo, JSON export/import.
-- Manual player JSON import and basic candidate list.
+`npm ci && npm run verify` tests and builds the app. The Pages workflow first installs pinned PyArrow and runs `python scripts/audit_parquet.py` to generate historical reference data from `data/raw`. No local Python installation is needed for users.
 
-## NOT implemented / blocking live use
-- No verified NBA roster, Yahoo positions, Sports.ru prices, or scoring data.
-- No projections, rookie rule, opponent bots, season simulations, or cloud persistence.
-- Import does not independently verify authenticity of prices or Yahoo positions.
-- Candidate list is NOT a mathematically optimized recommendation.
-- No edit of arbitrary historical picks, only undo.
-- Browser storage is device-local. Export backups regularly.
+Draft rules: 8 teams, 10 straight rounds, two slots per PG/SG/SF/PF/C with multi-position matching, one rookie minimum. Official-price/cap checks are optional until prices are available. Saves are device-local; JSON export/import provides backups.
 
-**NO-GO as a primary live draft advisor until these are implemented and tested.**
+Historical source: three user-supplied Parquet game logs, marked `kaggle_v515`. CI validates structure and arithmetic consistency, not external source authenticity. Historical base FP excludes result bonuses. No historical value is published as a 2026/27 forecast. Yahoo positions, current teams, injuries and prices are still unverified.
+
+See [acceptance status](docs/ACCEPTANCE.md). **LIMITED utility; not approved as a primary analytical draft advisor.**

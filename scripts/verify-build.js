@@ -15,3 +15,8 @@ const assets=await readdir('dist/assets');
 assert.ok(assets.some(name=>/^batch-worker-.*\.js$/.test(name)), 'Missing simulation worker');
 for(const name of assets)assert.ok((await stat('dist/assets/'+name)).size>0);
 console.log('Worker and all emitted assets verified:',assets.length);
+const history=JSON.parse(await readFile('dist/data/nba-history.json','utf8'));
+assert.equal(history.seasons.length,3);
+assert.ok(history.players.length>500,'Historical data missing');
+assert.ok(history.players.every(p=>!('projectedFP' in p)&&!('price' in p)), 'History must not pretend to be forecasts or prices');
+console.log('Historical reference verified:',history.players.length,'players; no fabricated forecasts');

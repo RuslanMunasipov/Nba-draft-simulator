@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install Parquet dependencies
-        run: python -m pip install --disable-pip-version-check 'pandas>=2.2,<3' 'pyarrow>=17,<24'
+        run: python -m pip install --disable-pip-version-check pyarrow==23.0.1
       - name: Inspect three NBA seasons
         run: python scripts/audit_parquet.py
       - name: Upload schema and quality report
