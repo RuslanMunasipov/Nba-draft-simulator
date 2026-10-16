@@ -41,3 +41,8 @@ LIMITED. This change makes scores comparable and exposes a testable complete-for
 - Forecast sensitivity pairs rookie-upside/veteran-downside and the reverse, using identical seeds and demand profiles for now-versus-next choices. A conflicting stress decision changes the headline to unstable. Bounds are deliberate extremes, not joint probabilities.
 - Six surviving historical rookies passed the component-test cohort in the first run; donor transfer did not improve the zero-net-component comparator. This limitation is displayed rather than presented as successful rookie validation.
 - Historical ESPN season endpoints are inspected in Actions; live past-season projections are excluded from forecast backtesting without independently dated preseason provenance.
+
+## Published position evidence
+- Actions fetches Dan Titus / Yahoo Sports' 2026/27 position table published on NBA.com. Exact, unique normalized-name mapping only; no editorial rank, team or forecast data is copied into the valuation.
+- This corrects known ESPN mapping errors, including Wembanyama SF/PF -> C. Published analyst positions are labelled separately from an authenticated live Yahoo-league eligibility response; unmatched players retain ESPN estimates.
+- The source season, table size, mapping coverage and Wembanyama regression are build gates. No silent replacement with old or incomplete position data.
