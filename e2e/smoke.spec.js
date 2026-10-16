@@ -112,6 +112,8 @@ test('published mobile batch completes 100 drafts without blocking input',async(
 });
 
 test('specific rookie tradeoff updates after seven bots and disappears after our rookie pick',async({page})=>{
+ const players=Array.from({length:140},(_,i)=>({id:i+1,name:'SYNTHETIC '+i,isRookie:i>=120,positions:['PG','SG','SF','PF','C'],projectedFP:30-i/10,historyGames:{'2024-25':78,'2025-26':78},espnContext:{fetchedAt:'2026-10-16T00:00:00Z',adp:i+1,projectedGames:78,individualProjection:{metric:'FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES',componentSeasonTotal:2400-i*10,componentFPPerGame:(2400-i*10)/78,games:78,perGame:{minutes:30,points:20,rebounds:5,assists:4,steals:1,blocks:1,turnovers:2}}}}));
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-16T00:00:00Z',players,coverage:{players:140,rookies:20}}}));
  await page.goto('./');
  await expect(page.locator('#rookie-tradeoff')).toContainText('Наш пик №1 → следующий №9',{timeout:180000});
  await expect(page.locator('#rookie-tradeoff')).toContainText('Потеря rookie до следующего хода:');
@@ -122,5 +124,13 @@ test('specific rookie tradeoff updates after seven bots and disappears after our
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
  await page.locator('#rookie-advice button').first().click();
  await expect(page.locator('#timing-status')).toContainText('rookie уже выбран');
+ await expect(page.locator('#rookie-tradeoff')).toHaveCount(0);
+});
+
+test('missing forecast in recorded picks blocks timing instead of inventing a comparison',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Haliburton');
+ await page.locator('#candidates').getByRole('button',{name:'Выбрать Tyrese Haliburton',exact:true}).click();
+ await expect(page.locator('#timing-status')).toContainText('нет сопоставимого индивидуального прогноза',{timeout:180000});
  await expect(page.locator('#rookie-tradeoff')).toHaveCount(0);
 });
