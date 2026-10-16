@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 import pyarrow.parquet as pq
+from minute_encoding import normalize_minutes
 
 SEASONS = ('2023-24', '2024-25', '2025-26')
 STATS = ('pts','reb','ast','stl','blk','fga','fgm','fta','ftm','tov','pf','minutes')
@@ -45,6 +46,7 @@ for season in SEASONS:
         report['seasons'][season]=details
         if games!=1230:
             report['warnings'].append(f'{season}: {games}/1230 regular-season games; coverage is incomplete or game classification needs verification')
+        rows,details['minuteEncoding']=normalize_minutes(rows,season)
         grouped=defaultdict(list)
         for r in rows:
             grouped[r['player_id']].append(r)
@@ -66,7 +68,7 @@ report['limitations']=['User-supplied Kaggle-derived data; source authenticity i
     'No Yahoo positions or 2026/27 roster validation.', 'No official prices or rookie verification.',
     'Core FP excludes result bonuses and is not full FBL FP.',
     'Historical averages are not 2026/27 projections; missing games affect totals and availability estimates.',
-    'Upstream parser documents decimal minutes; uploaded rows are not independently cross-checked.']
+    'Minute encoding is detected by team-minute conservation: 2024/25–2025/26 MM.SS; 2023/24 integer minutes lack seconds.']
 Path('data/reports').mkdir(parents=True,exist_ok=True)
 Path('data/reports/parquet-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(report,ensure_ascii=False,indent=2))

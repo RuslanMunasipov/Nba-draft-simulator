@@ -6,6 +6,10 @@ import json, math, statistics
 from collections import defaultdict
 from pathlib import Path
 import pyarrow.parquet as pq
+try:
+    from minute_encoding import normalize_minutes
+except ImportError:
+    from scripts.minute_encoding import normalize_minutes
 
 SEASONS=['2023-24','2024-25','2025-26']
 RULES='https://www.sports.ru/fantasy/basketball/tournament/rules/150.html'
@@ -27,8 +31,12 @@ def result_bonuses(rows):
         a,b=teams.values();sa=sum(r['pts'] for r in a);sb=sum(r['pts'] for r in b)
         # Team-point reconstruction needs both complete lineups, not one player row.
         minutes=[sum(r['minutes'] for r in team) for team in [a,b]]
-        valid=lambda m:any(abs(m-(240+25*o))<2 for o in range(6))
-        if sa==sb or any(len(t)<5 for t in [a,b]) or not all(map(valid,minutes)):
+        def valid(team,m):
+            if team[0].get('minuteEncoding')=='TRUNCATED_INTEGER_MINUTES':
+                upper=m+sum(r['minutes']>0 for r in team)
+                return any(m<=240+25*o<upper for o in range(6))
+            return any(abs(m-(240+25*o))<.5 for o in range(6))
+        if sa==sb or any(len(t)<5 for t in [a,b]) or not all(valid(t,m) for t,m in zip([a,b],minutes)):
             rejected+=1;continue
         for team,won in [(a,sa>sb),(b,sb>sa)]:
             homes={bool(r['home']) for r in team}
@@ -51,8 +59,9 @@ def changes(before,after):
 def season_scenarios(mean,games,residuals):
     return [(mean+d)*max(0,min(82,games+g)) for d,g in residuals]
 def build(data,rows_by_season):
-    bonuses={};groups={};coverage={}
+    bonuses={};groups={};coverage={};encoding={}
     for year,rows in rows_by_season.items():
+        rows,encoding[year]=normalize_minutes(rows,year)
         bonuses[year],coverage[year]=result_bonuses(rows)
         groups[year]=profiles(rows,bonuses[year])
         if coverage[year]['usableGames']<1000:raise ValueError('Insufficient complete games for full scoring '+year)
@@ -88,7 +97,9 @@ def build(data,rows_by_season):
         nearest=sorted(donors,key=lambda d:sum(((a-b)/s)**2 for a,b,s in zip(features,d['features'],scales)))[:10]
         selected=[source] if source and source['games']>=20 and source['minutes']>=10 else nearest
         scores=[];fouls=[];participation=[];results=[]
-        team_values=team_bonuses.get(player.get('team'))
+        aliases=[['SA','SAN','SAS'],['GS','GSW'],['NY','NYK'],['NO','NOP'],['UTAH','UTA'],['WSH','WAS'],['PHO','PHX'],['BKN','BRK']]
+        candidates=next((names for names in aliases if player.get('team') in names),[player.get('team')])
+        team_values=next((team_bonuses[name] for name in candidates if name in team_bonuses),None)
         team_mean=statistics.mean(team_values) if team_values else statistics.mean(bonuses[SEASONS[-1]].values())
         for donor in selected:
             ratio=minutes/donor['minutes']
@@ -113,7 +124,7 @@ def build(data,rows_by_season):
           'asOf':data['generatedAt']}
         forecasts+=1
     audit={'status':'EXPERIMENTAL_FULL_FORMULA_ESTIMATES','rulesSource':RULES,'checkedAt':data['generatedAt'],
-      'coverage':coverage,'forecastPlayers':forecasts,'rookieForecasts':sum(bool(p.get('isRookie') and p.get('forecast')) for p in data['players']),
+      'minuteEncoding':encoding,'coverage':coverage,'forecastPlayers':forecasts,'rookieForecasts':sum(bool(p.get('isRookie') and p.get('forecast')) for p in data['players']),
       'holdout':{'trainResiduals':['2023-24','2024-25'],'testSeason':'2025-26','players':total,
         'historicalPersistenceSeasonMAE':statistics.mean(errors),'empirical80RangeCoverage':covered/total,
         'target':'Full formula, games reconstructed from supplied logs',
@@ -121,6 +132,7 @@ def build(data,rows_by_season):
       'limitations':['No career-peak model. Game upside is P90 for one game; season upside is a separate paired scenario.',
         'ESPN counting stats/games/minutes are provider forecasts. PF and participation are historical-role estimates.',
         'Team bonuses reflect previous season, not current roster strength or confirmed future outcomes.',
+        '2023/24 minutes are truncated integers; seconds cannot be recovered. Team-minute intervals are checked, which is weaker than exact conservation.',
         'Rookie analog ranges are an extrapolation and have no independent rookie holdout calibration.',
         'Players absent from the target season are excluded from holdout: availability error for these players is not measured.',
         'Yahoo positions, FBL cap/prices, draft order and any FBL-specific departures from Sports.ru still require league confirmation.']}
