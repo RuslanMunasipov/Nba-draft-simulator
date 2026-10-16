@@ -1,3 +1,4 @@
+import {draftValue} from './valuation.js';
 import './model-audit.js';
 import {readStored,writeStored,storageFailed} from './storage.js';
 import {fetchDatabase} from './database-loader.js';
@@ -143,7 +144,7 @@ function render(){
  const query=$('search').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  const used=new Set(state.picks.map(p=>p.playerId));
  const available=state.players.filter(p=>!used.has(p.id)&&matches(p,query)&&(!$('rookies-only').checked||p.isRookie));
- available.sort((a,b)=>(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||riskPriority(a)-riskPriority(b)||(b.projectedFP??-Infinity)-(a.projectedFP??-Infinity));
+ available.sort((a,b)=>(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||Number(Boolean(b.forecast))-Number(Boolean(a.forecast))||riskPriority(a)-riskPriority(b)||draftValue(b)-draftValue(a));
  $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p,query.length>=2&&index<5?analyzeRecommendations(state,p)[0]:null)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
  $('advice').replaceChildren();const a=analyzeRecommendations(state);
@@ -153,7 +154,7 @@ function render(){
  for(const analysis of risky)$('risky-advice').append(card(analysis.player,analysis));
  $('risk-section').hidden=!risky.length;
  renderRookies();
- $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??'оценка состава неполная'} · rookie ${t.rookieCount} (${t.rookieRule})`));}
+ $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 let databaseLoading=false;
 async function loadDatabase(force=false){

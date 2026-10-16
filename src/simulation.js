@@ -60,7 +60,7 @@ export function draftSummary(state) {
   return Array.from({length:TEAM_COUNT},(_,team)=>{
     const roster=teamRoster(state,team);
     const allProjected=roster.length===ROUNDS&&roster.every(p=>Number.isFinite(p.projectedFP));
-    const metric=scoringMetric(state),complete=roster.length===ROUNDS&&roster.every(p=>seasonScore(p,metric)!==null);
+    const metric=scoringMetric(state),complete=roster.length>0&&roster.every(p=>seasonScore(p,metric)!==null);
     return {team:team+1,players:roster.length,cost:teamCost(state,team),metric,
       score:complete?roster.reduce((sum,p)=>sum+seasonScore(p,metric),0):null,
       projectedFP:allProjected?roster.reduce((sum,p)=>sum+p.projectedFP,0):null,
@@ -74,7 +74,7 @@ export function batchSimulations(state,{runs=100,seed=1}={}) {
   for(let i=0;i<runs;i++){
     const completed=simulateDraft(state,{seed:seed+i});
     const summary=draftSummary(completed);
-    const eligible=summary.every((t,i)=>t.score!==null&&t.rookieRule==='PASS'&&(completed.priceMode!=='ON'||t.cost<=completed.cap)&&rosterFits(teamRoster(completed,i)));
+    const eligible=summary.every((t,i)=>t.players===ROUNDS&&t.score!==null&&t.rookieRule==='PASS'&&(completed.priceMode!=='ON'||t.cost<=completed.cap)&&rosterFits(teamRoster(completed,i)));
     const best=eligible?Math.max(...summary.map(t=>t.score)):null;
     results.push({seed:seed+i,teams:summary,winners:best===null?[]:summary.filter(t=>t.score===best).map(t=>t.team),eligible});
   }

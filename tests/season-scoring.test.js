@@ -44,3 +44,9 @@ test('forecast stress scenarios use distinct rookie and veteran season bounds wi
  assert.equal(r.teamScore,picked.reduce((s,p)=>s+(p.isRookie?p.forecast.seasonCeiling:p.forecast.seasonFloor),0));
  assert.equal(r.valid,true);
 });
+
+test('partial roster shows current seasonal sum but missing forecast stays explicit',()=>{
+ const state={...newDraft(players),picks:[{number:1,team:0,playerId:1}]};
+ assert.equal(draftSummary(state)[0].score,players[0].forecast.meanSeason);
+ assert.equal(draftSummary(state)[1].score,null);
+});
