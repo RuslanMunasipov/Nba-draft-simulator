@@ -69,3 +69,15 @@ const {rookieTimingStudy}=await import('../src/rookie-timing.js');
 const timing=rookieTimingStudy(draft);assert.ok(timing.recommendedRound>=1&&timing.recommendedRound<=10);
 assert.equal(timing.totalDrafts,960);assert.ok(timing.rows.every(r=>r.profiles.every(p=>p.validRuns===p.runs)));
 console.log('Rookie timing study verified:',JSON.stringify({round:timing.recommendedRound,pick:timing.recommendedPick,profiles:timing.bestByProfile,range:timing.profileRange,meanGap:timing.meanGap,drafts:timing.totalDrafts}));
+
+assert.ok(database.forecastAudit.forecastPlayers>=80,'Full-formula forecast coverage');
+assert.ok(database.forecastAudit.rookieForecasts>=8,'Individual full-formula rookie forecasts');
+assert.ok(database.forecastAudit.holdout.players>100);
+for(const p of database.players.filter(p=>p.forecast)){
+ const f=p.forecast;assert.equal(f.metric,'FBL_FULL_FORMULA_ESTIMATE');
+ assert.ok(Number.isFinite(f.meanPerGame)&&Number.isFinite(f.meanSeason)&&f.games>0&&f.games<=82);
+ assert.ok(Math.abs(Object.values(f.components).reduce((a,b)=>a+b,0)-f.meanPerGame)<1e-6,'Component identity '+p.name);
+ assert.ok(f.gameFloor<=f.gameCeiling&&f.seasonFloor<=f.meanSeason&&f.meanSeason<=f.seasonCeiling);
+}
+console.log('Complete formula forecast audit:',JSON.stringify(database.forecastAudit));
+console.log('Complete rookie projections:',JSON.stringify(rookieRecommendations(draft).players.map(p=>({name:p.name,forecast:p.forecast}))));

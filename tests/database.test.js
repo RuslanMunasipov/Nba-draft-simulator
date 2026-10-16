@@ -14,11 +14,11 @@ test('unknown positions remain searchable but not draftable; provider IDs are na
 });
 test('risk automatically detects role changes and unstable availability',()=>{
  assert.ok(riskProfile({...players[30],newHighVolumeTeammates:['SYNTHETIC star']}).flags.some(s=>s.includes('роли')));
- assert.equal(riskProfile({...players[30],historyGames:{'2024-25':36,'2025-26':65}}).level,'ВЫСОКИЙ');
+ assert.equal(riskProfile({...players[30],historyGames:{'2024-25':36,'2025-26':65}}).level,'СРЕДНИЙ');
 });
 test('pick confidence is reproducible scenario stability, not a promise',()=>{
  const state=newDraft(players);const a=analyzeRecommendations(state),b=analyzeRecommendations(state);assert.deepEqual(a,b);assert.equal(a.length,5);
- for(const r of a){assert.ok(r.stability>=0&&r.stability<=100);assert.ok(r.pressure>=0&&r.pressure<=100);assert.ok(r.advantages.length);assert.ok(r.drawbacks.length);assert.match(r.method,/Не вероятность/);}
+ for(const r of a){assert.equal(r.stability,null);assert.equal(r.pressure,null);assert.ok(r.advantages.length);assert.ok(r.drawbacks.length);assert.match(r.method,/Это не вероятность/);}
 });
 
 test('searched candidate outside top twenty receives an honest comparison',()=>{
@@ -41,7 +41,7 @@ test('advice excludes high-FP picks that prevent rookie completion',()=>{
 test('advice explains numerical tradeoff and exact full-roster budget',()=>{
  const state=newDraft(players.map(p=>({...p,price:100,priceStatus:'VERIFIED'})),20000,'ON');
  const report=analyzeRecommendations(state)[0];assert.equal(report.completion.minimumCost,1000);
- assert.ok(report.advantages.some(s=>s.includes('Минимальный бюджет')));
- assert.ok([...report.advantages,...report.drawbacks].some(s=>s.includes('Базовая разница')));
- assert.match(report.method,/0% означает/);
+ assert.ok(!report.advantages.some(s=>/Минимальный бюджет|полный позиционный состав/.test(s)));
+ assert.ok(report.drawbacks.some(s=>s.includes('Альтернатива сейчас')));
+ assert.match(report.method,/Проверка добора состава выполняется отдельно/);
 });

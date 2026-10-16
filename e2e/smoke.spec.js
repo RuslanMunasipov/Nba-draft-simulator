@@ -28,10 +28,10 @@ test('training automatically executes seven bots and full default draft',async({
 test('rookies and all requested explanation fields appear without settings',async({page})=>{
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
  const first=page.locator('#advice .player-card').first();
- await expect(first).toContainText('Риск:');await expect(first).toContainText('Уверенность пика:');
+ await expect(first).toContainText('Риск:');await expect(first).toContainText('Прогноз сезона:');
  await expect(first).toContainText('Плюсы пика');await expect(first).toContainText('Минусы и альтернативы');
  await page.getByRole('checkbox',{name:'Только rookie',exact:true}).check();
- await expect(page.locator('#candidates .player-card').first()).toContainText(/Групповой исторический ориентир|Индивидуальный прогноз/);
+ await expect(page.locator('#candidates .player-card').first()).toContainText(/Групповой исторический ориентир|Индивидуальный прогноз|ФО за сезон/);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
 
@@ -40,7 +40,7 @@ test('searched Kawhi and Maxey have risk, comparison and scenario confidence',as
  for(const name of ['Kawhi','Maxey']){
   await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill(name);
   const card=page.locator('#candidates .player-card').first();
-  await expect(card).toContainText('Уверенность пика:');
+  await expect(card).toContainText('Прогноз сезона:');
   await expect(card).toContainText('Плюсы пика');await expect(card).toContainText('Минусы и альтернативы');
   await expect(card).toContainText('Альтернатива сейчас:');
  }
@@ -86,9 +86,9 @@ test('Embiid source game projection is visible without promoting him into safe p
 test('rookie board uses individual ESPN projections instead of one group value',async({page})=>{
  await page.goto('./');await expect(page.locator('#rookie-advice .player-card')).toHaveCount(5);
  const card=page.locator('#rookie-advice .player-card').first();
- await expect(card).toContainText('частичных ФО/матч');await expect(card).toContainText('мин/матч');
+ await expect(card).toContainText('ФО/матч');await expect(card).toContainText('мин/матч');
  await expect(card).toContainText('PTS');await expect(card).toContainText('TOV');
- await expect(card).toContainText('фолы и бонусы пока не учтены');
+ await expect(card).toContainText('NBA Ceiling');
  await expect(page.locator('#rookie-status')).toContainText('Индивидуальный прогноз есть');
 });
 
@@ -154,10 +154,24 @@ test('player name toggles a formatted full report and roster progress stays visi
 });
 test('rookie name opens sourced editorial scouting report beside individual forecast',async({page})=>{
  await page.goto('./');const card=page.locator('#rookie-advice .player-card').first();
- await expect(card).toContainText('Cameron Boozer');
+ await expect(card.locator('.forecast-panel')).toHaveCount(1);
  await card.locator('h3').click();
  await expect(card.getByRole('heading',{name:'Что даёт в фэнтези',exact:true})).toBeVisible();
  await expect(card.getByRole('heading',{name:'На что смотреть',exact:true})).toBeVisible();
- await expect(card.locator('.scouting-report a')).toHaveAttribute('href',/nba.com/);
+ await expect(card.locator('.scouting-report a')).toHaveAttribute('href',/nba.com|rotoballer|fantasypros/);
  await expect(card.locator('.stats-grid .stat-cell')).toHaveCount(6);
+});
+
+test('season forecasts include full formula, distinct ceilings and no fake confidence',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ const card=page.locator('#advice .player-card').first();await card.locator('h3').click();
+ await expect(card.locator('.forecast-panel')).toContainText('Потолок матча · P90');
+ await expect(card.locator('.forecast-panel')).toContainText('Сильный сезон');
+ await expect(card).not.toContainText('Уверенность пика');
+ await expect(card).not.toContainText('После пика существует полный позиционный состав');
+ await expect(card).not.toContainText('Однозначного пика нет');
+ await expect(card).toContainText('Альтернатива сейчас:');
+ await page.getByText('Модель и проверка · формула, потолок, точность',{exact:true}).click();
+ await expect(page.locator('#model-report')).toContainText('MAE');
+ for(const width of [360,768]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);}
 });

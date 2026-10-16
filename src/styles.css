@@ -43,3 +43,12 @@ html{background:var(--bg)}
 #advice,#candidates,#rookie-advice,#risky-advice{align-items:start}
 .quick-nav{top:max(8px,env(safe-area-inset-top));isolation:isolate}
 @media(max-width:600px){.toolbar{gap:8px}.theme-control{margin-left:auto}.toolbar select{min-height:42px}.quick-nav a{padding:11px 3px}.hero{padding-top:22px;padding-bottom:16px}}
+
+.forecast-panel{padding:16px;border:1px solid var(--line);border-radius:12px;margin:18px 0}
+.forecast-panel h4{font-size:14px;margin:0 0 14px;color:var(--green)}
+.forecast-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.forecast-grid>div{background:var(--bg);border-radius:9px;padding:10px}
+.forecast-grid small,.forecast-grid strong{display:block;margin:0}
+.forecast-grid strong{font-size:20px;color:var(--ink)}
+.forecast-panel p,#model-report p{font-size:12px;line-height:1.8}
+.forecast-grid+ p{margin-top:12px}

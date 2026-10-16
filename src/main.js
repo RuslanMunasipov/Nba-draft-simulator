@@ -1,3 +1,4 @@
+import './model-audit.js';
 import {readStored,writeStored,storageFailed} from './storage.js';
 import {fetchDatabase} from './database-loader.js';
 import './theme.js';
@@ -31,8 +32,9 @@ function card(p,analysis=null){
  el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
  const risk=analysis?.risk||riskProfile(p);el.append(text('strong','Риск: '+risk.level));
  el.append(text('p',[p.team,p.positions.join('/')].filter(Boolean).join(' · ')));
- if(individualRookie)el.append(text('strong',`Индивидуальный прогноз: ${individualRookie.componentFPPerGame.toFixed(1)} частичных ФО/матч; фолы и бонусы не учтены. Сравнение — в блоке rookie.`));
- else if(Number.isFinite(p.projectedFP))el.append(text('strong','Основа оценки: '+p.projectedFP.toFixed(2)+' ФО/матч'));else el.append(text('span',''));
+ if(p.forecast)el.append(text('strong',`${p.forecast.meanPerGame.toFixed(1)} ФО/матч · ${Math.round(p.forecast.meanSeason)} ФО за сезон`));
+ else if(individualRookie)el.append(text('strong',`Индивидуальный прогноз: ${individualRookie.componentFPPerGame.toFixed(1)} частичных ФО/матч; фолы и бонусы не учтены. Сравнение — в блоке rookie.`));
+ else if(Number.isFinite(p.projectedFP))el.append(text('strong','Историческая основа: '+p.projectedFP.toFixed(2)+' ФО/матч'));else el.append(text('span',''));
  if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&!individualRookie)el.append(text('p','Групповой исторический ориентир, не персональный прогноз.'));
  if(p.coverageStatus==='EARLIER_SEASON')el.append(text('p','Пропуск/малая выборка последнего сезона: автоматически использована база '+p.projectionBaseSeason+'. Текущая нагрузка неизвестна.'));
  if(p.injuries?.length)el.append(text('p','Статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
@@ -45,8 +47,8 @@ function card(p,analysis=null){
   if(analysis.pressure!==null)el.append(text('p','Брать сейчас или ждать: в '+analysis.pressure+' из 100 эвристических сценариев игрок уходил за следующие 7 выборов, если мы брали альтернативу. Это не реальная вероятность действий GM.'));
   el.append(text('strong','Плюсы пика'));const pros=document.createElement('ul');for(const value of analysis.advantages)pros.append(text('li',value));el.append(pros);
   el.append(text('strong','Минусы и альтернативы'));const cons=document.createElement('ul');for(const value of analysis.drawbacks)cons.append(text('li',value));el.append(cons);
-  el.append(text('small','Процент сравнивает кандидатов сейчас, а не предсказывает успех сезона. 0% не означает, что игрок бесполезен.'));
-  const details=document.createElement('details');details.append(text('summary','Как рассчитан процент'),text('p',analysis.method));el.append(details);
+
+  const details=document.createElement('details');details.append(text('summary','Как рассчитан прогноз'),text('p',analysis.method));el.append(details);
  }
  if(p.sourceUpdatedAt||p.rosterSource){
   const evidence=document.createElement('details');evidence.append(text('summary','Источники и актуальность'));
@@ -57,6 +59,7 @@ function card(p,analysis=null){
  if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: ${[source.projectedGames!=null?'прогноз матчей '+source.projectedGames:null,Number.isFinite(source.adp)?'ADP '+source.adp.toFixed(2):null].filter(Boolean).join(' · ')}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
  if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
+ if(p.forecast)el.append(forecastCard(p));
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
  if(analysis?.completion?.possible===false){b.disabled=true;b.title=analysis.completion.reason;}
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
@@ -65,6 +68,21 @@ function card(p,analysis=null){
  el.dataset.risk=risk.level.includes('ВЫСОКИЙ')?'high':risk.level.includes('СРЕДНИЙ')?'medium':'low';
  organizeCard(el,b,4);
  return el;
+}
+
+
+function forecastCard(p){
+ const f=p.forecast,box=document.createElement('div');box.className='forecast-panel';
+ box.append(text('h4','Прогноз и потолок · NBA Ceiling'));
+ const grid=document.createElement('div');grid.className='forecast-grid';
+ for(const [label,value] of [['ФО / матч',f.meanPerGame.toFixed(1)],['Матчей',f.games],['Минут / матч',f.minutes.toFixed(1)],['Потолок матча · P90',f.gameCeiling.toFixed(1)],['Базовый сезон',Math.round(f.meanSeason)],['Сильный сезон',Math.round(f.seasonCeiling)],['Слабый сезон',Math.round(f.seasonFloor)]]){
+  const cell=document.createElement('div');cell.append(text('small',label),text('strong',String(value)));grid.append(cell);
+ }
+ box.append(grid,text('p','Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.'));
+ const c=f.components,formula=document.createElement('details');
+ formula.append(text('summary','Из чего складываются ФО'),text('p',`Статистика и промахи ${c.countingAndMisses.toFixed(2)} · фолы ${c.personalFouls.toFixed(2)} · минуты +${c.participation.toFixed(2)} · результат команды ${c.teamResult>=0?'+':''}${c.teamResult.toFixed(2)} = ${f.meanPerGame.toFixed(2)} ФО/матч.`));
+ formula.append(text('p',`Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}. Исторических матчей для разброса: ${f.sampleGames}. ${f.rookieExtrapolation?'Аналоги для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'. Это сравнение статистического профиля, не сравнение карьер.':''}`));
+ box.append(formula);return box;
 }
 
 function organizeCard(el,b,previewCount){
@@ -91,14 +109,16 @@ function renderRookies(){
  const leader=result.players[0].espnContext.individualProjection;
  for(const [index,p] of result.players.entries()){
   const s=p.espnContext.individualProjection,v=s.perGame,el=document.createElement('article');el.className='player-card';
-  el.append(text('h3',`${index+1}. ${p.name} · rookie`),text('strong',`${s.componentFPPerGame.toFixed(1)} частичных ФО/матч · ${s.componentSeasonTotal.toFixed(0)} за прогнозируемые ${s.games} игр`));
+  el.append(text('h3',`${index+1}. ${p.name} · rookie`),text('strong',p.forecast?`${p.forecast.meanPerGame.toFixed(1)} ФО/матч · ${Math.round(p.forecast.meanSeason)} ФО за сезон`:`${s.componentFPPerGame.toFixed(1)} частичных ФО/матч · ${s.componentSeasonTotal.toFixed(0)} за прогнозируемые ${s.games} игр`));
   el.append(text('p',`${p.team||'Команда не подтверждена'} · ${p.positions.join('/')} · ${v.minutes.toFixed(1)} мин/матч · ADP ESPN ${p.espnContext.adp?.toFixed(1)??'нет'}`));
   if(p.injuries?.length)el.append(text('strong','Текущий статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
+  el.append(text('p',`ESPN: ${s.componentFPPerGame.toFixed(1)} частичных ФО/матч — до оценки фолов и бонусов.`));
   el.append(text('p',`PTS ${v.points.toFixed(1)} · REB ${v.rebounds.toFixed(1)} · AST ${v.assists.toFixed(1)} · STL ${v.steals.toFixed(1)} · BLK ${v.blocks.toFixed(1)} · TOV ${v.turnovers.toFixed(1)}`));
   el.append(text('p',`Плюсы: индивидуальный прогноз нагрузки и статистики; ${v.rebounds>=6?'существенный вклад подборами; ':''}${v.minutes>=28?'прогноз большой игровой нагрузки; ':''}после выбора остаётся допустимый добор.`));
   el.append(text('p',`Минусы: нет фактической статистики NBA этого новичка; роль и минуты могут измениться. ${index?`Отставание от лидера по частичному сезонному прогнозу ${(leader.componentSeasonTotal-s.componentSeasonTotal).toFixed(0)}. `:''}Близкие значения не определяют однозначного победителя: фолы и бонусы пока не учтены.`));
   el.append(text('p','Когда брать: ADP — ориентир общих лиг. В FBL всем восьми командам нужен rookie, поэтому спрос может быть выше; ждать до последнего раунда рискованно.'));
   el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Позиции и rookie-статус требуют подтверждения по регламенту.'));
+  if(p.forecast)el.append(forecastCard(p));
   const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);
   el.children[1]?.classList.add('player-score');el.children[2]?.classList.add('player-meta');
   organizeCard(el,b,3);

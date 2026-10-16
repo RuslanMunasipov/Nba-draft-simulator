@@ -1,0 +1,135 @@
+"""Complete-formula estimates and empirical upside. No synthetic confidence percentages.
+The ESPN counting-stat forecast is the centre. PF/participation/result are estimated
+from observed games. P10/P90 are historical scenarios, not calibrated probabilities.
+"""
+import json, math, statistics
+from collections import defaultdict
+from pathlib import Path
+import pyarrow.parquet as pq
+
+SEASONS=['2023-24','2024-25','2025-26']
+RULES='https://www.sports.ru/fantasy/basketball/tournament/rules/150.html'
+def quantile(values,p):
+    values=sorted(values)
+    if not values:return None
+    x=(len(values)-1)*p;i=int(x);return values[i]+(values[min(i+1,len(values)-1)]-values[i])*(x-i)
+def partial(r):
+    return r['pts']+r['reb']+r['ast']+r['stl']+r['blk']-(r['fga']-r['fgm'])-(r['fta']-r['ftm'])-2*r['tov']
+def full(r,bonus):
+    return partial(r)-r['pf']+(2 if r['minutes']>=10 else 1)+bonus
+def result_bonuses(rows):
+    games=defaultdict(list);result={};rejected=0
+    for r in rows:games[r['game_id']].append(r)
+    for game,logs in games.items():
+        teams=defaultdict(list)
+        for r in logs:teams[r['team']].append(r)
+        if len(teams)!=2:rejected+=1;continue
+        a,b=teams.values();sa=sum(r['pts'] for r in a);sb=sum(r['pts'] for r in b)
+        # Team-point reconstruction needs both complete lineups, not one player row.
+        minutes=[sum(r['minutes'] for r in team) for team in [a,b]]
+        valid=lambda m:any(abs(m-(240+25*o))<2 for o in range(6))
+        if sa==sb or any(len(t)<5 for t in [a,b]) or not all(map(valid,minutes)):
+            rejected+=1;continue
+        for team,won in [(a,sa>sb),(b,sb>sa)]:
+            homes={bool(r['home']) for r in team}
+            if len(homes)!=1:raise ValueError('Contradictory home flag')
+            home=homes.pop();result[(game,team[0]['team'])]=(2 if home else 3) if won else (-3 if home else -2)
+    return result,{'usableGames':len(result)//2,'rejectedGames':rejected}
+def profiles(rows,bonuses):
+    groups=defaultdict(list)
+    for r in rows:
+        if (r['game_id'],r['team']) in bonuses and r['minutes']>0:groups[r['player_id']].append(r)
+    return {pid:{'id':pid,'name':logs[-1]['player_name'],'logs':logs,
+        'games':len(logs),'minutes':statistics.mean(r['minutes'] for r in logs),
+        'partial':statistics.mean(partial(r) for r in logs),
+        'full':statistics.mean(full(r,bonuses[(r['game_id'],r['team'])]) for r in logs),
+        'features':[statistics.mean(r[k] for r in logs) for k in ['minutes','pts','reb','ast','stl','blk','tov','fga','fta']]}
+        for pid,logs in groups.items()}
+def changes(before,after):
+    return [(after[i]['full']-p['full'],after[i]['games']-p['games'])
+        for i,p in before.items() if i in after and p['games']>=20 and p['minutes']>=10]
+def season_scenarios(mean,games,residuals):
+    return [(mean+d)*max(0,min(82,games+g)) for d,g in residuals]
+def build(data,rows_by_season):
+    bonuses={};groups={};coverage={}
+    for year,rows in rows_by_season.items():
+        bonuses[year],coverage[year]=result_bonuses(rows)
+        groups[year]=profiles(rows,bonuses[year])
+        if coverage[year]['usableGames']<1000:raise ValueError('Insufficient complete games for full scoring '+year)
+    # Freeze residual scenarios on 23/24 -> 24/25 before evaluating 25/26.
+    train=changes(groups[SEASONS[0]],groups[SEASONS[1]])
+    test=changes(groups[SEASONS[1]],groups[SEASONS[2]])
+    errors=[];covered=0;total=0
+    for pid,p in groups[SEASONS[1]].items():
+        actual=groups[SEASONS[2]].get(pid)
+        if not actual or p['games']<20 or p['minutes']<10:continue
+        predicted=p['full']*p['games'];observed=actual['full']*actual['games']
+        errors.append(abs(predicted-observed))
+        scenarios=season_scenarios(p['full'],p['games'],train)
+        covered+=quantile(scenarios,.1)<=observed<=quantile(scenarios,.9);total+=1
+    latest=groups[SEASONS[-1]]
+    donors=[p for p in latest.values() if p['games']>=20 and p['minutes']>=10]
+    scales=[statistics.pstdev(p['features'][j] for p in donors) or 1 for j in range(9)]
+    residuals=train+test
+    team_bonuses=defaultdict(list)
+    for (game,team),bonus in bonuses[SEASONS[-1]].items():team_bonuses[team].append(bonus)
+    forecasts=0
+    for player in data['players']:
+        q=(player.get('espnContext') or {}).get('individualProjection')
+        source=latest.get(player.get('nbaId'))
+        if q and q['metric']=='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES':
+            per=q['perGame'];centre=q['componentFPPerGame'];games=q['games'];minutes=per['minutes']
+            features=[per[k] for k in ['minutes','points','rebounds','assists','steals','blocks','turnovers','fgAttempted','ftAttempted']]
+            origin='ESPN_INDIVIDUAL'
+        elif source and source['games']>=20 and source['minutes']>=10:
+            centre=source['partial'];games=(player.get('espnContext') or {}).get('projectedGames') or source['games'];minutes=source['minutes'];features=source['features'];origin='HISTORICAL_BASELINE'
+        else:continue
+        if not (0<minutes<=48 and 0<games<=82):continue
+        nearest=sorted(donors,key=lambda d:sum(((a-b)/s)**2 for a,b,s in zip(features,d['features'],scales)))[:10]
+        selected=[source] if source and source['games']>=20 and source['minutes']>=10 else nearest
+        scores=[];fouls=[];participation=[];results=[]
+        team_values=team_bonuses.get(player.get('team'))
+        team_mean=statistics.mean(team_values) if team_values else statistics.mean(bonuses[SEASONS[-1]].values())
+        for donor in selected:
+            ratio=minutes/donor['minutes']
+            donor_mean=statistics.mean(bonuses[SEASONS[-1]][(r['game_id'],r['team'])] for r in donor['logs'])
+            for row in donor['logs']:
+                pf=max(0,min(6,row['pf']*ratio));minute_bonus=2 if row['minutes']*ratio>=10 else 1
+                result=max(-3,min(3,bonuses[SEASONS[-1]][(row['game_id'],row['team'])]-donor_mean+team_mean))
+                score=centre+(partial(row)-donor['partial'])*ratio-pf+minute_bonus+result
+                scores.append(score);fouls.append(pf);participation.append(minute_bonus);results.append(result)
+        mean=statistics.mean(scores)
+        seasonal=season_scenarios(mean,games,residuals)
+        player['forecast']={'version':1,'metric':'FBL_FULL_FORMULA_ESTIMATE','origin':origin,
+          'meanPerGame':mean,'games':games,'minutes':minutes,'meanSeason':mean*games,
+          'gameFloor':quantile(scores,.1),'gameCeiling':quantile(scores,.9),
+          'seasonFloor':min(mean*games,quantile(seasonal,.1)),'seasonCeiling':max(mean*games,quantile(seasonal,.9)),
+          'components':{'countingAndMisses':centre,'personalFouls':-statistics.mean(fouls),'participation':statistics.mean(participation),'teamResult':statistics.mean(results)},
+          'sampleGames':len(scores),'analogs':[{'name':d['name'],'id':d['id']} for d in selected],
+          'rookieExtrapolation':bool(player.get('isRookie')),'rulesSource':RULES,
+          'teamResultBasis':'2025-26 team game outcomes reconstructed from complete player logs',
+          'rangeMeaning':'P10/P90 of empirical scenarios; not calibrated personal probabilities. Career ceiling is not estimated.',
+          'seasonRangeBasis':'paired observed changes in per-game FP and games, not independent extremes',
+          'asOf':data['generatedAt']}
+        forecasts+=1
+    audit={'status':'EXPERIMENTAL_FULL_FORMULA_ESTIMATES','rulesSource':RULES,'checkedAt':data['generatedAt'],
+      'coverage':coverage,'forecastPlayers':forecasts,'rookieForecasts':sum(bool(p.get('isRookie') and p.get('forecast')) for p in data['players']),
+      'holdout':{'trainResiduals':['2023-24','2024-25'],'testSeason':'2025-26','players':total,
+        'historicalPersistenceSeasonMAE':statistics.mean(errors),'empirical80RangeCoverage':covered/total,
+        'target':'Full formula, games reconstructed from supplied logs',
+        'limitation':'Tests historical persistence/scenario construction, NOT historical ESPN forecasts or rookie forecast accuracy.'},
+      'limitations':['No career-peak model. Game upside is P90 for one game; season upside is a separate paired scenario.',
+        'ESPN counting stats/games/minutes are provider forecasts. PF and participation are historical-role estimates.',
+        'Team bonuses reflect previous season, not current roster strength or confirmed future outcomes.',
+        'Rookie analog ranges are an extrapolation and have no independent rookie holdout calibration.',
+        'Players absent from the target season are excluded from holdout: availability error for these players is not measured.',
+        'Yahoo positions, FBL cap/prices, draft order and any FBL-specific departures from Sports.ru still require league confirmation.']}
+    data['forecastAudit']=audit
+    return data,audit
+if __name__=='__main__':
+    path=Path('public/data/default-draft.json');data=json.loads(path.read_text())
+    rows={s:pq.read_table('data/raw/game_logs_'+s+'.parquet').to_pylist() for s in SEASONS}
+    data,audit=build(data,rows)
+    path.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
+    Path('public/data/forecast-audit.json').write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding='utf-8')
+    print(json.dumps(audit,ensure_ascii=False,indent=2))

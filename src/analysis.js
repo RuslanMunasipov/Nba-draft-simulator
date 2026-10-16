@@ -5,7 +5,7 @@ import {randomFromSeed} from './simulation.js';
 export function riskProfile(p){
  const games=Object.values(p.historyGames||{});const flags=[];
  if(p.coverageStatus==='EARLIER_SEASON'||p.returnContext)flags.push('Возвращение/устаревшая база: текущая нагрузка неизвестна');
- if(p.isRookie||p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR')flags.push('Новичок: индивидуальной статистики NBA нет, используется групповой ориентир');
+ if(p.isRookie||p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR')flags.push('Первый сезон в NBA: особенно важны место в ротации и стабильность минут');
  if(p.coverageStatus==='LOW_SAMPLE')flags.push('Малая выборка: историческая оценка неустойчива');
  if(p.injuries?.length)flags.push('Текущий отчёт источника: '+p.injuries.map(i=>i.status).join(', '));
  if(games.length&&Math.min(...games)<55)flags.push('Нестабильная доступность: в истории '+Object.entries(p.historyGames).map(([s,n])=>s+' — '+n+' игр').join('; ')+'. Причины всех пропусков не установлены');
@@ -40,37 +40,39 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
   if(!plan.possible)return [{player:focus,risk:riskProfile(focus),stability:null,pressure:null,completion:plan,advantages:[],drawbacks:[plan.reason],conclusion:'Не рекомендован: после пика нельзя завершить допустимый состав',method:'Проверено точное назначение пяти позиций, rookie, уже выбранные игроки и подтверждённые цены при включённом бюджете. Прогноз силы здесь не отменяет нарушение правил.'}];
   if(!pool.some(p=>p.id===focus.id)&&legal.some(p=>p.id===focus.id))pool.push(focus);
  }
- const random=randomFromSeed(101+state.picks.length),wins=new Map(pool.map(p=>[p.id,0]));
- for(let scenario=0;scenario<100;scenario++){
-  let best=null,score=-Infinity;
-  for(const p of pool){const risk=riskProfile(p);const value=draftValue(p)*(risk.minFactor+random()*(risk.maxFactor-risk.minFactor));if(value>score){score=value;best=p.id;}}
-  if(best!==null)wins.set(best,wins.get(best)+1);
- }
- pool.sort((a,b)=>wins.get(b.id)-wins.get(a.id)||draftValue(b)-draftValue(a));
+ // Primary ranking uses season contribution; arbitrary stress draws do not select the leader.
+ pool.sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id)));
  return (focus?pool.filter(p=>p.id===focus.id):pool.slice(0,5)).map(p=>{
-  const risk=riskProfile(p),availability=availabilityEvidence(p),alternative=pool.find(x=>x.id!==p.id),advantages=[`Базовая оценка ${p.projectedFP.toFixed(2)} ФО за матч по ${p.projectionBaseSeason||'группе молодых игроков'}`,'Допустим для текущего позиционного состава'];
-  if(availability.weightedGames!==null)advantages.push(`Индекс с учётом доступности: ${draftValue(p).toFixed(2)}; вес игр ${(availability.weight*100).toFixed(0)}% (${availability.espnGames!==null?'прогноз матчей ESPN':'историческая база'}). Это не прогноз ФО за сезон`);
-  if(p.isRookie)advantages.push('Закрывает обязательное требование rookie');
-  if(p.positions.length>1)advantages.push('Гибкость позиций '+p.positions.join('/')+' в используемом источнике');
-  if(!risk.flags.length)advantages.push('В загруженных данных не обнаружены дополнительные флаги риска; это не гарантия здоровья');
-  const drawbacks=[...risk.flags,'ФО без бонуса результата; оценка сезона не подтверждена'];
-  if(severeRisk(p))drawbacks.push('Рискованная ставка, не безопасное ядро команды; высокая средняя ФО не компенсирует автоматически пропуски');
+  const risk=riskProfile(p),availability=availabilityEvidence(p),alternative=pool.find(x=>x.id!==p.id),forecast=p.forecast;
+  const advantages=[],drawbacks=[...risk.flags];
+  if(forecast){
+   advantages.push(`Прогноз сезона: ${Math.round(forecast.meanSeason)} ФО за ${forecast.games} матчей; в среднем ${forecast.meanPerGame.toFixed(1)} ФО/матч`);
+   advantages.push(`Потолок одного матча: ${forecast.gameCeiling.toFixed(1)} ФО. Сильный сценарий сезона: ${Math.round(forecast.seasonCeiling)} ФО`);
+  }else if(Number.isFinite(p.projectedFP))advantages.push(`Историческая основа: ${p.projectedFP.toFixed(1)} ФО/матч (${p.projectionBaseSeason||'групповой ориентир'})`);
+  if(p.isRookie)advantages.push('Закрывает обязательное место новичка');
+  const own=state.picks.filter(x=>x.team===state.picks.length%8).map(x=>state.players.find(p=>p.id===x.playerId));
+  if(p.positions.length>1&&own.length>=5)advantages.push('Можно использовать на '+p.positions.join(' или ')+': больше вариантов для оставшихся мест');
+  if(severeRisk(p))drawbacks.push('Рискованная ставка: сопоставь потенциальную отдачу с пропусками и изменением роли');
   if(availability.repeatedAbsences)drawbacks.push(`Два сезона с менее чем 50 играми: ${availability.previous} — ${availability.prior}, ${availability.reference} — ${availability.recent}`);
-  if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')drawbacks.push('Допуск Yahoo не проверен: использованы позиции ESPN');
-  if(alternative)drawbacks.push(`Альтернатива сейчас: ${alternative.name} (${alternative.projectedFP.toFixed(2)} базовых ФО/матч)`);
+  let difference=null,conclusion;
   if(alternative){
-   const difference=p.projectedFP-alternative.projectedFP;
-   (difference>0?advantages:drawbacks).push(`Базовая разница с ${alternative.name}: ${difference>=0?'+':''}${difference.toFixed(2)} ФО/матч; это не разница за сезон`);
-   const otherRisk=riskProfile(alternative),levels={'ОТНОСИТЕЛЬНО НИЗКИЙ':0,'СРЕДНИЙ':1,'ВЫСОКИЙ':2};
-   if(levels[risk.level]<levels[otherRisk.level])advantages.push(`Меньше выявленных флагов риска, чем у ${alternative.name} (${otherRisk.level})`);
-   if(levels[risk.level]>levels[otherRisk.level])drawbacks.push(`Риск выше, чем у ${alternative.name} (${otherRisk.level})`);
-  }
+   const other=alternative.forecast;
+   if(forecast&&other){
+    difference=forecast.meanSeason-other.meanSeason;
+    drawbacks.push(`Альтернатива сейчас: ${alternative.name} — ${Math.round(other.meanSeason)} ФО за ${other.games} матчей`);
+    (difference>=0?advantages:drawbacks).push(`Разница с ${alternative.name}: ${difference>=0?'+':''}${Math.round(difference)} ФО за сезон`);
+    conclusion=p.id===pool[0]?.id?`Первый вариант: ${p.name}. Прогноз выше, чем у ${alternative.name}, на ${Math.round(difference)} ФО за сезон.`:`Лидер сравнения — ${alternative.name}. ${p.name} стоит предпочесть, если важнее его позиции или потолок.`;
+    if(p.id===pool[0]?.id&&forecast.seasonFloor<=other.seasonCeiling&&other.seasonFloor<=forecast.seasonCeiling)conclusion+=' Диапазоны сценариев перекрываются: преимущество зависит от фактических минут и числа матчей.';
+   }else{
+    difference=draftValue(p)-draftValue(alternative);
+    drawbacks.push(`Альтернатива сейчас: ${alternative.name} (${alternative.projectedFP.toFixed(1)} исторических ФО/матч)`);
+    conclusion=p.id===pool[0]?.id?`Первый вариант по доступной оценке — ${p.name}; ближайшая альтернатива — ${alternative.name}.`:`Сравнить с ${alternative.name}: учитывай состав и ожидаемую нагрузку.`;
+   }
+  }else conclusion='Единственный доступный кандидат с допустимым добором состава.';
+  if(severeRisk(p))conclusion='Рискованная ставка. '+conclusion;
   const completion=pickCompletion(state,p.id);
-  advantages.push(completion.minimumCost===null?'После пика существует полный позиционный состав с rookie при текущей доступности':`Минимальный бюджет полного состава после пика: ${completion.minimumCost.toFixed(2)} из ${state.cap}; на оставшиеся слоты нужно минимум ${completion.minimumRemainingCost.toFixed(2)}`);
-  drawbacks.push('Добор проверен по доступным сейчас игрокам: соперники могут забрать их до следующего хода');
-  const stability=wins.get(p.id),pressure=selectionPressure(pool,p,551+state.picks.length);
-  return {player:p,risk,advantages,drawbacks,stability,pressure,completion,availability,valueIndex:draftValue(p),speculative:severeRisk(p),
-   conclusion:severeRisk(p)?'Рискованная ставка: рассматривать отдельно от основного ядра':p.id===pool[0]?.id?(stability>=60?'Предпочтительный выбор в этом стресс-тесте':'Однозначного пика нет: лидер зависит от допущений'):'Сравнить с лидером, особенно если нужен этот слот или rookie',
-   method:`${stability} из 100 условных сценариев дали лучший результат среди ${pool.length} допустимых кандидатов. Нагрузка/роль: ${Math.round(risk.minFactor*100)}–${Math.round(risk.maxFactor*100)}% базовой оценки — стресс-допущение, не прогноз. 0% означает отсутствие первых мест в этой выборке, а не бесполезность игрока. Сравнивается индекс: базовые ФО/матч × вес доступности (прогноз матчей ESPN / 82, при отсутствии — исторические матчи с двойным весом последнего сезона) × стресс-множители роли/статуса. Множители роли 0.85 и OUT 0.5 — политика осторожности, не измеренный эффект. Основная пятёрка формируется из кандидатов без высокого риска, если они доступны. Игры и ФО за сезон не прогнозируются. Не вероятность победы и не калиброванная уверенность. Потребность других GM до следующего пика не подтверждена.`};
+  // Feasibility is a constraint, not a selling point for a player.
+  return {player:p,risk,advantages,drawbacks,stability:null,pressure:null,completion,availability,valueIndex:draftValue(p),speculative:severeRisk(p),forecast,difference,conclusion,
+   method:'Основной порядок — ожидаемые ФО за сезон. При наличии полного расчёта: индивидуальные показатели ESPN, оценка фолов, бонус минут и результата команды по истории. Потолок матча — P90 исторических ролевых сценариев; потолок сезона — отдельный сценарий совместного изменения игр и ФО/матч. Это не вероятность успеха. Подробности и отложенная проверка — в разделе «Модель и проверка». Для исторического fallback применяется прозрачный индекс доступности. Проверка добора состава выполняется отдельно и не считается преимуществом игрока.'};
  });
 }
