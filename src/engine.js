@@ -1,6 +1,14 @@
 export const POSITIONS=['PG','SG','SF','PF','C'];
 export const TEAM_COUNT=8, ROUNDS=10;
 export const STATUS=['VERIFIED','ESTIMATED','MISSING'];
+// Draft states are immutable; cache ID lookup and current rosters across candidate checks.
+const indexes=new WeakMap(),rosters=new WeakMap();
+export function getPlayer(state,id){
+ let index=indexes.get(state.players);if(!index){index=new Map(state.players.map(p=>[p.id,p]));indexes.set(state.players,index);}return index.get(id);
+}
+function cachedRoster(state,team){
+ let teams=rosters.get(state);if(!teams){teams=Array.from({length:TEAM_COUNT},()=>[]);for(const choice of state.picks)teams[choice.team].push(getPlayer(state,choice.playerId));rosters.set(state,teams);}return teams[team];
+}
 export function newDraft(players=[],cap=20000,priceMode='OFF'){
  if(!['OFF','ON'].includes(priceMode))throw Error('Неверный режим цен');
  if(!Number.isFinite(cap)||cap<0)throw Error('Неверный Salary Cap');
@@ -24,10 +32,10 @@ export function rosterFits(players){
 export function pick(state,playerId){
  if(state.picks.length>=80)throw Error('Драфт завершён');
  if(state.picks.some(p=>p.playerId===playerId))throw Error('Игрок уже выбран');
- const player=state.players.find(p=>p.id===playerId);
+ const player=getPlayer(state,playerId);
  if(!player||!validatePlayer(player)||player.positions.length===0)throw Error('Неизвестный игрок или позиции');
  const team=state.picks.length%TEAM_COUNT;
- const roster=state.picks.filter(p=>p.team===team).map(p=>state.players.find(x=>x.id===p.playerId));
+ const roster=cachedRoster(state,team);
  if(!rosterFits([...roster,player]))throw Error('Невозможно назначить позиции');
  if(state.priceMode==='ON'&&[...roster,player].some(p=>p.priceStatus!=='VERIFIED'||!Number.isFinite(p.price)))throw Error('Цена не подтверждена');
  if(roster.length===9&&![...roster,player].some(p=>p.isRookie===true))throw Error('В составе нужен минимум один подтверждённый новичок');

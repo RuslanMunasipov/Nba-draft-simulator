@@ -1,4 +1,4 @@
-import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority } from './engine.js';
+import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority, getPlayer } from './engine.js';
 
 // Deterministic PRNG: identical seed + player data => identical draft.
 export function randomFromSeed(seed=1) {
@@ -7,7 +7,7 @@ export function randomFromSeed(seed=1) {
 }
 export function currentTeam(state) { return state.picks.length % TEAM_COUNT; }
 export function teamRoster(state,team) {
-  return state.picks.filter(p=>p.team===team).map(p=>state.players.find(x=>x.id===p.playerId));
+  return state.picks.filter(p=>p.team===team).map(p=>getPlayer(state,p.playerId));
 }
 export function teamCost(state,team) { const roster=teamRoster(state,team);return roster.some(p=>!Number.isFinite(p.price))?null:roster.reduce((sum,p)=>sum+p.price,0); }
 export function isComplete(state) { return state.picks.length === TEAM_COUNT*ROUNDS; }

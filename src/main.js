@@ -60,7 +60,7 @@ async function loadDatabase(force=false){
   const response=await fetch(import.meta.env.BASE_URL+'data/default-draft.json',{cache:'no-cache'});if(!response.ok)throw Error('Источник недоступен');
   const candidate=await response.json();newDraft(candidate.players,20000,'OFF');database=candidate;
   localStorage.setItem('fbl-default-db',JSON.stringify(database));
-  if(force||!state.players.length||state.databaseVersion){state=installDatabase(state,database);save();}
+  if(force||!state.players.length||(state.databaseVersion&&state.databaseVersion!=='manual')||(!state.picks.length&&!state.databaseVersion)){state=installDatabase(state,database);save();}
   $('database-status').textContent=`База ${database.coverage.players} игроков · rookie ${database.coverage.rookies} · обновлена ${new Date(database.generatedAt).toLocaleString('ru-RU')}. Источник позиций — ESPN, не Yahoo. Оценки экспериментальные, ФО без бонуса результата.`;
  }catch(e){
   try{database=JSON.parse(localStorage.getItem('fbl-default-db'));if(database&&(!state.players.length||force)){state=installDatabase(state,database);save();}}catch{}
@@ -74,7 +74,7 @@ $('reset').onclick=()=>{if(confirm('Начать новый драфт? Теку
 $('price-mode').onchange=()=>{try{state=importDraft(exportDraft({...state,priceMode:$('price-mode').checked?'ON':'OFF'}));save();}catch(e){showError(e);render();}};
 $('apply-cap').onclick=()=>{try{state=importDraft(exportDraft({...state,cap:Number($('cap').value)}));save();}catch(e){showError(e);render();}};
 $('refresh-database').onclick=()=>loadDatabase(true);
-$('load').onclick=()=>{try{const v=JSON.parse($('data').value);state=newDraft(v.players,state.cap,state.priceMode);save();$('settings').open=false;}catch(e){showError(e);}};
+$('load').onclick=()=>{try{const v=JSON.parse($('data').value);state={...newDraft(v.players,state.cap,state.priceMode),databaseVersion:'manual'};save();$('settings').open=false;}catch(e){showError(e);}};
 $('download').onclick=()=>{const url=URL.createObjectURL(new Blob([exportDraft(state)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fbl-draft.json';a.click();URL.revokeObjectURL(url);};
 $('restore').onchange=async e=>{try{state=importDraft(await e.target.files[0].text());save();}catch(err){showError(err);}};
 function runAction(fn){try{state=fn();save();$('simulation-status').textContent='Готово. Итоги — сравнение сценария по сумме базовых ФО/матч, не прогноз победы в сезоне.';}catch(e){showError(e);}}
