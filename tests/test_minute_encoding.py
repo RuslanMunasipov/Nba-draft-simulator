@@ -14,7 +14,7 @@ class MinuteTests(unittest.TestCase):
   self.assertEqual(normalized[0]['minutes'],29)
 
  def test_decimal_patch_rows_are_not_reinterpreted_as_clock_values(self):
-  rows=[dict(game_id=1,team='A',minutes=m) for m in [12.816666666666666,40.11,50,59,59,19]]
+  rows=[dict(game_id=1,team='A',minutes=m) for m in [12.816666666666666,40.51,50.59,59.21,50,26]]
   normalized,audit=normalize_minutes(rows,'SYNTHETIC')
   self.assertEqual(normalized[0]['minutes'],12.816666666666666)
   self.assertEqual(audit['preservedDecimalPatchRows'],1)
