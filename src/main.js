@@ -3,6 +3,7 @@ import './history.js';
 import {newDraft,pick,undo,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
 import {advanceBots,simulateDraft,draftSummary} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
+import {renderTiming} from './timing-ui.js';
 import {rookieRecommendations} from './rookies.js';
 import {pickCompletion} from './completion.js';
 import {installDatabase} from './database.js';
@@ -53,6 +54,7 @@ function card(p,analysis=null){
  el.append(b);return el;
 }
 function renderRookies(){
+ renderTiming(state);
  const result=rookieRecommendations(state);$('rookie-advice').replaceChildren();
  $('rookie-status').textContent=`Индивидуальный прогноз есть у ${result.projected} из ${result.available} доступных rookie; легальный добор с ними: ${result.feasible}. Rookie ещё нужен ${result.teamsNeedingRookie} командам.`;
  if(!result.players.length){$('rookie-advice').append(text('p','Нет доступных rookie с индивидуальным прогнозом и допустимым добором. Групповой ориентир не заменяет персональный прогноз.'));return;}

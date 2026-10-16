@@ -72,3 +72,11 @@ Do not convert historical averages into a season prediction, invent missing pric
 - PF and minute/result bonuses are missing/excluded; the displayed score is explicitly PARTIAL, not complete FBL FP or a guaranteed rookie winner. Close rankings must not be treated as a precise edge.
 - Rookie-only recommendations must retain a feasible roster completion and verified budget if enabled. Players lacking a personal forecast are counted as missing, not assigned invented projected stats. Rookie flags remain provider-reported.
 - The board reports teams still needing rookies and warns that general ESPN ADP does not model FBL's eight mandatory rookie selections.
+
+## Rookie round opportunity-cost study
+- A Web Worker compares each remaining first-rookie target round using 24 paired seeds in each of four explicit GM demand profiles (rounds 2–4, 4–6, 6–8 and mixed 1–10): 960 complete drafts from a fresh state.
+- All scored players must have comparable individual ESPN component-season forecasts. Unknown forecasts are excluded, never zero-filled; a picked player missing a comparable forecast prevents the study.
+- Straight order, positions, uniqueness, rookie completion and optional verified salary cap are checked. Invalid runs are reported and disqualify that strategy, rather than improving its mean by being silently dropped.
+- Main objective: maximum mean full-roster component FP at equal ASSUMED profile weights among scenarios compatible with recorded GM picks. Contradicted profiles are explicitly excluded; this is not a calibrated Bayesian probability. A separate minimax-regret choice and scenario-specific optima expose sensitivity; no scenario frequency is claimed to be a calibrated GM pick probability.
+- Opponent veteran order uses ADP; rookie order uses projected components with randomized top-three choices and profile-specific timing. The user's veteran picks are greedy forecast choices with positional/rookie reservation, not a proof of a globally optimal draft policy.
+- PF and minute/result bonuses remain excluded. A small score gap cannot establish a real advantage. Actual FBL GM preferences and increased mandatory-rookie demand need live observations; the study updates from recorded picks automatically.

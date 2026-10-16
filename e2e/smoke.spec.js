@@ -91,3 +91,13 @@ test('rookie board uses individual ESPN projections instead of one group value',
  await expect(card).toContainText('фолы и бонусы пока не учтены');
  await expect(page.locator('#rookie-status')).toContainText('Индивидуальный прогноз есть');
 });
+
+test('rookie timing worker compares all ten rounds while the mobile UI remains usable',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.getByRole('link',{name:'Топ rookie по индивидуальному прогнозу',exact:true}).click();
+ await expect(page.locator('#timing-result')).toContainText('Условный лучший план:',{timeout:180000});
+ await expect(page.locator('#timing-result table tr')).toHaveCount(11);
+ await expect(page.locator('#timing-status')).toContainText('960 условных драфтов');
+ await expect(page.locator('#timing-result')).toContainText('предпочтения семи GM неизвестны');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});

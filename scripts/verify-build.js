@@ -12,6 +12,7 @@ for(const entry of entries) {
 console.log('Vite build artifact verified:',entries.length,'assets');
 const {readdir}=await import('node:fs/promises');
 const assets=await readdir('dist/assets');
+assert.ok(assets.some(name=>/^rookie-timing-worker-.*\.js$/.test(name)), 'Missing rookie timing worker');
 assert.ok(assets.some(name=>/^batch-worker-.*\.js$/.test(name)), 'Missing simulation worker');
 for(const name of assets)assert.ok((await stat('dist/assets/'+name)).size>0);
 console.log('Worker and all emitted assets verified:',assets.length);
@@ -63,3 +64,8 @@ const rookieBoard=rookieRecommendations(draft);assert.equal(rookieBoard.players.
 assert.ok(new Set(rookieBoard.players.map(p=>p.espnContext.individualProjection.componentSeasonTotal)).size>1,'Individual rookie forecasts must not collapse to a group constant');
 for(const p of rookieBoard.players){const r=p.espnContext.individualProjection;assert.ok(r.games>0&&r.games<=82);assert.ok(r.perGame.minutes>0&&r.perGame.minutes<=48);}
 console.log('Individual rookie board:',rookieBoard.players.map(p=>({name:p.name,partialFP:p.espnContext.individualProjection.componentFPPerGame,partialSeason:p.espnContext.individualProjection.componentSeasonTotal,games:p.espnContext.projectedGames}))); 
+
+const {rookieTimingStudy}=await import('../src/rookie-timing.js');
+const timing=rookieTimingStudy(draft);assert.ok(timing.recommendedRound>=1&&timing.recommendedRound<=10);
+assert.equal(timing.totalDrafts,960);assert.ok(timing.rows.every(r=>r.profiles.every(p=>p.validRuns===p.runs)));
+console.log('Rookie timing study verified:',JSON.stringify({round:timing.recommendedRound,pick:timing.recommendedPick,profiles:timing.bestByProfile,range:timing.profileRange,meanGap:timing.meanGap,drafts:timing.totalDrafts}));
