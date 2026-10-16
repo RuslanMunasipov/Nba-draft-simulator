@@ -144,7 +144,8 @@ function render(){
  const query=$('search').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  const used=new Set(state.picks.map(p=>p.playerId));
  const available=state.players.filter(p=>!used.has(p.id)&&matches(p,query)&&(!$('rookies-only').checked||p.isRookie));
- available.sort((a,b)=>(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||Number(Boolean(b.forecast))-Number(Boolean(a.forecast))||riskPriority(a)-riskPriority(b)||draftValue(b)-draftValue(a));
+ const exact=p=>Boolean(query)&&p.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')===query.trim();
+ available.sort((a,b)=>Number(exact(b))-Number(exact(a))||(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||Number(Boolean(b.forecast))-Number(Boolean(a.forecast))||riskPriority(a)-riskPriority(b)||draftValue(b)-draftValue(a));
  $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p,query.length>=2&&index<5?analyzeRecommendations(state,p)[0]:null)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
  $('advice').replaceChildren();const a=analyzeRecommendations(state);

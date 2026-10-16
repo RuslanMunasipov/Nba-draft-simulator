@@ -70,6 +70,7 @@ test('high per-game injury risks do not crowd out five safer mobile choices',asy
  await page.getByText('Рискованные ставки — отдельно от основного ядра',{exact:true}).click();
  await expect(page.locator('#risky-advice')).toContainText('Рискованная ставка');
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC 1');
+ await expect(page.locator('#candidates .player-card').first().locator('h3')).toHaveText('SYNTHETIC 1');
  await expect(page.locator('#candidates .player-card').first()).toContainText('Два сезона с менее чем 50 играми');
 });
 
