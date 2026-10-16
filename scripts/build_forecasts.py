@@ -117,15 +117,15 @@ def build(data,rows_by_season):
         # ESPN remains the provider centre; only historical fallback gets learned correction.
         raw_mean=mean
         if origin=='HISTORICAL_BASELINE':
-            mean=season_estimate/games
-            centre+=mean-raw_mean
+            mean,games=production.point_parts(scenario_input)
+            if games<=0:continue
         season_low=min(mean*games,season_low)
         season_high=max(mean*games,season_high)
         player['forecast']={'version':2,'metric':'FBL_FULL_FORMULA_ESTIMATE','origin':origin,
           'meanPerGame':mean,'games':games,'minutes':minutes,'meanSeason':mean*games,
           'gameFloor':quantile(scores,.1)+(mean-raw_mean),'gameCeiling':quantile(scores,.9)+(mean-raw_mean),
           'seasonFloor':season_low,'seasonCeiling':season_high,
-          'components':{'countingAndMisses':centre,'personalFouls':-statistics.mean(fouls),'participation':statistics.mean(participation),'teamResult':statistics.mean(results)},
+          'components':{'countingAndMisses':centre,'personalFouls':-statistics.mean(fouls),'participation':statistics.mean(participation),'teamResult':statistics.mean(results),'historicalAdjustment':mean-raw_mean},
           'sampleGames':len(scores),'analogs':[{'name':d['name'],'id':d['id']} for d in selected],
           'rookieExtrapolation':bool(player.get('isRookie')),'rulesSource':RULES,
           'teamResultBasis':'2025-26 team game outcomes reconstructed from complete player logs',

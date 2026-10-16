@@ -39,13 +39,22 @@ class SeasonModel:
  def neighbors(self,p,k,pool):
   if k==0:return pool
   return sorted(pool,key=lambda r:sum(((p[key]-r[key])/s)**2 for key,s in zip(['full','games','minutes'],self.scales)))[:k]
+ def point_parts(self,p,k=None,pool=None):
+  k=self.k if k is None else k;pool=self.fit if pool is None else pool
+  if k==0:return p['full'],p['games']
+  neighbors=self.neighbors(p,k,pool)
+  played=[r for r in neighbors if not r['absent']]
+  rate=p['full']+q([r['delta'] for r in played],.5) if played else p['full']
+  games=q([0 if r['absent'] else max(0,min(82,p['games']+r['gamesDelta'])) for r in neighbors],.5)
+  return rate,games
  def predict(self,p,k=None,pool=None):
   k=self.k if k is None else k;pool=self.fit if pool is None else pool
   if k==0:
    # Plain persistence is an explicit candidate, not silently forced to be adjusted.
    vals=scenarios(p,pool);return p['full']*p['games'],q(vals,.1),q(vals,.9)
   vals=scenarios(p,self.neighbors(p,k,pool))
-  return q(vals,.5),q(vals,.1),q(vals,.9)
+  rate,games=self.point_parts(p,k,pool)
+  return rate*games,q(vals,.1),q(vals,.9)
  def interval(self,p):
   centre,lo,hi=self.predict(p)
   return centre,min(centre,lo-self.padding),max(centre,hi+self.padding)

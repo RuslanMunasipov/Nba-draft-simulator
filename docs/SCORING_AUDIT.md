@@ -1,4 +1,4 @@
-# Scoring audit — 2026-10-16
+# Scoring audit — 2026-10-17
 ## Resolved in this change
 - Removed artificial stress-win percentages from primary recommendations. A random first-place share is not confidence in a season prediction.
 - Replaced mixed veteran historical / rookie projection ordering with complete-formula season estimates where available.
@@ -15,9 +15,16 @@
 - Season ranges are empirical scenarios, not calibrated personal probabilities. Career peak is not modeled.
 - Team outcome expectations use last season, not current roster-adjusted team win probabilities.
 - PF and participation bonuses are modeled, not supplied individual ESPN forecast categories.
-- Zero-appearance target players are absent from holdout. This understates availability uncertainty for full-season absences.
+- Zero-appearance target players are now included as zero season output. Injury, retirement and departures are not distinguished by these logs.
 - Source data are user-supplied and the 2024/25 schedule is incomplete.
 - Yahoo eligibility, salary cap/prices, FBL-specific rule differences, player availability, roster roles and draft order still require league validation.
 - Rookie timing retains an explicitly partial common ESPN metric, separate from full estimates in main recommendations. Its GM policies are assumptions, not calibrated behavior.
 ## Decision
 LIMITED. This change makes scores comparable and exposes a testable complete-formula estimate. It does not establish an ideal or proven season-winning prediction system.
+
+## Accuracy follow-up
+- Select persistence or conditional historical rate/games estimates by leave-player-out error on 2023/24 -> 2024/25 only. Test on 2025/26 stays untouched.
+- Split calibration players by NBA id, separately from fitting/model selection. Use finite-sample 80% split-conformal padding and report average width alongside coverage.
+- Refit production on both observed transitions only after recording frozen holdout results. Production fit diagnostics are not an independent accuracy test.
+- ESPN point forecasts are preserved. Historical fallback rate and games may change; the learned rate correction is an explicit separate scoring component.
+- Evaluate including zero-game seasons, and publish persistence MAE, selected-model MAE, absence MAE, coverage and width. No claim of validated ESPN/rookie accuracy or conditional personal probabilities.
