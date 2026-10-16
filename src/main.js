@@ -201,9 +201,10 @@ $('bots').onclick=()=>runAction(()=>advanceBots(state,{humanTeam:0,seed:Number($
 $('simulate').onclick=()=>runAction(()=>simulateDraft(state,{seed:Number($('seed').value)||1}));
 $('batch').onclick=()=>{
  $('batch').disabled=true;$('simulation-status').textContent='Выполняются 100 сценариев…';
+ const snapshot=state;
  const worker=new Worker(new URL('./batch-worker.js',import.meta.url),{type:'module'});
  const finish=()=>{worker.terminate();$('batch').disabled=false;};
- worker.onmessage=({data})=>{finish();$('simulation-status').textContent=data.error?'Ошибка: '+data.error:`100 сценариев; допустимых: ${data.result.eligibleRuns}/100. `+(data.result.wins?(data.result.metric==='FBL_FULL_FORMULA_ESTIMATE'?'Лидеры по сезонным ФО: ':'Лидеры по импортированным оценкам: ')+data.result.wins.map((n,i)=>`GM ${i+1}: ${n}`).join(', '):'Победитель сценария не определяется.')+' Результаты зависят от оценочных позиций и прогнозов, это не вероятность победы в FBL.';};
+ worker.onmessage=({data})=>{finish();if(state!==snapshot){$('batch').click();return;}$('simulation-status').textContent=data.error?'Ошибка: '+data.error:`100 сценариев; допустимых: ${data.result.eligibleRuns}/100. Сценарии от пика №${snapshot.picks.length+1}. `+(data.result.wins?(data.result.metric==='FBL_FULL_FORMULA_ESTIMATE'?'Лидеры по сезонным ФО: ':'Лидеры по импортированным оценкам: ')+data.result.wins.map((n,i)=>`GM ${i+1}: ${n}`).join(', '):'Победитель сценария не определяется.')+' Результаты зависят от оценочных позиций и прогнозов, это не вероятность победы в FBL.';};
  worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1});
 };
 $('draft-mode').value=mode;$('bots').hidden=mode!=='INTERACTIVE';

@@ -112,7 +112,10 @@ test('published mobile batch completes 100 drafts without blocking input',async(
  await page.locator('#batch').click();
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Jokic');
  await expect(page.locator('#candidates')).toContainText('Jokic');
+ await page.locator('#candidates').getByRole('button',{name:'Выбрать Nikola Jokic',exact:true}).click();
+ await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
  await expect(page.locator('#simulation-status')).toContainText('допустимых: 100/100',{timeout:180000});
+ await expect(page.locator('#simulation-status')).toContainText('Сценарии от пика №2');
  await expect(page.locator('#batch')).toBeEnabled();
 });
 
