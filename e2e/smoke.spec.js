@@ -138,3 +138,26 @@ test('missing forecast in recorded picks blocks timing instead of inventing a co
  await expect(page.locator('#timing-status')).toContainText('нет сопоставимого индивидуального прогноза',{timeout:30000});
  await expect(page.locator('#rookie-tradeoff')).toHaveCount(0);
 });
+
+test('player name toggles a formatted full report and roster progress stays visible',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await expect(page.getByRole('heading',{name:'Собери сильный состав.'})).toBeVisible();
+ const card=page.locator('#advice .player-card').first(),details=card.locator('.card-details');
+ await expect(details).not.toHaveAttribute('open','');
+ await card.locator('h3').click();await expect(details).toHaveAttribute('open','');
+ await expect(card.getByText('Плюсы пика',{exact:true})).toBeVisible();
+ await card.locator('h3').click();await expect(details).not.toHaveAttribute('open','');
+ await expect(page.locator('#my-roster')).toContainText('0/10');
+ await card.getByRole('button').click();await expect(page.locator('#my-roster')).toContainText('1/10');
+ await expect(page.getByRole('progressbar',{name:'Прогресс драфта'})).toHaveAttribute('aria-valuenow','1');
+ for(const width of [360,768,1280]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);}
+});
+test('rookie name opens sourced editorial scouting report beside individual forecast',async({page})=>{
+ await page.goto('./');const card=page.locator('#rookie-advice .player-card').first();
+ await expect(card).toContainText('Cameron Boozer');
+ await card.locator('h3').click();
+ await expect(card.getByRole('heading',{name:'Что даёт в фэнтези',exact:true})).toBeVisible();
+ await expect(card.getByRole('heading',{name:'На что смотреть',exact:true})).toBeVisible();
+ await expect(card.locator('.scouting-report a')).toHaveAttribute('href',/nba.com/);
+ await expect(card.locator('.stats-grid .stat-cell')).toHaveCount(6);
+});

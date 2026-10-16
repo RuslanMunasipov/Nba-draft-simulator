@@ -1,3 +1,4 @@
+import {reportElement} from './rookie-reports.js';
 import './baseline.js';
 import './history.js';
 import {newDraft,pick,undo,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
@@ -21,17 +22,17 @@ function card(p,analysis=null){
  const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
  el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
  const risk=analysis?.risk||riskProfile(p);el.append(text('strong','Риск: '+risk.level));
- el.append(text('p',(p.team||'Ростер не подтверждён')+' · '+(p.positions.join('/')||'Позиции неизвестны')));
+ el.append(text('p',[p.team,p.positions.join('/')].filter(Boolean).join(' · ')));
  if(individualRookie)el.append(text('strong',`Индивидуальный прогноз: ${individualRookie.componentFPPerGame.toFixed(1)} частичных ФО/матч; фолы и бонусы не учтены. Сравнение — в блоке rookie.`));
- else el.append(text('strong',Number.isFinite(p.projectedFP)?'Основа оценки: '+p.projectedFP.toFixed(2)+' ФО/матч':'Для оценки недостаточно данных'));
- if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&!individualRookie)el.append(text('p','Новичок: групповая историческая оценка, очень высокая неопределённость. Индивидуальной статистики NBA нет.'));
+ else if(Number.isFinite(p.projectedFP))el.append(text('strong','Основа оценки: '+p.projectedFP.toFixed(2)+' ФО/матч'));else el.append(text('span',''));
+ if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&!individualRookie)el.append(text('p','Групповой исторический ориентир; индивидуальный разбор — ниже.'));
  if(p.coverageStatus==='EARLIER_SEASON')el.append(text('p','Пропуск/малая выборка последнего сезона: автоматически использована база '+p.projectionBaseSeason+'. Текущая нагрузка неизвестна.'));
  if(p.injuries?.length)el.append(text('p','Статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
  if(p.returnContext)el.append(text('p',p.returnContext.note));
  if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')el.append(text('small','Позиции ESPN, допуск Yahoo не подтверждён.'));
  if(state.priceMode==='ON')el.append(text('p','Цена: '+(p.priceStatus==='VERIFIED'?p.price+' ед.':'не подтверждена')));
  if(analysis&&!individualRookie){
-  el.append(text('p','Уверенность пика: '+(analysis.stability===null?'не рассчитывается — недопустимый добор':analysis.stability+'% первых мест в условных сценариях')));
+  if(analysis.stability!==null)el.append(text('p','Уверенность пика: '+analysis.stability+'% первых мест в условных сценариях'));
   el.append(text('p',analysis.conclusion));
   if(analysis.pressure!==null)el.append(text('p','Брать сейчас или ждать: в '+analysis.pressure+' из 100 эвристических сценариев игрок уходил за следующие 7 выборов, если мы брали альтернативу. Это не реальная вероятность действий GM.'));
   el.append(text('strong','Плюсы пика'));const pros=document.createElement('ul');for(const value of analysis.advantages)pros.append(text('li',value));el.append(pros);
@@ -45,14 +46,35 @@ function card(p,analysis=null){
   evidence.append(text('p','Статистическая база: '+(p.projectionBaseSeason||'групповой ориентир')+'. Историческое среднее не гарантирует такую же роль и нагрузку.'));
   if(p.rosterSource){const source=document.createElement('a');source.href=p.rosterSource;source.textContent='Источник ростера и статусов ESPN';evidence.append(source);}el.append(evidence);
  }
- if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: прогноз матчей ${source.projectedGames??'нет'} · ADP ${source.adp?.toFixed(2)??'нет'}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
+ if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: ${[source.projectedGames!=null?'прогноз матчей '+source.projectedGames:null,Number.isFinite(source.adp)?'ADP '+source.adp.toFixed(2):null].filter(Boolean).join(' · ')}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
  if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
  if(analysis?.completion?.possible===false){b.disabled=true;b.title=analysis.completion.reason;}
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
- el.append(b);return el;
+ el.append(b);
+ el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[3]?.classList.add('player-score');
+ el.dataset.risk=risk.level.includes('ВЫСОКИЙ')?'high':risk.level.includes('СРЕДНИЙ')?'medium':'low';
+ organizeCard(el,b,4);
+ return el;
 }
+
+function organizeCard(el,b,previewCount){
+ const content=[...el.children],details=document.createElement('details'),summary=document.createElement('summary');
+ details.className='card-details';summary.className='player-toggle';
+ content.slice(0,previewCount).forEach(node=>summary.append(node));
+ const hint=text('span','Нажми на имя · полный разбор');hint.className='expand-hint';summary.append(hint);details.append(summary);
+ const body=document.createElement('div');body.className='card-body';
+ for(const node of content.slice(previewCount)){if(node!==b){
+  if(node.tagName==='P'&&node.textContent.startsWith('PTS ')){
+   const stats=document.createElement('div');stats.className='stats-grid';
+   for(const value of node.textContent.split(' · ')){const stat=text('span',value);stat.className='stat-cell';stats.append(stat);}body.append(stats);
+  }else body.append(node);
+ }}
+ const report=reportElement({name:content[0].textContent.replace(/^\d+\. /,'').replace(' · rookie','')});if(report)body.prepend(report);
+ details.append(body);el.replaceChildren(details,b);
+}
+
 function renderRookies(){
  renderTiming(state);
  const result=rookieRecommendations(state);$('rookie-advice').replaceChildren();
@@ -69,12 +91,22 @@ function renderRookies(){
   el.append(text('p',`Минусы: нет фактической статистики NBA этого новичка; роль и минуты могут измениться. ${index?`Отставание от лидера по частичному сезонному прогнозу ${(leader.componentSeasonTotal-s.componentSeasonTotal).toFixed(0)}. `:''}Близкие значения не определяют однозначного победителя: фолы и бонусы пока не учтены.`));
   el.append(text('p','Когда брать: ADP — ориентир общих лиг. В FBL всем восьми командам нужен rookie, поэтому спрос может быть выше; ждать до последнего раунда рискованно.'));
   el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Позиции и rookie-статус требуют подтверждения по регламенту.'));
-  const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);$('rookie-advice').append(el);
+  const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);
+  el.children[1]?.classList.add('player-score');el.children[2]?.classList.add('player-meta');
+  organizeCard(el,b,3);
+  $('rookie-advice').append(el);
  }
 }
 function render(){
  $('cap').value=state.cap;$('price-mode').checked=state.priceMode==='ON';$('price-controls').hidden=state.priceMode!=='ON';
- const n=state.picks.length;$('turn').textContent=n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
+ const n=state.picks.length;
+ $('draft-progress-fill').style.width=(n/80*100)+'%';document.querySelector('.draft-progress').setAttribute('aria-valuenow',String(n));
+ const own=state.picks.filter(p=>p.team===0).map(p=>state.players.find(x=>x.id===p.playerId));
+ const ownBox=$('my-roster');ownBox.replaceChildren();
+ const rookie=own.some(p=>p.isRookie);ownBox.append(text('p',`${own.length}/10 игроков · Rookie: ${rookie?'выбран ✓':'ещё нужен'}`));
+ const list=document.createElement('ol');list.className='roster-grid';
+ for(let i=0;i<10;i++){const row=text('li',own[i]?own[i].name:'Свободное место');if(own[i])row.append(text('small',own[i].positions.join(' / ')+(own[i].isRookie?' · rookie':'')));else row.className='empty-slot';list.append(row);}ownBox.append(list);
+ $('turn').textContent=n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
  $('history').replaceChildren();for(const p of state.picks)$('history').append(text('li',`#${p.number} · GM ${p.team+1} · ${state.players.find(x=>x.id===p.playerId)?.name||p.playerId}`));
  $('candidates').parentElement.open=Boolean($('search').value||$('rookies-only').checked);
  const query=$('search').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
