@@ -18,12 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm ci
-        if: hashFiles('package-lock.json') != ''
-      - run: npm install
-        if: hashFiles('package-lock.json') == ''
-      - run: npm test
-      - run: npm run build
+      - name: Test, build, and verify
+        run: npm run verify
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
