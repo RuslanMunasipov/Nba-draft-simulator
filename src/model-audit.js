@@ -2,6 +2,8 @@ const output=document.getElementById('model-report');
 fetch(import.meta.env.BASE_URL+'data/forecast-audit.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{
  document.getElementById('model-status').textContent=`Полный расчёт: ${data.forecastPlayers} игроков, в том числе ${data.rookieForecasts} rookie. Проверено ${new Date(data.checkedAt).toLocaleString('ru-RU')}.`;
  function p(text){const el=document.createElement('p');el.textContent=text;output.append(el);}
+ const rules=data.leagueRules;
+ if(rules)p(`Регламент FBL подтверждён: ${rules.teams} команд × ${rules.rosterSize} игроков; по два PG, SG, SF, PF, C; минимум один rookie; прямой драфт 1→8; изменяемый cap ${rules.cap.default}. Позиции — Yahoo, цены — Sports.ru. Правила подтверждены пользователем; фактический допуск Yahoo и цены в базе ещё не проверены. До проверки цен бюджет не применяется.`);
  p('ФО = очки + подборы + передачи + перехваты + блоки − промахи с игры − промахи штрафных − 2 × потери − фолы + бонус минут + бонус результата команды.');
  p('Бонус минут: +2 при 10+ минутах, иначе +1. Результат: победа дома +2, в гостях +3; поражение дома −3, в гостях −2.');
  const link=document.createElement('a');link.href=data.rulesSource;link.textContent='Опубликованные правила Sports.ru';output.append(link);

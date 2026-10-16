@@ -161,6 +161,7 @@ def build(data,rows_by_season):
         forecasts+=1
     audit={'status':'EXPERIMENTAL_FULL_FORMULA_ESTIMATES','rulesSource':RULES,'checkedAt':data['generatedAt'],
       'minuteEncoding':encoding,'coverage':coverage,'forecastPlayers':forecasts,'rookieForecasts':sum(bool(p.get('isRookie') and p.get('forecast')) for p in data['players']),
+      'leagueRules':json.loads(Path('data/league-rules.json').read_text()),
       'projectionArchive':json.loads(Path('public/data/projection-archive-audit.json').read_text()) if Path('public/data/projection-archive-audit.json').exists() else None,
       'seasonModel':production.report(),
       'rookieComponentAudit':rookie_component_audit(data,groups,bonuses),
@@ -173,7 +174,7 @@ def build(data,rows_by_season):
         '2023/24 minutes are truncated integers; seconds cannot be recovered. Team-minute intervals are checked, which is weaker than exact conservation.',
         'Rookie analog ranges are an extrapolation and have no independent rookie holdout calibration.',
         'Zero-game target seasons included; absence may mean injury, retirement or departure. Marginal conformal coverage can fail under season shift.',
-        'Yahoo positions, FBL cap/prices, draft order and any FBL-specific departures from Sports.ru still require league confirmation.']}
+        'League slots, straight draft and adjustable cap 20000 are user-confirmed. Actual Yahoo eligibility and Sports.ru prices remain unverified in feeds; no unconfirmed NBA club limit is imposed.']}
     data['forecastAudit']=audit
     return data,audit
 if __name__=='__main__':

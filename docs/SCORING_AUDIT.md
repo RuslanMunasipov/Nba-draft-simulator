@@ -17,7 +17,7 @@
 - PF and participation bonuses are modeled, not supplied individual ESPN forecast categories.
 - Zero-appearance target players are now included as zero season output. Injury, retirement and departures are not distinguished by these logs.
 - Source data are user-supplied and the 2024/25 schedule is incomplete.
-- Yahoo eligibility, salary cap/prices, FBL-specific rule differences, player availability, roster roles and draft order still require league validation.
+- League rules were recovered from explicit user confirmations dated 2026-10-16: 8x10, two slots each, Yahoo eligibility, straight order, adjustable 20000 cap, Sports.ru prices, required rookie. Actual Yahoo player eligibility and Sports.ru prices in feeds remain unverified. No unconfirmed NBA club limit is enforced. See data/league-rules.json.
 - Rookie timing and simulation now use the same full-formula season metric as recommendations. Imported datasets without full forecasts remain in a separate legacy metric. Missing recorded forecasts block scoring, never become zero. GM policies remain assumptions, not calibrated behavior.
 ## Decision
 LIMITED. This change makes scores comparable and exposes a testable complete-formula estimate. It does not establish an ideal or proven season-winning prediction system.

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "season": "2026-27",
+  "teams": 8,
+  "rosterSize": 10,
+  "slots": {
+    "PG": 2,
+    "SG": 2,
+    "SF": 2,
+    "PF": 2,
+    "C": 2
+  },
+  "minimumRookies": 1,
+  "positionAuthority": "Yahoo Fantasy",
+  "scoringAuthority": "Sports.ru",
+  "draft": {
+    "order": "LINEAR",
+    "firstTeam": 0,
+    "picks": [
+      1,
+      9,
+      17,
+      25,
+      33,
+      41,
+      49,
+      57,
+      65,
+      73
+    ]
+  },
+  "cap": {
+    "default": 20000,
+    "adjustable": true
+  },
+  "priceAuthority": "Sports.ru",
+  "nbaClubLimit": null,
+  "provenance": {
+    "kind": "USER_CONFIRMED",
+    "confirmedAt": "2026-10-16T04:47:00Z"
+  },
+  "feedVerification": {
+    "yahooEligibility": "UNVERIFIED",
+    "sportsRuPrices": "UNVERIFIED"
+  },
+  "note": "Confirmed league rules are distinct from provider feed verification. Do not enable cap enforcement with unverified prices or impose an unconfirmed NBA club limit."
+}
