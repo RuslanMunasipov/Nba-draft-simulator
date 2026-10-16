@@ -153,7 +153,7 @@ function render(){
  for(const analysis of risky)$('risky-advice').append(card(analysis.player,analysis));
  $('risk-section').hidden=!risky.length;
  renderRookies();
- $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · сумма базовых оценок ${t.projectedFP?.toFixed(2)??'—'} · rookie ${t.rookieCount} (${t.rookieRule})`));}
+ $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??'оценка состава неполная'} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 let databaseLoading=false;
 async function loadDatabase(force=false){
@@ -174,7 +174,7 @@ async function loadDatabase(force=false){
    save();
   }else database=candidate;
   writeStored('fbl-default-db',JSON.stringify(candidate));updateSaveStatus();
-  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Источник позиций — ESPN, не Yahoo. Оценки экспериментальные, ФО без бонуса результата.`;
+  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Источник позиций — ESPN, не Yahoo. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
   $('startup-status').textContent=`База готова · ${state.players.length} игроков`;
  }catch(e){
   const message=state.players.length?'Источник обновления недоступен. Используется сохранённая база; пики сохранены.':'Не удалось загрузить базу. Нажми «Повторить загрузку».';
@@ -200,7 +200,7 @@ $('batch').onclick=()=>{
  $('batch').disabled=true;$('simulation-status').textContent='Выполняются 100 сценариев…';
  const worker=new Worker(new URL('./batch-worker.js',import.meta.url),{type:'module'});
  const finish=()=>{worker.terminate();$('batch').disabled=false;};
- worker.onmessage=({data})=>{finish();$('simulation-status').textContent=data.error?'Ошибка: '+data.error:`100 сценариев; допустимых: ${data.result.eligibleRuns}/100. `+(data.result.wins?'Лучшие суммы базовых оценок: '+data.result.wins.map((n,i)=>`GM ${i+1}: ${n}`).join(', '):'Победитель сценария не определяется.')+' Результаты зависят от оценочных позиций и прогнозов, это не вероятность победы в FBL.';};
+ worker.onmessage=({data})=>{finish();$('simulation-status').textContent=data.error?'Ошибка: '+data.error:`100 сценариев; допустимых: ${data.result.eligibleRuns}/100. `+(data.result.wins?(data.result.metric==='FBL_FULL_FORMULA_ESTIMATE'?'Лидеры по сезонным ФО: ':'Лидеры по импортированным оценкам: ')+data.result.wins.map((n,i)=>`GM ${i+1}: ${n}`).join(', '):'Победитель сценария не определяется.')+' Результаты зависят от оценочных позиций и прогнозов, это не вероятность победы в FBL.';};
  worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1});
 };
 $('draft-mode').value=mode;$('bots').hidden=mode!=='INTERACTIVE';

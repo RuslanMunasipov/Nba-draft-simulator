@@ -18,3 +18,15 @@ class AccuracyTests(unittest.TestCase):
   centre,lo,hi=model.interval(dict(full=20,games=70,minutes=30))
   self.assertLessEqual(lo,centre);self.assertGreaterEqual(hi,centre)
   self.assertGreaterEqual(model.padding,0)
+
+ def test_availability_can_recover_from_short_seasons_without_invented_multiplier(self):
+  rows=[dict(id=i,full=20,games=30,minutes=30,delta=0,gamesDelta=40,absent=False,actual=1400) for i in range(1,101)]
+  model=SeasonModel(rows)
+  rate,games=model.point_parts(dict(full=20,games=30,minutes=30))
+  self.assertEqual(games,70)
+  self.assertEqual(rate,20)
+  self.assertEqual(model.calibrationPlayers,25)
+ def test_repeated_calibration_player_is_counted_once(self):
+  rows=self.rows()
+  model=SeasonModel(rows+rows)
+  self.assertEqual(model.calibrationPlayers,50)

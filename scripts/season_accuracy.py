@@ -22,13 +22,15 @@ class SeasonModel:
   self.scales=[statistics.pstdev(r[k] for r in self.fit) or 1 for k in ['full','games','minutes']]
   self.candidates={}
   for k in [0,24,48,96,192]:
-   errors=[]
-   for r in self.fit:
-    pool=[s for s in self.fit if s['id']!=r['id']]
-    estimate=self.predict(r,k,pool)[0]
-    errors.append(abs(estimate-r['actual']))
-   self.candidates[str(k)]=statistics.mean(errors)
-  self.k=min(self.candidates,key=self.candidates.get);self.k=int(self.k)
+   for mode in (['persistence'] if k==0 else ['delta','absolute','mean']):
+    errors=[]
+    for r in self.fit:
+     pool=[s for s in self.fit if s['id']!=r['id']]
+     rate,games=self.point_parts(r,k,pool,mode)
+     errors.append(abs(rate*games-r['actual']))
+    self.candidates[str(k)+':'+mode]=statistics.mean(errors)
+  selected=min(self.candidates,key=self.candidates.get)
+  self.k=int(selected.split(':')[0]);self.gamesMode=selected.split(':')[1]
   grouped_scores={}
   for r in calibration:
    _,lo,hi=self.predict(r)
@@ -41,13 +43,15 @@ class SeasonModel:
  def neighbors(self,p,k,pool):
   if k==0:return pool
   return sorted(pool,key=lambda r:sum(((p[key]-r[key])/s)**2 for key,s in zip(['full','games','minutes'],self.scales)))[:k]
- def point_parts(self,p,k=None,pool=None):
+ def point_parts(self,p,k=None,pool=None,mode=None):
   k=self.k if k is None else k;pool=self.fit if pool is None else pool
+  mode=mode or self.gamesMode
   if k==0:return p['full'],p['games']
   neighbors=self.neighbors(p,k,pool)
   played=[r for r in neighbors if not r['absent']]
   rate=p['full']+q([r['delta'] for r in played],.5) if played else p['full']
-  games=q([0 if r['absent'] else max(0,min(82,p['games']+r['gamesDelta'])) for r in neighbors],.5)
+  values=[0 if r['absent'] else max(0,min(82,(p['games'] if mode=='delta' else r['games'])+r['gamesDelta'])) for r in neighbors]
+  games=statistics.mean(values) if mode=='mean' else q(values,.5)
   return rate,games
  def predict(self,p,k=None,pool=None):
   k=self.k if k is None else k;pool=self.fit if pool is None else pool
@@ -63,7 +67,7 @@ class SeasonModel:
   centre,lo,hi=self.predict(p)
   return centre,min(centre,lo-self.padding),max(centre,hi+self.padding)
  def report(self):
-  return dict(neighbors=self.k,fitPlayers=len({r['id'] for r in self.fit}),
+  return dict(neighbors=self.k,gamesEstimator=self.gamesMode,fitPlayers=len({r['id'] for r in self.fit}),
               calibrationPlayers=self.calibrationPlayers,conformalPadding=self.padding,
               fitLeavePlayerOutMAE=self.candidates,selection='Fit-only leave-player-out MAE; calibration excluded from selection')
 def evaluate(model,rows,legacy):
@@ -84,7 +88,7 @@ def evaluate(model,rows,legacy):
  gains=[a-b for a,b in zip(base,errors)]
  boot=[statistics.mean(rng.choices(gains,k=len(gains))) for _ in range(2000)]
  return dict(pairedMAEGain95Bootstrap=[q(boot,.025),q(boot,.975)],
-             perGameMAEAmongActive=statistics.mean(rate_errors),gamesMAE=statistics.mean(games_errors),
+             perGameMAEAmongActive=statistics.mean(rate_errors),gamesMAE=statistics.mean(games_errors),baselineGamesMAE=statistics.mean(abs(r['games']-(0 if r['absent'] else r['games']+r['gamesDelta'])) for r in rows),
              players=len(rows),absentPlayers=sum(r['absent'] for r in rows),
              historicalPersistenceSeasonMAE=statistics.mean(base),selectedModelSeasonMAE=statistics.mean(errors),
              empirical80RangeCoverage=statistics.mean(coverage),uncalibratedRangeCoverage=statistics.mean(oldcoverage),

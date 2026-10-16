@@ -15,7 +15,7 @@ export function renderTiming(state){
  current.onmessage=({data})=>{
   current.terminate();if(previous!==snapshot)return;
   if(data.error){$('timing-status').textContent=data.error;return;}
-  const r=data.result;
+  const r=data.result,unit=r.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО':'частичных ФО';
   if(r.covered){$('timing-status').textContent=r.message;return;}
   $('timing-status').textContent=`Проверено ${r.totalDrafts} условных драфтов · ${r.cohort} сопоставимых прогнозов · ${r.rookies} rookie.`;
   const box=$('timing-result');
@@ -23,7 +23,7 @@ export function renderTiming(state){
   if(r.recommendedRound===null){box.append(text('strong','Нет проверенного решения: стратегии содержат недопустимые прогоны.'));return;}
   box.append(text('h3',`Условный лучший план: раунд ${r.recommendedRound}, наш пик №${r.recommendedPick}`));
   box.append(text('p',r.stable?'Этот раунд лидирует во всех совместимых заданных сценариях. Это не гарантия реальных действий GM.':`Единого устойчивого раунда нет: сценарные лидеры — от ${r.profileRange[0]} до ${r.profileRange[1]} раунда. После реальных пиков расчёт обновится.`));
-  box.append(text('p',`Отрыв от следующего плана по среднему результату: ${r.meanGap?.toFixed(0)??'—'} частичных ФО за сезон всего состава. Малые разницы не доказывают преимущество: PF и бонусы не учтены.`));
+  box.append(text('p',`Отрыв от следующего плана по среднему результату: ${r.meanGap?.toFixed(0)??'—'} ${unit} за сезон всего состава. Малые разницы чувствительны к ошибкам прогноза и предположениям о GM.`));
   if(r.paired?.length){
    const comparison=document.createElement('section');comparison.id='rookie-tradeoff';
    comparison.append(text('h3','Rookie сейчас или ветеран сейчас'),text('p',`Наш пик №${r.ourPick} → следующий №${r.nextPick}. Соперников без rookie: ${r.teamsNeedingRookie}/7.`));
@@ -33,14 +33,14 @@ export function renderTiming(state){
      text('p','Rookie сейчас: '+names(p.rookieNow)+'. Ветеран сейчас при ожидании: '+names(p.veteranNow)+'.'),
      text('p',`Потеря rookie до следующего хода: ${p.lost}/${p.observed} сценариев. Это частота в модели, не вероятность реального выбора GM.`),
      text('p','Выбор на следующем ходу при ожидании: '+names(p.alternatives)+'.'),
-     text('p',`Rookie сейчас минус ожидание: ${Math.round(p.mean)} частичных ФО всего состава; диапазон [${Math.round(p.min)}; ${Math.round(p.max)}]. Числа в скобках у имён — количество прогонов.`));
+     text('p',`Rookie сейчас минус ожидание: ${Math.round(p.mean)} ${unit} всего состава; диапазон [${Math.round(p.min)}; ${Math.round(p.max)}]. Числа в скобках у имён — количество прогонов.`));
    }
    comparison.append(text('small','Сравниваются два плана на одинаковых сценариях. Во время чужого хода варианты относятся к нашему следующему пику; до него доступность может измениться.'));
    box.append(comparison);
   }
   const advanced=document.createElement('details');advanced.append(text('summary','Математика и сценарии'));box.append(advanced);
   for(const p of r.paired??[]){
-   advanced.append(text('p',`${p.name}: сейчас минус следующий ход — среднее ${Math.round(p.mean)}, диапазон [${Math.round(p.min)}; ${Math.round(p.max)}] частичных ФО состава. Это диапазон симуляций, не доверительный интервал.`));
+   advanced.append(text('p',`${p.name}: сейчас минус следующий ход — среднее ${Math.round(p.mean)}, диапазон [${Math.round(p.min)}; ${Math.round(p.max)}] ${unit} состава. Это диапазон симуляций, не доверительный интервал.`));
    advanced.append(text('p','Rookie сейчас: '+Object.keys(p.nowNames).join(', ')+'. При ожидании: '+Object.keys(p.nextNames).join(', ')+'.'));
   }
   for(const p of r.bestByProfile)advanced.append(text('p',`${p.name}: лучший раунд ${p.round??'не определён'}.`));

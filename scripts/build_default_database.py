@@ -74,7 +74,7 @@ def make_database(history,baseline,current,now):
         rookie=athlete.get('experience')==0 and historical is None
         value=estimate['estimatedCoreFPPerGame'] if estimate else prior if rookie else None
         players[identifier]={'id':identifier,'nbaId':historical['id'] if historical else None,
-            'espnId':athlete['espnId'],'name':athlete['name'],'team':athlete['team'],
+            'espnId':athlete['espnId'],'name':athlete['name'],'team':athlete['team'],'nbaExperience':athlete.get('experience'),
             'positions':athlete['positions'],'positionStatus':'ESTIMATED_FROM_ESPN_NOT_YAHOO' if athlete['positions'] else 'MISSING',
             'positionSource':athlete['source'],'isRookie':rookie,
             'rookieStatus':'SOURCE_REPORTED_NO_EXPERIENCE' if rookie else 'HISTORICAL_NBA_PLAYER' if historical else 'UNKNOWN',

@@ -1,3 +1,4 @@
+import {scoringMetric,fullSeason,FULL_SEASON} from './season-scoring.js';
 import {rosterFits} from './engine.js';
 import {severeRisk} from './valuation.js';
 export const DEMAND_PROFILES=[
@@ -9,9 +10,10 @@ export const DEMAND_PROFILES=[
 function random(seed){let x=seed>>>0;return ()=>{x=(x+0x6D2B79F5)>>>0;let t=Math.imul(x^(x>>>15),x|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 
 export function timingCohort(state){
+ const metric=scoringMetric(state);
  const players=state.players.filter(p=>{
   const q=p.espnContext?.individualProjection;
-  return p.positions.length&&q?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(q.componentSeasonTotal)&&
+  return p.positions.length&&(metric===FULL_SEASON?fullSeason(p)!==null:q?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(q.componentSeasonTotal))&&
    (state.priceMode!=='ON'||(p.priceStatus==='VERIFIED'&&Number.isFinite(p.price)));
  });
  const ids=new Set(players.map(p=>p.id));
@@ -32,9 +34,10 @@ export function compatibleProfile(state,players,profile){
 // strategies without pretending that ADP supplies a calibrated pick probability.
 export function simulateRookieTiming(state,players,targetRound,profile,seed){
  const byId=new Map(players.map(p=>[p.id,p])),used=new Set(),rosters=Array.from({length:8},()=>[]),picks=[];
- const value=p=>p.espnContext.individualProjection.componentSeasonTotal;
+ const metric=scoringMetric(state);
+ const value=p=>metric===FULL_SEASON?fullSeason(p):p.espnContext.individualProjection.componentSeasonTotal;
  const valueOrder=[...players].sort((a,b)=>value(b)-value(a)||String(a.id).localeCompare(String(b.id)));
- const marketOrder=[...players].sort((a,b)=>(a.espnContext.adp??9999)-(b.espnContext.adp??9999)||value(b)-value(a));
+ const marketOrder=[...players].sort((a,b)=>(a.espnContext?.adp??9999)-(b.espnContext?.adp??9999)||value(b)-value(a));
  for(const choice of state.picks){const p=byId.get(choice.playerId);used.add(p.id);rosters[choice.team].push(p);picks.push({...choice});}
  const plans=Array.from({length:8},(_,team)=>{const from=Math.max(profile.from,rosters[team].length+1);return from+Math.floor(random(seed+team*997)()*Math.max(1,profile.to-from+1));});
  let actualRookieRound=state.picks.find(p=>p.team===0&&byId.get(p.playerId).isRookie)?.number;actualRookieRound=actualRookieRound?Math.floor((actualRookieRound-1)/8)+1:null;
@@ -136,6 +139,6 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
  const now=paired.length>0&&paired.every(p=>p.min>0),wait=paired.length>0&&paired.every(p=>p.max<0);
  const decision=!next&&current?.valid?'Брать сейчас':now?'Брать сейчас':wait?'Можно ждать до следующего хода':'Результат неустойчив';
  const reason=!next&&current?.valid?'Следующего нашего хода для выполнения обязательного rookie нет.':now?'Во всех парных прогонах текущий выбор дал больший итог состава.':wait?'Во всех парных прогонах ожидание дало больший итог состава.':'Знак преимущества меняется, равен нулю или есть невалидные продолжения.';
- return {decision,reason,paired,ourPick:current?.pick??null,nextPick:next?.pick??null,teamsNeedingRookie:Array.from({length:7},(_,i)=>i+1).filter(team=>!state.picks.some(p=>p.team===team&&players.find(x=>x.id===p.playerId)?.isRookie)).length,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
-  method:'Основной критерий — максимальная средняя сумма частичных ФО полного состава при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. PF и бонусы не учтены; позиции ESPN не подтверждены по Yahoo. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
+ return {metric:scoringMetric(state),decision,reason,paired,ourPick:current?.pick??null,nextPick:next?.pick??null,teamsNeedingRookie:Array.from({length:7},(_,i)=>i+1).filter(team=>!state.picks.some(p=>p.team===team&&players.find(x=>x.id===p.playerId)?.isRookie)).length,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
+  method:'Основной критерий — максимальная средняя сумма сезонных оценок полного состава в единой метрике при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. Для автоматической базы учитываются все компоненты формулы, включая оценочные фолы и бонусы. Импорт без полной модели сравнивается отдельно по частичным ФО. Позиции ESPN не подтверждены по Yahoo. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
 }

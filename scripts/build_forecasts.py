@@ -62,6 +62,32 @@ def changes(before,after):
         for i,p in before.items() if i in after and p['games']>=20 and p['minutes']>=10]
 def season_scenarios(mean,games,residuals):
     return [(mean+d)*max(0,min(82,games+g)) for d,g in residuals]
+def rookie_component_audit(data,groups,bonuses):
+    """Conditional held-out rookie scoring-components test, NOT a stats forecast test.
+    Uses observed rookie counting stats/minutes as inputs, prior-year donors only.
+    """
+    experience={p.get('nbaId'):p.get('nbaExperience') for p in data['players'] if p.get('nbaId')}
+    details=[]
+    for before,year,years_now in [('2023-24','2024-25',2),('2024-25','2025-26',1)]:
+        donors=[p for p in groups[before].values() if p['games']>=20 and p['minutes']>=10]
+        scales=[statistics.pstdev(p['features'][j] for p in donors) or 1 for j in range(9)]
+        for pid,p in groups[year].items():
+            if pid in groups[before] or experience.get(pid)!=years_now or p['games']<20 or p['minutes']<10:continue
+            selected=sorted(donors,key=lambda d:sum(((a-b)/s)**2 for a,b,s in zip(p['features'],d['features'],scales)))[:10]
+            extras=[]
+            for donor in selected:
+                ratio=p['minutes']/donor['minutes']
+                for row in donor['logs']:
+                    extras.append(-max(0,min(6,row['pf']*ratio))+(2 if row['minutes']*ratio>=10 else 1)+bonuses[before][(row['game_id'],row['team'])])
+            predicted=p['partial']+statistics.mean(extras)
+            details.append(dict(id=pid,name=p['name'],season=year,games=p['games'],actual=p['full'],
+                                predicted=predicted,baseline=p['partial'],absoluteError=abs(predicted-p['full'])))
+    return dict(players=len(details),conditionalPerGameMAE=statistics.mean(p['absoluteError'] for p in details) if details else None,
+                excludingComponentsMAE=statistics.mean(abs(p['baseline']-p['actual']) for p in details) if details else None,
+                seasons=['2024-25','2025-26'],details=details,
+                scope='Rookie PF/minute/result component transfer conditional on actual counting stats and minutes. Not a validation of rookie ESPN forecasts or season availability.',
+                selection='First appearance in supplied history and current ESPN experience 1/2; current-roster survivor cohort, not complete draft classes.')
+
 def build(data,rows_by_season):
     bonuses={};groups={};coverage={};encoding={}
     for year,rows in rows_by_season.items():
@@ -136,6 +162,7 @@ def build(data,rows_by_season):
     audit={'status':'EXPERIMENTAL_FULL_FORMULA_ESTIMATES','rulesSource':RULES,'checkedAt':data['generatedAt'],
       'minuteEncoding':encoding,'coverage':coverage,'forecastPlayers':forecasts,'rookieForecasts':sum(bool(p.get('isRookie') and p.get('forecast')) for p in data['players']),
       'seasonModel':production.report(),
+      'rookieComponentAudit':rookie_component_audit(data,groups,bonuses),
       'holdout':dict(validation,trainResiduals=['2023-24','2024-25'],testSeason='2025-26',
         frozenModel=frozen.report(),target='Full formula, including zero-game target seasons',
         limitation='Retrospective development validation. Model selection fits 2023/24->2024/25; 2025/26 diagnostics informed interval safeguards, so this is not untouched external validation. Not ESPN/rookie accuracy.'),

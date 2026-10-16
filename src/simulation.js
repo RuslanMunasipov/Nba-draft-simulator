@@ -1,3 +1,4 @@
+import {scoringMetric,seasonScore,FULL_SEASON} from './season-scoring.js';
 import {draftValue,severeRisk} from './valuation.js';
 import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority, getPlayer } from './engine.js';
 
@@ -18,7 +19,8 @@ export function availableCandidates(state) {
   return state.players.filter(p=>!used.has(p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
 }
 export function botPick(state,random=randomFromSeed(1),style='balanced') {
-  let candidates=availableCandidates(state);
+  const metric=scoringMetric(state);
+  let candidates=availableCandidates(state).filter(p=>metric!==FULL_SEASON||seasonScore(p,metric)!==null);
   const roster=teamRoster(state,currentTeam(state));
   // Reserve a rookie; budget is only relevant when official prices exist.
   if(!roster.some(p=>p.isRookie===true)){
@@ -58,7 +60,9 @@ export function draftSummary(state) {
   return Array.from({length:TEAM_COUNT},(_,team)=>{
     const roster=teamRoster(state,team);
     const allProjected=roster.length===ROUNDS&&roster.every(p=>Number.isFinite(p.projectedFP));
-    return {team:team+1,players:roster.length,cost:teamCost(state,team),
+    const metric=scoringMetric(state),complete=roster.length===ROUNDS&&roster.every(p=>seasonScore(p,metric)!==null);
+    return {team:team+1,players:roster.length,cost:teamCost(state,team),metric,
+      score:complete?roster.reduce((sum,p)=>sum+seasonScore(p,metric),0):null,
       projectedFP:allProjected?roster.reduce((sum,p)=>sum+p.projectedFP,0):null,
       rookieCount:roster.filter(p=>p.isRookie===true).length,
       rookieRule:roster.length===ROUNDS?(roster.some(p=>p.isRookie===true)?'PASS':roster.some(p=>p.isRookie==null)?'UNKNOWN':'FAIL'):'INCOMPLETE'};
@@ -70,11 +74,11 @@ export function batchSimulations(state,{runs=100,seed=1}={}) {
   for(let i=0;i<runs;i++){
     const completed=simulateDraft(state,{seed:seed+i});
     const summary=draftSummary(completed);
-    const eligible=summary.every((t,i)=>t.projectedFP!==null&&t.rookieRule==='PASS'&&(completed.priceMode!=='ON'||t.cost<=completed.cap)&&rosterFits(teamRoster(completed,i)));
-    const best=eligible?Math.max(...summary.map(t=>t.projectedFP)):null;
-    results.push({seed:seed+i,teams:summary,winners:best===null?[]:summary.filter(t=>t.projectedFP===best).map(t=>t.team),eligible});
+    const eligible=summary.every((t,i)=>t.score!==null&&t.rookieRule==='PASS'&&(completed.priceMode!=='ON'||t.cost<=completed.cap)&&rosterFits(teamRoster(completed,i)));
+    const best=eligible?Math.max(...summary.map(t=>t.score)):null;
+    results.push({seed:seed+i,teams:summary,winners:best===null?[]:summary.filter(t=>t.score===best).map(t=>t.team),eligible});
   }
-  return {runs,results,eligibleRuns:results.filter(x=>x.eligible).length,
+  return {metric:scoringMetric(state),runs,results,eligibleRuns:results.filter(x=>x.eligible).length,
     // No winner claims if even one simulation violates the rookie rule.
     wins:results.every(x=>x.eligible)?Array.from({length:TEAM_COUNT},(_,i)=>results.reduce((sum,r)=>sum+(r.winners.includes(i+1)?1/r.winners.length:0),0)):null};
 }
