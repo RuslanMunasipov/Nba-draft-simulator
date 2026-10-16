@@ -129,6 +129,10 @@ def build(data,rows_by_season):
 if __name__=='__main__':
     path=Path('public/data/default-draft.json');data=json.loads(path.read_text())
     rows={s:pq.read_table('data/raw/game_logs_'+s+'.parquet').to_pylist() for s in SEASONS}
+    for year,logs in rows.items():
+        samples=defaultdict(list)
+        for row in logs:samples[(row['game_id'],row['team'])].append(row)
+        print(json.dumps({'diagnosticSeason':year,'teamGames':len(samples),'sample':[{'game':str(k[0]),'team':k[1],'players':len(v),'minutes':sum(r['minutes'] for r in v),'points':sum(r['pts'] for r in v),'clockMinutes':sum(int(r['minutes'])+round((r['minutes']%1)*100)/60 for r in v)} for k,v in list(samples.items())[:12]],'firstRow':{k:str(logs[0][k]) for k in ['game_id','player_name','team','home','minutes','pts']}},ensure_ascii=False),flush=True)
     data,audit=build(data,rows)
     path.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
     Path('public/data/forecast-audit.json').write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding='utf-8')
