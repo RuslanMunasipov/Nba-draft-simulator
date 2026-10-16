@@ -45,3 +45,18 @@ test('searched Kawhi and Maxey have risk, comparison and scenario confidence',as
  }
  await expect(page.locator('#candidates')).toContainText('Изменение роли:');
 });
+
+test('mobile blocks a searched pick that strands the required rookie',async({page})=>{
+ const players=Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+(i+1),positions:i<22?['PG']:['PG','SG','SF','PF','C'],projectedFP:120-i,isRookie:i<20}));
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-16T00:00:00Z',players,coverage:{players:120,rookies:20}}}));
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ for(const id of [21,30,31,32,33,34,35,36]){
+  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC '+id);
+  await page.locator('#candidates').getByRole('button',{name:'Выбрать SYNTHETIC '+id,exact:true}).click();
+ }
+ await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC 22');
+ await expect(page.locator('#candidates')).toContainText('Не рекомендован');
+ await expect(page.locator('#candidates').getByRole('button',{name:'Выбрать SYNTHETIC 22',exact:true})).toBeDisabled();
+ await expect(page.locator('#advice')).not.toContainText('SYNTHETIC 22');
+});

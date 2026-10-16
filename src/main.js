@@ -3,6 +3,7 @@ import './history.js';
 import {newDraft,pick,undo,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
 import {advanceBots,simulateDraft,draftSummary} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
+import {pickCompletion} from './completion.js';
 import {installDatabase} from './database.js';
 const $=id=>document.getElementById(id);
 let state;try{state=importDraft(localStorage.getItem('fbl-draft')||'');}catch{state=newDraft();}
@@ -12,7 +13,7 @@ function save(){localStorage.setItem('fbl-draft',exportDraft(state));render();}
 function showError(error){$('simulation-status').textContent='Не удалось выполнить: '+error.message;}
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
 function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
-function choose(p){try{state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
+function choose(p){try{const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
  el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
@@ -26,15 +27,23 @@ function card(p,analysis=null){
  if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')el.append(text('small','Позиции ESPN, допуск Yahoo не подтверждён.'));
  if(state.priceMode==='ON')el.append(text('p','Цена: '+(p.priceStatus==='VERIFIED'?p.price+' ₽':'не подтверждена')));
  if(analysis){
-  el.append(text('p','Уверенность пика: '+analysis.stability+'% устойчивости в сценариях'));
+  el.append(text('p','Уверенность пика: '+(analysis.stability===null?'не рассчитывается — недопустимый добор':analysis.stability+'% первых мест в условных сценариях')));
   el.append(text('p',analysis.conclusion));
-  el.append(text('p','Брать сейчас или ждать: в '+analysis.pressure+' из 100 эвристических сценариев игрок уходил за следующие 7 выборов, если мы брали альтернативу. Это не реальная вероятность действий GM.'));
+  if(analysis.pressure!==null)el.append(text('p','Брать сейчас или ждать: в '+analysis.pressure+' из 100 эвристических сценариев игрок уходил за следующие 7 выборов, если мы брали альтернативу. Это не реальная вероятность действий GM.'));
   el.append(text('strong','Плюсы пика'));const pros=document.createElement('ul');for(const value of analysis.advantages)pros.append(text('li',value));el.append(pros);
   el.append(text('strong','Минусы и альтернативы'));const cons=document.createElement('ul');for(const value of analysis.drawbacks)cons.append(text('li',value));el.append(cons);
+  el.append(text('small','Процент сравнивает кандидатов сейчас, а не предсказывает успех сезона. 0% не означает, что игрок бесполезен.'));
   const details=document.createElement('details');details.append(text('summary','Как рассчитан процент'),text('p',analysis.method));el.append(details);
+ }
+ if(p.sourceUpdatedAt||p.rosterSource){
+  const evidence=document.createElement('details');evidence.append(text('summary','Источники и актуальность'));
+  if(p.sourceUpdatedAt)evidence.append(text('p','Срез ростера: '+new Date(p.sourceUpdatedAt).toLocaleString('ru-RU')));
+  evidence.append(text('p','Статистическая база: '+(p.projectionBaseSeason||'групповой ориентир')+'. Историческое среднее не гарантирует такую же роль и нагрузку.'));
+  if(p.rosterSource){const source=document.createElement('a');source.href=p.rosterSource;source.textContent='Источник ростера и статусов ESPN';evidence.append(source);}el.append(evidence);
  }
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
+ if(analysis?.completion?.possible===false){b.disabled=true;b.title=analysis.completion.reason;}
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
  el.append(b);return el;
 }
@@ -50,7 +59,7 @@ function render(){
  $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p,query.length>=2&&index<5?analyzeRecommendations(state,p)[0]:null)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
  $('advice').replaceChildren();const a=analyzeRecommendations(state);
- if(!a.length)$('advice').append(text('p',state.players.length?'Нет допустимых рекомендаций для текущего ростера.':'Загружается последняя база…'));
+ if(!a.length)$('advice').append(text('p',state.players.length?'Нет допустимых рекомендаций: проверьте позиции, rookie и бюджет полного состава.':'Загружается последняя база…'));
  for(const analysis of a)$('advice').append(card(analysis.player,analysis));
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · сумма базовых оценок ${t.projectedFP?.toFixed(2)??'—'} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }

@@ -27,3 +27,21 @@ test('searched candidate outside top twenty receives an honest comparison',()=>{
  assert.ok(report[0].advantages.length);assert.ok(report[0].drawbacks.some(x=>x.includes('Альтернатива')));
  assert.match(report[0].conclusion,/Сравнить/);
 });
+
+test('advice excludes high-FP picks that prevent rookie completion',()=>{
+ const blocked=players.map(p=>({...p,positions:p.id<=21?['PG']:['PG','SG','SF','PF','C'],isRookie:p.id<=20}));
+ let state=pick(newDraft(blocked),21);
+ // Seven opponent picks; preserve all rookies for this test.
+ for(let i=0;i<7;i++)state=pick(state,30+i);
+ const candidate={...blocked[21],projectedFP:9999,positions:['PG']};
+ state={...state,players:blocked.map(p=>p.id===candidate.id?candidate:p)};
+ const report=analyzeRecommendations(state,candidate)[0];assert.equal(report.completion.possible,false);assert.equal(report.stability,null);
+ assert.ok(!analyzeRecommendations(state).some(r=>r.player.id===candidate.id));
+});
+test('advice explains numerical tradeoff and exact full-roster budget',()=>{
+ const state=newDraft(players.map(p=>({...p,price:100,priceStatus:'VERIFIED'})),20000,'ON');
+ const report=analyzeRecommendations(state)[0];assert.equal(report.completion.minimumCost,1000);
+ assert.ok(report.advantages.some(s=>s.includes('Минимальный бюджет')));
+ assert.ok([...report.advantages,...report.drawbacks].some(s=>s.includes('Базовая разница')));
+ assert.match(report.method,/0% означает/);
+});

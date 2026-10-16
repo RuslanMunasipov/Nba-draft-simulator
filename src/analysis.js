@@ -1,4 +1,5 @@
 import {pick} from './engine.js';
+import {completionPlan,pickCompletion} from './completion.js';
 import {randomFromSeed} from './simulation.js';
 export function riskProfile(p){
  const games=Object.values(p.historyGames||{});const flags=[];
@@ -27,8 +28,14 @@ export function selectionPressure(pool,player,seed){
 }
 export function analyzeRecommendations(state,focus=null){
  const used=new Set(state.picks.map(p=>p.playerId));
- const pool=state.players.filter(p=>!used.has(p.id)&&Number.isFinite(p.projectedFP)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>b.projectedFP-a.projectedFP).slice(0,20);
- if(focus&&!pool.some(p=>p.id===focus.id)&&!used.has(focus.id)&&Number.isFinite(focus.projectedFP)){try{pick(state,focus.id);if(pool.length===20)pool.pop();pool.push(focus);}catch{}}
+ const legal=state.players.filter(p=>!used.has(p.id)&&Number.isFinite(p.projectedFP)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>b.projectedFP-a.projectedFP||String(a.id).localeCompare(String(b.id)));
+ const base=completionPlan(state),pool=[];
+ if(base.possible)for(const candidate of legal){if(pickCompletion(state,candidate.id).possible)pool.push(candidate);if(pool.length===20)break;}
+ if(focus){
+  const plan=pickCompletion(state,focus.id);
+  if(!plan.possible)return [{player:focus,risk:riskProfile(focus),stability:null,pressure:null,completion:plan,advantages:[],drawbacks:[plan.reason],conclusion:'Не рекомендован: после пика нельзя завершить допустимый состав',method:'Проверено точное назначение пяти позиций, rookie, уже выбранные игроки и подтверждённые цены при включённом бюджете. Прогноз силы здесь не отменяет нарушение правил.'}];
+  if(!pool.some(p=>p.id===focus.id)&&legal.some(p=>p.id===focus.id))pool.push(focus);
+ }
  const random=randomFromSeed(101+state.picks.length),wins=new Map(pool.map(p=>[p.id,0]));
  for(let scenario=0;scenario<100;scenario++){
   let best=null,score=-Infinity;
@@ -44,9 +51,19 @@ export function analyzeRecommendations(state,focus=null){
   const drawbacks=[...risk.flags,'ФО без бонуса результата; оценка сезона не подтверждена'];
   if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')drawbacks.push('Допуск Yahoo не проверен: использованы позиции ESPN');
   if(alternative)drawbacks.push(`Альтернатива сейчас: ${alternative.name} (${alternative.projectedFP.toFixed(2)} базовых ФО/матч)`);
+  if(alternative){
+   const difference=p.projectedFP-alternative.projectedFP;
+   (difference>0?advantages:drawbacks).push(`Базовая разница с ${alternative.name}: ${difference>=0?'+':''}${difference.toFixed(2)} ФО/матч; это не разница за сезон`);
+   const otherRisk=riskProfile(alternative),levels={'ОТНОСИТЕЛЬНО НИЗКИЙ':0,'СРЕДНИЙ':1,'ВЫСОКИЙ':2};
+   if(levels[risk.level]<levels[otherRisk.level])advantages.push(`Меньше выявленных флагов риска, чем у ${alternative.name} (${otherRisk.level})`);
+   if(levels[risk.level]>levels[otherRisk.level])drawbacks.push(`Риск выше, чем у ${alternative.name} (${otherRisk.level})`);
+  }
+  const completion=pickCompletion(state,p.id);
+  advantages.push(completion.minimumCost===null?'После пика существует полный позиционный состав с rookie при текущей доступности':`Минимальный бюджет полного состава после пика: ${completion.minimumCost.toFixed(2)} из ${state.cap}; на оставшиеся слоты нужно минимум ${completion.minimumRemainingCost.toFixed(2)}`);
+  drawbacks.push('Добор проверен по доступным сейчас игрокам: соперники могут забрать их до следующего хода');
   const stability=wins.get(p.id),pressure=selectionPressure(pool,p,551+state.picks.length);
-  return {player:p,risk,advantages,drawbacks,stability,pressure,
+  return {player:p,risk,advantages,drawbacks,stability,pressure,completion,
    conclusion:p.id===pool[0]?.id?(stability>=60?'Предпочтительный выбор в этом стресс-тесте':'Однозначного пика нет: лидер зависит от допущений'):'Сравнить с лидером, особенно если нужен этот слот или rookie',
-   method:`${stability} из 100 условных сценариев дали лучший результат среди ${pool.length} допустимых кандидатов. Нагрузка/роль: ${Math.round(risk.minFactor*100)}–${Math.round(risk.maxFactor*100)}% базовой оценки — стресс-допущение, не прогноз. Не вероятность победы и не калиброванная уверенность. Потребность других GM до следующего пика не подтверждена.`};
+   method:`${stability} из 100 условных сценариев дали лучший результат среди ${pool.length} допустимых кандидатов. Нагрузка/роль: ${Math.round(risk.minFactor*100)}–${Math.round(risk.maxFactor*100)}% базовой оценки — стресс-допущение, не прогноз. 0% означает отсутствие первых мест в этой выборке, а не бесполезность игрока. Сравниваются базовые ФО за матч; игры за сезон не прогнозируются. Не вероятность победы и не калиброванная уверенность. Потребность других GM до следующего пика не подтверждена.`};
  });
 }

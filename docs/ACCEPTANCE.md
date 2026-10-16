@@ -53,3 +53,9 @@ Do not convert historical averages into a season prediction, invent missing pric
 - The confidence percentage is the fraction of 100 stress scenarios in which the player leads the compared candidate pool. Opponent-loss percentage is an explicit heuristic, not measured GM behavior or a season-win probability.
 - Live Draft, automatic seven-bot training, full simulation, and 100-scenario batches use the installed database. The build verifies all 80 picks and 100 seeded runs on that exact database before publishing.
 - Daily CI refreshes source data; failed builds preserve the previous published deployment.
+
+## Completion-bound safeguard
+- Recommended and manually chosen UI picks now require an exact single-team completion witness: ten unique players, two slots per position, fixed picks retained, at least one rookie, no opponent-owned players, and verified prices under cap when enabled.
+- A min-cost circulation finds the cheapest legal full roster, not merely a cheap player per slot; multiposition players cannot fill two slots. Tests compare it with exhaustive independent subset enumeration, plus specific rookie/position/budget traps.
+- This is a bound at current availability, not a global eight-team allocation or a guarantee against the next seven opponent choices. Simulator bots retain their heuristic policy; arbitrary externally imported histories are still recordable through the core engine.
+- Pros/cons compare the candidate's base FP and identified risk with a named alternative. A 0% first-place frequency is explicitly not a claim that the player is useless. Season availability and total season FP remain unvalidated.
