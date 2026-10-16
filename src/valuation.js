@@ -15,6 +15,8 @@ export function severeRisk(player){
   player.injuries?.some(i=>/out|suspension/i.test(i.status||''))||evidence.repeatedAbsences||Object.values(player.historyGames||{}).some(n=>n<40));
 }
 export function draftValue(player){
+ const personal=player.isRookie&&player.espnContext?.individualProjection;
+ if(personal?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(personal.componentSeasonTotal))return personal.componentSeasonTotal/82;
  const evidence=availabilityEvidence(player);
  const role=(player.newHighVolumeTeammates?.length||player.roleContext?.roleChange)?.85:1;
  const status=player.injuries?.some(i=>/out|suspension/i.test(i.status||''))?.5:1;

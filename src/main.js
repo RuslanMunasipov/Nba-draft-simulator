@@ -3,6 +3,7 @@ import './history.js';
 import {newDraft,pick,undo,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
 import {advanceBots,simulateDraft,draftSummary} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
+import {rookieRecommendations} from './rookies.js';
 import {pickCompletion} from './completion.js';
 import {installDatabase} from './database.js';
 const $=id=>document.getElementById(id);
@@ -16,17 +17,19 @@ function matches(p,query){const aliases={1630169:'халибертон халл�
 function choose(p){try{const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
+ const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
  el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
  const risk=analysis?.risk||riskProfile(p);el.append(text('strong','Риск: '+risk.level));
  el.append(text('p',(p.team||'Ростер не подтверждён')+' · '+(p.positions.join('/')||'Позиции неизвестны')));
- el.append(text('strong',Number.isFinite(p.projectedFP)?'Основа оценки: '+p.projectedFP.toFixed(2)+' ФО/матч':'Для оценки недостаточно данных'));
- if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR')el.append(text('p','Новичок: групповая историческая оценка, очень высокая неопределённость. Индивидуальной статистики NBA нет.'));
+ if(individualRookie)el.append(text('strong',`Индивидуальный прогноз: ${individualRookie.componentFPPerGame.toFixed(1)} частичных ФО/матч; фолы и бонусы не учтены. Сравнение — в блоке rookie.`));
+ else el.append(text('strong',Number.isFinite(p.projectedFP)?'Основа оценки: '+p.projectedFP.toFixed(2)+' ФО/матч':'Для оценки недостаточно данных'));
+ if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&!individualRookie)el.append(text('p','Новичок: групповая историческая оценка, очень высокая неопределённость. Индивидуальной статистики NBA нет.'));
  if(p.coverageStatus==='EARLIER_SEASON')el.append(text('p','Пропуск/малая выборка последнего сезона: автоматически использована база '+p.projectionBaseSeason+'. Текущая нагрузка неизвестна.'));
  if(p.injuries?.length)el.append(text('p','Статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
  if(p.returnContext)el.append(text('p',p.returnContext.note));
  if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')el.append(text('small','Позиции ESPN, допуск Yahoo не подтверждён.'));
  if(state.priceMode==='ON')el.append(text('p','Цена: '+(p.priceStatus==='VERIFIED'?p.price+' ед.':'не подтверждена')));
- if(analysis){
+ if(analysis&&!individualRookie){
   el.append(text('p','Уверенность пика: '+(analysis.stability===null?'не рассчитывается — недопустимый добор':analysis.stability+'% первых мест в условных сценариях')));
   el.append(text('p',analysis.conclusion));
   if(analysis.pressure!==null)el.append(text('p','Брать сейчас или ждать: в '+analysis.pressure+' из 100 эвристических сценариев игрок уходил за следующие 7 выборов, если мы брали альтернативу. Это не реальная вероятность действий GM.'));
@@ -49,6 +52,23 @@ function card(p,analysis=null){
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
  el.append(b);return el;
 }
+function renderRookies(){
+ const result=rookieRecommendations(state);$('rookie-advice').replaceChildren();
+ $('rookie-status').textContent=`Индивидуальный прогноз есть у ${result.projected} из ${result.available} доступных rookie; легальный добор с ними: ${result.feasible}. Rookie ещё нужен ${result.teamsNeedingRookie} командам.`;
+ if(!result.players.length){$('rookie-advice').append(text('p','Нет доступных rookie с индивидуальным прогнозом и допустимым добором. Групповой ориентир не заменяет персональный прогноз.'));return;}
+ const leader=result.players[0].espnContext.individualProjection;
+ for(const [index,p] of result.players.entries()){
+  const s=p.espnContext.individualProjection,v=s.perGame,el=document.createElement('article');el.className='player-card';
+  el.append(text('h3',`${index+1}. ${p.name} · rookie`),text('strong',`${s.componentFPPerGame.toFixed(1)} частичных ФО/матч · ${s.componentSeasonTotal.toFixed(0)} за прогнозируемые ${s.games} игр`));
+  el.append(text('p',`${p.team||'Команда не подтверждена'} · ${p.positions.join('/')} · ${v.minutes.toFixed(1)} мин/матч · ADP ESPN ${p.espnContext.adp?.toFixed(1)??'нет'}`));
+  el.append(text('p',`PTS ${v.points.toFixed(1)} · REB ${v.rebounds.toFixed(1)} · AST ${v.assists.toFixed(1)} · STL ${v.steals.toFixed(1)} · BLK ${v.blocks.toFixed(1)} · TOV ${v.turnovers.toFixed(1)}`));
+  el.append(text('p',`Плюсы: индивидуальный прогноз нагрузки и статистики; ${v.rebounds>=6?'существенный вклад подборами; ':''}${v.minutes>=28?'прогноз большой игровой нагрузки; ':''}после выбора остаётся допустимый добор.`));
+  el.append(text('p',`Минусы: нет фактической статистики NBA этого новичка; роль и минуты могут измениться. ${index?`Отставание от лидера по частичному сезонному прогнозу ${(leader.componentSeasonTotal-s.componentSeasonTotal).toFixed(0)}. `:''}Близкие значения не определяют однозначного победителя: фолы и бонусы пока не учтены.`));
+  el.append(text('p','Когда брать: ADP — ориентир общих лиг. В FBL всем восьми командам нужен rookie, поэтому спрос может быть выше; ждать до последнего раунда рискованно.'));
+  el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Позиции и rookie-статус требуют подтверждения по регламенту.'));
+  const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);$('rookie-advice').append(el);
+ }
+}
 function render(){
  $('cap').value=state.cap;$('price-mode').checked=state.priceMode==='ON';$('price-controls').hidden=state.priceMode!=='ON';
  const n=state.picks.length;$('turn').textContent=n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
@@ -66,6 +86,7 @@ function render(){
  $('risky-advice').replaceChildren();const risky=analyzeRecommendations(state,null,true).slice(0,3);
  for(const analysis of risky)$('risky-advice').append(card(analysis.player,analysis));
  $('risk-section').hidden=!risky.length;
+ renderRookies();
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · сумма базовых оценок ${t.projectedFP?.toFixed(2)??'—'} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 async function loadDatabase(force=false){

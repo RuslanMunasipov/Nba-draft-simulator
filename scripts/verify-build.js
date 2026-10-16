@@ -58,3 +58,8 @@ for(const id of [203954,203076]){
  console.log('ESPN and historical risk evidence:',p.name,p.historyGames,p.espnContext.projectedGames,p.espnContext.adp);
 }
 console.log('Five safer alternatives after first seven opponents verified; ESPN coverage:',database.espnCoverage);
+const {rookieRecommendations}=await import('../src/rookies.js');
+const rookieBoard=rookieRecommendations(draft);assert.equal(rookieBoard.players.length,5);
+assert.ok(new Set(rookieBoard.players.map(p=>p.espnContext.individualProjection.componentSeasonTotal)).size>1,'Individual rookie forecasts must not collapse to a group constant');
+for(const p of rookieBoard.players){const r=p.espnContext.individualProjection;assert.ok(r.games>0&&r.games<=82);assert.ok(r.perGame.minutes>0&&r.perGame.minutes<=48);}
+console.log('Individual rookie board:',rookieBoard.players.map(p=>({name:p.name,partialFP:p.espnContext.individualProjection.componentFPPerGame,partialSeason:p.espnContext.individualProjection.componentSeasonTotal,games:p.espnContext.projectedGames}))); 

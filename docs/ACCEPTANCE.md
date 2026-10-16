@@ -65,3 +65,10 @@ Do not convert historical averages into a season prediction, invent missing pric
 - Main recommendations use feasible non-HIGH-risk candidates whenever any exist. HIGH-risk candidates remain searchable and in a separate collapsed section. Required rookies/only legal high-risk completions fall back with explicit speculative wording; no names are blacklisted.
 - Bots use the same availability-aware ordering; full 100-run acceptance must pass again.
 - ESPN screenshots supplied on 16 October show one expert 8-team roto mock (Embiid pick 71, Davis pick 19). Those ranks are context, not ADP, FBL FP or season projections. The initial feed filter failed because a limit requires sorting; corrected source query supplies ADP and 2026/27 projected games, matched by ESPN ID. Game counts must agree with at least two total/per-game denominators. No ESPN fantasy-point totals are substituted for FBL FP. The source game projection overrides the historical availability weight when present; historical repeated-absence flags still gate the main shortlist.
+
+## Individual rookie board
+- A dedicated top-five rookie board compares source season projections for games, minutes and counting stats; the same empirical group prior is no longer presented as a personal ranking.
+- ESPN stat mappings are validated by games/total-average consistency, nonnegative counts, makes <= attempts and PTS = 2*FGM + 3PM + FTM. Components follow PTS+REB+AST+STL+BLK-missedFG-missedFT-2*TOV.
+- PF and minute/result bonuses are missing/excluded; the displayed score is explicitly PARTIAL, not complete FBL FP or a guaranteed rookie winner. Close rankings must not be treated as a precise edge.
+- Rookie-only recommendations must retain a feasible roster completion and verified budget if enabled. Players lacking a personal forecast are counted as missing, not assigned invented projected stats. Rookie flags remain provider-reported.
+- The board reports teams still needing rookies and warns that general ESPN ADP does not model FBL's eight mandatory rookie selections.
