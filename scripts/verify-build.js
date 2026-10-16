@@ -10,3 +10,8 @@ for(const entry of entries) {
   assert.ok((await stat(path)).size>0, 'Missing asset: '+path);
 }
 console.log('Vite build artifact verified:',entries.length,'assets');
+const {readdir}=await import('node:fs/promises');
+const assets=await readdir('dist/assets');
+assert.ok(assets.some(name=>/^batch-worker-.*\.js$/.test(name)), 'Missing simulation worker');
+for(const name of assets)assert.ok((await stat('dist/assets/'+name)).size>0);
+console.log('Worker and all emitted assets verified:',assets.length);

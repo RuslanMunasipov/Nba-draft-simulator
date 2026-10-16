@@ -1,4 +1,4 @@
-import { TEAM_COUNT, ROUNDS, pick, recommendations } from './engine.js';
+import { TEAM_COUNT, ROUNDS, pick, rosterFits } from './engine.js';
 
 // Deterministic PRNG: identical seed + player data => identical draft.
 export function randomFromSeed(seed=1) {
@@ -17,7 +17,13 @@ export function availableCandidates(state) {
   return state.players.filter(p=>!used.has(p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
 }
 export function botPick(state,random=randomFromSeed(1),style='balanced') {
-  const candidates=availableCandidates(state);
+  let candidates=availableCandidates(state);
+  const roster=teamRoster(state,currentTeam(state));
+  // Take a rookie before the supply is exhausted; reserve budget for every slot.
+  if(!roster.some(p=>p.isRookie===true)) candidates=candidates.filter(p=>p.isRookie===true);
+  const remaining=ROUNDS-roster.length;
+  const affordable=candidates.filter(p=>p.price<=(state.cap-teamCost(state,currentTeam(state)))/remaining);
+  if(affordable.length)candidates=affordable;
   if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, цены, cap и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
   const ranked=candidates.filter(p=>Number.isFinite(p.projectedFP)).sort((a,b)=>b.projectedFP-a.projectedFP);
@@ -57,7 +63,7 @@ export function batchSimulations(state,{runs=100,seed=1}={}) {
   for(let i=0;i<runs;i++){
     const completed=simulateDraft(state,{seed:seed+i});
     const summary=draftSummary(completed);
-    const eligible=summary.every(t=>t.projectedFP!==null&&t.rookieRule==='PASS');
+    const eligible=summary.every((t,i)=>t.projectedFP!==null&&t.rookieRule==='PASS'&&t.cost<=completed.cap&&rosterFits(teamRoster(completed,i)));
     const best=eligible?Math.max(...summary.map(t=>t.projectedFP)):null;
     results.push({seed:seed+i,teams:summary,winners:best===null?[]:summary.filter(t=>t.projectedFP===best).map(t=>t.team),eligible});
   }
