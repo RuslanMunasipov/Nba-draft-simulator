@@ -7,7 +7,7 @@ export function newDraft(players=[],cap=20000,priceMode='OFF'){
  if(!Array.isArray(players)||players.some(p=>!validatePlayer(p))||new Set(players.map(p=>p.id)).size!==players.length)throw Error('Неверные данные игроков или дубли ID');
  return {version:1,cap,priceMode,players,picks:[]};
 }
-export function validatePlayer(p){return p!=null&&typeof p.name==='string'&&p.name.trim().length>0&&(p.price==null||(Number.isFinite(p.price)&&p.price>=0))&&(p.projectedFP==null||Number.isFinite(p.projectedFP))&&(p.isRookie==null||typeof p.isRookie==='boolean')&&Number.isInteger(p.id)&&p.id>0&&Array.isArray(p.positions)&&p.positions.length>0&&p.positions.every(x=>POSITIONS.includes(x))&&(!p.priceStatus||STATUS.includes(p.priceStatus));}
+export function validatePlayer(p){return p!=null&&typeof p.name==='string'&&p.name.trim().length>0&&(p.price==null||(Number.isFinite(p.price)&&p.price>=0))&&(p.projectedFP==null||Number.isFinite(p.projectedFP))&&(p.isRookie==null||typeof p.isRookie==='boolean')&&((Number.isInteger(p.id)&&p.id>0)||(typeof p.id==='string'&&/^espn:[0-9]+$/.test(p.id)))&&Array.isArray(p.positions)&&(p.positions.length>0||p.positionStatus==='MISSING')&&p.positions.every(x=>POSITIONS.includes(x))&&(!p.priceStatus||STATUS.includes(p.priceStatus));}
 export function rosterFits(players){
  if(players.length>10)return false;
  const slots=POSITIONS.flatMap(p=>[p,p]);
@@ -25,7 +25,7 @@ export function pick(state,playerId){
  if(state.picks.length>=80)throw Error('Драфт завершён');
  if(state.picks.some(p=>p.playerId===playerId))throw Error('Игрок уже выбран');
  const player=state.players.find(p=>p.id===playerId);
- if(!player||!validatePlayer(player))throw Error('Неизвестный игрок или позиции');
+ if(!player||!validatePlayer(player)||player.positions.length===0)throw Error('Неизвестный игрок или позиции');
  const team=state.picks.length%TEAM_COUNT;
  const roster=state.picks.filter(p=>p.team===team).map(p=>state.players.find(x=>x.id===p.playerId));
  if(!rosterFits([...roster,player]))throw Error('Невозможно назначить позиции');
@@ -37,5 +37,6 @@ export function pick(state,playerId){
 }
 export function undo(state){return {...state,picks:state.picks.slice(0,-1)};}
 export function exportDraft(state){return JSON.stringify(state,null,2);}
-export function importDraft(json){const state=JSON.parse(json);if(state.version!==1||!Array.isArray(state.players)||!Array.isArray(state.picks)||!Number.isFinite(state.cap)||state.cap<0)throw Error('Неверный формат');let replay=newDraft(state.players,state.cap,state.priceMode??'ON');for(const p of state.picks){if(p.team!==replay.picks.length%8||p.number!==replay.picks.length+1)throw Error('Нарушен порядок пиков');replay=pick(replay,p.playerId);}return replay;}
-export function recommendations(state){return state.players.filter(p=>!state.picks.some(x=>x.playerId===p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>(b.projectedFP??-Infinity)-(a.projectedFP??-Infinity)).slice(0,5);}
+export function importDraft(json){const state=JSON.parse(json);if(state.version!==1||!Array.isArray(state.players)||!Array.isArray(state.picks)||!Number.isFinite(state.cap)||state.cap<0)throw Error('Неверный формат');let replay=newDraft(state.players,state.cap,state.priceMode??'ON');for(const p of state.picks){if(p.team!==replay.picks.length%8||p.number!==replay.picks.length+1)throw Error('Нарушен порядок пиков');replay=pick(replay,p.playerId);}return {...replay,...(typeof state.databaseVersion==='string'?{databaseVersion:state.databaseVersion}:{})};}
+export function riskPriority(player){return player.injuries?.some(i=>/out|suspension/i.test(i.status||''))?2:player.injuries?.length||player.returnContext?1:0;}
+export function recommendations(state){return state.players.filter(p=>!state.picks.some(x=>x.playerId===p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).filter(p=>Number.isFinite(p.projectedFP)).sort((a,b)=>riskPriority(a)-riskPriority(b)||b.projectedFP-a.projectedFP).slice(0,5);}

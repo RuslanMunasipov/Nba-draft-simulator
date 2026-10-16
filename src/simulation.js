@@ -1,4 +1,4 @@
-import { TEAM_COUNT, ROUNDS, pick, rosterFits } from './engine.js';
+import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority } from './engine.js';
 
 // Deterministic PRNG: identical seed + player data => identical draft.
 export function randomFromSeed(seed=1) {
@@ -20,7 +20,11 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
   let candidates=availableCandidates(state);
   const roster=teamRoster(state,currentTeam(state));
   // Reserve a rookie; budget is only relevant when official prices exist.
-  if(!roster.some(p=>p.isRookie===true)) candidates=candidates.filter(p=>p.isRookie===true);
+  if(!roster.some(p=>p.isRookie===true)){
+    const teamsNeedingRookie=Array.from({length:TEAM_COUNT},(_,team)=>teamRoster(state,team)).filter(r=>!r.some(p=>p.isRookie===true)).length;
+    const rookies=candidates.filter(p=>p.isRookie===true);
+    if(roster.length>=5||rookies.length<=teamsNeedingRookie)candidates=rookies;
+  }
   if(state.priceMode==='ON'){
     const remaining=ROUNDS-roster.length;
     const affordable=candidates.filter(p=>p.price<=(state.cap-teamCost(state,currentTeam(state)))/remaining);
@@ -28,7 +32,7 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
   }
   if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
-  const ranked=candidates.filter(p=>Number.isFinite(p.projectedFP)).sort((a,b)=>b.projectedFP-a.projectedFP);
+  const ranked=candidates.filter(p=>Number.isFinite(p.projectedFP)).sort((a,b)=>riskPriority(a)-riskPriority(b)||b.projectedFP-a.projectedFP);
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
   const pool=ranked.slice(0,Math.min(8,ranked.length));
   const index=style==='best' ? 0 : Math.min(pool.length-1,Math.floor(Math.pow(random(),style==='volatile'?0.65:2)*pool.length));

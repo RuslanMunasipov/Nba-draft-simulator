@@ -44,3 +44,12 @@ Do not convert historical averages into a season prediction, invent missing pric
 - Haliburton and Irving are regression cases using 2024/25. Source-dated return context is stored separately from statistical assumptions.
 - The 20-game requirement still defines the held-out benchmark cohort; it no longer limits catalog coverage.
 - Historical coverage is not a verified 2026/27 active roster. 2026 rookies without NBA history remain a separate unresolved input.
+
+## Automatic default database and explanations
+- Fresh opens automatically install the latest CI-built database. Users need no JSON or local setup. Existing picks retain their selected-player snapshots during refresh; cached databases survive network failures.
+- Current teams, injuries, basketball positions and no-experience rookie flags come from source-dated ESPN team rosters. ESPN positions are explicitly NOT verified Yahoo eligibility. Provider IDs are namespaced when no NBA ID can be matched.
+- Rookie numeric values are labelled empirical group priors, calculated as a median of an explicit historical reference cohort; they are not fabricated individual rookie performance. NBA rookie eligibility still needs league-rule verification.
+- Injury/return/availability/role risks are automatic explanations. Role competition uses new high-volume teammates, with sourced context for Maxey. Stress factors are assumptions, not calibrated clinical or usage predictions.
+- The confidence percentage is the fraction of 100 stress scenarios in which the player leads the compared candidate pool. Opponent-loss percentage is an explicit heuristic, not measured GM behavior or a season-win probability.
+- Live Draft, automatic seven-bot training, full simulation, and 100-scenario batches use the installed database. The build verifies all 80 picks and 100 seeded runs on that exact database before publishing.
+- Daily CI refreshes source data; failed builds preserve the previous published deployment.

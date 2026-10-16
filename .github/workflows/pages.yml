@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
 permissions:
   contents: read
   pages: write
@@ -26,6 +28,8 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_*.py"
           python scripts/build_baseline.py
+      - name: Fetch current rosters and build automatic draft database
+        run: python scripts/build_default_database.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
