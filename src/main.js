@@ -41,6 +41,7 @@ function card(p,analysis=null){
   evidence.append(text('p','Статистическая база: '+(p.projectionBaseSeason||'групповой ориентир')+'. Историческое среднее не гарантирует такую же роль и нагрузку.'));
   if(p.rosterSource){const source=document.createElement('a');source.href=p.rosterSource;source.textContent='Источник ростера и статусов ESPN';evidence.append(source);}el.append(evidence);
  }
+ if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: прогноз матчей ${source.projectedGames??'нет'} · ADP ${source.adp?.toFixed(2)??'нет'}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
  if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);

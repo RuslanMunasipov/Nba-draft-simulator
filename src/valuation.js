@@ -6,7 +6,8 @@ export function availabilityEvidence(player){
  const recent=Number.isFinite(history[reference])?history[reference]:player.coverageStatus==='EARLIER_SEASON'?0:null;
  const prior=Number.isFinite(history[previous])?history[previous]:null;
  const games=recent===null?prior:prior===null?recent:(recent*2+prior)/3;
- return {recent,prior,reference,previous,weightedGames:games,weight:games===null?1:Math.max(0,Math.min(1,games/82)),repeatedAbsences:recent!==null&&prior!==null&&recent<50&&prior<50};
+ const projected=player.espnContext?.projectedGames;const espnGames=Number.isFinite(projected)&&projected>0&&projected<=82?projected:null;
+ return {recent,prior,reference,previous,weightedGames:games,espnGames,weightSource:espnGames!==null?'ESPN_PROJECTED_GAMES':'HISTORICAL_OBSERVED_GAMES',weight:espnGames!==null?espnGames/82:games===null?1:Math.max(0,Math.min(1,games/82)),repeatedAbsences:recent!==null&&prior!==null&&recent<50&&prior<50};
 }
 export function severeRisk(player){
  const evidence=availabilityEvidence(player);

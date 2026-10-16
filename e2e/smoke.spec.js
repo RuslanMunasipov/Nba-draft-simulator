@@ -72,3 +72,13 @@ test('high per-game injury risks do not crowd out five safer mobile choices',asy
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC 1');
  await expect(page.locator('#candidates .player-card').first()).toContainText('Два сезона с менее чем 50 играми');
 });
+
+test('Embiid source game projection is visible without promoting him into safe picks',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await expect(page.locator('#advice')).not.toContainText('Риск: ВЫСОКИЙ');
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Embiid');
+ const card=page.locator('#candidates .player-card').first();
+ await expect(card).toContainText('Риск: ВЫСОКИЙ');await expect(card).toContainText('ESPN 2026/27: прогноз матчей');
+ await expect(card).toContainText('ADP');await expect(card).toContainText('Рискованная ставка');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});

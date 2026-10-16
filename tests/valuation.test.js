@@ -27,3 +27,8 @@ test('required risky rookie still appears when no safer completion exists',()=>{
 test('unchanged history yields deterministic risk-aware recommendations',()=>{
  const state=newDraft(players);assert.deepEqual(analyzeRecommendations(state),analyzeRecommendations(state));
 });
+test('source-projected games update the availability index without erasing chronic risk',()=>{
+ const p={...players[0],espnContext:{projectedGames:54}};
+ assert.equal(availabilityEvidence(p).weight,54/82);assert.equal(severeRisk(p),true);
+ assert.equal(availabilityEvidence({...p,espnContext:{projectedGames:0}}).espnGames,null);
+});

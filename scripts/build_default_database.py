@@ -124,6 +124,7 @@ def make_database(history,baseline,current,now):
        'No official prices, result bonuses, calibrated injury probability or validated season forecast.']}
 
 if __name__=='__main__':
+    from espn_context import fetch_context
     now=datetime.now(timezone.utc).isoformat()
     listing=get_json(BASE+'/teams?limit=100')
     teams=[entry['team'] for entry in listing['sports'][0]['leagues'][0]['teams']]
@@ -134,6 +135,9 @@ if __name__=='__main__':
     history=json.loads(Path('public/data/nba-history.json').read_text())
     baseline=json.loads(Path('public/data/experimental-baseline.json').read_text())
     data=make_database(history,baseline,current,now)
+    context=fetch_context(now)
+    for p in data['players']:p['espnContext']=context.get(p.get('espnId',''))
+    data['espnCoverage']={'sourcePlayers':len(context),'matchedPlayers':sum(p.get('espnContext') is not None for p in data['players']),'projectedGamesPlayers':sum((p.get('espnContext') or {}).get('projectedGames') is not None for p in data['players'])}
     market=json.loads(Path('data/market-context.json').read_text())
     for p in data['players']:p['marketContext']=market.get(str(p['id']))
     notes=json.loads(Path('data/player-notes.json').read_text())
@@ -143,4 +147,4 @@ if __name__=='__main__':
         if not any(p['name']==name and p['positions'] and p['projectedFP'] is not None for p in data['players']):
             raise ValueError('Missing returning player '+name)
     Path('public/data/default-draft.json').write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
-    print(json.dumps({'defaultDatabase':data['coverage'],'rookiePrior':data['rookiePrior'],'generatedAt':now},indent=2))
+    print(json.dumps({'defaultDatabase':data['coverage'],'rookiePrior':data['rookiePrior'],'generatedAt':now,'espnCoverage':data['espnCoverage']},indent=2))

@@ -48,3 +48,13 @@ for(let i=0;i<8;i++){const r=teamRoster(full,i);assert.ok(rosterFits(r));assert.
 const batch=batchSimulations(draft,{runs:100,seed:11});assert.equal(batch.eligibleRuns,100);
 const first=full.picks[0].playerId;assert.equal(advanceBots(pick(draft,first)).picks.length,8);
 console.log('Real automatic database verified:',database.coverage,'80 picks and 100 valid seeded scenarios');
+const {analyzeRecommendations}=await import('../src/analysis.js');
+const {severeRisk}=await import('../src/valuation.js');
+const later={...draft,picks:full.picks.slice(0,8)};
+const safer=analyzeRecommendations(later);assert.equal(safer.length,5);assert.ok(safer.every(r=>!severeRisk(r.player)));
+for(const id of [203954,203076]){
+ const p=database.players.find(p=>p.id===id);assert.ok(p?.espnContext?.projectedGames>0);assert.ok(p.espnContext.adp>0);
+ assert.ok(severeRisk(p),'Repeated absence risk must remain despite optimistic source forecasts');
+ console.log('ESPN and historical risk evidence:',p.name,p.historyGames,p.espnContext.projectedGames,p.espnContext.adp);
+}
+console.log('Five safer alternatives after first seven opponents verified; ESPN coverage:',database.espnCoverage);
