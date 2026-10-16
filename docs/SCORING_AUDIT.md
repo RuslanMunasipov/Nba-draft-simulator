@@ -28,3 +28,7 @@ LIMITED. This change makes scores comparable and exposes a testable complete-for
 - Refit production on both observed transitions only after recording frozen holdout results. Production fit diagnostics are not an independent accuracy test.
 - ESPN point forecasts are preserved. Historical fallback rate and games may change; the learned rate correction is an explicit separate scoring component.
 - Evaluate including zero-game seasons, and publish persistence MAE, selected-model MAE, absence MAE, coverage and width. No claim of validated ESPN/rookie accuracy or conditional personal probabilities.
+
+- Neighborhood intervals retain the global transition-risk envelope. This safeguard was added after inspecting 2025/26 diagnostics; final metrics are retrospective development validation, not untouched external validation. No numerical hyperparameter is selected on 2025/26.
+- Production calibration takes the worst nonconformity per player across observed transitions; a repeated player is not counted twice as independent calibration evidence.
+- Report paired bootstrap uncertainty for MAE difference plus active-player per-game MAE and games MAE.

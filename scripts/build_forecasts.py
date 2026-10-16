@@ -138,7 +138,7 @@ def build(data,rows_by_season):
       'seasonModel':production.report(),
       'holdout':dict(validation,trainResiduals=['2023-24','2024-25'],testSeason='2025-26',
         frozenModel=frozen.report(),target='Full formula, including zero-game target seasons',
-        limitation='Historical fallback validation only; not ESPN forecast or rookie validation.'),
+        limitation='Retrospective development validation. Model selection fits 2023/24->2024/25; 2025/26 diagnostics informed interval safeguards, so this is not untouched external validation. Not ESPN/rookie accuracy.'),
       'limitations':['No career-peak model. Game upside is P90 for one game; season upside is a separate paired scenario.',
         'ESPN counting stats/games/minutes are provider forecasts. PF and participation are historical-role estimates.',
         'Team bonuses reflect previous season, not current roster strength or confirmed future outcomes.',

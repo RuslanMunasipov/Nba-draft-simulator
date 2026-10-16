@@ -1,7 +1,7 @@
 """Historical season forecasting with frozen holdout and split-conformal ranges.
 No ESPN forecast archive is available: these metrics validate the historical fallback only.
 """
-import math, statistics
+import math, statistics, random
 def q(v,p):
  v=sorted(v);x=(len(v)-1)*p;i=int(x)
  return v[i]+(v[min(i+1,len(v)-1)]-v[i])*(x-i)
@@ -29,13 +29,15 @@ class SeasonModel:
     errors.append(abs(estimate-r['actual']))
    self.candidates[str(k)]=statistics.mean(errors)
   self.k=min(self.candidates,key=self.candidates.get);self.k=int(self.k)
-  scores=[]
+  grouped_scores={}
   for r in calibration:
    _,lo,hi=self.predict(r)
-   scores.append(max(lo-r['actual'],r['actual']-hi))
+   score=max(lo-r['actual'],r['actual']-hi)
+   grouped_scores[r['id']]=max(score,grouped_scores.get(r['id'],float('-inf')))
+  scores=list(grouped_scores.values())
   # Finite-sample split conformal: 80% marginal target, conditional accuracy not promised.
   self.padding=max(0,sorted(scores)[min(len(scores)-1,math.ceil((len(scores)+1)*.8)-1)])
-  self.calibrationPlayers=len(calibration)
+  self.calibrationPlayers=len(grouped_scores)
  def neighbors(self,p,k,pool):
   if k==0:return pool
   return sorted(pool,key=lambda r:sum(((p[key]-r[key])/s)**2 for key,s in zip(['full','games','minutes'],self.scales)))[:k]
@@ -54,7 +56,9 @@ class SeasonModel:
    vals=scenarios(p,pool);return p['full']*p['games'],q(vals,.1),q(vals,.9)
   vals=scenarios(p,self.neighbors(p,k,pool))
   rate,games=self.point_parts(p,k,pool)
-  return rate*games,q(vals,.1),q(vals,.9)
+  global_values=scenarios(p,pool)
+  # Guard against spuriously narrow neighborhoods: retain unconditional risk envelope.
+  return rate*games,min(q(vals,.1),q(global_values,.1)),max(q(vals,.9),q(global_values,.9))
  def interval(self,p):
   centre,lo,hi=self.predict(p)
   return centre,min(centre,lo-self.padding),max(centre,hi+self.padding)
@@ -63,16 +67,25 @@ class SeasonModel:
               calibrationPlayers=self.calibrationPlayers,conformalPadding=self.padding,
               fitLeavePlayerOutMAE=self.candidates,selection='Fit-only leave-player-out MAE; calibration excluded from selection')
 def evaluate(model,rows,legacy):
- errors=[];base=[];coverage=[];widths=[];oldcoverage=[]
+ errors=[];base=[];coverage=[];widths=[];oldcoverage=[];rate_errors=[];games_errors=[]
  details=[]
  for r in rows:
   estimate,lo,hi=model.interval(r);actual=r['actual']
+  rate,games=model.point_parts(r)
+  observed_games=0 if r['absent'] else r['games']+r['gamesDelta']
+  games_errors.append(abs(games-observed_games))
+  if not r['absent']:rate_errors.append(abs(rate-(r['full']+r['delta'])))
   vals=scenarios(r,legacy)
   errors.append(abs(estimate-actual));base.append(abs(r['full']*r['games']-actual))
   coverage.append(lo<=actual<=hi);widths.append(hi-lo)
   oldcoverage.append(q(vals,.1)<=actual<=q(vals,.9))
   details.append(dict(id=r['id'],absent=r['absent'],actual=actual,predicted=estimate,baseline=r['full']*r['games'],lower=lo,upper=hi))
- return dict(players=len(rows),absentPlayers=sum(r['absent'] for r in rows),
+ rng=random.Random(17)
+ gains=[a-b for a,b in zip(base,errors)]
+ boot=[statistics.mean(rng.choices(gains,k=len(gains))) for _ in range(2000)]
+ return dict(pairedMAEGain95Bootstrap=[q(boot,.025),q(boot,.975)],
+             perGameMAEAmongActive=statistics.mean(rate_errors),gamesMAE=statistics.mean(games_errors),
+             players=len(rows),absentPlayers=sum(r['absent'] for r in rows),
              historicalPersistenceSeasonMAE=statistics.mean(base),selectedModelSeasonMAE=statistics.mean(errors),
              empirical80RangeCoverage=statistics.mean(coverage),uncalibratedRangeCoverage=statistics.mean(oldcoverage),
              meanRangeWidth=statistics.mean(widths),
