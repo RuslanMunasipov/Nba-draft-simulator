@@ -36,3 +36,11 @@ Do not convert historical averages into a season prediction, invent missing pric
 - Outputs are ESTIMATED, high uncertainty, exclude result bonuses and current roster/injury/role effects, and are not imported as full projectedFP.
 - D-01/D-08 remain partial; this does not clear the analytical GO gate.
 - Upstream documents decimal minutes and seven missing game IDs for 2024/25. This explains provenance, not independent statistical verification.
+
+## Returning players and complete historical coverage
+- All 800 historical players remain in the experimental catalog. A missing season never silently deletes a player or assigns zero ability.
+- The latest available season with 20+ games is the reference; if none qualifies, a low-sample estimate is shown with VERY_HIGH uncertainty.
+- Earlier-season and low-sample references do not fabricate expected season games or total season FP: those fields are null.
+- Haliburton and Irving are regression cases using 2024/25. Source-dated return context is stored separately from statistical assumptions.
+- The 20-game requirement still defines the held-out benchmark cohort; it no longer limits catalog coverage.
+- Historical coverage is not a verified 2026/27 active roster. 2026 rookies without NBA history remain a separate unresolved input.

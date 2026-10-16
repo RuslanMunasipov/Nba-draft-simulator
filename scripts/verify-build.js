@@ -26,3 +26,14 @@ assert.deepEqual(baseline.evaluation.trainSeasons,['2023-24','2024-25']);
 assert.ok(baseline.players.length>100);
 assert.ok(baseline.players.every(p=>p.status==='ESTIMATED'&&!('projectedFP' in p)&&!('price' in p)));
 console.log('Experimental baseline verified:',baseline.players.length,'estimates, separated from draft projections');
+assert.equal(baseline.coverage.includedPlayers,history.players.length,'Every historical player must remain visible');
+for(const id of [1630169,202681]){
+ const p=baseline.players.find(p=>p.id===id);
+ assert.ok(p,'Missing returning player '+id);
+ assert.equal(p.coverageStatus,'EARLIER_SEASON');
+ assert.equal(p.baseSeason,'2024-25');
+ assert.equal(p.expectedObservedGames,null);
+ assert.equal(p.estimatedCoreSeasonTotal,null);
+ assert.ok(p.returnContext?.source.startsWith('https://www.nba.com/'));
+}
+console.log('Full historical coverage and returning-player regressions verified:',baseline.players.length);
