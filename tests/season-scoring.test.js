@@ -31,3 +31,8 @@ test('recorded unscored player never becomes zero or mixes old units',()=>{
  const complete={...state,picks:Array.from({length:80},(_,i)=>({number:i+1,team:i%8,playerId:i===0?500:i+1}))};
  assert.equal(draftSummary(complete)[0].score,null);
 });
+
+test('valid full forecasts do not depend on obsolete projectedFP being populated',()=>{
+ const state=simulateDraft(newDraft(players.map(p=>({...p,projectedFP:null}))),{seed:3});
+ assert.equal(state.picks.length,80);assert.ok(draftSummary(state).every(t=>t.score!==null));
+});

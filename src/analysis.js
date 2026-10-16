@@ -1,3 +1,4 @@
+import {scoringMetric,seasonScore} from './season-scoring.js';
 import {pick} from './engine.js';
 import {availabilityEvidence,draftValue,severeRisk} from './valuation.js';
 import {completionPlan,pickCompletion} from './completion.js';
@@ -28,8 +29,8 @@ export function selectionPressure(pool,player,seed){
  return lost;
 }
 export function analyzeRecommendations(state,focus=null,riskyOnly=false){
- const used=new Set(state.picks.map(p=>p.playerId));
- const legal=state.players.filter(p=>!used.has(p.id)&&Number.isFinite(p.projectedFP)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id)));
+ const metric=scoringMetric(state),used=new Set(state.picks.map(p=>p.playerId));
+ const legal=state.players.filter(p=>!used.has(p.id)&&seasonScore(p,metric)!==null).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id)));
  const normal=legal.filter(p=>!severeRisk(p)),risky=legal.filter(p=>severeRisk(p));
  const candidates=riskyOnly?risky:normal.length?normal:legal;
  const base=completionPlan(state),pool=[];
@@ -46,7 +47,7 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
   const risk=riskProfile(p),availability=availabilityEvidence(p),alternative=pool.find(x=>x.id!==p.id),forecast=p.forecast;
   const advantages=[],drawbacks=[...risk.flags];
   if(forecast){
-   advantages.push(`Прогноз сезона: ${Math.round(forecast.meanSeason)} ФО за ${forecast.games} матчей; в среднем ${forecast.meanPerGame.toFixed(1)} ФО/матч`);
+   advantages.push(`Прогноз сезона: ${Math.round(forecast.meanSeason)} ФО за ${Math.round(forecast.games)} матчей; в среднем ${forecast.meanPerGame.toFixed(1)} ФО/матч`);
    advantages.push(`Потолок одного матча: ${forecast.gameCeiling.toFixed(1)} ФО. Сильный сценарий сезона: ${Math.round(forecast.seasonCeiling)} ФО`);
   }else if(Number.isFinite(p.projectedFP))advantages.push(`Историческая основа: ${p.projectedFP.toFixed(1)} ФО/матч (${p.projectionBaseSeason||'групповой ориентир'})`);
   if(p.isRookie)advantages.push('Закрывает обязательное место новичка');
@@ -59,7 +60,7 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
    const other=alternative.forecast;
    if(forecast&&other){
     difference=forecast.meanSeason-other.meanSeason;
-    drawbacks.push(`Альтернатива сейчас: ${alternative.name} — ${Math.round(other.meanSeason)} ФО за ${other.games} матчей`);
+    drawbacks.push(`Альтернатива сейчас: ${alternative.name} — ${Math.round(other.meanSeason)} ФО за ${Math.round(other.games)} матчей`);
     (difference>=0?advantages:drawbacks).push(`Разница с ${alternative.name}: ${difference>=0?'+':''}${Math.round(difference)} ФО за сезон`);
     conclusion=p.id===pool[0]?.id?`Первый вариант: ${p.name}. Прогноз выше, чем у ${alternative.name}, на ${Math.round(difference)} ФО за сезон.`:`Лидер сравнения — ${alternative.name}. ${p.name} стоит предпочесть, если важнее его позиции или потолок.`;
     if(p.id===pool[0]?.id&&forecast.seasonFloor<=other.seasonCeiling&&other.seasonFloor<=forecast.seasonCeiling)conclusion+=' Диапазоны сценариев перекрываются: преимущество зависит от фактических минут и числа матчей.';

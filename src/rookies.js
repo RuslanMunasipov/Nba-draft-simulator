@@ -1,10 +1,12 @@
+import {scoringMetric,fullSeason,FULL_SEASON} from './season-scoring.js';
 import {pickCompletion} from './completion.js';
 // Rookie-only comparison: source projections share the same deliberately partial
 // FBL metric. Never rank group priors alongside personal projections as equals.
 export function rookieRecommendations(state){
  const used=new Set(state.picks.map(p=>p.playerId));
  const available=state.players.filter(p=>p.isRookie===true&&!used.has(p.id));
- const projected=available.filter(p=>p.espnContext?.individualProjection?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(p.espnContext.individualProjection.componentSeasonTotal));
+ const metric=scoringMetric(state);
+ const projected=available.filter(p=>(metric!==FULL_SEASON||fullSeason(p)!==null)&&p.espnContext?.individualProjection?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(p.espnContext.individualProjection.componentSeasonTotal));
  const out=p=>p.injuries?.some(i=>/out|suspension/i.test(i.status||''))?1:0;
  const sorted=projected.sort((a,b)=>out(a)-out(b)||(b.forecast?.meanSeason??b.espnContext.individualProjection.componentSeasonTotal)-(a.forecast?.meanSeason??a.espnContext.individualProjection.componentSeasonTotal)||String(a.id).localeCompare(String(b.id)));
  const feasible=sorted.filter(p=>pickCompletion(state,p.id).possible);

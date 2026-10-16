@@ -35,7 +35,7 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
   }
   if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
-  const ranked=candidates.filter(p=>Number.isFinite(p.projectedFP)).sort((a,b)=>Number(severeRisk(a))-Number(severeRisk(b))||draftValue(b)-draftValue(a)||riskPriority(a)-riskPriority(b));
+  const ranked=candidates.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>Number(severeRisk(a))-Number(severeRisk(b))||draftValue(b)-draftValue(a)||riskPriority(a)-riskPriority(b));
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
   const pool=ranked.slice(0,Math.min(8,ranked.length));
   const index=style==='best' ? 0 : Math.min(pool.length-1,Math.floor(Math.pow(random(),style==='volatile'?0.65:2)*pool.length));

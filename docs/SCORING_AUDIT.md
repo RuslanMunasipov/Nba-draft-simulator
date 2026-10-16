@@ -18,7 +18,7 @@
 - Zero-appearance target players are now included as zero season output. Injury, retirement and departures are not distinguished by these logs.
 - Source data are user-supplied and the 2024/25 schedule is incomplete.
 - Yahoo eligibility, salary cap/prices, FBL-specific rule differences, player availability, roster roles and draft order still require league validation.
-- Rookie timing retains an explicitly partial common ESPN metric, separate from full estimates in main recommendations. Its GM policies are assumptions, not calibrated behavior.
+- Rookie timing and simulation now use the same full-formula season metric as recommendations. Imported datasets without full forecasts remain in a separate legacy metric. Missing recorded forecasts block scoring, never become zero. GM policies remain assumptions, not calibrated behavior.
 ## Decision
 LIMITED. This change makes scores comparable and exposes a testable complete-formula estimate. It does not establish an ideal or proven season-winning prediction system.
 
@@ -32,3 +32,8 @@ LIMITED. This change makes scores comparable and exposes a testable complete-for
 - Neighborhood intervals retain the global transition-risk envelope. This safeguard was added after inspecting 2025/26 diagnostics; final metrics are retrospective development validation, not untouched external validation. No numerical hyperparameter is selected on 2025/26.
 - Production calibration takes the worst nonconformity per player across observed transitions; a repeated player is not counted twice as independent calibration evidence.
 - Report paired bootstrap uncertainty for MAE difference plus active-player per-game MAE and games MAE.
+
+## End-to-end follow-up
+- Full-formula scores drive rookie timing, bot selection, draft summaries and batch winners; no per-game/season or partial/full mixing.
+- Availability candidates include historical absolute next-season games (median/mean) and paired changes, selected on fit-only player-excluded season MAE alongside persistence.
+- Rookie missing-component transfer is tested using first-year NBA profiles, prior-season donors and current ESPN experience. Actual counting stats/minutes are known inputs, so this does not validate future rookie ESPN predictions. Current-roster survivorship remains a limitation.
