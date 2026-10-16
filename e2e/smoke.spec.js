@@ -183,3 +183,13 @@ test('season forecasts include full formula, distinct ceilings and no fake confi
  await expect(page.locator('#model-report')).toContainText('MAE');
  for(const width of [360,768]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);}
 });
+
+test('published Yahoo position evidence corrects Wembanyama instead of preserving generic ESPN forward slots',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Victor Wembanyama');
+ const card=page.locator('#candidates .player-card').first();
+ await expect(card.locator('h3')).toHaveText('Victor Wembanyama');
+ await card.locator('h3').click();
+ await expect(card).toContainText('Позиции из публикации Yahoo Fantasy на NBA.com.');
+ await expect(card.getByText('SA · C',{exact:true})).toBeVisible();
+});
