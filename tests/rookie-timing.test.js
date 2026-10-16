@@ -32,3 +32,21 @@ test('timing policies preserve a distinct feasible rookie for every GM',()=>{
  const state={...newDraft([...fixed,...rookies,...rest]),picks:fixed.map((p,i)=>({number:i+1,team:i%8,playerId:p.id}))};
  const result=simulateRookieTiming(state,timingCohort(state),9,DEMAND_PROFILES[2],7);assert.equal(result.valid,true);assert.notEqual(result.picks[64].playerId,200,'the only C rookie is needed by another GM');
 });
+
+test('now versus next turn uses paired outcomes and reports their observed range',()=>{
+ const a=rookieTimingStudy(newDraft(players),{runs:3});
+ assert.equal(a.paired.length,4);
+ for(const p of a.paired){
+  const first=a.rows[0].profiles.find(q=>q.id===p.id),next=a.rows[1].profiles.find(q=>q.id===p.id);
+  const differences=first.scores.map((v,i)=>v-next.scores[i]);
+  assert.equal(p.min,Math.min(...differences));assert.equal(p.max,Math.max(...differences));
+  assert.equal(p.mean,differences.reduce((x,y)=>x+y,0)/3);
+ }
+ assert.ok(['Брать сейчас','Можно ждать до следующего хода','Результат неустойчив'].includes(a.decision));
+});
+test('real opponent rookie picks update demand and remove taken rookie alternatives',()=>{
+ const state={...newDraft(players),picks:[{number:1,team:0,playerId:1},{number:2,team:1,playerId:121}]};
+ const a=rookieTimingStudy(state,{runs:1});
+ assert.equal(a.rows[0].pick,9);assert.equal(a.bestByProfile.length,1);assert.equal(a.bestByProfile[0].id,'mixed');
+ for(const row of a.rows)for(const p of row.profiles)assert.ok(!Object.hasOwn(p.names,players[120].name));
+});

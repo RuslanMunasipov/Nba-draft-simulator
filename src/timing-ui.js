@@ -15,11 +15,16 @@ export function renderTiming(state){
   if(r.covered){$('timing-status').textContent=r.message;return;}
   $('timing-status').textContent=`Проверено ${r.totalDrafts} условных драфтов · ${r.cohort} сопоставимых прогнозов · ${r.rookies} rookie.`;
   const box=$('timing-result');
+  box.append(text('h3',r.decision),text('p',r.reason));
   if(r.recommendedRound===null){box.append(text('strong','Нет проверенного решения: стратегии содержат недопустимые прогоны.'));return;}
   box.append(text('h3',`Условный лучший план: раунд ${r.recommendedRound}, наш пик №${r.recommendedPick}`));
   box.append(text('p',r.stable?'Этот раунд лидирует во всех совместимых заданных сценариях. Это не гарантия реальных действий GM.':`Единого устойчивого раунда нет: сценарные лидеры — от ${r.profileRange[0]} до ${r.profileRange[1]} раунда. После реальных пиков расчёт обновится.`));
   box.append(text('p',`Отрыв от следующего плана по среднему результату: ${r.meanGap?.toFixed(0)??'—'} частичных ФО за сезон всего состава. Малые разницы не доказывают преимущество: PF и бонусы не учтены.`));
   const advanced=document.createElement('details');advanced.append(text('summary','Математика и сценарии'));box.append(advanced);
+  for(const p of r.paired??[]){
+   advanced.append(text('p',`${p.name}: сейчас минус следующий ход — среднее ${Math.round(p.mean)}, диапазон [${Math.round(p.min)}; ${Math.round(p.max)}] частичных ФО состава. Это диапазон симуляций, не доверительный интервал.`));
+   advanced.append(text('p','Rookie сейчас: '+Object.keys(p.nowNames).join(', ')+'. При ожидании: '+Object.keys(p.nextNames).join(', ')+'.'));
+  }
   for(const p of r.bestByProfile)advanced.append(text('p',`${p.name}: лучший раунд ${p.round??'не определён'}.`));
   advanced.append(text('p',`Альтернативный критерий минимакса сожаления даёт раунд ${r.robustRound??'не определён'}. Это другая цель оптимизации, а не дополнительная уверенность в основном результате.`));
   if(r.excludedProfiles?.length)advanced.append(text('p','Уже записанные пики противоречат сценариям: '+r.excludedProfiles.join('; ')+'. Они исключены из сравнения.'));

@@ -98,10 +98,11 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
    const outcomes=Array.from({length:runs},(_,i)=>simulateRookieTiming(state,players,round,profile,seed+i));
    const valid=outcomes.filter(r=>r.valid),mean=key=>valid.length?valid.reduce((sum,r)=>sum+r[key],0)/valid.length:null;
    const names={};for(const r of valid)for(const name of r.rookieNames)names[name]=(names[name]||0)+1;
-   return {id:profile.id,name:profile.name,runs,validRuns:valid.length,topTierRuns:valid.filter(r=>r.topTier).length,meanTeam:mean('teamScore'),meanRookie:mean('rookieScore'),meanVeterans:mean('veteranScore'),meanActualRound:mean('actualRookieRound'),names};
+   return {id:profile.id,name:profile.name,runs,validRuns:valid.length,topTierRuns:valid.filter(r=>r.topTier).length,meanTeam:mean('teamScore'),meanRookie:mean('rookieScore'),meanVeterans:mean('veteranScore'),meanActualRound:mean('actualRookieRound'),names,scores:outcomes.map(r=>r.valid?r.teamScore:null)};
   });
   rows.push({round,pick:(round-1)*8+1,profiles});
  }
+ if(!profilesToUse.length)return {covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,totalDrafts:0,rows:[],excludedProfiles,recommendedRound:null,decision:'Результат неустойчив',reason:'Все заданные сценарии спроса противоречат реальным пикам. Лучший раунд не определён.'};
  const bestByProfile=profilesToUse.map(profile=>{
   const eligible=rows.filter(r=>{const p=r.profiles.find(x=>x.id===profile.id);return p.validRuns===runs;});
   const best=[...eligible].sort((a,b)=>b.profiles.find(x=>x.id===profile.id).meanTeam-a.profiles.find(x=>x.id===profile.id).meanTeam)[0];
@@ -119,6 +120,14 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
  const runner=[...eligible].filter(r=>r!==best).sort((a,b)=>b.meanTeam-a.meanTeam)[0];
  const profileRounds=bestByProfile.map(p=>p.round).filter(n=>n!==null);
 
- return {covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
+ const current=rows[0],next=rows[1];
+ const paired=current?.valid&&next?.valid?current.profiles.map(p=>{
+  const other=next.profiles.find(q=>q.id===p.id),delta=p.scores.map((v,i)=>v-other.scores[i]).sort((a,b)=>a-b);
+  return {id:p.id,name:p.name,mean:delta.reduce((a,b)=>a+b,0)/delta.length,min:delta[0],max:delta.at(-1),nowNames:p.names,nextNames:other.names};
+ }):[];
+ const now=paired.length>0&&paired.every(p=>p.min>0),wait=paired.length>0&&paired.every(p=>p.max<0);
+ const decision=!next&&current?.valid?'Брать сейчас':now?'Брать сейчас':wait?'Можно ждать до следующего хода':'Результат неустойчив';
+ const reason=!next&&current?.valid?'Следующего нашего хода для выполнения обязательного rookie нет.':now?'Во всех парных прогонах текущий выбор дал больший итог состава.':wait?'Во всех парных прогонах ожидание дало больший итог состава.':'Знак преимущества меняется, равен нулю или есть невалидные продолжения.';
+ return {decision,reason,paired,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
   method:'Основной критерий — максимальная средняя сумма частичных ФО полного состава при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. PF и бонусы не учтены; позиции ESPN не подтверждены по Yahoo. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
 }
