@@ -13,3 +13,7 @@ test('no individual projection means no fabricated rookie top five',()=>{
 test('rookie shortlist respects full-roster budget',()=>{
  const result=rookieRecommendations(newDraft(players.map(p=>({...p,price:100,priceStatus:'VERIFIED'})),500,'ON'));assert.equal(result.feasible,0);
 });
+test('currently OUT rookies do not lead available projected alternatives',()=>{
+ const data=players.map(p=>p.id===2?{...p,injuries:[{status:'Out'}]}:p);
+ const result=rookieRecommendations(newDraft(data));assert.deepEqual(result.players.map(p=>p.id),[1,3,2]);
+});

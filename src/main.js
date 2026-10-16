@@ -61,6 +61,7 @@ function renderRookies(){
   const s=p.espnContext.individualProjection,v=s.perGame,el=document.createElement('article');el.className='player-card';
   el.append(text('h3',`${index+1}. ${p.name} · rookie`),text('strong',`${s.componentFPPerGame.toFixed(1)} частичных ФО/матч · ${s.componentSeasonTotal.toFixed(0)} за прогнозируемые ${s.games} игр`));
   el.append(text('p',`${p.team||'Команда не подтверждена'} · ${p.positions.join('/')} · ${v.minutes.toFixed(1)} мин/матч · ADP ESPN ${p.espnContext.adp?.toFixed(1)??'нет'}`));
+  if(p.injuries?.length)el.append(text('strong','Текущий статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
   el.append(text('p',`PTS ${v.points.toFixed(1)} · REB ${v.rebounds.toFixed(1)} · AST ${v.assists.toFixed(1)} · STL ${v.steals.toFixed(1)} · BLK ${v.blocks.toFixed(1)} · TOV ${v.turnovers.toFixed(1)}`));
   el.append(text('p',`Плюсы: индивидуальный прогноз нагрузки и статистики; ${v.rebounds>=6?'существенный вклад подборами; ':''}${v.minutes>=28?'прогноз большой игровой нагрузки; ':''}после выбора остаётся допустимый добор.`));
   el.append(text('p',`Минусы: нет фактической статистики NBA этого новичка; роль и минуты могут измениться. ${index?`Отставание от лидера по частичному сезонному прогнозу ${(leader.componentSeasonTotal-s.componentSeasonTotal).toFixed(0)}. `:''}Близкие значения не определяют однозначного победителя: фолы и бонусы пока не учтены.`));
