@@ -7,18 +7,18 @@ const positions=['PG','SG','SF','PF','C'];
 const players=Array.from({length:150},(_,i)=>({id:i+1,name:`SYNTHETIC ${i+1}`,positions:i%3===0?[positions[i%5],positions[(i+1)%5]]:[positions[i%5]],price:1000+(i%9)*100,priceStatus:'VERIFIED',projectedFP:150-i,isRookie:i<30}));
 test('100 diverse seeded drafts are complete, legal, reproducible and within cap',()=>{
  for(let seed=1;seed<=100;seed++){
- const s=simulateDraft(newDraft(players),{seed});
+ const s=simulateDraft(newDraft(players,20000,'ON'),{seed});
  assert.equal(s.picks.length,80);assert.equal(new Set(s.picks.map(p=>p.playerId)).size,80);
  s.picks.forEach((p,i)=>assert.equal(p.team,i%8));
  for(let team=0;team<8;team++){const r=teamRoster(s,team);assert.equal(r.length,10);assert.ok(rosterFits(r));assert.ok(r.some(p=>p.isRookie));assert.ok(r.reduce((a,p)=>a+p.price,0)<=20000);}
- assert.deepEqual(simulateDraft(newDraft(players),{seed}).picks,s.picks);
+ assert.deepEqual(simulateDraft(newDraft(players,20000,'ON'),{seed}).picks,s.picks);
  assert.deepEqual(importDraft(exportDraft(s)),s);
  }
- const a=batchSimulations(newDraft(players),{runs:100,seed:20});
- assert.equal(a.eligibleRuns,100);assert.deepEqual(a,batchSimulations(newDraft(players),{runs:100,seed:20}));
+ const a=batchSimulations(newDraft(players,20000,'ON'),{runs:100,seed:20});
+ assert.equal(a.eligibleRuns,100);assert.deepEqual(a,batchSimulations(newDraft(players,20000,'ON'),{runs:100,seed:20}));
  assert.ok(Math.abs(a.wins.reduce((a,b)=>a+b,0)-100)<1e-8);
 });
-test('human is first and seven bots return control to human',()=>{const s=newDraft(players);assert.equal(advanceBots(s).picks.length,0);assert.equal(advanceBots(pick(s,1)).picks.length,8);});
+test('human is first and seven bots return control to human',()=>{const s=newDraft(players,20000,'ON');assert.equal(advanceBots(s).picks.length,0);assert.equal(advanceBots(pick(s,1)).picks.length,8);});
 test('invalid catalogs and negative or nonfinite values are rejected',()=>{
  for(const data of [[players[0],players[0]],[{...players[0],price:-1}],[{...players[0],name:null}],[{...players[0],projectedFP:NaN}],[{...players[0],isRookie:'yes'}]])assert.throws(()=>newDraft(data));
 });
@@ -28,10 +28,31 @@ test('last slot must contain a rookie',()=>{
  assert.throws(()=>pick(s,73),/новичок/);
 });
 test('impossible budget, missing rookies and unverified prices stop without winner claims',()=>{
- assert.throws(()=>batchSimulations(newDraft(players,50),{runs:100}));
+ assert.throws(()=>batchSimulations(newDraft(players,50,'ON'),{runs:100}));
  assert.throws(()=>batchSimulations(newDraft(players.map(p=>({...p,isRookie:undefined}))),{runs:100}));
- assert.throws(()=>simulateDraft(newDraft(players.map(p=>({...p,priceStatus:'ESTIMATED'})))));
+ assert.throws(()=>simulateDraft(newDraft(players.map(p=>({...p,priceStatus:'ESTIMATED'})),20000,'ON')));
 });
 test('lowering cap below an existing roster is rejected on restore',()=>{
- const s=pick(newDraft(players),1);assert.throws(()=>importDraft(exportDraft({...s,cap:1})),/Salary Cap/);
+ const s=pick(newDraft(players,20000,'ON'),1);assert.throws(()=>importDraft(exportDraft({...s,cap:1})),/Salary Cap/);
+});
+
+test('100 unpriced drafts ignore cap, preserve positions and reproduce results',()=>{
+ const p=players.map(({price,priceStatus,...rest})=>rest);
+ const initial=newDraft(p,1,'OFF');
+ const result=batchSimulations(initial,{runs:100,seed:11});
+ assert.equal(result.eligibleRuns,100);
+ assert.deepEqual(result,batchSimulations(initial,{runs:100,seed:11}));
+ const completed=simulateDraft(initial);
+ assert.equal(completed.picks.length,80);
+ assert.deepEqual(importDraft(exportDraft(completed)),completed);
+ for(let i=0;i<8;i++)assert.ok(rosterFits(teamRoster(completed,i)));
+ assert.throws(()=>importDraft(exportDraft({...completed,priceMode:'ON'})),/Цена/);
+});
+test('legacy saves with actual picks retain cap checks and can switch mode',()=>{
+ const old=pick(newDraft(players,20000,'ON'),1);delete old.priceMode;
+ const restored=importDraft(JSON.stringify(old));
+ assert.equal(restored.priceMode,'ON');assert.deepEqual(restored.picks,old.picks);
+ assert.throws(()=>importDraft(JSON.stringify({...old,cap:1})),/Salary Cap/);
+ const off=importDraft(exportDraft({...restored,priceMode:'OFF',cap:1}));
+ assert.equal(off.priceMode,'OFF');assert.deepEqual(off.picks,old.picks);
 });
