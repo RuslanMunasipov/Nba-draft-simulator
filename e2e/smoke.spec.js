@@ -232,3 +232,14 @@ test('Boozer can be selected directly, survives seven bots and reload, then comp
  await expect(page.locator('#results li')).toHaveCount(8);
  for(const row of await page.locator('#results li').allTextContents())expect(row).toContain('(PASS)');
 });
+
+for(const name of ['Caleb Wilson','AJ Dybantsa','Darryn Peterson','Darius Acuff Jr.']){
+ test('leading rookie '+name+' is selectable and saved after seven bots',async({page})=>{
+  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+  await page.getByRole('combobox',{name:'Режим',exact:true}).selectOption('INTERACTIVE');
+  await page.locator('#rookie-watch').getByRole('button',{name:'Взять rookie '+name,exact:true}).click();
+  await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
+  await expect(page.locator('#my-roster')).toContainText(name);
+  await page.reload();await expect(page.locator('#my-roster')).toContainText(name);
+ });
+}

@@ -1,10 +1,11 @@
+import {scoringMetric,fullSeason,FULL_SEASON} from './season-scoring.js';
 import {rosterFits} from './engine.js';
 import {pickCompletion} from './completion.js';
 import {draftValue} from './valuation.js';
-export function rookieWatch(state,limit=3){
+export function rookieWatch(state,limit=5){
  const team=state.picks.length%8;
  const roster=state.picks.filter(p=>p.team===team).map(p=>state.players.find(x=>x.id===p.playerId));
- return state.players.filter(p=>p.isRookie&&p.espnContext?.individualProjection&&Number.isFinite(draftValue(p)))
+ return state.players.filter(p=>p.isRookie&&p.espnContext?.individualProjection&&(scoringMetric(state)!==FULL_SEASON||fullSeason(p)!==null)&&Number.isFinite(draftValue(p)))
   .sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id))).slice(0,limit).map(player=>{
    const taken=state.picks.find(p=>p.playerId===player.id);
    if(taken)return {player,status:'TAKEN',reason:`Выбран GM ${taken.team+1} на пике №${taken.number}`};

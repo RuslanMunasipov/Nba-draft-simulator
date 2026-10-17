@@ -18,3 +18,11 @@ test('closed position stays visible with reason, and picked rookie records GM an
  const watched=rookieWatch(state)[0];assert.equal(watched.status,'BLOCKED');assert.match(watched.reason,/PF/);
  const taken=rookieWatch(pick(newDraft(players),101))[0];assert.equal(taken.status,'TAKEN');assert.match(taken.reason,/GM 1.*№1/);
 });
+
+test('all five leading rookies have statuses and changing names cannot alter the result',()=>{
+ const state=newDraft(players),base=rookieWatch(state);
+ assert.equal(base.length,5);assert.ok(base.every(w=>w.status==='AVAILABLE'));
+ const renamed={...state,players:players.map(p=>({...p,name:'Renamed '+p.id}))};
+ assert.deepEqual(rookieWatch(renamed).map(w=>[w.player.id,w.status]),base.map(w=>[w.player.id,w.status]));
+ for(const w of base){const picked=rookieWatch(pick(state,w.player.id)).find(x=>x.player.id===w.player.id);assert.equal(picked.status,'TAKEN');}
+});

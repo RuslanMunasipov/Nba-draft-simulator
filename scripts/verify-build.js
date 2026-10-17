@@ -102,3 +102,13 @@ const chosenBoozer=advanceBots(pick(draft,boozer.id),{seed:1});
 assert.equal(chosenBoozer.picks.length,8);
 assert.ok(chosenBoozer.picks.some(p=>p.team===0&&p.playerId===boozer.id));
 console.log('Independent all-player scoring audit:',JSON.stringify({...database.scoringAudit,focus:scoringAudit.players.filter(p=>['Cade Cunningham','Cameron Boozer'].includes(p.name))}));
+
+for(const rookie of rookieRecommendations(draft).players){
+ assert.ok(pickCompletion(draft,rookie.id).possible,'Leading rookie selectable: '+rookie.name);
+ const opening=advanceBots(pick(draft,rookie.id),{seed:7});
+ assert.equal(opening.picks.length,8);
+ const completed=simulateDraft(opening,{seed:7});
+ assert.equal(completed.picks.length,80);
+ for(let team=0;team<8;team++){const roster=teamRoster(completed,team);assert.ok(rosterFits(roster));assert.ok(roster.some(p=>p.isRookie));}
+ console.log('Leading rookie opening verified through 80 picks:',rookie.name);
+}
