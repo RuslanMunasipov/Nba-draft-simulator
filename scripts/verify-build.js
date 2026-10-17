@@ -121,3 +121,8 @@ for(const p of database.players){
 console.log('Full forecast coverage:',JSON.stringify(database.forecastCoverage));
 console.log('Career model temporal test:',JSON.stringify(database.careerModelAudit));
 console.log('Online source coverage:',JSON.stringify({...database.onlineAudit,errors:database.onlineAudit.errors.length}));
+
+assert.ok(database.onlineAudit.careerSeasons>500,'Online career seasons must be fetched');
+for(const p of database.players){assert.ok(p.onlineSummary);const evidence=JSON.parse(await readFile('dist/data/players/'+String(p.id).replace(':','-')+'.json','utf8'));assert.equal(evidence.name,p.name);}
+assert.ok((await stat('dist/data/default-draft.json')).size<4_000_000,'Mobile data payload budget');
+console.log('Mobile evidence split verified for all players');

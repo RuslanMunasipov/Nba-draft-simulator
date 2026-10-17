@@ -6,6 +6,9 @@ import {completionPlan,pickCompletion} from './completion.js';
 import {randomFromSeed} from './simulation.js';
 export function riskProfile(p){
  const games=Object.values(p.historyGames||{});const flags=[];
+ if(p.forecast?.coverageTier==='GROUP_PRIOR')flags.push('Групповой ориентир NBA-роли, не персональный прогноз статистики');
+ if(p.forecast?.coverageTier==='LIMITED_PERSONAL')flags.push('Прогноз по малой или устаревшей личной выборке');
+ if(p.forecast?.conditionalOnRoster)flags.push('Отдача условна: действующий ростер NBA не подтверждён');
  if(p.coverageStatus==='EARLIER_SEASON'||p.returnContext)flags.push('Возвращение/устаревшая база: текущая нагрузка неизвестна');
  if(p.isRookie||p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR')flags.push('Первый сезон в NBA: особенно важны место в ротации и стабильность минут');
  if(p.coverageStatus==='LOW_SAMPLE')flags.push('Малая выборка: историческая оценка неустойчива');

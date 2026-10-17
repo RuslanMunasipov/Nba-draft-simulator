@@ -243,3 +243,14 @@ for(const name of ['Caleb Wilson','AJ Dybantsa','Darryn Peterson','Darius Acuff 
   await page.reload();await expect(page.locator('#my-roster')).toContainText(name);
  });
 }
+
+test('full career loads on demand without replacing the draft forecast',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Nikola Jokic');
+ const card=page.locator('#candidates .player-card').first();await card.locator('h3').click();
+ await card.locator('.online-evidence summary').click();
+ await expect(card.locator('.online-evidence')).toContainText('NBA-карьера:',{timeout:30000});
+ const select=card.getByRole('combobox',{name:'Сезон карьеры Nikola Jokic',exact:true});
+ expect(await select.locator('option').count()).toBeGreaterThan(3);
+ await expect(card.getByRole('button',{name:'Обновить онлайн',exact:true})).toBeVisible();
+});

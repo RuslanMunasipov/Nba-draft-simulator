@@ -137,12 +137,30 @@ def build():
  preseason_audit=dict(days=len(daily),events=sum(r['events'] for r in daily),playerGames=len(preseason),errors=[e for r in daily for e in r['errors']])
  by_espn=defaultdict(list)
  for row in summer+preseason:by_espn[row['espnId']].append(row)
+ college={};drafts={}
+ young=[p for p in data['players'] if p.get('espnId') and (p.get('isRookie') or (p.get('nbaExperience') is not None and p['nbaExperience']<=4))]
+ def prospect(p):
+  record=dict(id=str(p['id']))
+  try:
+   url=WEB+'mens-college-basketball/athletes/'+p['espnId']+'/stats'
+   payload,at,old=fetch(url,86400);seasons=parse_career(payload)
+   for row in seasons:row['competition']='NCAA'
+   record['college']=dict(seasons=seasons,source=url,checkedAt=at,stale=old)
+  except Exception:pass
+  try:
+   payload,at,old=fetch(SITE+'nba/athletes/'+p['espnId'],86400*7)
+   record['draft']=payload.get('athlete',payload).get('draft')
+  except Exception:pass
+  return record
+ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+  for record in pool.map(prospect,young):college[record['id']]=record.get('college');drafts[record['id']]=record.get('draft')
  for p in data['players']:
-  p['onlineEvidence']=dict(career=careers.get(str(p['id'])),recentGames=by_espn.get(p.get('espnId'),[]),
+  p['draftContext']=drafts.get(str(p['id'])) or p.get('draftContext')
+  p['onlineEvidence']=dict(career=careers.get(str(p['id'])),college=college.get(str(p['id'])),recentGames=by_espn.get(p.get('espnId'),[]),
                            note='NBA, Summer League and preseason are distinct competitions; no unvalidated numeric equivalence.')
  report=dict(checkedAt=now.isoformat(),careerPlayers=len(careers),careerSeasons=sum(len(c['seasons']) for c in careers.values()),
              earliestYear=min((s['year'] for c in careers.values() for s in c['seasons']),default=None),
-             summer=summer_audit,preseason=preseason_audit,errors=errors,
+             summer=summer_audit,preseason=preseason_audit,collegePlayers=sum(bool(c and c.get('seasons')) for c in college.values()),draftPlayers=sum(bool(d) for d in drafts.values()),errors=errors,
              limitations=['Public provider coverage is finite, not every resource or every season.','Career rows use provider rounded minutes, not reconstructed game result bonuses.','Summer/preseason stats are evidence, not NBA forecast points.'])
  data['onlineAudit']=report
  path.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')

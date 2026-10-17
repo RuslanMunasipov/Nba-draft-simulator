@@ -1,3 +1,4 @@
+import {onlinePanel} from './online.js';
 import {rookieWatch,rookieSlotWarnings} from './rookie-watch.js';
 import {importUncappedDraft} from './uncapped.js';
 import {draftValue} from './valuation.js';
@@ -58,13 +59,14 @@ function card(p,analysis=null){
  if(p.sourceUpdatedAt||p.rosterSource){
   const evidence=document.createElement('details');evidence.append(text('summary','Источники и актуальность'));
   if(p.sourceUpdatedAt)evidence.append(text('p','Срез ростера: '+new Date(p.sourceUpdatedAt).toLocaleString('ru-RU')));
-  evidence.append(text('p',p.forecast?.origin==='ESPN_INDIVIDUAL'?'Индивидуальный прогноз ESPN на 2026/27; фолы, бонусы и разброс дополнены моделью.':'Статистическая база: '+(p.projectionBaseSeason||'групповой ориентир')+'.'));
+  evidence.append(text('p',p.forecast?.origin==='ESPN_INDIVIDUAL'?'Индивидуальный прогноз ESPN на 2026/27; фолы, бонусы и разброс дополнены моделью.':p.forecast?.basis||'Статистическая база: '+(p.projectionBaseSeason||'групповой ориентир')+'.'));
   if(p.rosterSource){const source=document.createElement('a');source.href=p.rosterSource;source.textContent='Источник ростера и статусов ESPN';evidence.append(source);}el.append(evidence);
  }
  if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: ${[source.projectedGames!=null?'прогноз матчей '+source.projectedGames:null,Number.isFinite(source.adp)?'ADP '+source.adp.toFixed(2):null].filter(Boolean).join(' · ')}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
  if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
  if(p.forecast)el.append(forecastCard(p));
+ if(p.onlineSummary||p.onlineEvidence)el.append(onlinePanel(p));
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
  if(analysis?.completion?.possible===false){b.disabled=true;b.title=analysis.completion.reason;}
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
@@ -79,9 +81,12 @@ function card(p,analysis=null){
 
 function forecastCard(p){
  const f=p.forecast,box=document.createElement('div');box.className='forecast-panel';
+ if(f.basis)box.append(text('p',f.basis));
+ if(f.conditionalOnRoster)box.append(text('p','Условная оценка при возвращении в NBA-ротацию: действующий ростер не подтверждён.'));
+ if(f.coverageTier==='GROUP_PRIOR')box.append(text('strong','Групповая модель роли · высокая неопределённость'));
  box.append(text('h4','Прогноз и потолок · NBA Ceiling'));
  const grid=document.createElement('div');grid.className='forecast-grid';
- for(const [label,value] of [['ФО / матч',f.meanPerGame.toFixed(1)],['Матчей',Math.round(f.games)],['Минут / матч',f.minutes.toFixed(1)],['Потолок матча · P90',f.gameCeiling.toFixed(1)],['Базовый сезон',Math.round(f.meanSeason)],['Сильный сезон',Math.round(f.seasonCeiling)],['Слабый сезон',Math.round(f.seasonFloor)]]){
+ for(const [label,value] of [['ФО / матч',f.meanPerGame.toFixed(1)],['Матчей',Math.round(f.games)],['Минут / матч',f.minutes.toFixed(1)],[f.sampleGames?'Потолок матча · P90':'Верхний ролевой ориентир',f.gameCeiling.toFixed(1)],['Базовый сезон',Math.round(f.meanSeason)],['Сильный сезон',Math.round(f.seasonCeiling)],['Слабый сезон',Math.round(f.seasonFloor)]]){
   const cell=document.createElement('div');cell.append(text('small',label),text('strong',String(value)));grid.append(cell);
  }
  box.append(grid,text('p','Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.'));
@@ -196,7 +201,7 @@ async function loadDatabase(force=false){
    save();
   }else database=candidate;
   writeStored('fbl-default-db',JSON.stringify(candidate));updateSaveStatus();
-  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Позиции: публикация Yahoo Fantasy; для остальных — оценка ESPN. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
+  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Позиции: только публикация Yahoo Fantasy; неподтверждённый допуск блокирует выбор. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
   $('startup-status').textContent=`База готова · ${state.players.length} игроков`;
  }catch(e){
   const message=state.players.length?'Источник обновления недоступен. Используется сохранённая база; пики сохранены.':'Не удалось загрузить базу. Нажми «Повторить загрузку».';
