@@ -1,3 +1,4 @@
+import {pickCompletion} from './completion.js';
 import {scoringMetric,seasonScore,FULL_SEASON} from './season-scoring.js';
 import {draftValue,severeRisk} from './valuation.js';
 import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority, getPlayer } from './engine.js';
@@ -39,7 +40,13 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
   const pool=ranked.slice(0,Math.min(8,ranked.length));
   const index=style==='best' ? 0 : Math.min(pool.length-1,Math.floor(Math.pow(random(),style==='volatile'?0.65:2)*pool.length));
-  return pick(state,pool[index].id);
+  const preferred=pool[index];
+  // A locally legal position assignment may consume the only slot for a rookie.
+  // Check the selected move before committing, then try deterministic alternatives.
+  for(const candidate of [preferred,...ranked.filter(p=>p.id!==preferred.id)]){
+    if(pickCompletion(state,candidate.id).possible)return pick(state,candidate.id);
+  }
+  throw Error('Нет выбора, после которого можно добрать полный состав с rookie');
 }
 export function advanceBots(state,{humanTeam=0,seed=1,style='balanced'}={}) {
   const random=randomFromSeed(seed);

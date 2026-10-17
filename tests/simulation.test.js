@@ -13,3 +13,13 @@ test('rookie missing blocks winner claims',()=>{const p=players.map(x=>({...x,is
 test('invalid batch sizes rejected',()=>assert.throws(()=>batchSimulations(newDraft(players),{runs:1001})));
 
 test('unknown prices stay unknown rather than zero in summaries',()=>{const p=players.map(({price,priceStatus,...rest})=>rest);const s=pick(newDraft(p),1);assert.equal(teamCost(s,0),null);assert.equal(draftSummary(s)[0].cost,null);});
+
+test('bot does not occupy the last PG slot when every available rookie is PG',()=>{
+ const pool=players.map(p=>({...p,positions:p.isRookie?['PG']:['PG','SG','SF','PF','C']}));
+ pool[20]={...pool[20],positions:['PG'],projectedFP:9999};
+ let state=pick(newDraft(pool),22);
+ for(let id=30;id<37;id++)state=pick(state,id);
+ const next=botPick(state,randomFromSeed(1),'best');
+ assert.notEqual(next.picks.at(-1).playerId,21);
+ assert.equal(next.picks.length,9);
+});

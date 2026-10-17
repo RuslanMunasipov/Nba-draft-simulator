@@ -1,3 +1,4 @@
+import {importUncappedDraft} from './uncapped.js';
 import {draftValue} from './valuation.js';
 import './model-audit.js';
 import {readStored,writeStored,storageFailed} from './storage.js';
@@ -14,7 +15,7 @@ import {rookieRecommendations} from './rookies.js';
 import {pickCompletion} from './completion.js';
 import {installDatabase,restartDraft} from './database.js';
 const $=id=>document.getElementById(id);
-let state;try{state=importDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
+let state;try{state=importUncappedDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
 let database;
 let mode=readStored('fbl-mode')||'LIVE';
 function save(){writeStored('fbl-draft',exportDraft(state));render();updateSaveStatus();}
@@ -133,7 +134,6 @@ function renderRookies(){
  }
 }
 function render(){
- $('cap').value=state.cap;$('price-mode').checked=state.priceMode==='ON';$('price-controls').hidden=state.priceMode!=='ON';
  const n=state.picks.length;
  $('draft-progress-fill').style.width=(n/80*100)+'%';document.querySelector('.draft-progress').setAttribute('aria-valuenow',String(n));
  const own=state.picks.filter(p=>p.team===0).map(p=>state.players.find(x=>x.id===p.playerId));
@@ -152,7 +152,7 @@ function render(){
  $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p,query.length>=2&&index<5?analyzeRecommendations(state,p)[0]:null)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
  $('advice').replaceChildren();const a=analyzeRecommendations(state);
- if(!a.length)$('advice').append(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':state.players.length?'Нет допустимых рекомендаций: проверьте позиции, rookie и бюджет полного состава.':'Загружается последняя база…'));
+ if(!a.length)$('advice').append(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':state.players.length?'Нет доступного варианта для добора 2 PG, 2 SG, 2 SF, 2 PF, 2 C и rookie. Можно отменить последний пик.':'Загружается последняя база…'));
  for(const analysis of a)$('advice').append(card(analysis.player,analysis));
  $('risky-advice').replaceChildren();const risky=analyzeRecommendations(state,null,true).slice(0,3);
  for(const analysis of risky)$('risky-advice').append(card(analysis.player,analysis));
@@ -192,19 +192,17 @@ $('search').oninput=render;$('rookies-only').onchange=render;
 $('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
 $('undo').onclick=()=>{state=undo(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};
-$('price-mode').onchange=()=>{try{state=importDraft(exportDraft({...state,priceMode:$('price-mode').checked?'ON':'OFF'}));save();}catch(e){showError(e);render();}};
-$('apply-cap').onclick=()=>{try{state=importDraft(exportDraft({...state,cap:Number($('cap').value)}));save();}catch(e){showError(e);render();}};
 $('refresh-database').onclick=()=>loadDatabase(true);
 $('load').onclick=()=>{try{const v=JSON.parse($('data').value);state={...newDraft(v.players,state.cap,state.priceMode),databaseVersion:'manual'};save();$('settings').open=false;}catch(e){showError(e);}};
 $('download').onclick=()=>{const url=URL.createObjectURL(new Blob([exportDraft(state)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fbl-draft.json';a.click();URL.revokeObjectURL(url);};
-$('restore').onchange=async e=>{try{state=importDraft(await e.target.files[0].text());save();}catch(err){showError(err);}};
+$('restore').onchange=async e=>{try{state=importUncappedDraft(await e.target.files[0].text());save();}catch(err){showError(err);}};
 function runAction(fn){try{state=fn();save();$('simulation-status').textContent=state.picks.length===80?(draftSummary(state)[0].metric==='FBL_FULL_FORMULA_ESTIMATE'?'Драфт завершён. Итоги ниже — суммы сезонных прогнозов ФО.':'Драфт завершён. Итоги ниже — суммы импортированных оценок.'):'Драфт обновлён.';}catch(e){showError(e);}}
 $('bots').onclick=()=>runAction(()=>advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1}));
 $('simulate').onclick=()=>runAction(()=>simulateDraft(state,{seed:Number($('seed').value)||1}));
 $('batch').onclick=()=>{
  $('batch').disabled=true;$('simulation-status').textContent='Выполняются 100 сценариев…';
  const snapshot=state;
- const worker=new Worker(new URL('./batch-worker.js',import.meta.url),{type:'module'});
+ let worker;try{worker=new Worker(new URL('./batch-worker.js',import.meta.url),{type:'module'});}catch{$('batch').disabled=false;$('simulation-status').textContent='Браузер не поддерживает расчёт в отдельном потоке. Ручные пики и завершение тренировки доступны.';return;}
  const finish=()=>{worker.terminate();$('batch').disabled=false;};
  worker.onmessage=({data})=>{finish();if(state!==snapshot){$('batch').click();return;}$('simulation-status').textContent=data.error?'Ошибка: '+data.error:`100 сценариев; допустимых: ${data.result.eligibleRuns}/100. Сценарии от пика №${snapshot.picks.length+1}. `+(data.result.wins?(data.result.metric==='FBL_FULL_FORMULA_ESTIMATE'?'Лидеры по сезонным ФО: ':'Лидеры по импортированным оценкам: ')+data.result.wins.map((n,i)=>`GM ${i+1}: ${n}`).join(', '):'Победитель сценария не определяется.')+' Результаты зависят от оценочных позиций и прогнозов, это не вероятность победы в FBL.';};
  worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1});

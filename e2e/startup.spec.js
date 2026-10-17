@@ -44,3 +44,29 @@ test('hung database request ends with retry and recovers without imports',async(
  await expect(page.locator('#startup-status')).toContainText('База готова');
  await expect(page.locator('#load-retry')).toBeHidden();
 });
+
+test('legacy priced draft resumes without cap checks and keeps its saved pick',async({page})=>{
+ await page.addInitScript(({players,generatedAt})=>{
+  if(!localStorage.getItem('fbl-draft'))localStorage.setItem('fbl-draft',JSON.stringify({version:1,cap:1,priceMode:'ON',players,picks:[{number:1,team:0,playerId:1}],databaseVersion:generatedAt}));
+ },fixture);
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:fixture}));
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
+ await expect(page.locator('#my-roster')).toContainText('SYNTHETIC 0');
+ await expect(page.locator('.hero-meta')).toContainText('Без цен и salary cap');
+ await page.locator('#advice .player-card button').first().click();
+ await expect(page.locator('#turn')).toContainText('Пик 3 / 80');
+ await page.reload();await expect(page.locator('#turn')).toContainText('Пик 3 / 80');
+});
+test('unsupported batch worker leaves controls usable and explains the available actions',async({page})=>{
+ await page.addInitScript(()=>{window.Worker=class{constructor(){throw new Error('Worker unavailable');}};});
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:fixture}));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.locator('#batch').click();
+ await expect(page.locator('#batch')).toBeEnabled();
+ await expect(page.locator('#simulation-status')).toContainText('Ручные пики');
+ await page.locator('#advice .player-card button').first().click();
+ await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
+ expect(errors).toEqual([]);
+});
