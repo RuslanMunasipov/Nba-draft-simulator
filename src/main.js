@@ -1,6 +1,6 @@
 import {onlinePanel} from './online.js';
 import {rookieWatch,rookieSlotWarnings} from './rookie-watch.js';
-import {importUncappedDraft} from './uncapped.js';
+import {restoreBudgetDraft,enforceBudget,budgetSummary} from './budget.js';
 import {draftValue} from './valuation.js';
 import './model-audit.js';
 import {readStored,writeStored,storageFailed} from './storage.js';
@@ -14,10 +14,10 @@ import {advanceBots,simulateDraft,draftSummary} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
 import {rookieRecommendations} from './rookies.js';
-import {pickCompletion} from './completion.js';
+import {pickCompletion,completionPlan} from './completion.js';
 import {installDatabase,restartDraft} from './database.js';
 const $=id=>document.getElementById(id);
-let state;try{state=importUncappedDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
+let state;try{state=restoreBudgetDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
 let database;
 let mode=readStored('fbl-mode')||'LIVE';
 function save(){writeStored('fbl-draft',exportDraft(state));render();updateSaveStatus();}
@@ -28,14 +28,14 @@ function updateSaveStatus(){
 }
 function showError(error){const message='Не удалось выполнить: '+error.message;$('simulation-status').textContent=message;$('draft-message').textContent=message;$('draft-message').hidden=false;}
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
-function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
-function choose(p){$('draft-message').hidden=true;try{const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
+function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(p.sportsName||'')+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
+function choose(p){$('draft-message').hidden=true;try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
  const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
  el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
  const risk=analysis?.risk||riskProfile(p);el.append(text('strong','Риск: '+risk.level));
- el.append(text('p',[p.team,p.positions.join('/')].filter(Boolean).join(' · ')));
+ el.append(text('p',[p.team,p.positions.join('/'),state.priceMode==='ON'?(p.priceStatus==='VERIFIED'?p.price+' ед.':'цена отсутствует'):null].filter(Boolean).join(' · ')));
  if(p.forecast)el.append(text('strong',`${p.forecast.meanPerGame.toFixed(1)} ФО/матч · ${Math.round(p.forecast.meanSeason)} ФО за сезон`));
  else if(individualRookie)el.append(text('strong',`Индивидуальный прогноз: ${individualRookie.componentFPPerGame.toFixed(1)} частичных ФО/матч; фолы и бонусы не учтены. Сравнение — в блоке rookie.`));
  else if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&Number.isFinite(p.projectedFP))el.append(text('strong','Групповой ориентир rookie: '+p.projectedFP.toFixed(1)+' базовых ФО/матч. Это не персональный прогноз.'));
@@ -46,7 +46,7 @@ function card(p,analysis=null){
  if(p.returnContext)el.append(text('p',p.returnContext.note));
  if(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED')el.append(text('small','Позиции из публикации Yahoo Fantasy на NBA.com.'));
  if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')el.append(text('small','Позиции ESPN, допуск Yahoo не подтверждён.'));
- if(state.priceMode==='ON')el.append(text('p','Цена: '+(p.priceStatus==='VERIFIED'?p.price+' ед.':'не подтверждена')));
+ if(state.priceMode==='ON')el.append(text('p','Цена Sports.ru: '+(p.priceStatus==='VERIFIED'?p.price+' ед.':'отсутствует — выбор заблокирован')));
  if(analysis&&!individualRookie){
   if(analysis.stability!==null)el.append(text('p','Уверенность пика: '+analysis.stability+'% первых мест в условных сценариях'));
   el.append(text('p',analysis.conclusion));
@@ -68,7 +68,7 @@ function card(p,analysis=null){
  if(p.forecast)el.append(forecastCard(p));
  if(p.onlineSummary||p.onlineEvidence)el.append(onlinePanel(p));
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
- if(analysis?.completion?.possible===false){b.disabled=true;b.title=analysis.completion.reason;}
+ if(pickCompletion(state,p.id).possible===false){b.disabled=true;b.title=pickCompletion(state,p.id).reason;}
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
  el.append(b);
  el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[3]?.classList.add('player-score');
@@ -137,7 +137,7 @@ function renderRookies(){
  for(const [index,p] of result.players.entries()){
   const s=p.espnContext.individualProjection,v=s.perGame,el=document.createElement('article');el.className='player-card';
   el.append(text('h3',`${index+1}. ${p.name} · rookie`),text('strong',p.forecast?`${p.forecast.meanPerGame.toFixed(1)} ФО/матч · ${Math.round(p.forecast.meanSeason)} ФО за сезон`:`${s.componentFPPerGame.toFixed(1)} частичных ФО/матч · ${s.componentSeasonTotal.toFixed(0)} за прогнозируемые ${s.games} игр`));
-  el.append(text('p',`${p.team||'Команда не подтверждена'} · ${p.positions.join('/')} · ${v.minutes.toFixed(1)} мин/матч · ADP ESPN ${p.espnContext.adp?.toFixed(1)??'нет'}`));
+  el.append(text('p',`${p.team||'Команда не подтверждена'} · ${p.positions.join('/')} · ${state.priceMode==='ON'?p.price+' ед. · ':''}${v.minutes.toFixed(1)} мин/матч · ADP ESPN ${p.espnContext.adp?.toFixed(1)??'нет'}`));
   if(p.injuries?.length)el.append(text('strong','Текущий статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
   el.append(text('p',`ESPN: ${s.componentFPPerGame.toFixed(1)} частичных ФО/матч — до оценки фолов и бонусов.`));
   el.append(text('p',`PTS ${v.points.toFixed(1)} · REB ${v.rebounds.toFixed(1)} · AST ${v.assists.toFixed(1)} · STL ${v.steals.toFixed(1)} · BLK ${v.blocks.toFixed(1)} · TOV ${v.turnovers.toFixed(1)}`));
@@ -148,6 +148,7 @@ function renderRookies(){
   }
   el.append(text('p','Роль, сильные стороны и ограничения игрока — в репорте выше. Момент пика сравнивается в блоке «Rookie сейчас или ветеран сейчас».'));
   el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Допуск: '+(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED'?'публикация Yahoo Fantasy на NBA.com':'позиции ESPN')+'. Статус rookie — по источнику ESPN.'));
+  if(state.priceMode==='ON')el.append(text('p','Цена Sports.ru: '+p.price+' ед.'));
   if(p.forecast)el.append(forecastCard(p));
   const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);
   el.children[1]?.classList.add('player-score');el.children[2]?.classList.add('player-meta');
@@ -157,9 +158,15 @@ function renderRookies(){
 }
 function render(){
  const n=state.picks.length;
+ document.querySelector('.hero-meta .limited').textContent=state.priceMode==='ON'?'Salary cap 20 000 · цены Sports.ru':'Ручная база · без бюджета';
+ $('draft-rules').textContent=state.priceMode==='ON'?'Лимит 20 000 на команду. Проверяются цены Sports.ru, позиции Yahoo, rookie и бюджет полного добора.':'Ручная база без подтверждённых цен: бюджет не проверяется.';
+ const budget=budgetSummary(state),reserve=state.priceMode==='ON'?completionPlan(state):null;
+ $('budget-status').textContent=state.priceMode==='ON'?`GM ${n%8+1}: потрачено ${budget.spent??'неизвестно'} / ${state.cap} · остаток ${budget.remaining??'неизвестно'} · свободно ${budget.slots} мест`+(reserve?.possible?` · минимум на добор ${reserve.minimumRemainingCost}`:' · допустимый добор не найден'):'Ручная база: бюджет отключён';
+ $('pricing-warning').textContent=state.pricingIssue||'';$('pricing-warning').hidden=!state.pricingIssue;
  $('draft-progress-fill').style.width=(n/80*100)+'%';document.querySelector('.draft-progress').setAttribute('aria-valuenow',String(n));
  const own=state.picks.filter(p=>p.team===0).map(p=>state.players.find(x=>x.id===p.playerId));
  const ownBox=$('my-roster');ownBox.replaceChildren();
+ const ownBudget=budgetSummary(state,0);if(state.priceMode==='ON')ownBox.append(text('strong',`Мой бюджет: ${ownBudget.spent??'неизвестно'} / ${state.cap} · осталось ${ownBudget.remaining??'неизвестно'}`));
  const rookie=own.some(p=>p.isRookie);ownBox.append(text('p',`${own.length}/10 игроков · Rookie: ${rookie?'выбран ✓':'ещё нужен'}`));
  const list=document.createElement('ol');list.className='roster-grid';
  for(let i=0;i<10;i++){const row=text('li',own[i]?own[i].name:'Свободное место');if(own[i])row.append(text('small',own[i].positions.join(' / ')+(own[i].isRookie?' · rookie':'')));else row.className='empty-slot';list.append(row);}ownBox.append(list);
@@ -180,7 +187,7 @@ function render(){
  for(const analysis of risky)$('risky-advice').append(card(analysis.player,analysis));
  $('risk-section').hidden=!risky.length;
  renderRookies();
- $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} · rookie ${t.rookieCount} (${t.rookieRule})`));}
+ $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} ${state.priceMode==='ON'?' · бюджет '+t.cost+' / '+state.cap:''} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 let databaseLoading=false;
 async function loadDatabase(force=false){
@@ -193,7 +200,7 @@ async function loadDatabase(force=false){
  $('database-status').textContent='Обновляю базу игроков…';
  try{
   const candidate=await fetchDatabase(import.meta.env.BASE_URL+'data/default-draft.json');
-  newDraft(candidate.players,20000,'OFF');
+  newDraft(candidate.players,20000,candidate.priceMode||'OFF');
   if(force||!state.players.length||(state.databaseVersion&&state.databaseVersion!=='manual')||(!state.picks.length&&!state.databaseVersion)){
    const installed=installDatabase(state,candidate);
    state=installed;database=candidate;
@@ -201,7 +208,7 @@ async function loadDatabase(force=false){
    save();
   }else database=candidate;
   writeStored('fbl-default-db',JSON.stringify(candidate));updateSaveStatus();
-  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Позиции: только публикация Yahoo Fantasy; неподтверждённый допуск блокирует выбор. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
+  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Цены Sports.ru: ${candidate.priceAudit?.matchedPlayers??0} игроков, срез ${candidate.priceAudit?.capturedAt?new Date(candidate.priceAudit.capturedAt).toLocaleString('ru-RU'):'неизвестен'}. Позиции: только публикация Yahoo Fantasy; неподтверждённый допуск блокирует выбор. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
   $('startup-status').textContent=`База готова · ${state.players.length} игроков`;
  }catch(e){
   const message=state.players.length?'Источник обновления недоступен. Используется сохранённая база; пики сохранены.':'Не удалось загрузить базу. Нажми «Повторить загрузку».';
@@ -212,12 +219,12 @@ async function loadDatabase(force=false){
 $('load-retry').onclick=()=>loadDatabase(true);
 $('search').oninput=render;$('rookies-only').onchange=render;
 $('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
-$('undo').onclick=()=>{state=undo(state);save();};
+$('undo').onclick=()=>{state=undo(state);if(state.priceMode==='ON')state=enforceBudget(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};
 $('refresh-database').onclick=()=>loadDatabase(true);
-$('load').onclick=()=>{try{const v=JSON.parse($('data').value);state={...newDraft(v.players,state.cap,state.priceMode),databaseVersion:'manual'};save();$('settings').open=false;}catch(e){showError(e);}};
+$('load').onclick=()=>{try{const v=JSON.parse($('data').value);const priced=v.players.every(p=>p.priceStatus==='VERIFIED'&&Number.isFinite(p.price));state={...newDraft(v.players,20000,priced?'ON':'OFF'),databaseVersion:'manual'};save();$('settings').open=false;}catch(e){showError(e);}};
 $('download').onclick=()=>{const url=URL.createObjectURL(new Blob([exportDraft(state)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fbl-draft.json';a.click();URL.revokeObjectURL(url);};
-$('restore').onchange=async e=>{try{state=importUncappedDraft(await e.target.files[0].text());save();}catch(err){showError(err);}};
+$('restore').onchange=async e=>{try{const restored=restoreBudgetDraft(await e.target.files[0].text());state=restored.databaseVersion!=='manual'&&database?.priceMode==='ON'?installDatabase(restored,database):restored;save();}catch(err){showError(err);}};
 function runAction(fn){try{state=fn();save();$('simulation-status').textContent=state.picks.length===80?(draftSummary(state)[0].metric==='FBL_FULL_FORMULA_ESTIMATE'?'Драфт завершён. Итоги ниже — суммы сезонных прогнозов ФО.':'Драфт завершён. Итоги ниже — суммы импортированных оценок.'):'Драфт обновлён.';}catch(e){showError(e);}}
 $('bots').onclick=()=>runAction(()=>advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1}));
 $('simulate').onclick=()=>runAction(()=>simulateDraft(state,{seed:Number($('seed').value)||1}));

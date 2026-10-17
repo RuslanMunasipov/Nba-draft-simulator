@@ -41,7 +41,8 @@
   },
   "feedVerification": {
     "yahooEligibility": "UNVERIFIED",
-    "sportsRuPrices": "UNVERIFIED"
+    "sportsRuPrices": "DATED_AUTHENTICATED_SNAPSHOT"
   },
-  "note": "Confirmed league rules are distinct from provider feed verification. Do not enable cap enforcement with unverified prices or impose an unconfirmed NBA club limit."
+  "note": "Confirmed league rules are distinct from provider feed verification. Do not enable cap enforcement with unverified prices or impose an unconfirmed NBA club limit.",
+  "priceSnapshot": "2026-10-17"
 }

@@ -31,6 +31,7 @@ export function rosterFits(players){
  return players.every((_,i)=>assign(i,new Set()));
 }
 export function pick(state,playerId){
+ if(state.pricingIssue)throw Error(state.pricingIssue);
  if(state.picks.length>=80)throw Error('Драфт завершён');
  if(state.picks.some(p=>p.playerId===playerId))throw Error('Игрок уже выбран');
  const player=getPlayer(state,playerId);

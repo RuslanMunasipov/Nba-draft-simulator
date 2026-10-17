@@ -1,3 +1,4 @@
+import {completionPlan} from './completion.js';
 import {scoringMetric,fullSeason,FULL_SEASON} from './season-scoring.js';
 import {rosterFits} from './engine.js';
 import {severeRisk} from './valuation.js';
@@ -74,6 +75,10 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
    const remaining=10-next.length;
    const cheapest=players.filter(x=>!used.has(x.id)&&x.id!==p.id).map(x=>x.price).sort((a,b)=>a-b).slice(0,remaining);
    if(cheapest.length<remaining||cost+cheapest.reduce((a,b)=>a+b,0)>state.cap)return false;
+  }
+  if(state.priceMode==='ON'){
+   const after={...state,players,picks:[...picks,{number:picks.length+1,team,playerId:p.id}]};
+   if(!completionPlan(after,team).possible)return false;
   }
   if(reserve&&!reserveRookies(p,team))return false;
   return true;

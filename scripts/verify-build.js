@@ -41,11 +41,13 @@ console.log('Full historical coverage and returning-player regressions verified:
 const database=JSON.parse(await readFile('dist/data/default-draft.json','utf8'));
 const {newDraft,pick,rosterFits}=await import('../src/engine.js');
 const {simulateDraft,batchSimulations,advanceBots,teamRoster}=await import('../src/simulation.js');
-const draft=newDraft(database.players,20000,'OFF');
+assert.equal(database.priceMode,'ON');assert.equal(database.cap,20000);
+assert.ok(database.priceAudit.eligiblePricedPlayers>=200);
+const draft=newDraft(database.players,20000,'ON');
 assert.ok(database.coverage.rookies>=8);
 for(const id of [1630169,202681]){const p=database.players.find(p=>p.id===id);assert.ok(p?.positions.length&&Number.isFinite(p.projectedFP));}
 const full=simulateDraft(draft,{seed:19});assert.equal(full.picks.length,80);
-for(let i=0;i<8;i++){const r=teamRoster(full,i);assert.ok(rosterFits(r));assert.ok(r.some(p=>p.isRookie));}
+for(let i=0;i<8;i++){const r=teamRoster(full,i);assert.ok(rosterFits(r));assert.ok(r.some(p=>p.isRookie));assert.ok(r.every(p=>p.priceStatus==='VERIFIED'));assert.ok(r.reduce((sum,p)=>sum+p.price,0)<=20000);}
 const batch=batchSimulations(draft,{runs:100,seed:11});assert.equal(batch.eligibleRuns,100);
 const first=full.picks[0].playerId;assert.equal(advanceBots(pick(draft,first)).picks.length,8);
 console.log('Real automatic database verified:',database.coverage,'80 picks and 100 valid seeded scenarios');

@@ -24,6 +24,10 @@ test('training automatically executes seven bots and full default draft',async({
  await expect(page.locator('#advice')).toHaveText('Драфт завершён. Все 80 выборов сохранены.');
  await expect(page.locator('#history li')).toHaveCount(80);
  await expect(page.locator('#results li')).toHaveCount(8);
+ await expect(page.locator('#results')).toContainText('бюджет');
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('fbl-draft')));
+ expect(saved.priceMode).toBe('ON');expect(saved.cap).toBe(20000);
+ for(let team=0;team<8;team++){const roster=saved.picks.filter(p=>p.team===team).map(p=>saved.players.find(x=>x.id===p.playerId));expect(roster.every(p=>p.priceStatus==='VERIFIED')).toBe(true);expect(roster.reduce((sum,p)=>sum+p.price,0)).toBeLessThanOrEqual(20000);}
  await expect(page.locator('#results')).toContainText('ФО за сезон');
  await expect(page.locator('#simulation-status')).toContainText('сезонных прогнозов ФО');
  await expect(page.locator('#simulation-status')).not.toContainText('ФО/матч');
@@ -39,9 +43,12 @@ test('rookies and all requested explanation fields appear without settings',asyn
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
 
-test('searched Kawhi and Maxey have risk, comparison and scenario confidence',async({page})=>{
+test('unknown Sports.ru price blocks Kawhi while Maxey retains comparison',async({page})=>{
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
- for(const name of ['Kawhi','Maxey']){
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Kawhi');
+ await expect(page.locator('#candidates .player-card').first()).toContainText('Цена Sports.ru: отсутствует');
+ await expect(page.locator('#candidates .player-card').first().getByRole('button')).toBeDisabled();
+ for(const name of ['Maxey']){
   await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill(name);
   const card=page.locator('#candidates .player-card').first();
   await expect(card).toContainText('Прогноз сезона:');

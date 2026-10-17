@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-const fixture={generatedAt:'2026-10-16T00:00:00Z',coverage:{players:120,rookies:20},players:Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+i,positions:['PG','SG','SF','PF','C'],projectedFP:30-i/10,isRookie:i>=100}))};
+const fixture={priceMode:'ON',cap:20000,generatedAt:'2026-10-16T00:00:00Z',coverage:{players:120,rookies:20},players:Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+i,positions:['PG','SG','SF','PF','C'],projectedFP:30-i/10,isRookie:i>=100,price:1500,priceStatus:'VERIFIED'}))};
 test('storage quota cannot prevent fetched database installation or a manual pick',async({page})=>{
  await page.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:fixture}));
@@ -45,7 +45,7 @@ test('hung database request ends with retry and recovers without imports',async(
  await expect(page.locator('#load-retry')).toBeHidden();
 });
 
-test('legacy priced draft resumes without cap checks and keeps its saved pick',async({page})=>{
+test('legacy priced draft adopts current Sports.ru prices and cap while preserving picks',async({page})=>{
  await page.addInitScript(({players,generatedAt})=>{
   if(!localStorage.getItem('fbl-draft'))localStorage.setItem('fbl-draft',JSON.stringify({version:1,cap:1,priceMode:'ON',players,picks:[{number:1,team:0,playerId:1}],databaseVersion:generatedAt}));
  },fixture);
@@ -53,7 +53,7 @@ test('legacy priced draft resumes without cap checks and keeps its saved pick',a
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
  await expect(page.locator('#my-roster')).toContainText('SYNTHETIC 0');
- await expect(page.locator('.hero-meta')).toContainText('Без цен и salary cap');
+ await expect(page.locator('.hero-meta')).toContainText('Salary cap 20 000');
  await page.locator('#advice .player-card button').first().click();
  await expect(page.locator('#turn')).toContainText('Пик 3 / 80');
  await page.reload();await expect(page.locator('#turn')).toContainText('Пик 3 / 80');
@@ -69,4 +69,24 @@ test('unsupported batch worker leaves controls usable and explains the available
  await page.locator('#advice .player-card button').first().click();
  await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
  expect(errors).toEqual([]);
+});
+
+test('priced database shows cap and remaining budget and preserves them on reload',async({page})=>{
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:fixture}));
+ await page.goto('./');await expect(page.locator('#budget-status')).toContainText('потрачено 0 / 20000');
+ await page.locator('#advice .player-card button').first().click();
+ await expect(page.locator('#my-roster')).toContainText('Мой бюджет: 1500 / 20000 · осталось 18500');
+ await page.reload();await expect(page.locator('#my-roster')).toContainText('осталось 18500');
+ await expect(page.locator('.hero-meta')).toContainText('Salary cap 20 000');
+});
+test('legacy missing-price pick is preserved with a repair message and cannot continue',async({page})=>{
+ const old={...fixture,players:fixture.players.map(p=>({...p,price:null,priceStatus:'MISSING'})),picks:[{number:1,team:0,playerId:1}],version:1,databaseVersion:'legacy'};
+ await page.addInitScript(s=>localStorage.setItem('fbl-draft',JSON.stringify(s)),old);
+ const source={...fixture,players:fixture.players.map((p,i)=>i===0?{...p,price:null,priceStatus:'MISSING'}:p)};
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:source}));
+ await page.goto('./');await expect(page.locator('#pricing-warning')).toBeVisible();
+ await expect(page.locator('#my-roster')).toContainText('SYNTHETIC 0');
+ await expect(page.locator('#advice .player-card')).toHaveCount(0);
+ await page.locator('#undo').click();await expect(page.locator('#pricing-warning')).toBeHidden();
+ await expect(page.locator('#advice .player-card')).toHaveCount(5);
 });
