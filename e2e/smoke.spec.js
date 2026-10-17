@@ -193,3 +193,14 @@ test('published Yahoo position evidence corrects Wembanyama instead of preservin
  await expect(card).toContainText('Позиции из публикации Yahoo Fantasy на NBA.com.');
  await expect(card.getByText('SA · C',{exact:true})).toBeVisible();
 });
+
+test('searched rookie group prior is explicitly labelled and never presented as personal history',async({page})=>{
+ const players=Array.from({length:120},(_,i)=>({id:i+1,name:'PRIOR TEST '+i,positions:['PG','SG','SF','PF','C'],projectedFP:20,isRookie:i>=100,projectionStatus:i>=100?'EMPIRICAL_ROOKIE_PRIOR':'HISTORICAL_CORE_ESTIMATE'}));
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-17T00:00:00Z',players,coverage:{players:120,rookies:20}}}));
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('PRIOR TEST 100');
+ const card=page.locator('#candidates .player-card').first();
+ await expect(card).toContainText('Групповой ориентир rookie:');
+ await expect(card).toContainText('Это не персональный прогноз.');
+ await expect(card.locator('strong').first()).not.toContainText('Историческая основа');
+});
