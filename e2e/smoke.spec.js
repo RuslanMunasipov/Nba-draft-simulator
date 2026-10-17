@@ -204,6 +204,6 @@ test('searched rookie group prior is explicitly labelled and never presented as 
  await expect(card).toContainText('Это не персональный прогноз.');
  await expect(card.locator('strong').first()).not.toContainText('Историческая основа');
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('PRIOR TEST 101');
- await expect(page.locator('#candidates .player-card').first().locator('h3')).toHaveText('PRIOR TEST 101');
+ await expect(page.locator('#candidates .player-card').first().locator('h3')).toHaveText('PRIOR TEST 101 · rookie');
  await expect(page.locator('#candidates')).not.toContainText('NaN');
 });
