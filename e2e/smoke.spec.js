@@ -198,7 +198,7 @@ test('published Yahoo position evidence corrects Wembanyama instead of preservin
  await expect(card.locator('h3')).toHaveText('Victor Wembanyama');
  await card.locator('h3').click();
  await expect(card).toContainText('Позиции из публикации Yahoo Fantasy на NBA.com.');
- await expect(card.getByText('SA · C',{exact:true})).toBeVisible();
+ await expect(card.locator('.player-meta')).toHaveText('SA · C · 3200 ед.');
 });
 
 test('searched rookie group prior is explicitly labelled and never presented as personal history',async({page})=>{

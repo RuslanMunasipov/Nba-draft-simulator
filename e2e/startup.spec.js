@@ -87,6 +87,7 @@ test('legacy missing-price pick is preserved with a repair message and cannot co
  await page.goto('./');await expect(page.locator('#pricing-warning')).toBeVisible();
  await expect(page.locator('#my-roster')).toContainText('SYNTHETIC 0');
  await expect(page.locator('#advice .player-card')).toHaveCount(0);
+ await page.getByText('История выборов',{exact:true}).click();
  await page.locator('#undo').click();await expect(page.locator('#pricing-warning')).toBeHidden();
  await expect(page.locator('#advice .player-card')).toHaveCount(5);
 });
