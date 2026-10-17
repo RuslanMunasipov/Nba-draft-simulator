@@ -131,7 +131,7 @@ function renderRookies(){
  }
  if(state.picks.length===80){$('rookie-advice').replaceChildren();$('rookie-status').textContent='Драфт завершён. Итоговые составы — в разделе тренировки.';return;}
  const result=rookieRecommendations(state);$('rookie-advice').replaceChildren();
- $('rookie-status').textContent=`Индивидуальный прогноз есть у ${result.projected} из ${result.available} доступных rookie; легальный добор с ними: ${result.feasible}. Rookie ещё нужен ${result.teamsNeedingRookie} командам.`;
+ $('rookie-status').textContent=`Индивидуальный прогноз есть в ESPN у ${result.projected} из ${result.available} доступных rookie; легальный добор с ними: ${result.feasible}. Rookie ещё нужен ${result.teamsNeedingRookie} командам.`;
  if(!result.players.length){$('rookie-advice').append(text('p','Нет доступных rookie с индивидуальным прогнозом и допустимым добором. Групповой ориентир не заменяет персональный прогноз.'));return;}
  const leader=result.players[0].espnContext.individualProjection,leaderForecast=result.players[0].forecast;
  for(const [index,p] of result.players.entries()){

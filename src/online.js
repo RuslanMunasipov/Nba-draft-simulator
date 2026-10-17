@@ -1,3 +1,4 @@
+import {parseOnlineGames} from './online-gamelog.js';
 import {fetchDatabase} from './database-loader.js';
 function text(tag,value){const node=document.createElement(tag);node.textContent=value;return node;}
 export function onlinePanel(player){
@@ -37,11 +38,10 @@ function addLive(content,player){
   const season=Number(year.value);if(!Number.isInteger(season)||season<1947||season>new Date().getFullYear()+1){status.textContent='Укажи корректный год окончания сезона.';return;}
   button.disabled=true;status.textContent='Загружаю матчи ESPN…';
   try{
-   const url='https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/'+player.espnId+'/gamelog?season='+season+'&seasontype='+type.value;
+   const selectedType=type.value;
+   const url='https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/'+player.espnId+'/gamelog?season='+season+'&seasontype='+selectedType;
    const data=await fetchDatabase(url,{attempts:1,timeoutMs:10000});output.replaceChildren();let count=0;
-   for(const group of data.seasonTypes||[])for(const category of group.categories||[])for(const game of category.events||[]){
-    const event=data.events?.[game.eventId],s=Object.fromEntries((data.labels||[]).map((label,i)=>[label,game.stats?.[i]]));
-    if(!event||s.PTS==null)continue;
+   for(const {event,stats:s} of parseOnlineGames(data,selectedType)){
     output.append(text('p',`${String(event.gameDate||'').slice(0,10)} · ${event.opponent?.displayName||''} · ${s.MIN||''} мин · PTS ${s.PTS} · REB ${s.REB||'—'} · AST ${s.AST||'—'} · TOV ${s.TO||'—'}`));count++;
    }
    status.textContent=count?`Получено онлайн: ${count} матчей. ${new Date().toLocaleString('ru-RU')}. Прогноз драфта обновляется проверенной сборкой, отдельно от просмотра матчей.`:'Источник не вернул матчей для этого сезона и турнира.';
