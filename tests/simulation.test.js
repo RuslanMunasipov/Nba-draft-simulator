@@ -14,6 +14,12 @@ test('invalid batch sizes rejected',()=>assert.throws(()=>batchSimulations(newDr
 
 test('unknown prices stay unknown rather than zero in summaries',()=>{const p=players.map(({price,priceStatus,...rest})=>rest);const s=pick(newDraft(p),1);assert.equal(teamCost(s,0),null);assert.equal(draftSummary(s)[0].cost,null);});
 
+test('bot may take an elite player above the per-slot average when an exact legal completion exists',()=>{
+ const priced=players.map((p,i)=>({...p,price:i===0?3500:1000,projectedFP:i===0?500:120-i,isRookie:i>=20&&i<36}));
+ const next=botPick(newDraft(priced,20000,'ON'),randomFromSeed(1),'best');
+ assert.equal(next.picks[0].playerId,1);
+});
+
 test('bot does not occupy the last PG slot when every available rookie is PG',()=>{
  const pool=players.map(p=>({...p,positions:p.isRookie?['PG']:['PG','SG','SF','PF','C']}));
  pool[20]={...pool[20],positions:['PG'],projectedFP:9999};
