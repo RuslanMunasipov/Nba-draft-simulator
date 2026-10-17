@@ -14,3 +14,9 @@ class PositionTests(unittest.TestCase):
   self.assertEqual(report['matchedPlayers'],1);self.assertEqual(player['positions'],['C'])
   self.assertEqual(player['team'],'DEN');self.assertEqual(player['forecast']['meanSeason'],2000)
   self.assertFalse(report['platformEligibilityVerified'])
+
+ def test_unmatched_espn_position_never_becomes_yahoo_eligibility(self):
+  player=dict(name='Unmatched',positions=['PG'],positionStatus='ESTIMATED_FROM_ESPN_NOT_YAHOO')
+  apply(dict(players=[player],generatedAt='date'),[])
+  self.assertEqual(player['positions'],[])
+  self.assertEqual(player['positionStatus'],'MISSING')

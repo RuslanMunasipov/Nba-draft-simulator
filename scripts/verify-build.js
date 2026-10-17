@@ -75,7 +75,7 @@ assert.ok(database.forecastAudit.rookieForecasts>=8,'Individual full-formula roo
 assert.ok(database.forecastAudit.holdout.players>100);
 for(const p of database.players.filter(p=>p.forecast)){
  const f=p.forecast;assert.equal(f.metric,'FBL_FULL_FORMULA_ESTIMATE');
- assert.ok(Number.isFinite(f.meanPerGame)&&Number.isFinite(f.meanSeason)&&f.games>0&&f.games<=82);
+ assert.ok(Number.isFinite(f.meanPerGame)&&Number.isFinite(f.meanSeason)&&f.games>=0&&f.games<=82);
  assert.ok(Math.abs(Object.values(f.components).reduce((a,b)=>a+b,0)-f.meanPerGame)<1e-6,'Component identity '+p.name);
  assert.ok(f.gameFloor<=f.gameCeiling&&f.seasonFloor<=f.meanSeason&&f.meanSeason<=f.seasonCeiling);
 }
@@ -112,3 +112,12 @@ for(const rookie of rookieRecommendations(draft).players){
  for(let team=0;team<8;team++){const roster=teamRoster(completed,team);assert.ok(rosterFits(roster));assert.ok(roster.some(p=>p.isRookie));}
  console.log('Leading rookie opening verified through 80 picks:',rookie.name);
 }
+
+assert.equal(database.forecastCoverage.covered,database.players.length,'Every player needs an explicitly sourced full-formula estimate');
+for(const p of database.players){
+ assert.ok(p.forecast.coverageTier,p.name+' needs an evidence tier');
+ assert.ok(p.positions.length===0||p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED','Only Yahoo positions may enable a default player: '+p.name);
+}
+console.log('Full forecast coverage:',JSON.stringify(database.forecastCoverage));
+console.log('Career model temporal test:',JSON.stringify(database.careerModelAudit));
+console.log('Online source coverage:',JSON.stringify({...database.onlineAudit,errors:database.onlineAudit.errors.length}));

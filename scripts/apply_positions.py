@@ -37,7 +37,9 @@ def apply(data,positions):
   key=normalize(player['name'])
   if names[key]!=1:continue
   source=by_name.get(key)
-  if not source:continue
+  if not source:
+   player.update(positions=[],positionStatus='MISSING',positionSource=None,positionProvider=None)
+   continue
   before=player['positions']
   player.update(positions=source['positions'],positionStatus='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED',
                 positionSource=SOURCE,positionCheckedAt=data['generatedAt'],positionProvider='Dan Titus / Yahoo Sports on NBA.com')
@@ -45,7 +47,7 @@ def apply(data,positions):
   if set(before)!=set(source['positions']):changes.append(dict(name=player['name'],previous=before,published=source['positions']))
  return dict(source=SOURCE,status='YAHOO_ANALYST_PUBLISHED',platformEligibilityVerified=False,
              checkedAt=data['generatedAt'],sourcePlayers=len(positions),matchedPlayers=matched,changes=changes,
-             limitation='Published Yahoo analyst positions, not an authenticated live Yahoo league response. Players not matched retain explicitly labelled ESPN estimates.')
+             limitation='Published Yahoo analyst positions, not an authenticated live Yahoo league response. Only Yahoo-published positions are eligible. Unmatched players have no confirmed eligibility; ESPN positions are not used.')
 if __name__=='__main__':
  req=urllib.request.Request(SOURCE,headers={'User-Agent':'FBL-Draft-Intelligence/0.3'})
  with urllib.request.urlopen(req,timeout=30) as response:html=response.read().decode()

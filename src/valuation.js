@@ -11,7 +11,7 @@ export function availabilityEvidence(player){
 }
 export function severeRisk(player){
  const evidence=availabilityEvidence(player);
- return Boolean(player.isRookie||player.coverageStatus==='LOW_SAMPLE'||player.coverageStatus==='EARLIER_SEASON'||player.returnContext||
+ return Boolean(player.forecast?.conditionalOnRoster||['GROUP_PRIOR','LIMITED_PERSONAL'].includes(player.forecast?.coverageTier)||player.isRookie||player.coverageStatus==='LOW_SAMPLE'||player.coverageStatus==='EARLIER_SEASON'||player.returnContext||
   player.injuries?.some(i=>/out|suspension/i.test(i.status||''))||evidence.repeatedAbsences||(evidence.recent!==null&&evidence.recent<40));
 }
 export function draftValue(player){

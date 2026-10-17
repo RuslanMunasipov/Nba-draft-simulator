@@ -43,7 +43,9 @@ def audit(data,rows_by_season):
         f=player.get('forecast')
         if not f:continue
         q=(player.get('espnContext') or {}).get('individualProjection')
-        if f['origin']=='ESPN_INDIVIDUAL':
+        if f.get('inputStats'):
+            s=f['inputStats']
+        elif f['origin']=='ESPN_INDIVIDUAL':
             per=q['perGame']
             s={key:per[name] for key,name in dict(pts='points',reb='rebounds',ast='assists',stl='steals',blk='blocks',fgm='fgMade',fga='fgAttempted',ftm='ftMade',fta='ftAttempted',tov='turnovers').items()}
         else:
