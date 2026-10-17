@@ -114,16 +114,28 @@ test('rookie timing worker compares all ten rounds while the mobile UI remains u
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
 
-test('published mobile batch completes 100 drafts without blocking input',async({page})=>{
+test('published mobile batch completes 500 draft scenarios without blocking input',async({page})=>{
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.locator('#batch').click();
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Jokic');
  await expect(page.locator('#candidates')).toContainText('Jokic');
  await page.locator('#candidates').getByRole('button',{name:'Выбрать Nikola Jokic',exact:true}).click();
  await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
- await expect(page.locator('#simulation-status')).toContainText('допустимых: 100/100',{timeout:180000});
- await expect(page.locator('#simulation-status')).toContainText('Сценарии от пика №2');
+ await expect(page.locator('#simulation-status')).toContainText('допустимых 500/500',{timeout:180000});
+ await expect(page.locator('#simulation-status')).toContainText('от пика №2');
  await expect(page.locator('#batch')).toBeEnabled();
+});
+
+test('completed draft runs 5000 season uncertainty scenarios with visible ranges',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.locator('#simulate').click();
+ await expect(page.locator('#turn')).toContainText('Драфт завершён',{timeout:180000});
+ await expect(page.locator('#batch')).toContainText('5 000 сценариев сезона');
+ await page.locator('#batch').click();
+ await expect(page.locator('#simulation-status')).toContainText('5000 сценариев неопределённости сезона',{timeout:180000});
+ await expect(page.locator('#scenario-results tbody tr')).toHaveCount(8);
+ await expect(page.locator('#scenario-results')).toContainText('P10–P90');
+ await expect(page.locator('#scenario-results')).toContainText('не вероятность победы в FBL');
 });
 
 test('specific rookie tradeoff updates after seven bots and disappears after our rookie pick',async({page})=>{
