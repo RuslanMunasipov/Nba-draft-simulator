@@ -47,6 +47,7 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
  const plans=Array.from({length:8},(_,team)=>{const from=Math.max(profile.from,rosters[team].length+1);return from+Math.floor(random(seed+team*997)()*Math.max(1,profile.to-from+1));});
  let actualRookieRound=state.picks.find(p=>p.team===0&&byId.get(p.playerId).isRookie)?.number;actualRookieRound=actualRookieRound?Math.floor((actualRookieRound-1)/8)+1:null;
  const rookies=players.filter(p=>p.isRookie),compatibility=Array.from({length:8},()=>new Map());
+ let budgetWitness=Array(8).fill(null);const pendingPlans=new Map();
  function reserveRookies(candidate,team){
   const remaining=rookies.filter(p=>!used.has(p.id)&&p.id!==candidate.id),requirements=[];
   for(let other=0;other<8;other++){
@@ -78,7 +79,13 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
   }
   if(state.priceMode==='ON'){
    const after={...state,players,picks:[...picks,{number:picks.length+1,team,playerId:p.id}]};
-   if(!completionPlan(after,team).possible)return false;
+   const plans=budgetWitness.slice();
+   for(let other=0;other<8;other++){
+    // A surviving witness is still a feasible completion after an unrelated removal.
+    if(other===team||!plans[other]||plans[other].playerIds.includes(p.id))plans[other]=completionPlan(after,other);
+    if(!plans[other].possible)return false;
+   }
+   pendingPlans.set(p.id,plans);
   }
   if(reserve&&!reserveRookies(p,team))return false;
   return true;
@@ -93,6 +100,7 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
   if(!candidates.length)candidates=choices(true);
   if(!candidates.length)return {valid:false,reason:'Нет легального продолжения',picks};
   const draw=random(seed+number*7919)(),p=candidates[team===0?0:Math.min(candidates.length-1,Math.floor(draw*draw*candidates.length))];
+  if(state.priceMode==='ON')budgetWitness=pendingPlans.get(p.id);pendingPlans.clear();
   used.add(p.id);rosters[team].push(p);compatibility[team].clear();picks.push({number,team,playerId:p.id});
   if(team===0&&p.isRookie&&actualRookieRound===null)actualRookieRound=round;
  }
