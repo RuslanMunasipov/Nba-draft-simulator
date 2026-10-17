@@ -13,7 +13,7 @@ export function timingCohort(state){
  const metric=scoringMetric(state);
  const players=state.players.filter(p=>{
   const q=p.espnContext?.individualProjection;
-  return p.positions.length&&(metric===FULL_SEASON?fullSeason(p)!==null:q?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(q.componentSeasonTotal))&&
+  return p.forecast?.coverageTier!=='GROUP_PRIOR'&&p.positions.length&&(metric===FULL_SEASON?fullSeason(p)!==null:q?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(q.componentSeasonTotal))&&
    (state.priceMode!=='ON'||(p.priceStatus==='VERIFIED'&&Number.isFinite(p.price)));
  });
  const ids=new Set(players.map(p=>p.id));

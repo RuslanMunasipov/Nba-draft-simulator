@@ -89,7 +89,7 @@ function forecastCard(p){
  for(const [label,value] of [['ФО / матч',f.meanPerGame.toFixed(1)],['Матчей',Math.round(f.games)],['Минут / матч',f.minutes.toFixed(1)],[f.sampleGames?'Потолок матча · P90':'Верхний ролевой ориентир',f.gameCeiling.toFixed(1)],['Базовый сезон',Math.round(f.meanSeason)],['Сильный сезон',Math.round(f.seasonCeiling)],['Слабый сезон',Math.round(f.seasonFloor)]]){
   const cell=document.createElement('div');cell.append(text('small',label),text('strong',String(value)));grid.append(cell);
  }
- box.append(grid,text('p','Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.'));
+ box.append(grid,text('p',f.sampleGames?'Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.':'Ролевой ориентир сравнивает средние показатели исторических игроков. Это не индивидуальный P90 матча; сезонный диапазон для такой оценки не откалиброван.'));
  const c=f.components,formula=document.createElement('details');
  if(f.scoringBreakdown){
   const table=document.createElement('table');table.className='scoring-breakdown';

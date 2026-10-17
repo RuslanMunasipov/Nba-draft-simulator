@@ -55,7 +55,7 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
   if(downside)drawbacks.push(`История ${downside.season}: ${downside.negativeGames} из ${downside.games} матчей ниже нуля; среднее худших 10% игр ${downside.meanWorstTenPercent.toFixed(1)} ФО. Это прошлые результаты, не вероятность будущего минуса.`);
   if(forecast){
    advantages.push(`Прогноз сезона: ${Math.round(forecast.meanSeason)} ФО за ${Math.round(forecast.games)} матчей; в среднем ${forecast.meanPerGame.toFixed(1)} ФО/матч`);
-   advantages.push(`Потолок одного матча: ${forecast.gameCeiling.toFixed(1)} ФО. Сильный сценарий сезона: ${Math.round(forecast.seasonCeiling)} ФО`);
+   advantages.push(forecast.sampleGames?`Потолок одного матча: ${forecast.gameCeiling.toFixed(1)} ФО. Сильный сценарий сезона: ${Math.round(forecast.seasonCeiling)} ФО`:`Верхний ролевой ориентир: ${forecast.gameCeiling.toFixed(1)} ФО/матч; индивидуальный игровой P90 не оценён.`);
   }else if(Number.isFinite(p.projectedFP))advantages.push(`Историческая основа: ${p.projectedFP.toFixed(1)} ФО/матч (${p.projectionBaseSeason||'групповой ориентир'})`);
   if(p.isRookie)advantages.push('Закрывает обязательное место новичка');
   const own=state.picks.filter(x=>x.team===state.picks.length%8).map(x=>state.players.find(p=>p.id===x.playerId));
