@@ -8,6 +8,7 @@ export function onlinePanel(player){
   try{
    const url=import.meta.env.BASE_URL+'data/players/'+String(player.id).replace(':','-')+'.json';
    const record=await fetchDatabase(url);const evidence=record.evidence||{};content.replaceChildren();
+   if(record.draft){const d=record.draft;content.append(text('p',`Драфт ${d.year||''} · раунд ${d.round||''} · выбор ${d.selection||d.overall||''}`));}
    const seasons=evidence.career?.seasons||[];
    if(seasons.length){
     content.append(text('p',`NBA-карьера: ${seasons.length} сезонов · ${seasons[0].season} — ${seasons.at(-1).season}. Срез ESPN: ${new Date(evidence.career.checkedAt).toLocaleString('ru-RU')}.`));

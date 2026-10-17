@@ -15,3 +15,9 @@ class CareerInputTests(unittest.TestCase):
   avg=[dict(teamId=team,season=dict(year=2024),stats=[str(games),'20']) for team,games in [('1',5),('2',5),('99',10)]]
   payload=dict(categories=[dict(name='averages',names=['gamesPlayed','avgMinutes'],statistics=avg),dict(name='totals',names=names,statistics=[record('1',5),record('2',5),record('99',10)])])
   rows=parse_career(payload);self.assertEqual(len(rows),1);self.assertEqual(rows[0]['games'],10);self.assertEqual(rows[0]['perGame']['pts'],10)
+
+ def test_draft_position_distinguishes_second_round_from_lottery(self):
+  from rookie_model import draft_pick
+  self.assertEqual(draft_pick(dict(draftContext=dict(round=1,selection=3))),3)
+  self.assertEqual(draft_pick(dict(draftContext=dict(round=2,selection=3))),33)
+  self.assertIsNone(draft_pick(dict(draftContext=None)))

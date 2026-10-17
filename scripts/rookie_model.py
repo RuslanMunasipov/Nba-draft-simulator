@@ -8,9 +8,10 @@ def college_row(player,year):
  return eligible[-1] if eligible else None
 def draft_pick(player):
  d=player.get('draftContext') or {}
- for key in ('overall','selection','pick'):
-  value=d.get(key)
-  if isinstance(value,(int,float)) and 0<value<=100:return float(value)
+ value=d.get('overall')
+ if isinstance(value,(int,float)) and 0<value<=100:return float(value)
+ value=d.get('selection');round_number=d.get('round')
+ if isinstance(value,(int,float)) and 0<value<=30 and isinstance(round_number,(int,float)) and 1<=round_number<=2:return float((round_number-1)*30+value)
  return None
 def vector(player,row,year):
  pick=draft_pick(player)

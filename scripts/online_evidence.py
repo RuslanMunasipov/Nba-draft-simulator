@@ -153,7 +153,7 @@ def build():
    record['college']=dict(seasons=seasons,source=url,checkedAt=at,stale=old)
   except Exception:pass
   try:
-   payload,at,old=fetch(SITE+'nba/athletes/'+p['espnId'],86400*7)
+   payload,at,old=fetch('https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/athletes/'+p['espnId'],86400*7)
    record['draft']=payload.get('athlete',payload).get('draft')
   except Exception:pass
   return record
