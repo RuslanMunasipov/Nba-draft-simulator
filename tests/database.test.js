@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {newDraft,pick,importDraft,exportDraft} from '../src/engine.js';
-import {installDatabase} from '../src/database.js';
+import {installDatabase,restartDraft} from '../src/database.js';
 import {riskProfile,analyzeRecommendations} from '../src/analysis.js';
 const players=Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+i,positions:['PG','SG','SF','PF','C'],projectedFP:120-i,isRookie:i<20}));
 test('default database loads without user JSON and preserves selected snapshots',()=>{
@@ -44,4 +44,22 @@ test('advice explains numerical tradeoff and exact full-roster budget',()=>{
  assert.ok(!report.advantages.some(s=>/Минимальный бюджет|полный позиционный состав/.test(s)));
  assert.ok(report.drawbacks.some(s=>s.includes('Альтернатива сейчас')));
  assert.match(report.method,/Проверка добора состава выполняется отдельно/);
+});
+
+test('new automatic draft discards pinned old eligibility and forecasts using latest catalog',()=>{
+ const old={generatedAt:'2026-10-16',players};
+ let state=pick(installDatabase(newDraft(),old),1);
+ const fresh={generatedAt:'2026-10-17',players:players.map(p=>({...p,positions:['C'],projectedFP:1}))};
+ state=installDatabase(state,fresh);
+ assert.equal(state.players.find(p=>p.id===1).projectedFP,120);
+ const next=restartDraft(state,fresh);
+ assert.equal(next.picks.length,0);assert.equal(next.databaseVersion,fresh.generatedAt);
+ assert.deepEqual(next.players.find(p=>p.id===1).positions,['C']);
+ assert.equal(next.players.find(p=>p.id===1).projectedFP,1);
+});
+test('new manually imported draft preserves manual catalog and cap instead of replacing it with background data',()=>{
+ const state={...pick(newDraft(players,12345),1),databaseVersion:'manual'};
+ const next=restartDraft(state,{generatedAt:'new',players:players.map(p=>({...p,projectedFP:1}))});
+ assert.equal(next.picks.length,0);assert.equal(next.databaseVersion,'manual');assert.equal(next.cap,12345);
+ assert.equal(next.players[0].projectedFP,120);
 });

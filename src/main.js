@@ -12,7 +12,7 @@ import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
 import {rookieRecommendations} from './rookies.js';
 import {pickCompletion} from './completion.js';
-import {installDatabase} from './database.js';
+import {installDatabase,restartDraft} from './database.js';
 const $=id=>document.getElementById(id);
 let state;try{state=importDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
 let database;
@@ -190,7 +190,7 @@ $('load-retry').onclick=()=>loadDatabase(true);
 $('search').oninput=render;$('rookies-only').onchange=render;
 $('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
 $('undo').onclick=()=>{state=undo(state);save();};
-$('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state={...newDraft(state.players,state.cap,state.priceMode),...(state.databaseVersion?{databaseVersion:state.databaseVersion}:{})};save();}};
+$('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};
 $('price-mode').onchange=()=>{try{state=importDraft(exportDraft({...state,priceMode:$('price-mode').checked?'ON':'OFF'}));save();}catch(e){showError(e);render();}};
 $('apply-cap').onclick=()=>{try{state=importDraft(exportDraft({...state,cap:Number($('cap').value)}));save();}catch(e){showError(e);render();}};
 $('refresh-database').onclick=()=>loadDatabase(true);
