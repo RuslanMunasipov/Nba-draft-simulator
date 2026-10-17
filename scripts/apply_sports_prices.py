@@ -38,7 +38,7 @@ def apply(data, catalog, crosswalk):
         player.update(positions=[positions[str(source['sportsPosition'])]],positionStatus='SPORTS_RU_VERIFIED',
                       positionSource=catalog['source'],positionCheckedAt=catalog['capturedAt'],positionProvider='Sports.ru',
                       price=source['price'], priceStatus='VERIFIED', sportsId=source['sportsId'],
-                      sportsName=source['name'], priceSource=catalog['source'],
+                      sportsName=source['name'], priceSource='Sports.ru',
                       priceCheckedAt=catalog['capturedAt'], sportsClub=source['club'])
         matched.append(source['sportsId'])
     if len(set(matched)) != len(matched):

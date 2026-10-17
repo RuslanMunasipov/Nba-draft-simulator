@@ -45,7 +45,7 @@ jobs:
         with:
           path: .cache/online
           key: online-evidence-${{ runner.os }}-${{ github.run_id }}
-      - name: Apply published Yahoo analyst position evidence
+      - name: Fetch optional Yahoo transfer-position reference
         run: python scripts/apply_positions.py
       - name: Apply verified Sports.ru prices, draft positions and salary cap
         run: python scripts/apply_sports_prices.py
