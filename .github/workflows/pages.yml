@@ -30,6 +30,13 @@ jobs:
           python scripts/build_baseline.py
       - name: Fetch current rosters and build automatic draft database
         run: python scripts/build_default_database.py
+      - uses: actions/cache@v4
+        with:
+          path: .cache/online
+          key: online-evidence-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: online-evidence-${{ runner.os }}-
+      - name: Fetch full careers, Summer League and current games
+        run: python scripts/online_evidence.py
       - name: Apply published Yahoo analyst position evidence
         run: python scripts/apply_positions.py
       - name: Audit historical projection provenance
