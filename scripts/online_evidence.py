@@ -3,7 +3,7 @@ All competitions and source timestamps stay explicit. No SL -> NBA equivalence.
 """
 import concurrent.futures,hashlib,json,time,urllib.request
 from collections import defaultdict
-from datetime import datetime,timezone
+from datetime import datetime,timezone,timedelta
 from pathlib import Path
 from build_default_database import normalize
 
@@ -85,7 +85,10 @@ def parse_box(payload,event,league):
 
 def recent_competition(league,dates):
  url=SITE+league+'/scoreboard?dates='+dates+'&limit=1000'
- payload,at,stale=fetch(url)
+ try:
+  payload,at,stale=fetch(url)
+ except Exception as exc:
+  return [],dict(source=url,checkedAt=None,stale=False,events=0,playerGames=0,errors=[dict(error=str(exc))])
  events=[e for e in payload.get('events',[]) if e.get('status',{}).get('type',{}).get('completed')]
  errors=[];rows=[]
  def game(event):
@@ -126,7 +129,12 @@ def build():
    if error:errors.append(dict(id=identifier,error=error))
    if (len(careers)+len(errors))%100==0:print('Online careers processed',len(careers)+len(errors),flush=True)
  summer,summer_audit=recent_competition('nba-summer-las-vegas',str(now.year))
- preseason,preseason_audit=recent_competition('nba',str(now.year)+'1001-'+now.strftime('%Y%m%d'))
+ preseason=[];daily=[]
+ start=datetime(now.year,10,1,tzinfo=timezone.utc)
+ dates=[(start+timedelta(days=i)).strftime('%Y%m%d') for i in range(max(0,(now-start).days+1))]
+ with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+  for rows,report in pool.map(lambda date:recent_competition('nba',date),dates):preseason.extend(rows);daily.append(report)
+ preseason_audit=dict(days=len(daily),events=sum(r['events'] for r in daily),playerGames=len(preseason),errors=[e for r in daily for e in r['errors']])
  by_espn=defaultdict(list)
  for row in summer+preseason:by_espn[row['espnId']].append(row)
  for p in data['players']:
