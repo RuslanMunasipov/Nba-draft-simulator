@@ -36,6 +36,8 @@ jobs:
         run: python scripts/audit_projection_archive.py
       - name: Build and audit full-formula forecasts and ceilings
         run: python scripts/build_forecasts.py
+      - name: Independently audit all scoring terms and negative games
+        run: python scripts/audit_scoring.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

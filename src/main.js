@@ -1,3 +1,4 @@
+import {rookieWatch,rookieSlotWarnings} from './rookie-watch.js';
 import {importUncappedDraft} from './uncapped.js';
 import {draftValue} from './valuation.js';
 import './model-audit.js';
@@ -24,10 +25,10 @@ function updateSaveStatus(){
  $('save-state').textContent=message;$('storage-status').textContent=storageFailed()?message:'';
  $('storage-status').hidden=!storageFailed();
 }
-function showError(error){$('simulation-status').textContent='Не удалось выполнить: '+error.message;}
+function showError(error){const message='Не удалось выполнить: '+error.message;$('simulation-status').textContent=message;$('draft-message').textContent=message;$('draft-message').hidden=false;}
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
 function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
-function choose(p){try{const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
+function choose(p){$('draft-message').hidden=true;try{const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
  const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
@@ -71,6 +72,7 @@ function card(p,analysis=null){
  el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[3]?.classList.add('player-score');
  el.dataset.risk=risk.level.includes('ВЫСОКИЙ')?'high':risk.level.includes('СРЕДНИЙ')?'medium':'low';
  organizeCard(el,b,4);
+ for(const warning of rookieSlotWarnings(state,p)){const notice=text('p',warning);notice.className='warning';el.insertBefore(notice,b);}
  return el;
 }
 
@@ -84,6 +86,16 @@ function forecastCard(p){
  }
  box.append(grid,text('p','Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.'));
  const c=f.components,formula=document.createElement('details');
+ if(f.scoringBreakdown){
+  const table=document.createElement('table');table.className='scoring-breakdown';
+  table.append(text('caption','Полная формула · вклад за матч'));
+  const body=document.createElement('tbody');
+  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери × −2',personalFouls:'Фолы',participation:'Бонус минут',teamResult:'Результат команды',historicalAdjustment:'Историческая поправка'};
+  for(const [key,value] of Object.entries(f.scoringBreakdown)){const row=document.createElement('tr');row.append(text('th',labels[key]),text('td',(value>=0?'+':'')+value.toFixed(2)));body.append(row);}
+  const total=document.createElement('tr');total.append(text('th','Итого ФО / матч'),text('td',f.meanPerGame.toFixed(2)));body.append(total);table.append(body);box.append(table);
+  box.append(text('p',`Потери уже учтены: ${(-f.scoringBreakdown.turnovers/2).toFixed(1)} за игру стоят ${f.scoringBreakdown.turnovers.toFixed(1)} ФО/матч и ${Math.round(f.scoringBreakdown.turnovers*f.games)} ФО за прогнозируемый сезон. Дополнительный штраф к рейтингу не применяется.`));
+ }
+ if(f.historicalDownside){const h=f.historicalDownside;box.append(text('p',`Минусовые матчи · ${h.season}: ${h.negativeGames} из ${h.games}; худшая игра ${h.worstGame.toFixed(1)} ФО; среднее худших 10% игр ${h.meanWorstTenPercent.toFixed(1)} ФО. Это фактическая история игрока, не прогноз частоты минусовых игр.`));}
  formula.append(text('summary','Из чего складываются ФО'),text('p',`Статистика и промахи ${c.countingAndMisses.toFixed(2)} · фолы ${c.personalFouls.toFixed(2)} · минуты +${c.participation.toFixed(2)} · результат команды ${c.teamResult>=0?'+':''}${c.teamResult.toFixed(2)}${c.historicalAdjustment?' · историческая поправка '+c.historicalAdjustment.toFixed(2):''} = ${f.meanPerGame.toFixed(2)} ФО/матч.`));
  formula.append(text('p',`Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}. Исторических матчей для разброса: ${f.sampleGames}. ${f.rookieExtrapolation?'Аналоги для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'. Это сравнение статистического профиля, не сравнение карьер.':''}`));
  box.append(formula);return box;
@@ -107,6 +119,11 @@ function organizeCard(el,b,previewCount){
 
 function renderRookies(){
  renderTiming(state);
+ const watch=$('rookie-watch');watch.replaceChildren();
+ if(state.players.length&&state.picks.length<80){watch.append(text('h3','Сильные rookie · доступность'));
+  for(const item of rookieWatch(state)){const row=document.createElement('div');row.append(text('strong',item.player.name),text('p',item.reason));
+   if(item.status==='AVAILABLE'){const button=text('button','Взять rookie '+item.player.name);button.onclick=()=>choose(item.player);row.append(button);}watch.append(row);}
+ }
  if(state.picks.length===80){$('rookie-advice').replaceChildren();$('rookie-status').textContent='Драфт завершён. Итоговые составы — в разделе тренировки.';return;}
  const result=rookieRecommendations(state);$('rookie-advice').replaceChildren();
  $('rookie-status').textContent=`Индивидуальный прогноз есть у ${result.projected} из ${result.available} доступных rookie; легальный добор с ними: ${result.feasible}. Rookie ещё нужен ${result.teamsNeedingRookie} командам.`;

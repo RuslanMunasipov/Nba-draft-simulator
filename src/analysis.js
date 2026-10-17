@@ -1,3 +1,4 @@
+import {rookieSlotWarnings} from './rookie-watch.js';
 import {scoringMetric,seasonScore} from './season-scoring.js';
 import {pick} from './engine.js';
 import {availabilityEvidence,draftValue,severeRisk} from './valuation.js';
@@ -45,7 +46,10 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
  pool.sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id)));
  return (focus?pool.filter(p=>p.id===focus.id):pool.slice(0,5)).map(p=>{
   const risk=riskProfile(p),availability=availabilityEvidence(p),alternative=pool.find(x=>x.id!==p.id),forecast=p.forecast;
-  const advantages=[],drawbacks=[...risk.flags];
+  const advantages=[],drawbacks=[...risk.flags,...rookieSlotWarnings(state,p)];
+  const breakdown=forecast?.scoringBreakdown,downside=forecast?.historicalDownside;
+  if(breakdown)drawbacks.push(`Потери: ${(-breakdown.turnovers/2).toFixed(1)} за матч → ${breakdown.turnovers.toFixed(1)} ФО/матч, ${Math.round(breakdown.turnovers*forecast.games)} ФО за прогнозируемый сезон. Уже вычтены из оценки.`);
+  if(downside)drawbacks.push(`История ${downside.season}: ${downside.negativeGames} из ${downside.games} матчей ниже нуля; среднее худших 10% игр ${downside.meanWorstTenPercent.toFixed(1)} ФО. Это прошлые результаты, не вероятность будущего минуса.`);
   if(forecast){
    advantages.push(`Прогноз сезона: ${Math.round(forecast.meanSeason)} ФО за ${Math.round(forecast.games)} матчей; в среднем ${forecast.meanPerGame.toFixed(1)} ФО/матч`);
    advantages.push(`Потолок одного матча: ${forecast.gameCeiling.toFixed(1)} ФО. Сильный сценарий сезона: ${Math.round(forecast.seasonCeiling)} ФО`);

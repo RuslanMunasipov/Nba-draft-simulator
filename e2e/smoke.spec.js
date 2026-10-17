@@ -207,3 +207,28 @@ test('searched rookie group prior is explicitly labelled and never presented as 
  await expect(page.locator('#candidates .player-card').first().locator('h3')).toHaveText('PRIOR TEST 101 · rookie');
  await expect(page.locator('#candidates')).not.toContainText('NaN');
 });
+
+test('Cade exposes the actual turnover deduction and historical negative games',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Cade Cunningham');
+ const card=page.locator('#candidates .player-card').first();await card.locator('h3').click();
+ await expect(card.locator('.scoring-breakdown')).toContainText('Потери × −2');
+ await expect(card.locator('.forecast-panel')).toContainText('Потери уже учтены:');
+ await expect(card.locator('.forecast-panel')).toContainText('Минусовые матчи · 2025-26:');
+ await expect(card.locator('.scoring-breakdown')).toContainText('Промахи с игры');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});
+test('Boozer can be selected directly, survives seven bots and reload, then completes a legal draft',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.getByRole('combobox',{name:'Режим',exact:true}).selectOption('INTERACTIVE');
+ await page.locator('#rookie-watch').getByRole('button',{name:'Взять rookie Cameron Boozer',exact:true}).click();
+ await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
+ await expect(page.locator('#my-roster')).toContainText('Cameron Boozer');
+ await expect(page.locator('#rookie-watch')).toContainText('Выбран GM 1 на пике №1');
+ await page.reload();await expect(page.locator('#my-roster')).toContainText('Cameron Boozer');
+ await page.getByRole('button',{name:'Завершить симуляцию',exact:true}).click();
+ await expect(page.locator('#turn')).toHaveText('Драфт завершён');
+ await expect(page.locator('#history li')).toHaveCount(80);
+ await expect(page.locator('#results li')).toHaveCount(8);
+ for(const row of await page.locator('#results li').allTextContents())expect(row).toContain('(PASS)');
+});

@@ -81,3 +81,24 @@ for(const p of database.players.filter(p=>p.forecast)){
 }
 console.log('Complete formula forecast audit:',JSON.stringify(database.forecastAudit));
 console.log('Complete rookie projections:',JSON.stringify(rookieRecommendations(draft).players.map(p=>({name:p.name,forecast:p.forecast}))));
+
+const scoringAudit=JSON.parse(await readFile('dist/data/scoring-audit.json','utf8'));
+assert.equal(scoringAudit.status,'PASS');assert.equal(scoringAudit.mismatches,0);
+assert.equal(scoringAudit.turnoverWeight,-2);assert.ok(scoringAudit.auditedGames>50000);
+assert.equal(scoringAudit.auditedForecasts,database.players.filter(p=>p.forecast).length);
+for(const p of database.players.filter(p=>p.forecast)){
+ const f=p.forecast,b=f.scoringBreakdown;
+ assert.ok(b&&Number.isFinite(b.turnovers));
+ assert.ok(Math.abs(Object.values(b).reduce((a,b)=>a+b,0)-f.meanPerGame)<1e-6,p.name+' expanded scoring');
+ const q=p.espnContext?.individualProjection;
+ if(f.origin==='ESPN_INDIVIDUAL')assert.ok(Math.abs(b.turnovers+2*q.perGame.turnovers)<1e-6,p.name+' TOV weight');
+ if(f.historicalDownside)assert.ok(f.historicalDownside.negativeGames<=f.historicalDownside.games);
+}
+const boozer=database.players.find(p=>p.name==='Cameron Boozer');
+assert.ok(boozer?.isRookie&&boozer.forecast);
+const {pickCompletion}=await import('../src/completion.js');
+assert.ok(pickCompletion(draft,boozer.id).possible,'Boozer must be selectable in a fresh draft');
+const chosenBoozer=advanceBots(pick(draft,boozer.id),{seed:1});
+assert.equal(chosenBoozer.picks.length,8);
+assert.ok(chosenBoozer.picks.some(p=>p.team===0&&p.playerId===boozer.id));
+console.log('Independent all-player scoring audit:',JSON.stringify({...database.scoringAudit,focus:scoringAudit.players.filter(p=>['Cade Cunningham','Cameron Boozer'].includes(p.name))}));
