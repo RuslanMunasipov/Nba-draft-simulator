@@ -21,3 +21,24 @@ class CareerInputTests(unittest.TestCase):
   self.assertEqual(draft_pick(dict(draftContext=dict(round=1,selection=3))),3)
   self.assertEqual(draft_pick(dict(draftContext=dict(round=2,selection=3))),33)
   self.assertIsNone(draft_pick(dict(draftContext=None)))
+
+ def test_development_features_use_debut_and_observed_growth_without_future(self):
+  def row(year,value):return dict(year=year,games=60,perGame={k:value for k in KEYS})
+  past=[row(2023,10),row(2024,20)]
+  expected=features(past,2025,25,'DEVELOPMENT')
+  self.assertEqual(expected,features(past+[row(2025,9999),row(2026,9999)],2025,25,'DEVELOPMENT'))
+  self.assertEqual(expected,features(list(reversed(past)),2025,25,'DEVELOPMENT'))
+  other=[row(2023,5),row(2024,20)]
+  self.assertNotEqual(expected,features(other,2025,25,'DEVELOPMENT'))
+  self.assertGreater(len(expected),len(features(past,2025,25)))
+
+ def test_development_stage_reports_include_absent_next_season(self):
+  from career_model import transitions
+  def row(year):return dict(year=year,games=60,perGame={k:10 for k in KEYS})
+  player=dict(id='test',age=23,onlineEvidence=dict(career=dict(seasons=[row(2024)])))
+  rows=transitions([player],'DEVELOPMENT')
+  self.assertEqual(len(rows),1)
+  self.assertEqual(rows[0]['year'],2025)
+  self.assertEqual(rows[0]['experience'],1)
+  self.assertFalse(rows[0]['active'])
+  self.assertEqual(rows[0]['actual'],0)

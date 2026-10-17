@@ -5,13 +5,24 @@ import numpy as np
 from build_forecasts import partial
 KEYS=['pts','reb','ast','stl','blk','tov','pf','fgm','fga','ftm','fta','minutes']
 def core(s):return partial(s)-s['pf']+(2 if s['minutes']>=10 else 1)
-def features(rows,year,age):
- previous=[r for r in rows if r['year']<year and r['games']>0]
+def features(rows,year,age,profile='BASE'):
+ previous=sorted([r for r in rows if r['year']<year and r['games']>0],key=lambda r:r['year'])
  if not previous:return None
  last=previous[-1];prior=previous[-2] if len(previous)>1 else last
  games=sum(r['games'] for r in previous)
  career={k:sum(r['perGame'][k]*r['games'] for r in previous)/games for k in KEYS}
- return [last['perGame'][k] for k in KEYS]+[prior['perGame'][k] for k in KEYS]+[career[k] for k in KEYS]+[last['games'],prior['games'],age-(2027-year) if age else 0,year-last['year'],len(previous)]
+ base=[last['perGame'][k] for k in KEYS]+[prior['perGame'][k] for k in KEYS]+[career[k] for k in KEYS]+[last['games'],prior['games'],age-(2027-year) if age else 0,year-last['year'],len(previous)]
+ if profile=='BASE':return base
+ if profile!='DEVELOPMENT':raise ValueError('Unknown feature profile')
+ first=previous[0];elapsed=max(1,last['year']-first['year'])
+ reliability=first['games']/(first['games']+20)
+ debut=[first['perGame'][k] for k in KEYS]
+ growth=[(last['perGame'][k]-first['perGame'][k])/elapsed for k in KEYS]
+ recent=[last['perGame'][k]-prior['perGame'][k] for k in KEYS]
+ early=float(len(previous)<=3)
+ per36=[first['perGame'][k]*36/max(6,first['perGame']['minutes'])*reliability for k in KEYS if k!='minutes']
+ stage=[float(len(previous)==1),float(len(previous)==2),float(3<=len(previous)<=4)]
+ return base+debut+growth+recent+[v*early for v in recent]+per36+stage+[first['games'],reliability,float(not age)]
 def target(row):
  if row is None:return None
  return [row['perGame'][k] for k in KEYS]+[row['games']]
@@ -30,7 +41,7 @@ class Ridge:
   regular=np.eye(x.shape[1])*alpha;regular[0,0]=0
   self.beta=np.linalg.solve(x.T@x+regular,x.T@y)
  def predict(self,x):return np.r_[1,(np.array(x)-self.mean)/self.scale]@self.beta
-def transitions(players):
+def transitions(players,profile='BASE'):
  rows=[]
  for p in players:
   history=p.get('onlineEvidence',{}).get('career') or {}
@@ -38,7 +49,7 @@ def transitions(players):
   if not seasons:continue
   byyear={s['year']:s for s in seasons}
   for year in range(max(2005,seasons[0]['year']+1),2027):
-   x=features(seasons,year,p.get('age'))
+   x=features(seasons,year,p.get('age'),profile)
    if x is None:continue
    actual=byyear.get(year);past=[r for r in seasons if r['year']<year]
    if year-past[-1]['year']>1:continue
@@ -46,7 +57,7 @@ def transitions(players):
    # teach a missed season as a zero-talent per-game season.
    last=past[-1]
    y=target(actual or dict(last,games=0))
-   rows.append(dict(id=p['id'],year=year,x=x,y=y,active=actual is not None,
+   rows.append(dict(id=p['id'],year=year,x=x,y=y,experience=len(past),active=actual is not None,
                     actual=core(actual['perGame'])*actual['games'] if actual else 0,
                     baseline=core(last['perGame'])*last['games']))
  return rows
@@ -66,15 +77,31 @@ def evaluate(models,rows):
   details.append(dict(id=r['id'],year=r['year'],prediction=score,actual=r['actual'],error=abs(score-r['actual'])))
  return dict(players=len(rows),seasonMAE=statistics.mean(errors),lastSeasonMAE=statistics.mean(base),
              error80=float(np.quantile(errors,.8)),details=details)
+def stage_report(models,rows):
+ groups={'SECOND_SEASON':lambda n:n==1,'THIRD_SEASON':lambda n:n==2,
+         'FOURTH_FIFTH_SEASON':lambda n:3<=n<=4,'LATER_CAREER':lambda n:n>=5}
+ result={}
+ for name,accept in groups.items():
+  cohort=[r for r in rows if accept(r['experience'])]
+  if not cohort:continue
+  report=evaluate(models,cohort)
+  result[name]={k:v for k,v in report.items() if k!='details'}
+ return result
 def run(data):
- rows=transitions(data['players'])
+ profiles={name:transitions(data['players'],name) for name in ['BASE','DEVELOPMENT']}
+ rows=profiles['BASE']
  train=[r for r in rows if r['year']<=2024];validation=[r for r in rows if r['year']==2025];test=[r for r in rows if r['year']==2026]
  if min(len(train),len(validation),len(test))<50:raise ValueError('Insufficient online career transitions')
  candidates=[]
- for alpha in [1,10,100,1000]:
-  models=fit(train,alpha);result=evaluate(models,validation)
-  candidates.append(dict(alpha=alpha,seasonMAE=result['seasonMAE']))
- alpha=min(candidates,key=lambda r:r['seasonMAE'])['alpha']
+ for profile,profile_rows in profiles.items():
+  training=[r for r in profile_rows if r['year']<=2024]
+  validating=[r for r in profile_rows if r['year']==2025]
+  for alpha in [1,10,100,1000]:
+   result=evaluate(fit(training,alpha),validating)
+   candidates.append(dict(profile=profile,alpha=alpha,seasonMAE=result['seasonMAE']))
+ selected=min(candidates,key=lambda r:r['seasonMAE'])
+ alpha=selected['alpha'];profile=selected['profile'];rows=profiles[profile]
+ train=[r for r in rows if r['year']<=2024];validation=[r for r in rows if r['year']==2025];test=[r for r in rows if r['year']==2026]
  frozen=fit([r for r in rows if r['year']<=2025],alpha)
  test_report=evaluate(frozen,test);validation_report=evaluate(fit(train,alpha),validation)
  promote=validation_report['seasonMAE']<validation_report['lastSeasonMAE']
@@ -83,15 +110,16 @@ def run(data):
  forecast_count=0
  for p in data['players']:
   career=(p.get('onlineEvidence',{}).get('career') or {}).get('seasons',[])
-  x=features(career,2027,p.get('age'))
+  x=features(career,2027,p.get('age'),profile)
   if x is None:continue
   s,g=predict(production,x)
-  p['careerPrediction']=dict(perGame=s,games=g,partialSeason=core(s)*g,model='PAST_ONLY_RIDGE',alpha=alpha,
+  p['careerPrediction']=dict(perGame=s,games=g,partialSeason=core(s)*g,model='PAST_ONLY_RIDGE',alpha=alpha,featureProfile=profile,
                             historySeasons=len(career),firstSeason=career[0]['season'],lastSeason=career[-1]['season'],
                             eligibleForPrimary=promote,seasonError80=error)
   forecast_count+=1
  report=dict(trainingTransitions=len(train),validationSeason='2024-25',validationPlayers=len(validation),testSeason='2025-26',
-             testPlayers=len(test),selectedAlpha=alpha,candidates=candidates,
+             testPlayers=len(test),selectedAlpha=alpha,selectedProfile=profile,candidates=candidates,
+             developmentCohorts=dict(validation=stage_report(fit(train,alpha),validation),test=stage_report(frozen,test)),
              validation={k:v for k,v in validation_report.items() if k!='details'},test={k:v for k,v in test_report.items() if k!='details'},
              promotedByValidation=promote,predictions=forecast_count,
              limitations=['Career cohort is current provider universe plus uniquely matched history; selection/survivorship limits remain.',
