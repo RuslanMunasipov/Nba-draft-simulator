@@ -94,10 +94,9 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
   const team=(number-1)%8,round=Math.floor((number-1)/8)+1,needs=!rosters[team].some(p=>p.isRookie);
   const wants=needs&&(round>=(team===0?targetRound:plans[team])||rosters[team].length===9);
   const order=team===0||wants?valueOrder:marketOrder;
-  function choices(rookie,safer=false,reserveAverage=state.priceMode==='ON'&&team!==0){
-   const average=(state.cap-rosters[team].reduce((sum,p)=>sum+(p.price||0),0))/(10-rosters[team].length);
-   const selected=[];for(const p of order){if(Boolean(p.isRookie)!==rookie||(safer&&severeRisk(p))||(reserveAverage&&p.price>average)||!allowed(p,team))continue;selected.push(p);if(selected.length===(team===0?1:3))break;}
-   return !selected.length&&reserveAverage?choices(rookie,safer,false):selected;
+  function choices(rookie,safer=false){
+   const selected=[];for(const p of order){if(Boolean(p.isRookie)!==rookie||(safer&&severeRisk(p))||!allowed(p,team))continue;selected.push(p);if(selected.length===(team===0?1:3))break;}
+   return selected;
   }
   let candidates=wants?choices(true):choices(false,team===0);
   if(!candidates.length&&!wants)candidates=choices(false);

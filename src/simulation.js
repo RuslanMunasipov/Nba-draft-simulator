@@ -19,24 +19,26 @@ export function availableCandidates(state) {
   const used=new Set(state.picks.map(p=>p.playerId));
   return state.players.filter(p=>!used.has(p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
 }
+function botValue(player,style) {
+  const value=draftValue(player);
+  if(!severeRisk(player))return value;
+  // Risk appetite changes the discount, but never hides an elite player behind
+  // every nominally safe option. Season forecasts already include availability.
+  return value*(style==='volatile'?.98:style==='best'?.9:.86);
+}
 export function botPick(state,random=randomFromSeed(1),style='balanced') {
   const metric=scoringMetric(state);
   let candidates=availableCandidates(state).filter(p=>metric!==FULL_SEASON||seasonScore(p,metric)!==null);
   const roster=teamRoster(state,currentTeam(state));
   // Reserve a rookie; budget is only relevant when official prices exist.
-  if(!roster.some(p=>p.isRookie===true)){
-    const teamsNeedingRookie=Array.from({length:TEAM_COUNT},(_,team)=>teamRoster(state,team)).filter(r=>!r.some(p=>p.isRookie===true)).length;
-    const rookies=candidates.filter(p=>p.isRookie===true);
-    if(roster.length>=5||rookies.length<=teamsNeedingRookie)candidates=rookies;
-  }
-  if(state.priceMode==='ON'){
-    const remaining=ROUNDS-roster.length;
-    const affordable=candidates.filter(p=>p.price<=(state.cap-teamCost(state,currentTeam(state)))/remaining);
-    if(affordable.length)candidates=affordable;
-  }
+  const needsRookie=!roster.some(p=>p.isRookie===true);
+  const teamsNeedingRookie=Array.from({length:TEAM_COUNT},(_,team)=>teamRoster(state,team)).filter(r=>!r.some(p=>p.isRookie===true)).length;
+  const rookies=candidates.filter(p=>p.isRookie===true);
+  if(rookies.length<=teamsNeedingRookie)candidates=needsRookie?rookies:candidates.filter(p=>p.isRookie!==true);
+  else if(needsRookie&&roster.length>=5)candidates=rookies;
   if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
-  const ranked=candidates.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>Number(severeRisk(a))-Number(severeRisk(b))||draftValue(b)-draftValue(a)||riskPriority(a)-riskPriority(b));
+  const ranked=candidates.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>botValue(b,style)-botValue(a,style)||riskPriority(a)-riskPriority(b));
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
   const pool=ranked.slice(0,Math.min(8,ranked.length));
   const index=style==='best' ? 0 : Math.min(pool.length-1,Math.floor(Math.pow(random(),style==='volatile'?0.65:2)*pool.length));
