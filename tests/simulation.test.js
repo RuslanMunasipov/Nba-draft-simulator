@@ -17,6 +17,7 @@ test('unknown prices stay unknown rather than zero in summaries',()=>{const p=pl
 test('bot does not occupy the last PG slot when every available rookie is PG',()=>{
  const pool=players.map(p=>({...p,positions:p.isRookie?['PG']:['PG','SG','SF','PF','C']}));
  pool[20]={...pool[20],positions:['PG'],projectedFP:9999};
+ pool[21]={...pool[21],positions:['PG']};
  let state=pick(newDraft(pool),22);
  for(let id=30;id<37;id++)state=pick(state,id);
  const next=botPick(state,randomFromSeed(1),'best');
