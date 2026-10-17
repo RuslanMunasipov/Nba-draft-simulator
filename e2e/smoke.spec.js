@@ -47,7 +47,7 @@ test('unknown Sports.ru price blocks Kawhi while Maxey retains comparison',async
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Kawhi');
  await expect(page.locator('#candidates .player-card').first()).toContainText('Цена Sports.ru: отсутствует');
- await expect(page.locator('#candidates .player-card').first().getByRole('button')).toBeDisabled();
+ await expect(page.locator('#candidates .player-card').first().getByRole('button',{name:'Выбрать Kawhi Leonard',exact:true})).toBeDisabled();
  for(const name of ['Maxey']){
   await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill(name);
   const card=page.locator('#candidates .player-card').first();
