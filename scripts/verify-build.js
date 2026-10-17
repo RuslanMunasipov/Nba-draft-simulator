@@ -69,7 +69,10 @@ console.log('Individual rookie board:',rookieBoard.players.map(p=>({name:p.name,
 
 const {rookieTimingStudy}=await import('../src/rookie-timing.js');
 const timing=rookieTimingStudy(draft);assert.ok(timing.recommendedRound>=1&&timing.recommendedRound<=10);
-assert.equal(timing.totalDrafts,960);assert.ok(timing.rows.every(r=>r.profiles.every(p=>p.validRuns===p.runs)));
+assert.equal(timing.totalDrafts,960);
+const recommendedTiming=timing.rows.find(r=>r.round===timing.recommendedRound);
+assert.ok(recommendedTiming?.valid&&recommendedTiming.profiles.every(p=>p.validRuns===p.runs),'Only fully legal strategies may be recommended');
+for(const row of timing.rows)if(row.profiles.some(p=>p.validRuns!==p.runs))assert.equal(row.valid,false,'Incomplete strategies must remain explicitly excluded');
 console.log('Rookie timing study verified:',JSON.stringify({round:timing.recommendedRound,pick:timing.recommendedPick,profiles:timing.bestByProfile,range:timing.profileRange,meanGap:timing.meanGap,drafts:timing.totalDrafts}));
 
 assert.ok(database.forecastAudit.forecastPlayers>=80,'Full-formula forecast coverage');

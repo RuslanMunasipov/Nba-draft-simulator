@@ -80,3 +80,12 @@ Do not convert historical averages into a season prediction, invent missing pric
 - Main objective: maximum mean full-roster component FP at equal ASSUMED profile weights among scenarios compatible with recorded GM picks. Contradicted profiles are explicitly excluded; this is not a calibrated Bayesian probability. A separate minimax-regret choice and scenario-specific optima expose sensitivity; no scenario frequency is claimed to be a calibrated GM pick probability.
 - Opponent veteran order uses ADP; rookie order uses projected components with randomized top-three choices and profile-specific timing. The user's veteran picks are greedy forecast choices with positional/rookie reservation, not a proof of a globally optimal draft policy.
 - PF and minute/result bonuses remain excluded. A small score gap cannot establish a real advantage. Actual FBL GM preferences and increased mandatory-rookie demand need live observations; the study updates from recorded picks automatically.
+
+
+## Sports.ru prices and salary cap — 17 October 2026
+- The automatic catalog uses the authenticated, user-approved dated Sports.ru snapshot: 481 unique source IDs. A reviewed ID crosswalk maps 480 records; fuzzy names are never joined at runtime. One unresolved Antetokounmpo record is reported explicitly.
+- 248 players have both Yahoo-published eligibility and a Sports.ru price. Kawhi Leonard and Rob Dillingham lack source prices and cannot be selected. Sports.ru positions never replace Yahoo positions.
+- The automatic draft enforces 20,000 per team. All UI picks and bots require a minimum-cost positional/rookie completion within the cap. Budget, remaining funds, player prices and source date are shown.
+- Legacy selections retain projections and picks while verified prices are applied. Missing-price and over-cap legacy rosters remain visible with a repair message and cannot continue until repaired; no silent reset or automatic uncapped mode. Explicit unpriced manual imports remain labelled separately.
+- Rookie timing reserves budget-completion witnesses for every GM, alongside distinct-rookie matching. Opponents prefer preserving average remaining spend when feasible. This is a scenario policy, not a proof of a globally optimal salary-constrained draft.
+- PR builds validate without deploying; Pages publishing remains restricted to main.
