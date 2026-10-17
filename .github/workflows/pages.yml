@@ -37,6 +37,12 @@ jobs:
           restore-keys: online-evidence-${{ runner.os }}-
       - name: Fetch full careers, Summer League and current games
         run: python scripts/online_evidence.py
+      - name: Preserve fetched evidence even if a later check fails
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/online
+          key: online-evidence-${{ runner.os }}-${{ github.run_id }}
       - name: Apply published Yahoo analyst position evidence
         run: python scripts/apply_positions.py
       - name: Audit historical projection provenance
@@ -45,6 +51,8 @@ jobs:
         run: python scripts/career_model.py
       - name: Build and audit full-formula forecasts and ceilings
         run: python scripts/build_forecasts.py
+      - name: Evaluate college-to-NBA rookie transfer
+        run: python scripts/rookie_model.py
       - name: Complete forecasts for the entire player catalog
         run: python scripts/complete_forecasts.py
       - name: Independently audit all scoring terms and negative games

@@ -57,6 +57,11 @@ def parse_career(payload):
  result=[]
  for year,rows in by_year.items():
   total=next((r for r in rows if str(r['teamId']) in ('0','-1') or r.get('team') in ('tot','total')),None)
+  if not total and len(rows)>=3:
+   for candidate in rows:
+    others=[r for r in rows if r is not candidate]
+    if abs(candidate['games']-sum(r['games'] for r in others))<1e-6 and all(abs(candidate['perGame'][k]*candidate['games']-sum(r['perGame'][k]*r['games'] for r in others))<1e-4 for k in ['pts','reb','ast','tov','fgm','fga','ftm','fta']):
+     total=candidate;break
   if total:result.append(total);continue
   games=sum(r['games'] for r in rows)
   if games>82:raise ValueError('Duplicated career season '+str(year))

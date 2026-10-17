@@ -32,7 +32,12 @@ def complete(data,history):
    f['coverageTier']='PERSONAL_PROVIDER' if f['origin']=='ESPN_INDIVIDUAL' else 'PERSONAL_HISTORY'
    continue
   conditional=p.get('currentRosterStatus')!='SOURCE_REPORTED'
-  if prediction:
+  rookie=p.get('rookiePrediction')
+  if rookie and rookie['eligibleForPrimary'] and not f:
+   s=rookie['perGame'];games=rookie['games'];origin='NCAA_TRAINED_TRANSFER'
+   basis='Перенос личной NCAA-статистики '+rookie['collegeSeason']+' в NBA; обучение на '+str(rookie['trainingPlayers'])+' игроках'
+   tier='LIMITED_PERSONAL'
+  elif prediction:
    s=prediction['perGame'];games=prediction['games'];origin='CAREER_TRAINED'
    basis='Модель всей доступной NBA-карьеры: '+str(prediction['historySeasons'])+' сезонов; '+prediction['firstSeason']+' — '+prediction['lastSeason']
    tier='PERSONAL_HISTORY';career_replaced+=bool(f)
