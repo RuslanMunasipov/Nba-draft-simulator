@@ -12,3 +12,5 @@ def get(item):
  except Exception as e:return dict(name=name,error=str(e))
 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
  for result in pool.map(get,urls.items()):print(json.dumps(result))
+
+# Source metadata check.
