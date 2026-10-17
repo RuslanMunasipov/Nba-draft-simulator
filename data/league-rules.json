@@ -38,13 +38,19 @@
   "provenance": {
     "kind": "USER_CONFIRMED",
     "confirmedAt": "2026-10-16T04:47:00Z",
-    "positionConfirmedAt": "2026-10-17T08:38:12Z"
+    "positionConfirmedAt": "2026-10-17T08:38:12Z",
+    "commissionerConfirmedAt": "2026-10-17T08:42:37Z"
   },
   "feedVerification": {
     "yahooEligibility": "UNVERIFIED",
     "sportsRuPrices": "DATED_AUTHENTICATED_SNAPSHOT"
   },
-  "note": "Draft legality uses Sports.ru positions and prices with cap 20000. Yahoo eligibility is retained only as transfer reference; it cannot create extra Sports.ru slots. No NBA club limit is imposed without separate league confirmation.",
+  "note": "Commissioner-confirmed: draft and all transfers are performed on Sports.ru using Sports.ru positions, prices and accounting; rosters and transfers are then mirrored on Yahoo. Yahoo eligibility cannot expand Sports.ru roster slots. Cap 20000. NBA club limit remains separately unconfirmed.",
   "priceSnapshot": "2026-10-17",
-  "transferPositionAuthority": "Yahoo Fantasy"
+  "transferPositionAuthority": "Sports.ru",
+  "draftPlatform": "Sports.ru",
+  "transferPlatform": "Sports.ru",
+  "accountingAuthority": "Sports.ru",
+  "mirrorPlatform": "Yahoo Fantasy",
+  "yahooEligibilityUse": "MIRROR_REFERENCE_ONLY"
 }

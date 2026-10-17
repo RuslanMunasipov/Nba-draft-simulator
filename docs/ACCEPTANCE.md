@@ -89,3 +89,5 @@ Do not convert historical averages into a season prediction, invent missing pric
 - Legacy selections retain projections and picks while verified prices and Sports.ru positions are applied. Missing-price and over-cap legacy rosters remain visible with a repair message and cannot continue until repaired; no silent reset or automatic uncapped mode. Explicit unpriced manual imports remain labelled separately.
 - Rookie timing reserves budget-completion witnesses for every GM, alongside distinct-rookie matching. Opponents prefer preserving average remaining spend when feasible. This is a scenario policy, not a proof of a globally optimal salary-constrained draft.
 - PR builds validate without deploying; Pages publishing remains restricted to main.
+
+- Commissioner confirmation on 17 October: all draft picks and transfers take place on Sports.ru; Sports.ru owns position eligibility, prices and accounting. Yahoo mirrors the resulting rosters and transfers only. Yahoo eligibility cannot make a Sports.ru transaction legal.
