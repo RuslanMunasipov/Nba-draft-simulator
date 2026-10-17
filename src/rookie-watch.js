@@ -9,7 +9,7 @@ export function rookieWatch(state,limit=5){
   .sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id))).slice(0,limit).map(player=>{
    const taken=state.picks.find(p=>p.playerId===player.id);
    if(taken)return {player,status:'TAKEN',reason:`Выбран GM ${taken.team+1} на пике №${taken.number}`};
-   if(!player.positions.length)return {player,status:'BLOCKED',reason:'Позиции Yahoo пока не подтверждены; выбор заблокирован.'};
+   if(!player.positions.length)return {player,status:'BLOCKED',reason:'Позиции драфта пока не подтверждены; выбор заблокирован.'};
    if(!rosterFits([...roster,player]))return {player,status:'BLOCKED',reason:`Нет места на ${player.positions.join('/')}: текущие позиции состава уже заняты. Можно отменить предыдущий пик.`};
    const plan=pickCompletion(state,player.id);
    return {player,status:plan.possible?'AVAILABLE':'BLOCKED',reason:plan.possible?'Доступен для текущей команды':plan.reason};

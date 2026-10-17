@@ -44,6 +44,7 @@ function card(p,analysis=null){
  if(p.coverageStatus==='EARLIER_SEASON')el.append(text('p','Пропуск/малая выборка последнего сезона: автоматически использована база '+p.projectionBaseSeason+'. Текущая нагрузка неизвестна.'));
  if(p.injuries?.length)el.append(text('p','Статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
  if(p.returnContext)el.append(text('p',p.returnContext.note));
+ if(p.positionStatus==='SPORTS_RU_VERIFIED'){el.append(text('small','Допуск драфта: позиция Sports.ru.'));el.append(text('small','Yahoo для переноса: '+(p.yahooPositions?.join('/')||'допуск не подтверждён')+'. На лимиты драфта Sports.ru не влияет.'));}
  if(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED')el.append(text('small','Позиции из публикации Yahoo Fantasy на NBA.com.'));
  if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')el.append(text('small','Позиции ESPN, допуск Yahoo не подтверждён.'));
  if(state.priceMode==='ON')el.append(text('p','Цена Sports.ru: '+(p.priceStatus==='VERIFIED'?p.price+' ед.':'отсутствует — выбор заблокирован')));
@@ -147,7 +148,7 @@ function renderRookies(){
    el.append(text('p',`Разница с первым вариантом (${result.players[0].name}): ${gap>=0?'+':''}${gap.toFixed(0)} ${full?'ФО за сезон':'частичных ФО ESPN за сезон'}.`));
   }
   el.append(text('p','Роль, сильные стороны и ограничения игрока — в репорте выше. Момент пика сравнивается в блоке «Rookie сейчас или ветеран сейчас».'));
-  el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Допуск: '+(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED'?'публикация Yahoo Fantasy на NBA.com':'позиции ESPN')+'. Статус rookie — по источнику ESPN.'));
+  el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Допуск: '+(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED'?'публикация Yahoo Fantasy на NBA.com':p.positionStatus==='SPORTS_RU_VERIFIED'?'Sports.ru':'не подтверждён')+'. Статус rookie — по источнику ESPN.'));
   if(state.priceMode==='ON')el.append(text('p','Цена Sports.ru: '+p.price+' ед.'));
   if(p.forecast)el.append(forecastCard(p));
   const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);
@@ -159,7 +160,7 @@ function renderRookies(){
 function render(){
  const n=state.picks.length;
  document.querySelector('.hero-meta .limited').textContent=state.priceMode==='ON'?'Salary cap 20 000 · цены Sports.ru':'Ручная база · без бюджета';
- $('draft-rules').textContent=state.priceMode==='ON'?'Лимит 20 000 на команду. Проверяются цены Sports.ru, позиции Yahoo, rookie и бюджет полного добора.':'Ручная база без подтверждённых цен: бюджет не проверяется.';
+ $('draft-rules').textContent=state.priceMode==='ON'?'Лимит 20 000 на команду. Проверяются цены Sports.ru, позиции Sports.ru, rookie и бюджет полного добора.':'Ручная база без подтверждённых цен: бюджет не проверяется.';
  const budget=budgetSummary(state),reserve=state.priceMode==='ON'?completionPlan(state):null;
  $('budget-status').textContent=state.priceMode==='ON'?`GM ${n%8+1}: потрачено ${budget.spent??'неизвестно'} / ${state.cap} · остаток ${budget.remaining??'неизвестно'} · свободно ${budget.slots} мест`+(reserve?.possible?` · минимум на добор ${reserve.minimumRemainingCost}`:' · допустимый добор не найден'):'Ручная база: бюджет отключён';
  $('pricing-warning').textContent=state.pricingIssue||'';$('pricing-warning').hidden=!state.pricingIssue;
@@ -208,7 +209,7 @@ async function loadDatabase(force=false){
    save();
   }else database=candidate;
   writeStored('fbl-default-db',JSON.stringify(candidate));updateSaveStatus();
-  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Цены Sports.ru: ${candidate.priceAudit?.matchedPlayers??0} игроков, срез ${candidate.priceAudit?.capturedAt?new Date(candidate.priceAudit.capturedAt).toLocaleString('ru-RU'):'неизвестен'}. Позиции: только публикация Yahoo Fantasy; неподтверждённый допуск блокирует выбор. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
+  $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Цены Sports.ru: ${candidate.priceAudit?.matchedPlayers??0} игроков, срез ${candidate.priceAudit?.capturedAt?new Date(candidate.priceAudit.capturedAt).toLocaleString('ru-RU'):'неизвестен'}. Допуск драфта: только позиции Sports.ru. Позиции Yahoo хранятся отдельно для переноса команды; неподтверждённый допуск Sports.ru блокирует выбор. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
   $('startup-status').textContent=`База готова · ${state.players.length} игроков`;
  }catch(e){
   const message=state.players.length?'Источник обновления недоступен. Используется сохранённая база; пики сохранены.':'Не удалось загрузить базу. Нажми «Повторить загрузку».';

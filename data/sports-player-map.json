@@ -1,7 +1,7 @@
 {
   "version": 1,
   "reviewedAt": "2026-10-17",
-  "method": "Reviewed bilingual name and club identity crosswalk; fuzzy candidates are never used at runtime. Positions remain Yahoo-only.",
+  "method": "Reviewed bilingual full-name and club identity crosswalk, matched by NBA/ESPN IDs with exact canonical name and source-row consistency checks. No fuzzy matching at runtime. Sports.ru positions govern the draft; Yahoo eligibility is a separate transfer reference.",
   "players": [
     {
       "sportsId": "1887865",

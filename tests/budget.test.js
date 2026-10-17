@@ -20,3 +20,15 @@ test('a grandfathered over-budget roster is blocked instead of silently disablin
  const costly={...s,players:s.players.map(p=>({...p,price:11000}))};const fixed=enforceBudget(costly);
  assert.equal(fixed.picks.length,9);assert.match(fixed.pricingIssue,/Salary Cap/);assert.equal(fixed.priceMode,'ON');
 });
+
+test('three Sports.ru PF cannot use extra Yahoo positions; migration preserves picks for repair',()=>{
+ const imported=players.map(p=>({...p,positions:['PG','SG','SF','PF','C'],yahooPositions:['PG','SG','SF','PF','C']}));
+ let old=newDraft(imported);for(let i=1;i<=17;i++)old=pick(old,i);
+ const sports=imported.map(p=>({...p,positions:[['PF','PG','SG','SF','C'][p.id%5]],positionStatus:'SPORTS_RU_VERIFIED'}));
+ for(const id of [1,9,17])sports.find(p=>p.id===id).positions=['PF'];
+ const next=installDatabase(old,{generatedAt:'sports-positions',priceMode:'ON',positionAuthority:'Sports.ru',players:sports});
+ assert.equal(next.picks.length,17);assert.match(next.pricingIssue,/позиции/);
+ assert.throws(()=>pick(next,18),/правилам Sports.ru/);
+ assert.deepEqual(next.players.find(p=>p.id===1).positions,['PF']);
+ assert.equal(next.players.find(p=>p.id===1).yahooPositions.length,5);
+});

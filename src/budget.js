@@ -6,7 +6,7 @@ export function enforceBudget(state){
  const {pricingIssue,...rest}=state;
  const next={...rest,cap:SALARY_CAP,priceMode:'ON'};
  try{return importDraft(exportDraft(next));}
- catch(error){return {...next,pricingIssue:'Сохранённый состав не соответствует бюджету: '+error.message+'. Отмени пики или начни новый драфт.'};}
+ catch(error){return {...next,pricingIssue:'Сохранённый состав не соответствует правилам Sports.ru: '+error.message+'. Отмени пики или начни новый драфт.'};}
 }
 export function restoreBudgetDraft(json){
  const original=JSON.parse(json),state=importUncappedDraft(json);

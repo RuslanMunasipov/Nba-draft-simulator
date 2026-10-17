@@ -47,6 +47,8 @@ jobs:
           key: online-evidence-${{ runner.os }}-${{ github.run_id }}
       - name: Apply published Yahoo analyst position evidence
         run: python scripts/apply_positions.py
+      - name: Apply verified Sports.ru prices, draft positions and salary cap
+        run: python scripts/apply_sports_prices.py
       - name: Audit historical projection provenance
         run: python scripts/audit_projection_archive.py
       - name: Train and evaluate the career model in temporal order
@@ -57,8 +59,6 @@ jobs:
         run: python scripts/rookie_model.py
       - name: Complete forecasts for the entire player catalog
         run: python scripts/complete_forecasts.py
-      - name: Apply verified Sports.ru prices and salary cap
-        run: python scripts/apply_sports_prices.py
       - name: Independently audit all scoring terms and negative games
         run: python scripts/audit_scoring.py
       - name: Pack career evidence for mobile loading

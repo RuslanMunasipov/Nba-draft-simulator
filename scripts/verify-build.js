@@ -42,7 +42,8 @@ const database=JSON.parse(await readFile('dist/data/default-draft.json','utf8'))
 const {newDraft,pick,rosterFits}=await import('../src/engine.js');
 const {simulateDraft,batchSimulations,advanceBots,teamRoster}=await import('../src/simulation.js');
 assert.equal(database.priceMode,'ON');assert.equal(database.cap,20000);
-assert.ok(database.priceAudit.eligiblePricedPlayers>=200);
+assert.ok(database.priceAudit.eligiblePricedPlayers>=400);assert.equal(database.positionAuthority,'Sports.ru');
+for(const p of database.players.filter(p=>p.positions.length)){assert.equal(p.positions.length,1);assert.ok(Array.isArray(p.yahooPositions));}
 const draft=newDraft(database.players,20000,'ON');
 assert.ok(database.coverage.rookies>=8);
 for(const id of [1630169,202681]){const p=database.players.find(p=>p.id===id);assert.ok(p?.positions.length&&Number.isFinite(p.projectedFP));}
@@ -121,7 +122,7 @@ for(const rookie of rookieRecommendations(draft).players){
 assert.equal(database.forecastCoverage.covered,database.players.length,'Every player needs an explicitly sourced full-formula estimate');
 for(const p of database.players){
  assert.ok(p.forecast.coverageTier,p.name+' needs an evidence tier');
- assert.ok(p.positions.length===0||p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED','Only Yahoo positions may enable a default player: '+p.name);
+ assert.ok(p.positions.length===0||p.positionStatus==='SPORTS_RU_VERIFIED','Only Sports.ru positions may enable a default player: '+p.name);
 }
 console.log('Full forecast coverage:',JSON.stringify(database.forecastCoverage));
 console.log('Career model temporal test:',JSON.stringify(database.careerModelAudit));

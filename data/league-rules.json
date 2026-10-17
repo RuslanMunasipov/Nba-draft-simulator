@@ -11,7 +11,7 @@
     "C": 2
   },
   "minimumRookies": 1,
-  "positionAuthority": "Yahoo Fantasy",
+  "positionAuthority": "Sports.ru",
   "scoringAuthority": "Sports.ru",
   "draft": {
     "order": "LINEAR",
@@ -37,12 +37,14 @@
   "nbaClubLimit": null,
   "provenance": {
     "kind": "USER_CONFIRMED",
-    "confirmedAt": "2026-10-16T04:47:00Z"
+    "confirmedAt": "2026-10-16T04:47:00Z",
+    "positionConfirmedAt": "2026-10-17T08:38:12Z"
   },
   "feedVerification": {
     "yahooEligibility": "UNVERIFIED",
     "sportsRuPrices": "DATED_AUTHENTICATED_SNAPSHOT"
   },
-  "note": "Confirmed league rules are distinct from provider feed verification. Do not enable cap enforcement with unverified prices or impose an unconfirmed NBA club limit.",
-  "priceSnapshot": "2026-10-17"
+  "note": "Draft legality uses Sports.ru positions and prices with cap 20000. Yahoo eligibility is retained only as transfer reference; it cannot create extra Sports.ru slots. No NBA club limit is imposed without separate league confirmation.",
+  "priceSnapshot": "2026-10-17",
+  "transferPositionAuthority": "Yahoo Fantasy"
 }

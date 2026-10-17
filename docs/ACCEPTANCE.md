@@ -83,9 +83,9 @@ Do not convert historical averages into a season prediction, invent missing pric
 
 
 ## Sports.ru prices and salary cap — 17 October 2026
-- The automatic catalog uses the authenticated, user-approved dated Sports.ru snapshot: 481 unique source IDs. A reviewed ID crosswalk maps 480 records; fuzzy names are never joined at runtime. One unresolved Antetokounmpo record is reported explicitly.
-- 248 players have both Yahoo-published eligibility and a Sports.ru price. Kawhi Leonard and Rob Dillingham lack source prices and cannot be selected. Sports.ru positions never replace Yahoo positions.
-- The automatic draft enforces 20,000 per team. All UI picks and bots require a minimum-cost positional/rookie completion within the cap. Budget, remaining funds, player prices and source date are shown.
-- Legacy selections retain projections and picks while verified prices are applied. Missing-price and over-cap legacy rosters remain visible with a repair message and cannot continue until repaired; no silent reset or automatic uncapped mode. Explicit unpriced manual imports remain labelled separately.
+- The automatic catalog uses the authenticated, user-approved dated Sports.ru snapshot: 481 unique source IDs. A reviewed ID crosswalk maps 480 records; fuzzy names are never joined at runtime. Conflicting IDs, canonical full names or source-row identity abort the import. One unresolved Antetokounmpo record is reported explicitly.
+- 480 mapped players have verified Sports.ru prices and single draft positions. Yahoo-published positions remain separate for 250 catalog players. Kawhi Leonard and Rob Dillingham lack source prices and cannot be selected. Sports.ru positions govern roster legality; additional Yahoo positions cannot create a third PF or any other third position.
+- The automatic draft enforces 20,000 per team. All UI picks and bots require a minimum-cost positional/rookie completion within the cap using Sports.ru positions. Budget, remaining funds, player prices and source date are shown.
+- Legacy selections retain projections and picks while verified prices and Sports.ru positions are applied. Missing-price and over-cap legacy rosters remain visible with a repair message and cannot continue until repaired; no silent reset or automatic uncapped mode. Explicit unpriced manual imports remain labelled separately.
 - Rookie timing reserves budget-completion witnesses for every GM, alongside distinct-rookie matching. Opponents prefer preserving average remaining spend when feasible. This is a scenario policy, not a proof of a globally optimal salary-constrained draft.
 - PR builds validate without deploying; Pages publishing remains restricted to main.

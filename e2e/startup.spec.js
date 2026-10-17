@@ -91,3 +91,17 @@ test('legacy missing-price pick is preserved with a repair message and cannot co
  await page.locator('#undo').click();await expect(page.locator('#pricing-warning')).toBeHidden();
  await expect(page.locator('#advice .player-card')).toHaveCount(5);
 });
+
+test('a third Sports.ru PF is blocked even when Yahoo permits C and SF',async({page})=>{
+ const source={...fixture,positionAuthority:'Sports.ru',players:fixture.players.map((p,i)=>({...p,positions:[0,8,16].includes(i)?['PF']:p.positions,yahooPositions:['PF','C','SF'],positionStatus:'SPORTS_RU_VERIFIED'}))};
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:source}));
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ for(let i=0;i<16;i++){
+  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC '+i);
+  await page.locator('#candidates').getByRole('button',{name:'Выбрать SYNTHETIC '+i,exact:true}).click();
+ }
+ await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC 16');
+ await expect(page.locator('#candidates').getByRole('button',{name:'Выбрать SYNTHETIC 16',exact:true})).toBeDisabled();
+ await expect(page.locator('#candidates')).toContainText('Невозможно назначить позиции');
+ await expect(page.locator('#candidates')).toContainText('Yahoo для переноса: PF/C/SF');
+});
