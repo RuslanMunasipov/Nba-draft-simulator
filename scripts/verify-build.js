@@ -41,11 +41,14 @@ console.log('Full historical coverage and returning-player regressions verified:
 const database=JSON.parse(await readFile('dist/data/default-draft.json','utf8'));
 const {newDraft,pick,rosterFits}=await import('../src/engine.js');
 const {simulateDraft,batchSimulations,advanceBots,teamRoster}=await import('../src/simulation.js');
-const draft=newDraft(database.players,20000,'OFF');
+assert.equal(database.priceMode,'ON');assert.equal(database.cap,20000);
+assert.ok(database.priceAudit.eligiblePricedPlayers>=400);assert.equal(database.positionAuthority,'Sports.ru');
+for(const p of database.players.filter(p=>p.positions.length)){assert.equal(p.positions.length,1);assert.ok(Array.isArray(p.yahooPositions));}
+const draft=newDraft(database.players,20000,'ON');
 assert.ok(database.coverage.rookies>=8);
 for(const id of [1630169,202681]){const p=database.players.find(p=>p.id===id);assert.ok(p?.positions.length&&Number.isFinite(p.projectedFP));}
 const full=simulateDraft(draft,{seed:19});assert.equal(full.picks.length,80);
-for(let i=0;i<8;i++){const r=teamRoster(full,i);assert.ok(rosterFits(r));assert.ok(r.some(p=>p.isRookie));}
+for(let i=0;i<8;i++){const r=teamRoster(full,i);assert.ok(rosterFits(r));assert.ok(r.some(p=>p.isRookie));assert.ok(r.every(p=>p.priceStatus==='VERIFIED'));assert.ok(r.reduce((sum,p)=>sum+p.price,0)<=20000);}
 const batch=batchSimulations(draft,{runs:100,seed:11});assert.equal(batch.eligibleRuns,100);
 const first=full.picks[0].playerId;assert.equal(advanceBots(pick(draft,first)).picks.length,8);
 console.log('Real automatic database verified:',database.coverage,'80 picks and 100 valid seeded scenarios');
@@ -67,7 +70,10 @@ console.log('Individual rookie board:',rookieBoard.players.map(p=>({name:p.name,
 
 const {rookieTimingStudy}=await import('../src/rookie-timing.js');
 const timing=rookieTimingStudy(draft);assert.ok(timing.recommendedRound>=1&&timing.recommendedRound<=10);
-assert.equal(timing.totalDrafts,960);assert.ok(timing.rows.every(r=>r.profiles.every(p=>p.validRuns===p.runs)));
+assert.equal(timing.totalDrafts,960);
+const recommendedTiming=timing.rows.find(r=>r.round===timing.recommendedRound);
+assert.ok(recommendedTiming?.valid&&recommendedTiming.profiles.every(p=>p.validRuns===p.runs),'Only fully legal strategies may be recommended');
+for(const row of timing.rows)if(row.profiles.some(p=>p.validRuns!==p.runs))assert.equal(row.valid,false,'Incomplete strategies must remain explicitly excluded');
 console.log('Rookie timing study verified:',JSON.stringify({round:timing.recommendedRound,pick:timing.recommendedPick,profiles:timing.bestByProfile,range:timing.profileRange,meanGap:timing.meanGap,drafts:timing.totalDrafts}));
 
 assert.ok(database.forecastAudit.forecastPlayers>=80,'Full-formula forecast coverage');
@@ -116,7 +122,7 @@ for(const rookie of rookieRecommendations(draft).players){
 assert.equal(database.forecastCoverage.covered,database.players.length,'Every player needs an explicitly sourced full-formula estimate');
 for(const p of database.players){
  assert.ok(p.forecast.coverageTier,p.name+' needs an evidence tier');
- assert.ok(p.positions.length===0||p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED','Only Yahoo positions may enable a default player: '+p.name);
+ assert.ok(p.positions.length===0||p.positionStatus==='SPORTS_RU_VERIFIED','Only Sports.ru positions may enable a default player: '+p.name);
 }
 console.log('Full forecast coverage:',JSON.stringify(database.forecastCoverage));
 console.log('Career model temporal test:',JSON.stringify(database.careerModelAudit));
