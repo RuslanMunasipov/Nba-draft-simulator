@@ -1,0 +1,3857 @@
+{
+  "source": "https://www.sports.ru/fantasy/basketball/team/transfers/5930241.html",
+  "capturedAt": "2026-10-17T08:03:09.412Z",
+  "count": 481,
+  "players": [
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Йокич",
+      "price": 3500,
+      "sportsId": "1887865",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Дончич",
+      "price": 3200,
+      "sportsId": "1923275",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Гилджес-Александер",
+      "price": 3200,
+      "sportsId": "1985124",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Вембаньяма",
+      "price": 3200,
+      "sportsId": "2034489",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Я. Адетокумбо",
+      "price": 3000,
+      "sportsId": "1850092",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Тейтум",
+      "price": 2700,
+      "sportsId": "1963233",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Дэвис",
+      "price": 2500,
+      "sportsId": "1810901",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Таунс",
+      "price": 2400,
+      "sportsId": "1916604",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Карри",
+      "price": 2400,
+      "sportsId": "38600",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Дюрэнт",
+      "price": 2400,
+      "sportsId": "38368",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Эмбиид",
+      "price": 2300,
+      "sportsId": "1887623",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Эдвардс",
+      "price": 2300,
+      "sportsId": "2038517",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Халибертон",
+      "price": 2300,
+      "sportsId": "2038497",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Макси",
+      "price": 2300,
+      "sportsId": "2038002",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Каннингем",
+      "price": 2300,
+      "sportsId": "2055894",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Дюрен",
+      "price": 2300,
+      "sportsId": "2090211",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Джонсон",
+      "price": 2300,
+      "sportsId": "2055798",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Батлер",
+      "price": 2300,
+      "sportsId": "1796919",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Шенгюн",
+      "price": 2200,
+      "sportsId": "2014360",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Дж. Мюррэй",
+      "price": 2200,
+      "sportsId": "1947981",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Э. Мобли",
+      "price": 2200,
+      "sportsId": "2055856",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Митчелл",
+      "price": 2200,
+      "sportsId": "1963242",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Брансон",
+      "price": 2200,
+      "sportsId": "1985464",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Барнс",
+      "price": 2200,
+      "sportsId": "2056241",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Харден",
+      "price": 2100,
+      "sportsId": "38254",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Флэгг",
+      "price": 2100,
+      "sportsId": "2176970",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Сиакам",
+      "price": 2100,
+      "sportsId": "1947874",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Сабонис",
+      "price": 2100,
+      "sportsId": "1857188",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Ирвинг",
+      "price": 2100,
+      "sportsId": "1796920",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Джеймс",
+      "price": 2100,
+      "sportsId": "38615",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Аллен",
+      "price": 2100,
+      "sportsId": "1963251",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Адебайо",
+      "price": 2100,
+      "sportsId": "1963243",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Холмгрен",
+      "price": 2000,
+      "sportsId": "2090531",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Уильямсон",
+      "price": 2000,
+      "sportsId": "2014918",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Джейлен Уильямс",
+      "price": 2000,
+      "sportsId": "2090534",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Томпсон",
+      "price": 2000,
+      "sportsId": "2116493",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Зубац",
+      "price": 2000,
+      "sportsId": "1948079",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Гобер",
+      "price": 2000,
+      "sportsId": "1847180",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Букер",
+      "price": 2000,
+      "sportsId": "1916614",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Браун",
+      "price": 2000,
+      "sportsId": "1948032",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Банкеро",
+      "price": 2000,
+      "sportsId": "2090536",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Авдия",
+      "price": 2000,
+      "sportsId": "1993268",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Янг",
+      "price": 1900,
+      "sportsId": "1985081",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Ривз",
+      "price": 1900,
+      "sportsId": "2056095",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Маркканен",
+      "price": 1900,
+      "sportsId": "1963237",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Ингрэм",
+      "price": 1900,
+      "sportsId": "1948080",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Гидди",
+      "price": 1900,
+      "sportsId": "2056226",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Ф. Вагнер",
+      "price": 1900,
+      "sportsId": "2056232",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Фокс",
+      "price": 1800,
+      "sportsId": "1963235",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Уайт",
+      "price": 1800,
+      "sportsId": "1963257",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Рэндл",
+      "price": 1800,
+      "sportsId": "1887627",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Портер",
+      "price": 1800,
+      "sportsId": "1985116",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Мерфи",
+      "price": 1800,
+      "sportsId": "2056176",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Лиллард",
+      "price": 1800,
+      "sportsId": "1812024",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Клинган",
+      "price": 1800,
+      "sportsId": "2150707",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Кесслер",
+      "price": 1800,
+      "sportsId": "2090552",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Гарлэнд",
+      "price": 1800,
+      "sportsId": "2015177",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Бэйн",
+      "price": 1800,
+      "sportsId": "2038431",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Бузер",
+      "price": 1800,
+      "sportsId": "2208840",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Болл",
+      "price": 1800,
+      "sportsId": "2038301",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Хирро",
+      "price": 1700,
+      "sportsId": "2014969",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Хартенштайн",
+      "price": 1700,
+      "sportsId": "1948666",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Харпер",
+      "price": 1700,
+      "sportsId": "2176909",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Притчард",
+      "price": 1700,
+      "sportsId": "2037968",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Порзингис",
+      "price": 1700,
+      "sportsId": "1916607",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Оконгву",
+      "price": 1700,
+      "sportsId": "2038508",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Мюррэй",
+      "price": 1700,
+      "sportsId": "1947991",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Книппел",
+      "price": 1700,
+      "sportsId": "2176905",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Касл",
+      "price": 1700,
+      "sportsId": "2150712",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Дэниэлс",
+      "price": 1700,
+      "sportsId": "2090369",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Дибанца",
+      "price": 1700,
+      "sportsId": "2208838",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Джордж",
+      "price": 1700,
+      "sportsId": "198014",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Джарен Джексон",
+      "price": 1700,
+      "sportsId": "1985130",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Гордон",
+      "price": 1700,
+      "sportsId": "1887624",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Бриджес",
+      "price": 1700,
+      "sportsId": "1985106",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Ануноби",
+      "price": 1700,
+      "sportsId": "1963252",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Эджкомб",
+      "price": 1600,
+      "sportsId": "2176979",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Харт",
+      "price": 1600,
+      "sportsId": "1963258",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Уэйр",
+      "price": 1600,
+      "sportsId": "2150642",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Уильямс",
+      "price": 1600,
+      "sportsId": "2090159",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Уилсон",
+      "price": 1600,
+      "sportsId": "2208841",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Тернер",
+      "price": 1600,
+      "sportsId": "1916612",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Смит",
+      "price": 1600,
+      "sportsId": "2090223",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Пелтль",
+      "price": 1600,
+      "sportsId": "1947875",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Пауэлл",
+      "price": 1600,
+      "sportsId": "1916656",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Морэнт",
+      "price": 1600,
+      "sportsId": "2014914",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Миллер",
+      "price": 1600,
+      "sportsId": "2116461",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Макколлум",
+      "price": 1600,
+      "sportsId": "1847278",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Лавин",
+      "price": 1600,
+      "sportsId": "1887633",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Кета",
+      "price": 1600,
+      "sportsId": "2056238",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Джордж",
+      "price": 1600,
+      "sportsId": "2117860",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Ванвлит",
+      "price": 1600,
+      "sportsId": "1947923",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Бриджес",
+      "price": 1600,
+      "sportsId": "1985152",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Александер-Уокер",
+      "price": 1600,
+      "sportsId": "2014915",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Эйтон",
+      "price": 1500,
+      "sportsId": "1985151",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Харрис",
+      "price": 1500,
+      "sportsId": "1796985",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Уайт",
+      "price": 1500,
+      "sportsId": "2015183",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Томпсон",
+      "price": 1500,
+      "sportsId": "2116483",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Сарр",
+      "price": 1500,
+      "sportsId": "2150728",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Роллинз",
+      "price": 1500,
+      "sportsId": "2090217",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Робинсон",
+      "price": 1500,
+      "sportsId": "1985136",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Рид",
+      "price": 1500,
+      "sportsId": "2014986",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Подземски",
+      "price": 1500,
+      "sportsId": "2116487",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Мюррэй-Бойлс",
+      "price": 1500,
+      "sportsId": "2176900",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Мюррэй",
+      "price": 1500,
+      "sportsId": "2090542",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Лендеборг",
+      "price": 1500,
+      "sportsId": "2208848",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Куикли",
+      "price": 1500,
+      "sportsId": "2038007",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Коллинз",
+      "price": 1500,
+      "sportsId": "1963248",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Клэкстон",
+      "price": 1500,
+      "sportsId": "2015065",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Иди",
+      "price": 1500,
+      "sportsId": "2119524",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Дерозан",
+      "price": 1500,
+      "sportsId": "38661",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Грин",
+      "price": 1500,
+      "sportsId": "2056083",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Вучевич",
+      "price": 1500,
+      "sportsId": "1784460",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Бузелис",
+      "price": 1500,
+      "sportsId": "2150425",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Барретт",
+      "price": 1500,
+      "sportsId": "2015129",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Эйкафф",
+      "price": 1400,
+      "sportsId": "2208844",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Шэмпени",
+      "price": 1400,
+      "sportsId": "2090538",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Шарп",
+      "price": 1400,
+      "sportsId": "2090540",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Шарп",
+      "price": 1400,
+      "sportsId": "2055805",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Холидэй",
+      "price": 1400,
+      "sportsId": "38666",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Хатимура",
+      "price": 1400,
+      "sportsId": "2011301",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Хакес",
+      "price": 1400,
+      "sportsId": "2116565",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Уотсон",
+      "price": 1400,
+      "sportsId": "2090206",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Уоглер",
+      "price": 1400,
+      "sportsId": "2208842",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Уиггинс",
+      "price": 1400,
+      "sportsId": "1887621",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Убре",
+      "price": 1400,
+      "sportsId": "1916616",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Портис",
+      "price": 1400,
+      "sportsId": "1915956",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Питерсон",
+      "price": 1400,
+      "sportsId": "2208839",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Нуркич",
+      "price": 1400,
+      "sportsId": "1823483",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Несмит",
+      "price": 1400,
+      "sportsId": "2037967",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Нембхард",
+      "price": 1400,
+      "sportsId": "2011364",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Муди",
+      "price": 1400,
+      "sportsId": "2055899",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Митчелл",
+      "price": 1400,
+      "sportsId": "2056239",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Митчелл",
+      "price": 1400,
+      "sportsId": "2043876",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Матурин",
+      "price": 1400,
+      "sportsId": "2090228",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Маршалл",
+      "price": 1400,
+      "sportsId": "2038716",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Макдэниэлс",
+      "price": 1400,
+      "sportsId": "2037936",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Картер",
+      "price": 1400,
+      "sportsId": "1985112",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Камара",
+      "price": 1400,
+      "sportsId": "2116644",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Дивинченцо",
+      "price": 1400,
+      "sportsId": "1985195",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Диабате",
+      "price": 1400,
+      "sportsId": "2090236",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "К. Джонсон",
+      "price": 1400,
+      "sportsId": "2014946",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Джером",
+      "price": 1400,
+      "sportsId": "2014945",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Гэффорд",
+      "price": 1400,
+      "sportsId": "2015181",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Грант",
+      "price": 1400,
+      "sportsId": "1887657",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Вашингтон",
+      "price": 1400,
+      "sportsId": "2014978",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Васселл",
+      "price": 1400,
+      "sportsId": "2038494",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Бэйли",
+      "price": 1400,
+      "sportsId": "2176784",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Брукс",
+      "price": 1400,
+      "sportsId": "1963345",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "К. Браун",
+      "price": 1400,
+      "sportsId": "2090208",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Бей",
+      "price": 1400,
+      "sportsId": "2038208",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Альдама",
+      "price": 1400,
+      "sportsId": "2056099",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Шредер",
+      "price": 1300,
+      "sportsId": "1847150",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Шеппард",
+      "price": 1300,
+      "sportsId": "2150582",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Хорфорд",
+      "price": 1300,
+      "sportsId": "38262",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Холланд",
+      "price": 1300,
+      "sportsId": "2150559",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Хаузер",
+      "price": 1300,
+      "sportsId": "2055799",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Хардуэй",
+      "price": 1300,
+      "sportsId": "1847186",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Хантер",
+      "price": 1300,
+      "sportsId": "2014952",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Уэллс",
+      "price": 1300,
+      "sportsId": "2150641",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Уоллес",
+      "price": 1300,
+      "sportsId": "2116604",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Р. Уильямс",
+      "price": 1300,
+      "sportsId": "1985105",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Джейлин Уильямс",
+      "price": 1300,
+      "sportsId": "2090532",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Уиггинс",
+      "price": 1300,
+      "sportsId": "2056229",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Топпин",
+      "price": 1300,
+      "sportsId": "2038492",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Томпсон",
+      "price": 1300,
+      "sportsId": "1797006",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Струс",
+      "price": 1300,
+      "sportsId": "2015061",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Смит",
+      "price": 1300,
+      "sportsId": "2038451",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Секстон",
+      "price": 1300,
+      "sportsId": "1985114",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Саймонс",
+      "price": 1300,
+      "sportsId": "1985155",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Саггс",
+      "price": 1300,
+      "sportsId": "2056231",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Д. Робинсон",
+      "price": 1300,
+      "sportsId": "1985145",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Рисаше",
+      "price": 1300,
+      "sportsId": "2068200",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Рид",
+      "price": 1300,
+      "sportsId": "2038005",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Рейно",
+      "price": 1300,
+      "sportsId": "2176953",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Пул",
+      "price": 1300,
+      "sportsId": "2014928",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Портер",
+      "price": 1300,
+      "sportsId": "2015178",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Пиппен",
+      "price": 1300,
+      "sportsId": "2091025",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Капела",
+      "price": 1300,
+      "sportsId": "1823045",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Монк",
+      "price": 1300,
+      "sportsId": "1963240",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Мисси",
+      "price": 1300,
+      "sportsId": "2150659",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Мара",
+      "price": 1300,
+      "sportsId": "2077944",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Мамукелашвили",
+      "price": 1300,
+      "sportsId": "2056169",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Малуач",
+      "price": 1300,
+      "sportsId": "2119644",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Макконнелл",
+      "price": 1300,
+      "sportsId": "1923684",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Б. Лопес",
+      "price": 1300,
+      "sportsId": "38681",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Ларэвиа",
+      "price": 1300,
+      "sportsId": "2090246",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Ларссон",
+      "price": 1300,
+      "sportsId": "2150643",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Лайвли",
+      "price": 1300,
+      "sportsId": "2116477",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Куминга",
+      "price": 1300,
+      "sportsId": "2055898",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Кулибали",
+      "price": 1300,
+      "sportsId": "2090269",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Куин",
+      "price": 1300,
+      "sportsId": "2177029",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Кисперт",
+      "price": 1300,
+      "sportsId": "2056259",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Кеннард",
+      "price": 1300,
+      "sportsId": "1963241",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Кауард",
+      "price": 1300,
+      "sportsId": "2177044",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Карр",
+      "price": 1300,
+      "sportsId": "2208861",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Сантос",
+      "price": 1300,
+      "sportsId": "2119672",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Исон",
+      "price": 1300,
+      "sportsId": "2090224",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Досунму",
+      "price": 1300,
+      "sportsId": "2055814",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Дорт",
+      "price": 1300,
+      "sportsId": "2015010",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Джордж",
+      "price": 1300,
+      "sportsId": "2150727",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "К. Джонсон",
+      "price": 1300,
+      "sportsId": "2014919",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Джонс",
+      "price": 1300,
+      "sportsId": "2038493",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Дёмин",
+      "price": 1300,
+      "sportsId": "2102205",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "да Силва",
+      "price": 1300,
+      "sportsId": "2150671",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Данн",
+      "price": 1300,
+      "sportsId": "1948088",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Др. Грин",
+      "price": 1300,
+      "sportsId": "1814722",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Граймс",
+      "price": 1300,
+      "sportsId": "2056181",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Блэк",
+      "price": 1300,
+      "sportsId": "2116607",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Барнс",
+      "price": 1300,
+      "sportsId": "1812026",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Ачиува",
+      "price": 1300,
+      "sportsId": "2037997",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Адамс",
+      "price": 1300,
+      "sportsId": "1847362",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Эмент",
+      "price": 1200,
+      "sportsId": "2208850",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Эллис",
+      "price": 1200,
+      "sportsId": "2090543",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Шэмпени",
+      "price": 1200,
+      "sportsId": "2056242",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Шэмет",
+      "price": 1200,
+      "sportsId": "1985150",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Шэд",
+      "price": 1200,
+      "sportsId": "2150719",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Штайнбах",
+      "price": 1200,
+      "sportsId": "2208851",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Хэйс",
+      "price": 1200,
+      "sportsId": "2014917",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Хилд",
+      "price": 1200,
+      "sportsId": "1947929",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Хертер",
+      "price": 1200,
+      "sportsId": "1985083",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Хендрикс",
+      "price": 1200,
+      "sportsId": "2117861",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Хендерсон",
+      "price": 1200,
+      "sportsId": "2117701",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Хафф",
+      "price": 1200,
+      "sportsId": "2061107",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Хайсмит",
+      "price": 1200,
+      "sportsId": "1998468",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Флемингс",
+      "price": 1200,
+      "sportsId": "2208845",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Фирс",
+      "price": 1200,
+      "sportsId": "2177028",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Финни-Смит",
+      "price": 1200,
+      "sportsId": "1947934",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Филиповски",
+      "price": 1200,
+      "sportsId": "2150722",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Уэйд",
+      "price": 1200,
+      "sportsId": "2015179",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Уолш",
+      "price": 1200,
+      "sportsId": "2116453",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Уокер",
+      "price": 1200,
+      "sportsId": "2116498",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Уильямс",
+      "price": 1200,
+      "sportsId": "2071930",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Г. Уильямс",
+      "price": 1200,
+      "sportsId": "2015064",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "З. Уильямс",
+      "price": 1200,
+      "sportsId": "2056098",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Тайсон",
+      "price": 1200,
+      "sportsId": "2150521",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Стюарт",
+      "price": 1200,
+      "sportsId": "2038242",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Стротер",
+      "price": 1200,
+      "sportsId": "2116479",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Спенсер",
+      "price": 1200,
+      "sportsId": "2150640",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Смарт",
+      "price": 1200,
+      "sportsId": "1887626",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Сенсабо",
+      "price": 1200,
+      "sportsId": "2117862",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Салон",
+      "price": 1200,
+      "sportsId": "2099129",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Ричардс",
+      "price": 1200,
+      "sportsId": "2038298",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Райли",
+      "price": 1200,
+      "sportsId": "2176781",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Пэйтон II",
+      "price": 1200,
+      "sportsId": "1947942",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Пост",
+      "price": 1200,
+      "sportsId": "2150565",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "О'Нил",
+      "price": 1200,
+      "sportsId": "1970365",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Окоро",
+      "price": 1200,
+      "sportsId": "2038518",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Ньюэлл",
+      "price": 1200,
+      "sportsId": "2176775",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Мэнн",
+      "price": 1200,
+      "sportsId": "2014932",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Миллер",
+      "price": 1200,
+      "sportsId": "2116573",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Миддлтон",
+      "price": 1200,
+      "sportsId": "1817536",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Меррилл",
+      "price": 1200,
+      "sportsId": "2037739",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Мелтон",
+      "price": 1200,
+      "sportsId": "1991761",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Маккейн",
+      "price": 1200,
+      "sportsId": "2150673",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Макбрайд",
+      "price": 1200,
+      "sportsId": "2056182",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Лэндейл",
+      "price": 1200,
+      "sportsId": "2011362",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Леверт",
+      "price": 1200,
+      "sportsId": "1948091",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Лайлс",
+      "price": 1200,
+      "sportsId": "1916613",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Кэррингтон",
+      "price": 1200,
+      "sportsId": "2150726",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Кузма",
+      "price": 1200,
+      "sportsId": "1963255",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Кристи",
+      "price": 1200,
+      "sportsId": "2090240",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Корнет",
+      "price": 1200,
+      "sportsId": "1969805",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Конли",
+      "price": 1200,
+      "sportsId": "38579",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Коллинз",
+      "price": 1200,
+      "sportsId": "1963239",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Коллиер",
+      "price": 1200,
+      "sportsId": "2150724",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Колкбреннер",
+      "price": 1200,
+      "sportsId": "2176907",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Колдуэлл-Поуп",
+      "price": 1200,
+      "sportsId": "1848481",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Кнехт",
+      "price": 1200,
+      "sportsId": "2150636",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Клиффорд",
+      "price": 1200,
+      "sportsId": "2176952",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Клауни",
+      "price": 1200,
+      "sportsId": "2116456",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Кларксон",
+      "price": 1200,
+      "sportsId": "1887870",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Карузо",
+      "price": 1200,
+      "sportsId": "1947946",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Кардуэлл",
+      "price": 1200,
+      "sportsId": "2176954",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Йович",
+      "price": 1200,
+      "sportsId": "2050351",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Игодаро",
+      "price": 1200,
+      "sportsId": "2150704",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Драммонд",
+      "price": 1200,
+      "sportsId": "1810360",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Дик",
+      "price": 1200,
+      "sportsId": "2117858",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Джонсон",
+      "price": 1200,
+      "sportsId": "2208846",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Джонсон",
+      "price": 1200,
+      "sportsId": "2176779",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Джонс",
+      "price": 1200,
+      "sportsId": "1916621",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Джонс",
+      "price": 1200,
+      "sportsId": "2056177",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Д. Джонс",
+      "price": 1200,
+      "sportsId": "1947986",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Джо",
+      "price": 1200,
+      "sportsId": "2038004",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Дженкинс",
+      "price": 1200,
+      "sportsId": "2150562",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Джексон",
+      "price": 1200,
+      "sportsId": "2125099",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Джексон",
+      "price": 1200,
+      "sportsId": "2056090",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Гудвин",
+      "price": 1200,
+      "sportsId": "2061108",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Грин",
+      "price": 1200,
+      "sportsId": "2090366",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Гиллеспи",
+      "price": 1200,
+      "sportsId": "2090210",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Вандербилт",
+      "price": 1200,
+      "sportsId": "1985194",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "М. Вагнер",
+      "price": 1200,
+      "sportsId": "1896917",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Бэгли",
+      "price": 1200,
+      "sportsId": "1985157",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Б. Браун",
+      "price": 1200,
+      "sportsId": "1985117",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Браун",
+      "price": 1200,
+      "sportsId": "2208843",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Бона",
+      "price": 1200,
+      "sportsId": "2150672",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Богданович",
+      "price": 1200,
+      "sportsId": "1790644",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Битадзе",
+      "price": 1200,
+      "sportsId": "1922897",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Бил",
+      "price": 1200,
+      "sportsId": "1810362",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Беррис",
+      "price": 1200,
+      "sportsId": "2208847",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Беранже",
+      "price": 1200,
+      "sportsId": "2149456",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Альварадо",
+      "price": 1200,
+      "sportsId": "2056178",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Аллен",
+      "price": 1200,
+      "sportsId": "1985159",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Ян Ханьсэнь",
+      "price": 1100,
+      "sportsId": "2176960",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Якучионис",
+      "price": 1100,
+      "sportsId": "2100776",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Эссанг",
+      "price": 1100,
+      "sportsId": "2124452",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Эдвардс",
+      "price": 1100,
+      "sportsId": "2150676",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Шэннон",
+      "price": 1100,
+      "sportsId": "2150653",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Шеппард",
+      "price": 1100,
+      "sportsId": "2116497",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Шайерман",
+      "price": 1100,
+      "sportsId": "2150323",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Хоукинс",
+      "price": 1100,
+      "sportsId": "2116577",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Холмс",
+      "price": 1100,
+      "sportsId": "2150539",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Хезоня",
+      "price": 1100,
+      "sportsId": "1790674",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Харди",
+      "price": 1100,
+      "sportsId": "2090204",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Хайлэнд",
+      "price": 1100,
+      "sportsId": "2055892",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Фонтеккьо",
+      "price": 1100,
+      "sportsId": "1948630",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Флеминг",
+      "price": 1100,
+      "sportsId": "2176974",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Файлон",
+      "price": 1100,
+      "sportsId": "2208859",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Уотфорд",
+      "price": 1100,
+      "sportsId": "2056235",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Уоткинс",
+      "price": 1100,
+      "sportsId": "2176780",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Уолтер",
+      "price": 1100,
+      "sportsId": "2150718",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Уокер",
+      "price": 1100,
+      "sportsId": "1985158",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Уокер",
+      "price": 1100,
+      "sportsId": "2090539",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Уильямс",
+      "price": 1100,
+      "sportsId": "2150723",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Уильямс",
+      "price": 1100,
+      "sportsId": "2038490",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Уилсон",
+      "price": 1100,
+      "sportsId": "2116454",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Тэйт",
+      "price": 1100,
+      "sportsId": "2037983",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Тьеро",
+      "price": 1100,
+      "sportsId": "2177035",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Тшибве",
+      "price": 1100,
+      "sportsId": "2116496",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Траоре",
+      "price": 1100,
+      "sportsId": "2136824",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Томлин",
+      "price": 1100,
+      "sportsId": "2161401",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Терри",
+      "price": 1100,
+      "sportsId": "2090169",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Тайбулл",
+      "price": 1100,
+      "sportsId": "2015164",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Сэндерс",
+      "price": 1100,
+      "sportsId": "2177032",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Чикаго",
+      "clubId": "4178",
+      "name": "Суэйн",
+      "price": 1100,
+      "sportsId": "2208852",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Стирц",
+      "price": 1100,
+      "sportsId": "2208853",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Спенсер",
+      "price": 1100,
+      "sportsId": "2090219",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Сохан",
+      "price": 1100,
+      "sportsId": "2043845",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Сорбер",
+      "price": 1100,
+      "sportsId": "2177019",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Смит",
+      "price": 1100,
+      "sportsId": "2061066",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Сиссоко",
+      "price": 1100,
+      "sportsId": "2059553",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Сиссе",
+      "price": 1100,
+      "sportsId": "2176967",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Симс",
+      "price": 1100,
+      "sportsId": "2056180",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Симмонс",
+      "price": 1100,
+      "sportsId": "1948025",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Сассер",
+      "price": 1100,
+      "sportsId": "2116484",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Сараф",
+      "price": 1100,
+      "sportsId": "2130935",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Ричардсон",
+      "price": 1100,
+      "sportsId": "2176986",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Ричард",
+      "price": 1100,
+      "sportsId": "2177014",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Рид",
+      "price": 1100,
+      "sportsId": "2208863",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Ривс",
+      "price": 1100,
+      "sportsId": "2150658",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Принс",
+      "price": 1100,
+      "sportsId": "1948100",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Поттер",
+      "price": 1100,
+      "sportsId": "2061064",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Портер",
+      "price": 1100,
+      "sportsId": "2116473",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Плауден",
+      "price": 1100,
+      "sportsId": "2090371",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Пикетт",
+      "price": 1100,
+      "sportsId": "2116478",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Пиви",
+      "price": 1100,
+      "sportsId": "2177026",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Пенда",
+      "price": 1100,
+      "sportsId": "2149432",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Пауэлл",
+      "price": 1100,
+      "sportsId": "1887869",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Пауэлл",
+      "price": 1100,
+      "sportsId": "2176892",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Окори",
+      "price": 1100,
+      "sportsId": "2208854",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Окоги",
+      "price": 1100,
+      "sportsId": "1985131",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Нэнс",
+      "price": 1100,
+      "sportsId": "1916623",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Нэнс",
+      "price": 1100,
+      "sportsId": "2125150",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Ньянг",
+      "price": 1100,
+      "sportsId": "1948054",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Ннаджи",
+      "price": 1100,
+      "sportsId": "2037976",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Нидерхаузер",
+      "price": 1100,
+      "sportsId": "2177033",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Нембхард",
+      "price": 1100,
+      "sportsId": "2176969",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Мюррэй",
+      "price": 1100,
+      "sportsId": "2117702",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Мэнн",
+      "price": 1100,
+      "sportsId": "2056227",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Мобо",
+      "price": 1100,
+      "sportsId": "2150720",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Михайлюк",
+      "price": 1100,
+      "sportsId": "1856093",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Миллер",
+      "price": 1100,
+      "sportsId": "2119612",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Маткович",
+      "price": 1100,
+      "sportsId": "2050312",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Калеб Мартин",
+      "price": 1100,
+      "sportsId": "2015973",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Макнили",
+      "price": 1100,
+      "sportsId": "2176906",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Маклафлин",
+      "price": 1100,
+      "sportsId": "2014984",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Макдермотт",
+      "price": 1100,
+      "sportsId": "1887632",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Майнотт",
+      "price": 1100,
+      "sportsId": "2090368",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Луни",
+      "price": 1100,
+      "sportsId": "1916624",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Ливерс",
+      "price": 1100,
+      "sportsId": "2055893",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Лав",
+      "price": 1100,
+      "sportsId": "2176959",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Кэйн",
+      "price": 1100,
+      "sportsId": "2090363",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Кристи",
+      "price": 1100,
+      "sportsId": "2150589",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Крейчи",
+      "price": 1100,
+      "sportsId": "2011516",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Колек",
+      "price": 1100,
+      "sportsId": "2150663",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Клэйтон",
+      "price": 1100,
+      "sportsId": "2176785",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Кларк",
+      "price": 1100,
+      "sportsId": "2116574",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Картер",
+      "price": 1100,
+      "sportsId": "1985471",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Картер",
+      "price": 1100,
+      "sportsId": "2150709",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Карабан",
+      "price": 1100,
+      "sportsId": "2208866",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Диавара",
+      "price": 1100,
+      "sportsId": "2060840",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Джордан",
+      "price": 1100,
+      "sportsId": "38476",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Джонсон",
+      "price": 1100,
+      "sportsId": "2150646",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Джонс",
+      "price": 1100,
+      "sportsId": "2150549",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Дженг",
+      "price": 1100,
+      "sportsId": "2090533",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Джексон-Дэвис",
+      "price": 1100,
+      "sportsId": "2116486",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Джексон",
+      "price": 1100,
+      "sportsId": "2116570",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Джексон",
+      "price": 1100,
+      "sportsId": "2090557",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Джеймс-младший",
+      "price": 1100,
+      "sportsId": "2150635",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Джеймс",
+      "price": 1100,
+      "sportsId": "2176904",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "де Ларреа",
+      "price": 1100,
+      "sportsId": "2096364",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Гуйе",
+      "price": 1100,
+      "sportsId": "2116452",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Грэйвс",
+      "price": 1100,
+      "sportsId": "2208856",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Грин",
+      "price": 1100,
+      "sportsId": "2038239",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Грин",
+      "price": 1100,
+      "sportsId": "2015966",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Гонсалес",
+      "price": 1100,
+      "sportsId": "2090612",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Гарза",
+      "price": 1100,
+      "sportsId": "2055895",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Вукчевич",
+      "price": 1100,
+      "sportsId": "2125478",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Вольф",
+      "price": 1100,
+      "sportsId": "2176891",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Бэттл",
+      "price": 1100,
+      "sportsId": "2150715",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Бэсси",
+      "price": 1100,
+      "sportsId": "2061040",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Брайант",
+      "price": 1100,
+      "sportsId": "1963343",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Брайант",
+      "price": 1100,
+      "sportsId": "2176910",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Барлоу",
+      "price": 1100,
+      "sportsId": "2090544",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Андерсон",
+      "price": 1100,
+      "sportsId": "2208855",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Андерсон",
+      "price": 1100,
+      "sportsId": "1887647",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Айзек",
+      "price": 1100,
+      "sportsId": "1963236",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Янгблад",
+      "price": 1000,
+      "sportsId": "2177017",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Энаруна",
+      "price": 1000,
+      "sportsId": "2150322",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Эджиофор",
+      "price": 1000,
+      "sportsId": "2208860",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Хукпорти",
+      "price": 1000,
+      "sportsId": "2150662",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Шарлотт",
+      "clubId": "4177",
+      "name": "Холл",
+      "price": 1000,
+      "sportsId": "2150742",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Ховард",
+      "price": 1000,
+      "sportsId": "2116606",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Хинсон",
+      "price": 1000,
+      "sportsId": "2150566",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Хепберн",
+      "price": 1000,
+      "sportsId": "2176899",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Харпер",
+      "price": 1000,
+      "sportsId": "2090551",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Фримен",
+      "price": 1000,
+      "sportsId": "2150586",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Ферфи",
+      "price": 1000,
+      "sportsId": "2150588",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Уильямс",
+      "price": 1000,
+      "sportsId": "2176777",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Топич",
+      "price": 1000,
+      "sportsId": "2078011",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Тимми",
+      "price": 1000,
+      "sportsId": "2116571",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Смолл",
+      "price": 1000,
+      "sportsId": "2177043",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Смит",
+      "price": 1000,
+      "sportsId": "2150560",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Смит",
+      "price": 1000,
+      "sportsId": "2208875",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Бостон",
+      "clubId": "4176",
+      "name": "Сенак",
+      "price": 1000,
+      "sportsId": "2208864",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Филадельфия",
+      "clubId": "4197",
+      "name": "Рупер",
+      "price": 1000,
+      "sportsId": "2117703",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Пуллин",
+      "price": 1000,
+      "sportsId": "2150645",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Пулакидас",
+      "price": 1000,
+      "sportsId": "2177030",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Проспер",
+      "price": 1000,
+      "sportsId": "2116475",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Проктор",
+      "price": 1000,
+      "sportsId": "2176955",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Питер",
+      "price": 1000,
+      "sportsId": "2177022",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Пит",
+      "price": 1000,
+      "sportsId": "2208867",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Сакраменто",
+      "clubId": "4200",
+      "name": "Ньютон",
+      "price": 1000,
+      "sportsId": "2150587",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Мэйшэк",
+      "price": 1000,
+      "sportsId": "2187052",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Моралес",
+      "price": 1000,
+      "sportsId": "2176987",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Миникс",
+      "price": 1000,
+      "sportsId": "2150714",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Мартин",
+      "price": 1000,
+      "sportsId": "2176901",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "Маркович",
+      "price": 1000,
+      "sportsId": "2095980",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Лейкерс",
+      "clubId": "4187",
+      "name": "Маньон",
+      "price": 1000,
+      "sportsId": "2177038",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Новый Орлеан",
+      "clubId": "4193",
+      "name": "Макгауэнс",
+      "price": 1000,
+      "sportsId": "2090163",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Мемфис",
+      "clubId": "4188",
+      "name": "Лопес",
+      "price": 1000,
+      "sportsId": "2208858",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Леонс",
+      "price": 1000,
+      "sportsId": "2150667",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Детройт",
+      "clubId": "4182",
+      "name": "Ланир",
+      "price": 1000,
+      "sportsId": "2176983",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Куэйнтанс",
+      "price": 1000,
+      "sportsId": "2208857",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Хьюстон",
+      "clubId": "4184",
+      "name": "Кроуфорд",
+      "price": 1000,
+      "sportsId": "2150711",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Голден Стэйт",
+      "clubId": "4183",
+      "name": "Крайер",
+      "price": 1000,
+      "sportsId": "2177013",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Кент",
+      "price": 1000,
+      "sportsId": "2192736",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Орландо",
+      "clubId": "4196",
+      "name": "Каслтон",
+      "price": 1000,
+      "sportsId": "2116509",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Портленд",
+      "clubId": "4199",
+      "name": "Карлсон",
+      "price": 1000,
+      "sportsId": "2150717",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Клипперс",
+      "clubId": "4186",
+      "name": "Кавамура",
+      "price": 1000,
+      "sportsId": "2119447",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Миннесота",
+      "clubId": "4191",
+      "name": "Зикарски",
+      "price": 1000,
+      "sportsId": "2177034",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Кливленд",
+      "clubId": "4179",
+      "name": "Диоп",
+      "price": 1000,
+      "sportsId": "2002461",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Диалло",
+      "price": 1000,
+      "sportsId": "2046285",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Джонсон",
+      "price": 1000,
+      "sportsId": "2176958",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Сан-Антонио",
+      "clubId": "4201",
+      "name": "Джонс-Гарсия",
+      "price": 1000,
+      "sportsId": "2155499",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Бруклин",
+      "clubId": "4192",
+      "name": "Джефферсон",
+      "price": 1000,
+      "sportsId": "2208865",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Джемисон",
+      "price": 1000,
+      "sportsId": "2125156",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Атланта",
+      "clubId": "4175",
+      "name": "Деннис",
+      "price": 1000,
+      "sportsId": "2150591",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Нью-Йорк",
+      "clubId": "4194",
+      "name": "Дадье",
+      "price": 1000,
+      "sportsId": "2060843",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Голдин",
+      "price": 1000,
+      "sportsId": "2177048",
+      "sportsPosition": "5"
+    },
+    {
+      "club": "Вашингтон",
+      "clubId": "4204",
+      "name": "Гилл",
+      "price": 1000,
+      "sportsId": "1971132",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Майами",
+      "clubId": "4189",
+      "name": "Гарднер",
+      "price": 1000,
+      "sportsId": "2177047",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Юта",
+      "clubId": "4203",
+      "name": "Бэйтс",
+      "price": 1000,
+      "sportsId": "2176977",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Буей",
+      "price": 1000,
+      "sportsId": "2090364",
+      "sportsPosition": "1"
+    },
+    {
+      "club": "Финикс",
+      "clubId": "4198",
+      "name": "Бри",
+      "price": 1000,
+      "sportsId": "2176973",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Индиана",
+      "clubId": "4185",
+      "name": "Браун",
+      "price": 1000,
+      "sportsId": "2116505",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Биберович",
+      "price": 1000,
+      "sportsId": "1999940",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "Барнхайзер",
+      "price": 1000,
+      "sportsId": "2177020",
+      "sportsPosition": "2"
+    },
+    {
+      "club": "Милуоки",
+      "clubId": "4190",
+      "name": "А. Адетокумбо",
+      "price": 1000,
+      "sportsId": "2033098",
+      "sportsPosition": "3"
+    },
+    {
+      "club": "Даллас",
+      "clubId": "4180",
+      "name": "Lawal",
+      "price": 1000,
+      "sportsId": "2208884",
+      "sportsPosition": "4"
+    },
+    {
+      "club": "Денвер",
+      "clubId": "4181",
+      "name": "Hopkins",
+      "price": 1000,
+      "sportsId": "2208885",
+      "sportsPosition": "3"
+    }
+  ],
+  "sourceRowCount": 482,
+  "duplicateRowsRemoved": 1
+}
