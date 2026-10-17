@@ -2,6 +2,8 @@ name: Test and deploy Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: '0 2 * * *'
@@ -10,7 +12,7 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -43,8 +45,10 @@ jobs:
         with:
           path: .cache/online
           key: online-evidence-${{ runner.os }}-${{ github.run_id }}
-      - name: Apply published Yahoo analyst position evidence
+      - name: Fetch optional Yahoo transfer-position reference
         run: python scripts/apply_positions.py
+      - name: Apply verified Sports.ru prices, draft positions and salary cap
+        run: python scripts/apply_sports_prices.py
       - name: Audit historical projection provenance
         run: python scripts/audit_projection_archive.py
       - name: Train and evaluate the career model in temporal order
@@ -75,6 +79,7 @@ jobs:
         with:
           path: dist
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

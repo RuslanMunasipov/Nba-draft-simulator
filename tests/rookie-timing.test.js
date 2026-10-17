@@ -68,3 +68,10 @@ test('specific rookie loss counts equal opponent selections before the next huma
   assert.equal(Object.values(p.veteranNow).reduce((x,y)=>x+y,0),3);
  }
 });
+
+test('unaffordable timing policies report invalid runs and never invent a best round',()=>{
+ const priced=players.map(p=>({...p,price:3000,priceStatus:'VERIFIED'}));
+ const result=rookieTimingStudy(newDraft(priced,20000,'ON'),{runs:1});
+ assert.equal(result.recommendedRound,null);assert.ok(result.rows.every(r=>!r.valid));
+ assert.ok(result.rows.every(r=>r.profiles.every(p=>p.validRuns===0&&p.meanTeam===null)));
+});

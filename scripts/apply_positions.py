@@ -49,17 +49,24 @@ def apply(data,positions):
              checkedAt=data['generatedAt'],sourcePlayers=len(positions),matchedPlayers=matched,changes=changes,
              limitation='Published Yahoo analyst positions, not an authenticated live Yahoo league response. Only Yahoo-published positions are eligible. Unmatched players have no confirmed eligibility; ESPN positions are not used.')
 if __name__=='__main__':
- req=urllib.request.Request(SOURCE,headers={'User-Agent':'FBL-Draft-Intelligence/0.3'})
- with urllib.request.urlopen(req,timeout=30) as response:html=response.read().decode()
- plain=' '.join(unescape(re.sub('<[^>]+>',' ',html)).split())
- if '2026-27 fantasy basketball draft season' not in plain or 'Dan Titus' not in plain or 'Yahoo' not in plain:raise ValueError('Position source season/author not confirmed')
- positions=parse_positions(html)
- if len(positions)<200:raise ValueError('Incomplete published position table')
  path=Path('public/data/default-draft.json');data=json.loads(path.read_text())
- report=apply(data,positions)
- if report['matchedPlayers']<180:raise ValueError('Position mapping coverage too low')
- w=next(p for p in data['players'] if p['name']=='Victor Wembanyama')
- if w['positions']!=['C']:raise ValueError('Published Wembanyama position regression')
+ try:
+  req=urllib.request.Request(SOURCE,headers={'User-Agent':'FBL-Draft-Intelligence/0.3'})
+  with urllib.request.urlopen(req,timeout=30) as response:html=response.read().decode()
+  plain=' '.join(unescape(re.sub('<[^>]+>',' ',html)).split())
+  if '2026-27 fantasy basketball draft season' not in plain or 'Dan Titus' not in plain or 'Yahoo' not in plain:raise ValueError('Position source season/author not confirmed')
+  positions=parse_positions(html)
+  if len(positions)<200:raise ValueError('Incomplete published position table')
+  report=apply(data,positions)
+  if report['matchedPlayers']<180:raise ValueError('Position mapping coverage too low')
+  w=next(p for p in data['players'] if p['name']=='Victor Wembanyama')
+  if w['positions']!=['C']:raise ValueError('Published Wembanyama position regression')
+ except Exception as error:
+  # Yahoo is only a transfer reference. Never let its outage block Sports.ru.
+  for player in data['players']:player.update(positions=[],positionStatus='MISSING',positionSource=None,positionProvider=None)
+  report=dict(source=SOURCE,status='UNAVAILABLE',platformEligibilityVerified=False,checkedAt=data['generatedAt'],
+              sourcePlayers=0,matchedPlayers=0,changes=[],error=type(error).__name__,
+              limitation='Yahoo reference unavailable; no ESPN eligibility substituted. Sports.ru draft positions are applied independently.')
  data['positionAudit']=report
  path.write_text(json.dumps(data,ensure_ascii=False))
  Path('public/data/position-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))

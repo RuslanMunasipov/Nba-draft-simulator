@@ -161,7 +161,7 @@ def build(data,rows_by_season):
         forecasts+=1
     audit={'status':'EXPERIMENTAL_FULL_FORMULA_ESTIMATES','rulesSource':RULES,'checkedAt':data['generatedAt'],
       'minuteEncoding':encoding,'coverage':coverage,'forecastPlayers':forecasts,'rookieForecasts':sum(bool(p.get('isRookie') and p.get('forecast')) for p in data['players']),
-      'positionAudit':data.get('positionAudit'),
+      'positionAudit':data.get('positionAudit'),'sportsPositionAudit':data.get('sportsPositionAudit'),
       'leagueRules':json.loads(Path('data/league-rules.json').read_text()),
       'projectionArchive':json.loads(Path('public/data/projection-archive-audit.json').read_text()) if Path('public/data/projection-archive-audit.json').exists() else None,
       'seasonModel':production.report(),

@@ -1,0 +1,3847 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-17",
+  "method": "Reviewed bilingual full-name and club identity crosswalk, matched by NBA/ESPN IDs with exact canonical name and source-row consistency checks. No fuzzy matching at runtime. Sports.ru positions govern the draft; Yahoo eligibility is a separate transfer reference.",
+  "players": [
+    {
+      "sportsId": "1887865",
+      "espnId": "3112335",
+      "nbaId": 203999,
+      "name": "Nikola Jokic",
+      "sportsName": "Йокич",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "1923275",
+      "espnId": "3945274",
+      "nbaId": 1629029,
+      "name": "Luka Doncic",
+      "sportsName": "Дончич",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "1985124",
+      "espnId": "4278073",
+      "nbaId": 1628983,
+      "name": "Shai Gilgeous-Alexander",
+      "sportsName": "Гилджес-Александер",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2034489",
+      "espnId": "5104157",
+      "nbaId": 1641705,
+      "name": "Victor Wembanyama",
+      "sportsName": "Вембаньяма",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "1850092",
+      "espnId": "3032977",
+      "nbaId": 203507,
+      "name": "Giannis Antetokounmpo",
+      "sportsName": "Я. Адетокумбо",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "1963233",
+      "espnId": "4065648",
+      "nbaId": 1628369,
+      "name": "Jayson Tatum",
+      "sportsName": "Тейтум",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "1810901",
+      "espnId": "6583",
+      "nbaId": 203076,
+      "name": "Anthony Davis",
+      "sportsName": "Дэвис",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "1916604",
+      "espnId": "3136195",
+      "nbaId": 1626157,
+      "name": "Karl-Anthony Towns",
+      "sportsName": "Таунс",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "38600",
+      "espnId": "3975",
+      "nbaId": 201939,
+      "name": "Stephen Curry",
+      "sportsName": "Карри",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "38368",
+      "espnId": "3202",
+      "nbaId": 201142,
+      "name": "Kevin Durant",
+      "sportsName": "Дюрэнт",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "1887623",
+      "espnId": "3059318",
+      "nbaId": 203954,
+      "name": "Joel Embiid",
+      "sportsName": "Эмбиид",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2038517",
+      "espnId": "4594268",
+      "nbaId": 1630162,
+      "name": "Anthony Edwards",
+      "sportsName": "Эдвардс",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2038497",
+      "espnId": "4396993",
+      "nbaId": 1630169,
+      "name": "Tyrese Haliburton",
+      "sportsName": "Халибертон",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2038002",
+      "espnId": "4431678",
+      "nbaId": 1630178,
+      "name": "Tyrese Maxey",
+      "sportsName": "Макси",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2055894",
+      "espnId": "4432166",
+      "nbaId": 1630595,
+      "name": "Cade Cunningham",
+      "sportsName": "Каннингем",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2090211",
+      "espnId": "4433621",
+      "nbaId": 1631105,
+      "name": "Jalen Duren",
+      "sportsName": "Дюрен",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2055798",
+      "espnId": "4701230",
+      "nbaId": 1630552,
+      "name": "Jalen Johnson",
+      "sportsName": "Джонсон",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "1796919",
+      "espnId": "6430",
+      "nbaId": 202710,
+      "name": "Jimmy Butler III",
+      "sportsName": "Батлер",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2014360",
+      "espnId": "4871144",
+      "nbaId": 1630578,
+      "name": "Alperen Sengun",
+      "sportsName": "Шенгюн",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "1947981",
+      "espnId": "3936299",
+      "nbaId": 1627750,
+      "name": "Jamal Murray",
+      "sportsName": "Дж. Мюррэй",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2055856",
+      "espnId": "4432158",
+      "nbaId": 1630596,
+      "name": "Evan Mobley",
+      "sportsName": "Э. Мобли",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "1963242",
+      "espnId": "3908809",
+      "nbaId": 1628378,
+      "name": "Donovan Mitchell",
+      "sportsName": "Митчелл",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "1985464",
+      "espnId": "3934672",
+      "nbaId": 1628973,
+      "name": "Jalen Brunson",
+      "sportsName": "Брансон",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2056241",
+      "espnId": "4433134",
+      "nbaId": 1630567,
+      "name": "Scottie Barnes",
+      "sportsName": "Барнс",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "38254",
+      "espnId": "3992",
+      "nbaId": 201935,
+      "name": "James Harden",
+      "sportsName": "Харден",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2176970",
+      "espnId": "5041939",
+      "nbaId": 1642843,
+      "name": "Cooper Flagg",
+      "sportsName": "Флэгг",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "1947874",
+      "espnId": "3149673",
+      "nbaId": 1627783,
+      "name": "Pascal Siakam",
+      "sportsName": "Сиакам",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "1857188",
+      "espnId": "3155942",
+      "nbaId": 1627734,
+      "name": "Domantas Sabonis",
+      "sportsName": "Сабонис",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "1796920",
+      "espnId": "6442",
+      "nbaId": 202681,
+      "name": "Kyrie Irving",
+      "sportsName": "Ирвинг",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "38615",
+      "espnId": "1966",
+      "nbaId": 2544,
+      "name": "LeBron James",
+      "sportsName": "Джеймс",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "1963251",
+      "espnId": "4066328",
+      "nbaId": 1628386,
+      "name": "Jarrett Allen",
+      "sportsName": "Аллен",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "1963243",
+      "espnId": "4066261",
+      "nbaId": 1628389,
+      "name": "Bam Adebayo",
+      "sportsName": "Адебайо",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2090531",
+      "espnId": "4433255",
+      "nbaId": 1631096,
+      "name": "Chet Holmgren",
+      "sportsName": "Холмгрен",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2014918",
+      "espnId": "4395628",
+      "nbaId": 1629627,
+      "name": "Zion Williamson",
+      "sportsName": "Уильямсон",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2090534",
+      "espnId": "4593803",
+      "nbaId": 1631114,
+      "name": "Jalen Williams",
+      "sportsName": "Джейлен Уильямс",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2116493",
+      "espnId": "4684740",
+      "nbaId": 1641708,
+      "name": "Amen Thompson",
+      "sportsName": "Томпсон",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "1948079",
+      "espnId": "4017837",
+      "nbaId": 1627826,
+      "name": "Ivica Zubac",
+      "sportsName": "Зубац",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "1847180",
+      "espnId": "3032976",
+      "nbaId": 203497,
+      "name": "Rudy Gobert",
+      "sportsName": "Гобер",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "1916614",
+      "espnId": "3136193",
+      "nbaId": 1626164,
+      "name": "Devin Booker",
+      "sportsName": "Букер",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "1948032",
+      "espnId": "3917376",
+      "nbaId": 1627759,
+      "name": "Jaylen Brown",
+      "sportsName": "Браун",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2090536",
+      "espnId": "4432573",
+      "nbaId": 1631094,
+      "name": "Paolo Banchero",
+      "sportsName": "Банкеро",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "1993268",
+      "espnId": "4683021",
+      "nbaId": 1630166,
+      "name": "Deni Avdija",
+      "sportsName": "Авдия",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "1985081",
+      "espnId": "4277905",
+      "nbaId": 1629027,
+      "name": "Trae Young",
+      "sportsName": "Янг",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2056095",
+      "espnId": "4066457",
+      "nbaId": 1630559,
+      "name": "Austin Reaves",
+      "sportsName": "Ривз",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "1963237",
+      "espnId": "4066336",
+      "nbaId": 1628374,
+      "name": "Lauri Markkanen",
+      "sportsName": "Маркканен",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "1948080",
+      "espnId": "3913176",
+      "nbaId": 1627742,
+      "name": "Brandon Ingram",
+      "sportsName": "Ингрэм",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2056226",
+      "espnId": "4871145",
+      "nbaId": 1630581,
+      "name": "Josh Giddey",
+      "sportsName": "Гидди",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2056232",
+      "espnId": "4566434",
+      "nbaId": 1630532,
+      "name": "Franz Wagner",
+      "sportsName": "Ф. Вагнер",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "1963235",
+      "espnId": "4066259",
+      "nbaId": 1628368,
+      "name": "De'Aaron Fox",
+      "sportsName": "Фокс",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "1963257",
+      "espnId": "3078576",
+      "nbaId": 1628401,
+      "name": "Derrick White",
+      "sportsName": "Уайт",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "1887627",
+      "espnId": "3064514",
+      "nbaId": 203944,
+      "name": "Julius Randle",
+      "sportsName": "Рэндл",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "1985116",
+      "espnId": "4278104",
+      "nbaId": 1629008,
+      "name": "Michael Porter Jr.",
+      "sportsName": "Портер",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2056176",
+      "espnId": "4397688",
+      "nbaId": 1630530,
+      "name": "Trey Murphy III",
+      "sportsName": "Мерфи",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "1812024",
+      "espnId": "6606",
+      "nbaId": 203081,
+      "name": "Damian Lillard",
+      "sportsName": "Лиллард",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2150707",
+      "espnId": "5105565",
+      "nbaId": 1642270,
+      "name": "Donovan Clingan",
+      "sportsName": "Клинган",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2090552",
+      "espnId": "4433136",
+      "nbaId": 1631117,
+      "name": "Walker Kessler",
+      "sportsName": "Кесслер",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2015177",
+      "espnId": "4396907",
+      "nbaId": 1629636,
+      "name": "Darius Garland",
+      "sportsName": "Гарлэнд",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2038431",
+      "espnId": "4066320",
+      "nbaId": 1630217,
+      "name": "Desmond Bane",
+      "sportsName": "Бэйн",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2208840",
+      "espnId": "5041935",
+      "nbaId": null,
+      "name": "Cameron Boozer",
+      "sportsName": "Бузер",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2038301",
+      "espnId": "4432816",
+      "nbaId": 1630163,
+      "name": "LaMelo Ball",
+      "sportsName": "Болл",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2014969",
+      "espnId": "4395725",
+      "nbaId": 1629639,
+      "name": "Tyler Herro",
+      "sportsName": "Хирро",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "1948666",
+      "espnId": "4222252",
+      "nbaId": 1628392,
+      "name": "Isaiah Hartenstein",
+      "sportsName": "Хартенштайн",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2176909",
+      "espnId": "5037871",
+      "nbaId": 1642844,
+      "name": "Dylan Harper",
+      "sportsName": "Харпер",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2037968",
+      "espnId": "4066354",
+      "nbaId": 1630202,
+      "name": "Payton Pritchard",
+      "sportsName": "Притчард",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "1916607",
+      "espnId": "3102531",
+      "nbaId": 204001,
+      "name": "Kristaps Porzingis",
+      "sportsName": "Порзингис",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2038508",
+      "espnId": "4431680",
+      "nbaId": 1630168,
+      "name": "Onyeka Okongwu",
+      "sportsName": "Оконгву",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "1947991",
+      "espnId": "3907497",
+      "nbaId": 1627749,
+      "name": "Dejounte Murray",
+      "sportsName": "Мюррэй",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2176905",
+      "espnId": "5061575",
+      "nbaId": 1642851,
+      "name": "Kon Knueppel",
+      "sportsName": "Книппел",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2150712",
+      "espnId": "4845367",
+      "nbaId": 1642264,
+      "name": "Stephon Castle",
+      "sportsName": "Касл",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2090369",
+      "espnId": "4869342",
+      "nbaId": 1630700,
+      "name": "Dyson Daniels",
+      "sportsName": "Дэниэлс",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2208838",
+      "espnId": "5142718",
+      "nbaId": null,
+      "name": "AJ Dybantsa",
+      "sportsName": "Дибанца",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "198014",
+      "espnId": "4251",
+      "nbaId": 202331,
+      "name": "Paul George",
+      "sportsName": "Джордж",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "1985130",
+      "espnId": "4277961",
+      "nbaId": 1628991,
+      "name": "Jaren Jackson Jr.",
+      "sportsName": "Джарен Джексон",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "1887624",
+      "espnId": "3064290",
+      "nbaId": 203932,
+      "name": "Aaron Gordon",
+      "sportsName": "Гордон",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "1985106",
+      "espnId": "4066383",
+      "nbaId": 1628970,
+      "name": "Miles Bridges",
+      "sportsName": "Бриджес",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "1963252",
+      "espnId": "3934719",
+      "nbaId": 1628384,
+      "name": "OG Anunoby",
+      "sportsName": "Ануноби",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2176979",
+      "espnId": "5124612",
+      "nbaId": 1642845,
+      "name": "VJ Edgecombe",
+      "sportsName": "Эджкомб",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "1963258",
+      "espnId": "3062679",
+      "nbaId": 1628404,
+      "name": "Josh Hart",
+      "sportsName": "Харт",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2150642",
+      "espnId": "5105623",
+      "nbaId": 1642276,
+      "name": "Kel'el Ware",
+      "sportsName": "Уэйр",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2090159",
+      "espnId": "4701232",
+      "nbaId": 1631109,
+      "name": "Mark Williams",
+      "sportsName": "Уильямс",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2208841",
+      "espnId": "5095151",
+      "nbaId": null,
+      "name": "Caleb Wilson",
+      "sportsName": "Уилсон",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "1916612",
+      "espnId": "3133628",
+      "nbaId": 1626167,
+      "name": "Myles Turner",
+      "sportsName": "Тернер",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2090223",
+      "espnId": "4432639",
+      "nbaId": 1631095,
+      "name": "Jabari Smith Jr.",
+      "sportsName": "Смит",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "1947875",
+      "espnId": "3134908",
+      "nbaId": 1627751,
+      "name": "Jakob Poeltl",
+      "sportsName": "Пелтль",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "1916656",
+      "espnId": "2595516",
+      "nbaId": 1626181,
+      "name": "Norman Powell",
+      "sportsName": "Пауэлл",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2014914",
+      "espnId": "4279888",
+      "nbaId": 1629630,
+      "name": "Ja Morant",
+      "sportsName": "Морэнт",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2116461",
+      "espnId": "4433287",
+      "nbaId": 1641706,
+      "name": "Brandon Miller",
+      "sportsName": "Миллер",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "1847278",
+      "espnId": "2490149",
+      "nbaId": 203468,
+      "name": "CJ McCollum",
+      "sportsName": "Макколлум",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "1887633",
+      "espnId": "3064440",
+      "nbaId": 203897,
+      "name": "Zach LaVine",
+      "sportsName": "Лавин",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2056238",
+      "espnId": "4397424",
+      "nbaId": 1629674,
+      "name": "Neemias Queta",
+      "sportsName": "Кета",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2117860",
+      "espnId": "4433627",
+      "nbaId": 1641718,
+      "name": "Keyonte George",
+      "sportsName": "Джордж",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "1947923",
+      "espnId": "2991230",
+      "nbaId": 1627832,
+      "name": "Fred VanVleet",
+      "sportsName": "Ванвлит",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "1985152",
+      "espnId": "3147657",
+      "nbaId": 1628969,
+      "name": "Mikal Bridges",
+      "sportsName": "Бриджес",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2014915",
+      "espnId": "4278039",
+      "nbaId": 1629638,
+      "name": "Nickeil Alexander-Walker",
+      "sportsName": "Александер-Уокер",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "1985151",
+      "espnId": "4278129",
+      "nbaId": 1629028,
+      "name": "Deandre Ayton",
+      "sportsName": "Эйтон",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "1796985",
+      "espnId": "6440",
+      "nbaId": 202699,
+      "name": "Tobias Harris",
+      "sportsName": "Харрис",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2015183",
+      "espnId": "4395651",
+      "nbaId": 1629632,
+      "name": "Coby White",
+      "sportsName": "Уайт",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2116483",
+      "espnId": "4684742",
+      "nbaId": 1641709,
+      "name": "Ausar Thompson",
+      "sportsName": "Томпсон",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2150728",
+      "espnId": "5160992",
+      "nbaId": 1642259,
+      "name": "Alex Sarr",
+      "sportsName": "Сарр",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2090217",
+      "espnId": "4591725",
+      "nbaId": 1631157,
+      "name": "Ryan Rollins",
+      "sportsName": "Роллинз",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "1985136",
+      "espnId": "4351852",
+      "nbaId": 1629011,
+      "name": "Mitchell Robinson",
+      "sportsName": "Робинсон",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2014986",
+      "espnId": "4396971",
+      "nbaId": 1629675,
+      "name": "Naz Reid",
+      "sportsName": "Рид",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2116487",
+      "espnId": "4709138",
+      "nbaId": 1641764,
+      "name": "Brandin Podziemski",
+      "sportsName": "Подземски",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2176900",
+      "espnId": "5093267",
+      "nbaId": 1642867,
+      "name": "Collin Murray-Boyles",
+      "sportsName": "Мюррэй-Бойлс",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2090542",
+      "espnId": "4594327",
+      "nbaId": 1631099,
+      "name": "Keegan Murray",
+      "sportsName": "Мюррэй",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2208848",
+      "espnId": "5175737",
+      "nbaId": null,
+      "name": "Yaxel Lendeborg",
+      "sportsName": "Лендеборг",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2038007",
+      "espnId": "4395724",
+      "nbaId": 1630193,
+      "name": "Immanuel Quickley",
+      "sportsName": "Куикли",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "1963248",
+      "espnId": "3908845",
+      "nbaId": 1628381,
+      "name": "John Collins",
+      "sportsName": "Коллинз",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2015065",
+      "espnId": "4278067",
+      "nbaId": 1629651,
+      "name": "Nic Claxton",
+      "sportsName": "Клэкстон",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2119524",
+      "espnId": "4600663",
+      "nbaId": 1641744,
+      "name": "Zach Edey",
+      "sportsName": "Иди",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "38661",
+      "espnId": "3978",
+      "nbaId": 201942,
+      "name": "DeMar DeRozan",
+      "sportsName": "Дерозан",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2056083",
+      "espnId": "4437244",
+      "nbaId": 1630224,
+      "name": "Jalen Green",
+      "sportsName": "Грин",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "1784460",
+      "espnId": "6478",
+      "nbaId": 202696,
+      "name": "Nikola Vucevic",
+      "sportsName": "Вучевич",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2150425",
+      "espnId": "4711294",
+      "nbaId": 1641824,
+      "name": "Matas Buzelis",
+      "sportsName": "Бузелис",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2015129",
+      "espnId": "4395625",
+      "nbaId": 1629628,
+      "name": "RJ Barrett",
+      "sportsName": "Барретт",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2208844",
+      "espnId": "5142620",
+      "nbaId": null,
+      "name": "Darius Acuff Jr.",
+      "sportsName": "Эйкафф",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2090538",
+      "espnId": "4592479",
+      "nbaId": 1630577,
+      "name": "Julian Champagnie",
+      "sportsName": "Шэмпени",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2090540",
+      "espnId": "4914336",
+      "nbaId": 1631101,
+      "name": "Shaedon Sharpe",
+      "sportsName": "Шарп",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2055805",
+      "espnId": "4432194",
+      "nbaId": 1630549,
+      "name": "Day'Ron Sharpe",
+      "sportsName": "Шарп",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "38666",
+      "espnId": "3995",
+      "nbaId": 201950,
+      "name": "Jrue Holiday",
+      "sportsName": "Холидэй",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2011301",
+      "espnId": "4066648",
+      "nbaId": 1629060,
+      "name": "Rui Hachimura",
+      "sportsName": "Хатимура",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2116565",
+      "espnId": "4432848",
+      "nbaId": 1631170,
+      "name": "Jaime Jaquez Jr.",
+      "sportsName": "Хакес",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2090206",
+      "espnId": "4576087",
+      "nbaId": 1631212,
+      "name": "Peyton Watson",
+      "sportsName": "Уотсон",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2208842",
+      "espnId": "5254165",
+      "nbaId": null,
+      "name": "Keaton Wagler",
+      "sportsName": "Уоглер",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "1887621",
+      "espnId": "3059319",
+      "nbaId": 203952,
+      "name": "Andrew Wiggins",
+      "sportsName": "Уиггинс",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "1916616",
+      "espnId": "3133603",
+      "nbaId": 1626162,
+      "name": "Kelly Oubre Jr.",
+      "sportsName": "Убре",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "1915956",
+      "espnId": "3064482",
+      "nbaId": 1626171,
+      "name": "Bobby Portis",
+      "sportsName": "Портис",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2208839",
+      "espnId": "5041955",
+      "nbaId": null,
+      "name": "Darryn Peterson",
+      "sportsName": "Питерсон",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "1823483",
+      "espnId": "3102530",
+      "nbaId": 203994,
+      "name": "Jusuf Nurkic",
+      "sportsName": "Нуркич",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2037967",
+      "espnId": "4396909",
+      "nbaId": 1630174,
+      "name": "Aaron Nesmith",
+      "sportsName": "Несмит",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2011364",
+      "espnId": "4395712",
+      "nbaId": 1629614,
+      "name": "Andrew Nembhard",
+      "sportsName": "Нембхард",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2055899",
+      "espnId": "4432171",
+      "nbaId": 1630541,
+      "name": "Moses Moody",
+      "sportsName": "Муди",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2056239",
+      "espnId": "4278053",
+      "nbaId": 1630558,
+      "name": "Davion Mitchell",
+      "sportsName": "Митчелл",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2043876",
+      "espnId": "4900671",
+      "nbaId": 1642349,
+      "name": "Ajay Mitchell",
+      "sportsName": "Митчелл",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2090228",
+      "espnId": "4683634",
+      "nbaId": 1631097,
+      "name": "Bennedict Mathurin",
+      "sportsName": "Матурин",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2038716",
+      "espnId": "4278594",
+      "nbaId": 1630230,
+      "name": "Naji Marshall",
+      "sportsName": "Маршалл",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2037936",
+      "espnId": "4431671",
+      "nbaId": 1630183,
+      "name": "Jaden McDaniels",
+      "sportsName": "Макдэниэлс",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "1985112",
+      "espnId": "4277847",
+      "nbaId": 1628976,
+      "name": "Wendell Carter Jr.",
+      "sportsName": "Картер",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2116644",
+      "espnId": "4431736",
+      "nbaId": 1641739,
+      "name": "Toumani Camara",
+      "sportsName": "Камара",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "1985195",
+      "espnId": "3934673",
+      "nbaId": 1628978,
+      "name": "Donte DiVincenzo",
+      "sportsName": "Дивинченцо",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2090236",
+      "espnId": "4433249",
+      "nbaId": 1631217,
+      "name": "Moussa Diabate",
+      "sportsName": "Диабате",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2014946",
+      "espnId": "3138196",
+      "nbaId": 1629661,
+      "name": "Cameron Johnson",
+      "sportsName": "К. Джонсон",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2014945",
+      "espnId": "4065733",
+      "nbaId": 1629660,
+      "name": "Ty Jerome",
+      "sportsName": "Джером",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2015181",
+      "espnId": "4278049",
+      "nbaId": 1629655,
+      "name": "Daniel Gafford",
+      "sportsName": "Гэффорд",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "1887657",
+      "espnId": "2991070",
+      "nbaId": 203924,
+      "name": "Jerami Grant",
+      "sportsName": "Грант",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2014978",
+      "espnId": "4278078",
+      "nbaId": 1629023,
+      "name": "P.J. Washington",
+      "sportsName": "Вашингтон",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2038494",
+      "espnId": "4395630",
+      "nbaId": 1630170,
+      "name": "Devin Vassell",
+      "sportsName": "Васселл",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2176784",
+      "espnId": "4873138",
+      "nbaId": 1642846,
+      "name": "Ace Bailey",
+      "sportsName": "Бэйли",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "1963345",
+      "espnId": "3155526",
+      "nbaId": 1628415,
+      "name": "Dillon Brooks",
+      "sportsName": "Брукс",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2090208",
+      "espnId": "4431767",
+      "nbaId": 1631128,
+      "name": "Christian Braun",
+      "sportsName": "К. Браун",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2038208",
+      "espnId": "4397136",
+      "nbaId": 1630180,
+      "name": "Saddiq Bey",
+      "sportsName": "Бей",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2056099",
+      "espnId": "4593125",
+      "nbaId": 1630583,
+      "name": "Santi Aldama",
+      "sportsName": "Альдама",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "1847150",
+      "espnId": "3032979",
+      "nbaId": 203471,
+      "name": "Dennis Schroder",
+      "sportsName": "Шредер",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2150582",
+      "espnId": "4711272",
+      "nbaId": 1642263,
+      "name": "Reed Sheppard",
+      "sportsName": "Шеппард",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "38262",
+      "espnId": "3213",
+      "nbaId": 201143,
+      "name": "Al Horford",
+      "sportsName": "Хорфорд",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2150559",
+      "espnId": "4683771",
+      "nbaId": 1641842,
+      "name": "Ronald Holland II",
+      "sportsName": "Холланд",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2055799",
+      "espnId": "4065804",
+      "nbaId": 1630573,
+      "name": "Sam Hauser",
+      "sportsName": "Хаузер",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "1847186",
+      "espnId": "2528210",
+      "nbaId": 203501,
+      "name": "Tim Hardaway Jr.",
+      "sportsName": "Хардуэй",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2014952",
+      "espnId": "4065732",
+      "nbaId": 1629631,
+      "name": "De'Andre Hunter",
+      "sportsName": "Хантер",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2150641",
+      "espnId": "5112087",
+      "nbaId": 1642377,
+      "name": "Jaylen Wells",
+      "sportsName": "Уэллс",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2116604",
+      "espnId": "4683692",
+      "nbaId": 1641717,
+      "name": "Cason Wallace",
+      "sportsName": "Уоллес",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "1985105",
+      "espnId": "4066211",
+      "nbaId": 1629057,
+      "name": "Robert Williams III",
+      "sportsName": "Р. Уильямс",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2090532",
+      "espnId": "4432823",
+      "nbaId": 1631119,
+      "name": "Jaylin Williams",
+      "sportsName": "Джейлин Уильямс",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2056229",
+      "espnId": "4397183",
+      "nbaId": 1630598,
+      "name": "Aaron Wiggins",
+      "sportsName": "Уиггинс",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2038492",
+      "espnId": "4278355",
+      "nbaId": 1630167,
+      "name": "Obi Toppin",
+      "sportsName": "Топпин",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "1797006",
+      "espnId": "6475",
+      "nbaId": 202691,
+      "name": "Klay Thompson",
+      "sportsName": "Томпсон",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2015061",
+      "espnId": "4065778",
+      "nbaId": 1629622,
+      "name": "Max Strus",
+      "sportsName": "Струс",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2038451",
+      "espnId": "4397189",
+      "nbaId": 1630188,
+      "name": "Jalen Smith",
+      "sportsName": "Смит",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "1985114",
+      "espnId": "4277811",
+      "nbaId": 1629012,
+      "name": "Collin Sexton",
+      "sportsName": "Секстон",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "1985155",
+      "espnId": "4351851",
+      "nbaId": 1629014,
+      "name": "Anfernee Simons",
+      "sportsName": "Саймонс",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2056231",
+      "espnId": "4432165",
+      "nbaId": 1630591,
+      "name": "Jalen Suggs",
+      "sportsName": "Саггс",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "1985145",
+      "espnId": "3157465",
+      "nbaId": 1629130,
+      "name": "Duncan Robinson",
+      "sportsName": "Д. Робинсон",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2068200",
+      "espnId": "5211175",
+      "nbaId": 1642258,
+      "name": "Zaccharie Risacher",
+      "sportsName": "Рисаше",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2038005",
+      "espnId": "4278562",
+      "nbaId": 1630194,
+      "name": "Paul Reed",
+      "sportsName": "Рид",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2176953",
+      "espnId": "4898371",
+      "nbaId": 1642875,
+      "name": "Maxime Raynaud",
+      "sportsName": "Рейно",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2014928",
+      "espnId": "4277956",
+      "nbaId": 1629673,
+      "name": "Jordan Poole",
+      "sportsName": "Пул",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2015178",
+      "espnId": "4397140",
+      "nbaId": 1629645,
+      "name": "Kevin Porter Jr.",
+      "sportsName": "Портер",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2091025",
+      "espnId": "4431785",
+      "nbaId": 1630590,
+      "name": "Scotty Pippen Jr.",
+      "sportsName": "Пиппен",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "1823045",
+      "espnId": "3102529",
+      "nbaId": 203991,
+      "name": "Clint Capela",
+      "sportsName": "Капела",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "1963240",
+      "espnId": "4066262",
+      "nbaId": 1628370,
+      "name": "Malik Monk",
+      "sportsName": "Монк",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2150659",
+      "espnId": "5061589",
+      "nbaId": 1642274,
+      "name": "Yves Missi",
+      "sportsName": "Мисси",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2077944",
+      "espnId": "5174983",
+      "nbaId": null,
+      "name": "Aday Mara",
+      "sportsName": "Мара",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2056169",
+      "espnId": "4278580",
+      "nbaId": 1630572,
+      "name": "Sandro Mamukelashvili",
+      "sportsName": "Мамукелашвили",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2119644",
+      "espnId": "5203685",
+      "nbaId": 1642863,
+      "name": "Khaman Maluach",
+      "sportsName": "Малуач",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "1923684",
+      "espnId": "2530530",
+      "nbaId": 204456,
+      "name": "T.J. McConnell",
+      "sportsName": "Макконнелл",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "38681",
+      "espnId": "3448",
+      "nbaId": 201572,
+      "name": "Brook Lopez",
+      "sportsName": "Б. Лопес",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2090246",
+      "espnId": "4592691",
+      "nbaId": 1631222,
+      "name": "Jake LaRavia",
+      "sportsName": "Ларэвиа",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2150643",
+      "espnId": "4601025",
+      "nbaId": 1641796,
+      "name": "Pelle Larsson",
+      "sportsName": "Ларссон",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2116477",
+      "espnId": "4683688",
+      "nbaId": 1641726,
+      "name": "Dereck Lively II",
+      "sportsName": "Лайвли",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2055898",
+      "espnId": "4433247",
+      "nbaId": 1630228,
+      "name": "Jonathan Kuminga",
+      "sportsName": "Куминга",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2090269",
+      "espnId": "5104155",
+      "nbaId": 1641731,
+      "name": "Bilal Coulibaly",
+      "sportsName": "Кулибали",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2177029",
+      "espnId": "4869780",
+      "nbaId": 1642852,
+      "name": "Derik Queen",
+      "sportsName": "Куин",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2056259",
+      "espnId": "4280151",
+      "nbaId": 1630557,
+      "name": "Corey Kispert",
+      "sportsName": "Кисперт",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "1963241",
+      "espnId": "3913174",
+      "nbaId": 1628379,
+      "name": "Luke Kennard",
+      "sportsName": "Кеннард",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2177044",
+      "espnId": "4903027",
+      "nbaId": 1642907,
+      "name": "Cedric Coward",
+      "sportsName": "Кауард",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2208861",
+      "espnId": "5113969",
+      "nbaId": null,
+      "name": "Cameron Carr",
+      "sportsName": "Карр",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2119672",
+      "espnId": "4997536",
+      "nbaId": 1630611,
+      "name": "Gui Santos",
+      "sportsName": "Сантос",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2090224",
+      "espnId": "4433192",
+      "nbaId": 1631106,
+      "name": "Tari Eason",
+      "sportsName": "Исон",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "2055814",
+      "espnId": "4397002",
+      "nbaId": 1630245,
+      "name": "Ayo Dosunmu",
+      "sportsName": "Досунму",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2015010",
+      "espnId": "4397020",
+      "nbaId": 1629652,
+      "name": "Luguentz Dort",
+      "sportsName": "Дорт",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2150727",
+      "espnId": "5174563",
+      "nbaId": 1642273,
+      "name": "Kyshawn George",
+      "sportsName": "Джордж",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2014919",
+      "espnId": "4395723",
+      "nbaId": 1629640,
+      "name": "Keldon Johnson",
+      "sportsName": "К. Джонсон",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2038493",
+      "espnId": "4395626",
+      "nbaId": 1630200,
+      "name": "Tre Jones",
+      "sportsName": "Джонс",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2102205",
+      "espnId": "5175643",
+      "nbaId": 1642856,
+      "name": "Egor Demin",
+      "sportsName": "Дёмин",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2150671",
+      "espnId": "4702382",
+      "nbaId": 1641783,
+      "name": "Tristan da Silva",
+      "sportsName": "да Силва",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "1948088",
+      "espnId": "2991139",
+      "nbaId": 1627739,
+      "name": "Kris Dunn",
+      "sportsName": "Данн",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "1814722",
+      "espnId": "6589",
+      "nbaId": 203110,
+      "name": "Draymond Green",
+      "sportsName": "Др. Грин",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2056181",
+      "espnId": "4397014",
+      "nbaId": 1629656,
+      "name": "Quentin Grimes",
+      "sportsName": "Граймс",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2116607",
+      "espnId": "4712849",
+      "nbaId": 1641710,
+      "name": "Anthony Black",
+      "sportsName": "Блэк",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "1812026",
+      "espnId": "6578",
+      "nbaId": 203084,
+      "name": "Harrison Barnes",
+      "sportsName": "Барнс",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2037997",
+      "espnId": "4431679",
+      "nbaId": 1630173,
+      "name": "Precious Achiuwa",
+      "sportsName": "Ачиува",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "1847362",
+      "espnId": "2991235",
+      "nbaId": 203500,
+      "name": "Steven Adams",
+      "sportsName": "Адамс",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "2208850",
+      "espnId": "5164559",
+      "nbaId": null,
+      "name": "Nate Ament",
+      "sportsName": "Эмент",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2090543",
+      "espnId": "4702177",
+      "nbaId": 1631165,
+      "name": "Keon Ellis",
+      "sportsName": "Эллис",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2056242",
+      "espnId": "4432907",
+      "nbaId": 1630551,
+      "name": "Justin Champagnie",
+      "sportsName": "Шэмпени",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "1985150",
+      "espnId": "3914044",
+      "nbaId": 1629013,
+      "name": "Landry Shamet",
+      "sportsName": "Шэмет",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2150719",
+      "espnId": "4432241",
+      "nbaId": 1642347,
+      "name": "Jamal Shead",
+      "sportsName": "Шэд",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2208851",
+      "espnId": "5281370",
+      "nbaId": null,
+      "name": "Hannes Steinbach",
+      "sportsName": "Штайнбах",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2014917",
+      "espnId": "4397077",
+      "nbaId": 1629637,
+      "name": "Jaxson Hayes",
+      "sportsName": "Хэйс",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "1947929",
+      "espnId": "2990984",
+      "nbaId": 1627741,
+      "name": "Buddy Hield",
+      "sportsName": "Хилд",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "1985083",
+      "espnId": "4066372",
+      "nbaId": 1628989,
+      "name": "Kevin Huerter",
+      "sportsName": "Хертер",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2117861",
+      "espnId": "4684806",
+      "nbaId": 1641707,
+      "name": "Taylor Hendricks",
+      "sportsName": "Хендрикс",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2117701",
+      "espnId": "4683678",
+      "nbaId": 1630703,
+      "name": "Scoot Henderson",
+      "sportsName": "Хендерсон",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2061107",
+      "espnId": "4065731",
+      "nbaId": 1630643,
+      "name": "Jay Huff",
+      "sportsName": "Хафф",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "1998468",
+      "espnId": "4291678",
+      "nbaId": 1629312,
+      "name": "Haywood Highsmith",
+      "sportsName": "Хайсмит",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2208845",
+      "espnId": "5149077",
+      "nbaId": null,
+      "name": "Kingston Flemings",
+      "sportsName": "Флемингс",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2177028",
+      "espnId": "5144091",
+      "nbaId": 1642847,
+      "name": "Jeremiah Fears",
+      "sportsName": "Фирс",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "1947934",
+      "espnId": "2578185",
+      "nbaId": 1627827,
+      "name": "Dorian Finney-Smith",
+      "sportsName": "Финни-Смит",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2150722",
+      "espnId": "4684793",
+      "nbaId": 1642271,
+      "name": "Kyle Filipowski",
+      "sportsName": "Филиповски",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2015179",
+      "espnId": "3912848",
+      "nbaId": 1629731,
+      "name": "Dean Wade",
+      "sportsName": "Уэйд",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2116453",
+      "espnId": "4683689",
+      "nbaId": 1641775,
+      "name": "Jordan Walsh",
+      "sportsName": "Уолш",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2116498",
+      "espnId": "5106060",
+      "nbaId": 1641716,
+      "name": "Jarace Walker",
+      "sportsName": "Уокер",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2071930",
+      "espnId": "4397040",
+      "nbaId": 1630314,
+      "name": "Brandon Williams",
+      "sportsName": "Уильямс",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2015064",
+      "espnId": "4066218",
+      "nbaId": 1629684,
+      "name": "Grant Williams",
+      "sportsName": "Г. Уильямс",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2056098",
+      "espnId": "4433137",
+      "nbaId": 1630533,
+      "name": "Ziaire Williams",
+      "sportsName": "З. Уильямс",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2150521",
+      "espnId": "4683747",
+      "nbaId": 1642281,
+      "name": "Jaylon Tyson",
+      "sportsName": "Тайсон",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2038242",
+      "espnId": "4432810",
+      "nbaId": 1630191,
+      "name": "Isaiah Stewart",
+      "sportsName": "Стюарт",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2116479",
+      "espnId": "4432181",
+      "nbaId": 1631124,
+      "name": "Julian Strawther",
+      "sportsName": "Стротер",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2150640",
+      "espnId": "4433083",
+      "nbaId": 1642285,
+      "name": "Cam Spencer",
+      "sportsName": "Спенсер",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "1887626",
+      "espnId": "2990992",
+      "nbaId": 203935,
+      "name": "Marcus Smart",
+      "sportsName": "Смарт",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "2117862",
+      "espnId": "5105839",
+      "nbaId": 1641729,
+      "name": "Brice Sensabaugh",
+      "sportsName": "Сенсабо",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2099129",
+      "espnId": "5211176",
+      "nbaId": 1642275,
+      "name": "Tidjane Salaun",
+      "sportsName": "Салон",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2038298",
+      "espnId": "4278076",
+      "nbaId": 1630208,
+      "name": "Nick Richards",
+      "sportsName": "Ричардс",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2176781",
+      "espnId": "5144126",
+      "nbaId": 1642860,
+      "name": "Will Riley",
+      "sportsName": "Райли",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "1947942",
+      "espnId": "3134903",
+      "nbaId": 1627780,
+      "name": "Gary Payton II",
+      "sportsName": "Пэйтон II",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2150565",
+      "espnId": "4593016",
+      "nbaId": 1642366,
+      "name": "Quinten Post",
+      "sportsName": "Пост",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "1970365",
+      "espnId": "2583632",
+      "nbaId": 1626220,
+      "name": "Royce O'Neale",
+      "sportsName": "О'Нил",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2038518",
+      "espnId": "4432822",
+      "nbaId": 1630171,
+      "name": "Isaac Okoro",
+      "sportsName": "Окоро",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2176775",
+      "espnId": "4873201",
+      "nbaId": 1642854,
+      "name": "Asa Newell",
+      "sportsName": "Ньюэлл",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2014932",
+      "espnId": "3907823",
+      "nbaId": 1629611,
+      "name": "Terance Mann",
+      "sportsName": "Мэнн",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2116573",
+      "espnId": "5044385",
+      "nbaId": 1631159,
+      "name": "Leonard Miller",
+      "sportsName": "Миллер",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "1817536",
+      "espnId": "6609",
+      "nbaId": 203114,
+      "name": "Khris Middleton",
+      "sportsName": "Миддлтон",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2037739",
+      "espnId": "4066757",
+      "nbaId": 1630241,
+      "name": "Sam Merrill",
+      "sportsName": "Меррилл",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "1991761",
+      "espnId": "4066436",
+      "nbaId": 1629001,
+      "name": "De'Anthony Melton",
+      "sportsName": "Мелтон",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2150673",
+      "espnId": "4683778",
+      "nbaId": 1642272,
+      "name": "Jared McCain",
+      "sportsName": "Маккейн",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2056182",
+      "espnId": "4431823",
+      "nbaId": 1630540,
+      "name": "Miles McBride",
+      "sportsName": "Макбрайд",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2011362",
+      "espnId": "3146557",
+      "nbaId": 1629111,
+      "name": "Jock Landale",
+      "sportsName": "Лэндейл",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "1948091",
+      "espnId": "2991043",
+      "nbaId": 1627747,
+      "name": "Caris LeVert",
+      "sportsName": "Леверт",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "1916613",
+      "espnId": "3136196",
+      "nbaId": 1626168,
+      "name": "Trey Lyles",
+      "sportsName": "Лайлс",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2150726",
+      "espnId": "4845374",
+      "nbaId": 1642267,
+      "name": "Bub Carrington",
+      "sportsName": "Кэррингтон",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "1963255",
+      "espnId": "3134907",
+      "nbaId": 1628398,
+      "name": "Kyle Kuzma",
+      "sportsName": "Кузма",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2090240",
+      "espnId": "4432582",
+      "nbaId": 1631108,
+      "name": "Max Christie",
+      "sportsName": "Кристи",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "1969805",
+      "espnId": "3064560",
+      "nbaId": 1628436,
+      "name": "Luke Kornet",
+      "sportsName": "Корнет",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "38579",
+      "espnId": "3195",
+      "nbaId": 201144,
+      "name": "Mike Conley",
+      "sportsName": "Конли",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "1963239",
+      "espnId": "4066650",
+      "nbaId": 1628380,
+      "name": "Zach Collins",
+      "sportsName": "Коллинз",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2150724",
+      "espnId": "4683766",
+      "nbaId": 1642268,
+      "name": "Isaiah Collier",
+      "sportsName": "Коллиер",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2176907",
+      "espnId": "4576060",
+      "nbaId": 1641750,
+      "name": "Ryan Kalkbrenner",
+      "sportsName": "Колкбреннер",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "1848481",
+      "espnId": "2581018",
+      "nbaId": 203484,
+      "name": "Kentavious Caldwell-Pope",
+      "sportsName": "Колдуэлл-Поуп",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2150636",
+      "espnId": "4897943",
+      "nbaId": 1642261,
+      "name": "Dalton Knecht",
+      "sportsName": "Кнехт",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2176952",
+      "espnId": "4702384",
+      "nbaId": 1642363,
+      "name": "Nique Clifford",
+      "sportsName": "Клиффорд",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2116456",
+      "espnId": "4712896",
+      "nbaId": 1641730,
+      "name": "Noah Clowney",
+      "sportsName": "Клауни",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "1887870",
+      "espnId": "2528426",
+      "nbaId": 203903,
+      "name": "Jordan Clarkson",
+      "sportsName": "Кларксон",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "1947946",
+      "espnId": "2991350",
+      "nbaId": 1627936,
+      "name": "Alex Caruso",
+      "sportsName": "Карузо",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2176954",
+      "espnId": "4433174",
+      "nbaId": 1642928,
+      "name": "Dylan Cardwell",
+      "sportsName": "Кардуэлл",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2050351",
+      "espnId": "4997528",
+      "nbaId": 1631107,
+      "name": "Nikola Jovic",
+      "sportsName": "Йович",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2150704",
+      "espnId": "4601023",
+      "nbaId": 1642345,
+      "name": "Oso Ighodaro",
+      "sportsName": "Игодаро",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "1810360",
+      "espnId": "6585",
+      "nbaId": 203083,
+      "name": "Andre Drummond",
+      "sportsName": "Драммонд",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2117858",
+      "espnId": "5106258",
+      "nbaId": 1641711,
+      "name": "Gradey Dick",
+      "sportsName": "Дик",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2208846",
+      "espnId": "4873153",
+      "nbaId": null,
+      "name": "Morez Johnson Jr.",
+      "sportsName": "Джонсон",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2176779",
+      "espnId": "5238230",
+      "nbaId": 1642848,
+      "name": "Tre Johnson",
+      "sportsName": "Джонсон",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "1916621",
+      "espnId": "3135046",
+      "nbaId": 1626145,
+      "name": "Tyus Jones",
+      "sportsName": "Джонс",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2056177",
+      "espnId": "4277813",
+      "nbaId": 1630529,
+      "name": "Herbert Jones",
+      "sportsName": "Джонс",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "1947986",
+      "espnId": "3936099",
+      "nbaId": 1627884,
+      "name": "Derrick Jones Jr.",
+      "sportsName": "Д. Джонс",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2038004",
+      "espnId": "4395702",
+      "nbaId": 1630198,
+      "name": "Isaiah Joe",
+      "sportsName": "Джо",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2150562",
+      "espnId": "5107199",
+      "nbaId": 1642450,
+      "name": "Daniss Jenkins",
+      "sportsName": "Дженкинс",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2125099",
+      "espnId": "5105550",
+      "nbaId": 1641713,
+      "name": "GG Jackson",
+      "sportsName": "Джексон",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2056090",
+      "espnId": "4432170",
+      "nbaId": 1630543,
+      "name": "Isaiah Jackson",
+      "sportsName": "Джексон",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2061108",
+      "espnId": "4278402",
+      "nbaId": 1630692,
+      "name": "Jordan Goodwin",
+      "sportsName": "Гудвин",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2090366",
+      "espnId": "4397475",
+      "nbaId": 1631260,
+      "name": "AJ Green",
+      "sportsName": "Грин",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2090210",
+      "espnId": "4278585",
+      "nbaId": 1631221,
+      "name": "Collin Gillespie",
+      "sportsName": "Гиллеспи",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "1985194",
+      "espnId": "4278077",
+      "nbaId": 1629020,
+      "name": "Jarred Vanderbilt",
+      "sportsName": "Вандербилт",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "1896917",
+      "espnId": "3150844",
+      "nbaId": 1629021,
+      "name": "Moritz Wagner",
+      "sportsName": "М. Вагнер",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "1985157",
+      "espnId": "4277848",
+      "nbaId": 1628963,
+      "name": "Marvin Bagley III",
+      "sportsName": "Бэгли",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "1985117",
+      "espnId": "4065670",
+      "nbaId": 1628971,
+      "name": "Bruce Brown",
+      "sportsName": "Б. Браун",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2208843",
+      "espnId": "5101761",
+      "nbaId": null,
+      "name": "Mikel Brown Jr.",
+      "sportsName": "Браун",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2150672",
+      "espnId": "5105637",
+      "nbaId": 1641737,
+      "name": "Adem Bona",
+      "sportsName": "Бона",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "1790644",
+      "espnId": "3037789",
+      "nbaId": 203992,
+      "name": "Bogdan Bogdanovic",
+      "sportsName": "Богданович",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "1922897",
+      "espnId": "4348700",
+      "nbaId": 1629048,
+      "name": "Goga Bitadze",
+      "sportsName": "Битадзе",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "1810362",
+      "espnId": "6580",
+      "nbaId": 203078,
+      "name": "Bradley Beal",
+      "sportsName": "Бил",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2208847",
+      "espnId": "5082206",
+      "nbaId": null,
+      "name": "Brayden Burries",
+      "sportsName": "Беррис",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2149456",
+      "espnId": "5279133",
+      "nbaId": 1642866,
+      "name": "Joan Beringer",
+      "sportsName": "Беранже",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2056178",
+      "espnId": "4277869",
+      "nbaId": 1630631,
+      "name": "Jose Alvarado",
+      "sportsName": "Альварадо",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "1985159",
+      "espnId": "3135045",
+      "nbaId": 1628960,
+      "name": "Grayson Allen",
+      "sportsName": "Аллен",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2176960",
+      "espnId": "5217746",
+      "nbaId": null,
+      "name": "Yang Hansen",
+      "sportsName": "Ян Ханьсэнь",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2100776",
+      "espnId": "5214640",
+      "nbaId": 1642857,
+      "name": "Kasparas Jakucionis",
+      "sportsName": "Якучионис",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2124452",
+      "espnId": "5242496",
+      "nbaId": 1642855,
+      "name": "Noa Essengue",
+      "sportsName": "Эссанг",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2150676",
+      "espnId": "4711297",
+      "nbaId": 1642348,
+      "name": "Justin Edwards",
+      "sportsName": "Эдвардс",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2150653",
+      "espnId": "4432847",
+      "nbaId": 1630545,
+      "name": "Terrence Shannon Jr.",
+      "sportsName": "Шэннон",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2116497",
+      "espnId": "4433076",
+      "nbaId": 1641767,
+      "name": "Ben Sheppard",
+      "sportsName": "Шеппард",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2150323",
+      "espnId": "4593841",
+      "nbaId": 1631248,
+      "name": "Baylor Scheierman",
+      "sportsName": "Шайерман",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2116577",
+      "espnId": "4683750",
+      "nbaId": 1641722,
+      "name": "Jordan Hawkins",
+      "sportsName": "Хоукинс",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2150539",
+      "espnId": "4433607",
+      "nbaId": 1641747,
+      "name": "DaRon Holmes II",
+      "sportsName": "Холмс",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "1790674",
+      "espnId": "2995706",
+      "nbaId": null,
+      "name": "Mario Hezonja",
+      "sportsName": "Хезоня",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2090204",
+      "espnId": "4868423",
+      "nbaId": 1630702,
+      "name": "Jaden Hardy",
+      "sportsName": "Харди",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2055892",
+      "espnId": "4592492",
+      "nbaId": 1630538,
+      "name": "Bones Hyland",
+      "sportsName": "Хайлэнд",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "1948630",
+      "espnId": "3899664",
+      "nbaId": 1631323,
+      "name": "Simone Fontecchio",
+      "sportsName": "Фонтеккьо",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2176974",
+      "espnId": "5105977",
+      "nbaId": 1642853,
+      "name": "Rasheer Fleming",
+      "sportsName": "Флеминг",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2208859",
+      "espnId": "4873090",
+      "nbaId": null,
+      "name": "Labaron Philon Jr.",
+      "sportsName": "Файлон",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2056235",
+      "espnId": "4431675",
+      "nbaId": 1630570,
+      "name": "Trendon Watford",
+      "sportsName": "Уотфорд",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2176780",
+      "espnId": "4606840",
+      "nbaId": 1642364,
+      "name": "Jamir Watkins",
+      "sportsName": "Уоткинс",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2150718",
+      "espnId": "4684272",
+      "nbaId": 1642266,
+      "name": "Ja'Kobe Walter",
+      "sportsName": "Уолтер",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "1985158",
+      "espnId": "4277890",
+      "nbaId": 1629022,
+      "name": "Lonnie Walker IV",
+      "sportsName": "Уокер",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2090539",
+      "espnId": "4432446",
+      "nbaId": 1631133,
+      "name": "Jabari Walker",
+      "sportsName": "Уокер",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2150723",
+      "espnId": "4895758",
+      "nbaId": 1642262,
+      "name": "Cody Williams",
+      "sportsName": "Уильямс",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2038490",
+      "espnId": "4431687",
+      "nbaId": 1630172,
+      "name": "Patrick Williams",
+      "sportsName": "Уильямс",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2116454",
+      "espnId": "4431714",
+      "nbaId": 1630592,
+      "name": "Jalen Wilson",
+      "sportsName": "Уилсон",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2037983",
+      "espnId": "3136777",
+      "nbaId": 1630256,
+      "name": "Jae'Sean Tate",
+      "sportsName": "Тэйт",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "2177035",
+      "espnId": "5060631",
+      "nbaId": 1642876,
+      "name": "Adou Thiero",
+      "sportsName": "Тьеро",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2116496",
+      "espnId": "4432827",
+      "nbaId": 1631131,
+      "name": "Oscar Tshiebwe",
+      "sportsName": "Тшибве",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "2136824",
+      "espnId": "5279130",
+      "nbaId": 1642849,
+      "name": "Nolan Traore",
+      "sportsName": "Траоре",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2161401",
+      "espnId": "5106268",
+      "nbaId": 1641772,
+      "name": "Nae'Qwan Tomlin",
+      "sportsName": "Томлин",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2090169",
+      "espnId": "4433159",
+      "nbaId": 1631207,
+      "name": "Dalen Terry",
+      "sportsName": "Терри",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2015164",
+      "espnId": "3907498",
+      "nbaId": 1629680,
+      "name": "Matisse Thybulle",
+      "sportsName": "Тайбулл",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2177032",
+      "espnId": "4702352",
+      "nbaId": 1642920,
+      "name": "Kobe Sanders",
+      "sportsName": "Сэндерс",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2208852",
+      "espnId": "4848625",
+      "nbaId": null,
+      "name": "Dailyn Swain",
+      "sportsName": "Суэйн",
+      "sportsClub": "Чикаго"
+    },
+    {
+      "sportsId": "2208853",
+      "espnId": "5241364",
+      "nbaId": null,
+      "name": "Bennett Stirtz",
+      "sportsName": "Стирц",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2090219",
+      "espnId": "4592714",
+      "nbaId": 1630311,
+      "name": "Pat Spencer",
+      "sportsName": "Спенсер",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2043845",
+      "espnId": "4610139",
+      "nbaId": 1631110,
+      "name": "Jeremy Sochan",
+      "sportsName": "Сохан",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2177019",
+      "espnId": "5061603",
+      "nbaId": null,
+      "name": "Thomas Sorber",
+      "sportsName": "Сорбер",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2061066",
+      "espnId": "4066993",
+      "nbaId": 1630696,
+      "name": "Dru Smith",
+      "sportsName": "Смит",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2059553",
+      "espnId": "5081727",
+      "nbaId": 1631321,
+      "name": "Sidy Cissoko",
+      "sportsName": "Сиссоко",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2176967",
+      "espnId": "4701208",
+      "nbaId": 1630619,
+      "name": "Moussa Cisse",
+      "sportsName": "Сиссе",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2056180",
+      "espnId": "4277922",
+      "nbaId": 1630579,
+      "name": "Jericho Sims",
+      "sportsName": "Симс",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "1948025",
+      "espnId": "3907387",
+      "nbaId": 1627732,
+      "name": "Ben Simmons",
+      "sportsName": "Симмонс",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2116484",
+      "espnId": "4432107",
+      "nbaId": 1631204,
+      "name": "Marcus Sasser",
+      "sportsName": "Сассер",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2130935",
+      "espnId": "5242502",
+      "nbaId": 1642879,
+      "name": "Ben Saraf",
+      "sportsName": "Сараф",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2176986",
+      "espnId": "5239561",
+      "nbaId": 1642859,
+      "name": "Jase Richardson",
+      "sportsName": "Ричардсон",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2177014",
+      "espnId": "4897262",
+      "nbaId": 1642954,
+      "name": "Will Richard",
+      "sportsName": "Ричард",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2208863",
+      "espnId": "5105809",
+      "nbaId": null,
+      "name": "Tarris Reed Jr.",
+      "sportsName": "Рид",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2150658",
+      "espnId": "4592686",
+      "nbaId": 1641810,
+      "name": "Antonio Reeves",
+      "sportsName": "Ривс",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "1948100",
+      "espnId": "2990962",
+      "nbaId": 1627752,
+      "name": "Taurean Prince",
+      "sportsName": "Принс",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2061064",
+      "espnId": "4066399",
+      "nbaId": 1630695,
+      "name": "Micah Potter",
+      "sportsName": "Поттер",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2116473",
+      "espnId": "4701233",
+      "nbaId": 1641854,
+      "name": "Craig Porter Jr.",
+      "sportsName": "Портер",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2090371",
+      "espnId": "4279318",
+      "nbaId": 1631342,
+      "name": "Daeqwon Plowden",
+      "sportsName": "Плауден",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2116478",
+      "espnId": "4398390",
+      "nbaId": 1629618,
+      "name": "Jalen Pickett",
+      "sportsName": "Пикетт",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2177026",
+      "espnId": "4432185",
+      "nbaId": 1642877,
+      "name": "Micah Peavy",
+      "sportsName": "Пиви",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2149432",
+      "espnId": "5214637",
+      "nbaId": 1642869,
+      "name": "Noah Penda",
+      "sportsName": "Пенда",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "1887869",
+      "espnId": "2531367",
+      "nbaId": 203939,
+      "name": "Dwight Powell",
+      "sportsName": "Пауэлл",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2176892",
+      "espnId": "5037873",
+      "nbaId": 1642962,
+      "name": "Drake Powell",
+      "sportsName": "Пауэлл",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2208854",
+      "espnId": "5258459",
+      "nbaId": null,
+      "name": "Ebuka Okorie",
+      "sportsName": "Окори",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "1985131",
+      "espnId": "4065663",
+      "nbaId": 1629006,
+      "name": "Josh Okogie",
+      "sportsName": "Окоги",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "1916623",
+      "espnId": "2580365",
+      "nbaId": 1626204,
+      "name": "Larry Nance Jr.",
+      "sportsName": "Нэнс",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2125150",
+      "espnId": "4397233",
+      "nbaId": 1631250,
+      "name": "Pete Nance",
+      "sportsName": "Нэнс",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "1948054",
+      "espnId": "2990969",
+      "nbaId": 1627777,
+      "name": "Georges Niang",
+      "sportsName": "Ньянг",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2037976",
+      "espnId": "4431690",
+      "nbaId": 1630192,
+      "name": "Zeke Nnaji",
+      "sportsName": "Ннаджи",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2177033",
+      "espnId": "5108024",
+      "nbaId": 1642949,
+      "name": "Yanic Konan Niederhauser",
+      "sportsName": "Нидерхаузер",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2176969",
+      "espnId": "4433629",
+      "nbaId": 1642948,
+      "name": "Ryan Nembhard",
+      "sportsName": "Нембхард",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2117702",
+      "espnId": "4594326",
+      "nbaId": 1631200,
+      "name": "Kris Murray",
+      "sportsName": "Мюррэй",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2056227",
+      "espnId": "4432819",
+      "nbaId": 1630544,
+      "name": "Tre Mann",
+      "sportsName": "Мэнн",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2150720",
+      "espnId": "5107897",
+      "nbaId": 1642367,
+      "name": "Jonathan Mogbo",
+      "sportsName": "Мобо",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "1856093",
+      "espnId": "3133602",
+      "nbaId": 1629004,
+      "name": "Svi Mykhailiuk",
+      "sportsName": "Михайлюк",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2119612",
+      "espnId": "5075626",
+      "nbaId": null,
+      "name": "Baba Miller",
+      "sportsName": "Миллер",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2050312",
+      "espnId": "4997538",
+      "nbaId": 1631255,
+      "name": "Karlo Matkovic",
+      "sportsName": "Маткович",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2015973",
+      "espnId": "3138160",
+      "nbaId": 1628997,
+      "name": "Caleb Martin",
+      "sportsName": "Калеб Мартин",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2176906",
+      "espnId": "5239590",
+      "nbaId": 1642862,
+      "name": "Liam McNeeley",
+      "sportsName": "Макнили",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2014984",
+      "espnId": "3134916",
+      "nbaId": 1629162,
+      "name": "Jordan McLaughlin",
+      "sportsName": "Маклафлин",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "1887632",
+      "espnId": "2528588",
+      "nbaId": 203926,
+      "name": "Doug McDermott",
+      "sportsName": "Макдермотт",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2090368",
+      "espnId": "4687718",
+      "nbaId": 1631169,
+      "name": "Josh Minott",
+      "sportsName": "Майнотт",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "1916624",
+      "espnId": "3155535",
+      "nbaId": 1626172,
+      "name": "Kevon Looney",
+      "sportsName": "Луни",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2055893",
+      "espnId": "4277957",
+      "nbaId": 1630587,
+      "name": "Isaiah Livers",
+      "sportsName": "Ливерс",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2176959",
+      "espnId": "4433144",
+      "nbaId": 1631126,
+      "name": "Caleb Love",
+      "sportsName": "Лав",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2090363",
+      "espnId": "4278572",
+      "nbaId": 1631288,
+      "name": "Jamal Cain",
+      "sportsName": "Кэйн",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2150589",
+      "espnId": "4845363",
+      "nbaId": 1642353,
+      "name": "Cam Christie",
+      "sportsName": "Кристи",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2011516",
+      "espnId": "4578893",
+      "nbaId": 1630249,
+      "name": "Vit Krejci",
+      "sportsName": "Крейчи",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2150663",
+      "espnId": "4433225",
+      "nbaId": 1642278,
+      "name": "Tyler Kolek",
+      "sportsName": "Колек",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2176785",
+      "espnId": "4896372",
+      "nbaId": 1642383,
+      "name": "Walter Clayton Jr.",
+      "sportsName": "Клэйтон",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2116574",
+      "espnId": "4432247",
+      "nbaId": 1641740,
+      "name": "Jaylen Clark",
+      "sportsName": "Кларк",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "1985471",
+      "espnId": "3133635",
+      "nbaId": 1628975,
+      "name": "Jevon Carter",
+      "sportsName": "Картер",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2150709",
+      "espnId": "4433188",
+      "nbaId": 1642269,
+      "name": "Devin Carter",
+      "sportsName": "Картер",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2208866",
+      "espnId": "4917149",
+      "nbaId": null,
+      "name": "Alex Karaban",
+      "sportsName": "Карабан",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2060840",
+      "espnId": "5289900",
+      "nbaId": 1642885,
+      "name": "Mohamed Diawara",
+      "sportsName": "Диавара",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "38476",
+      "espnId": "3442",
+      "nbaId": 201599,
+      "name": "DeAndre Jordan",
+      "sportsName": "Джордан",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2150646",
+      "espnId": "4431786",
+      "nbaId": 1642352,
+      "name": "Keshad Johnson",
+      "sportsName": "Джонсон",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2150549",
+      "espnId": "4592427",
+      "nbaId": 1642461,
+      "name": "Spencer Jones",
+      "sportsName": "Джонс",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2090533",
+      "espnId": "4997526",
+      "nbaId": 1631172,
+      "name": "Ousmane Dieng",
+      "sportsName": "Дженг",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2116486",
+      "espnId": "4431684",
+      "nbaId": 1631218,
+      "name": "Trayce Jackson-Davis",
+      "sportsName": "Джексон-Дэвис",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2116570",
+      "espnId": "4432190",
+      "nbaId": 1641748,
+      "name": "Andre Jackson Jr.",
+      "sportsName": "Джексон",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2090557",
+      "espnId": "4592829",
+      "nbaId": 1631245,
+      "name": "Quenton Jackson",
+      "sportsName": "Джексон",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2150635",
+      "espnId": "4683774",
+      "nbaId": 1642355,
+      "name": "Bronny James",
+      "sportsName": "Джеймс-младший",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2176904",
+      "espnId": "4602025",
+      "nbaId": 1642883,
+      "name": "Sion James",
+      "sportsName": "Джеймс",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2096364",
+      "espnId": "5279129",
+      "nbaId": null,
+      "name": "Sergio de Larrea",
+      "sportsName": "де Ларреа",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2116452",
+      "espnId": "4712863",
+      "nbaId": 1631243,
+      "name": "Mouhamed Gueye",
+      "sportsName": "Гуйе",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2208856",
+      "espnId": "5149115",
+      "nbaId": null,
+      "name": "Allen Graves",
+      "sportsName": "Грэйвс",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2038239",
+      "espnId": "4432811",
+      "nbaId": 1630182,
+      "name": "Josh Green",
+      "sportsName": "Грин",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2015966",
+      "espnId": "2596112",
+      "nbaId": 1629750,
+      "name": "Javonte Green",
+      "sportsName": "Грин",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2090612",
+      "espnId": "5175647",
+      "nbaId": 1642864,
+      "name": "Hugo Gonzalez",
+      "sportsName": "Гонсалес",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2055895",
+      "espnId": "4277951",
+      "nbaId": 1630568,
+      "name": "Luka Garza",
+      "sportsName": "Гарза",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2125478",
+      "espnId": "4997537",
+      "nbaId": 1641774,
+      "name": "Tristan Vukcevic",
+      "sportsName": "Вукчевич",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2176891",
+      "espnId": "5107173",
+      "nbaId": 1642874,
+      "name": "Danny Wolf",
+      "sportsName": "Вольф",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2150715",
+      "espnId": "4431893",
+      "nbaId": 1642419,
+      "name": "Jamison Battle",
+      "sportsName": "Бэттл",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2061040",
+      "espnId": "4397886",
+      "nbaId": 1629646,
+      "name": "Charles Bassey",
+      "sportsName": "Бэсси",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "1963343",
+      "espnId": "3934723",
+      "nbaId": 1628418,
+      "name": "Thomas Bryant",
+      "sportsName": "Брайант",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2176910",
+      "espnId": "5061568",
+      "nbaId": 1642868,
+      "name": "Carter Bryant",
+      "sportsName": "Брайант",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2090544",
+      "espnId": "4870562",
+      "nbaId": 1631230,
+      "name": "Dominick Barlow",
+      "sportsName": "Барлоу",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2208855",
+      "espnId": "5060701",
+      "nbaId": null,
+      "name": "Christian Anderson",
+      "sportsName": "Андерсон",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "1887647",
+      "espnId": "2993874",
+      "nbaId": 203937,
+      "name": "Kyle Anderson",
+      "sportsName": "Андерсон",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "1963236",
+      "espnId": "4065654",
+      "nbaId": 1628371,
+      "name": "Jonathan Isaac",
+      "sportsName": "Айзек",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2177017",
+      "espnId": "4706557",
+      "nbaId": 1642959,
+      "name": "Chris Youngblood",
+      "sportsName": "Янгблад",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2150322",
+      "espnId": "4431734",
+      "nbaId": 1642400,
+      "name": "Tristan Enaruna",
+      "sportsName": "Энаруна",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2208860",
+      "espnId": "5106262",
+      "nbaId": null,
+      "name": "Zuby Ejiofor",
+      "sportsName": "Эджиофор",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2150662",
+      "espnId": "4871141",
+      "nbaId": 1630574,
+      "name": "Ariel Hukporti",
+      "sportsName": "Хукпорти",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2150742",
+      "espnId": "4701225",
+      "nbaId": 1641790,
+      "name": "PJ Hall",
+      "sportsName": "Холл",
+      "sportsClub": "Шарлотт"
+    },
+    {
+      "sportsId": "2116606",
+      "espnId": "5105806",
+      "nbaId": 1641724,
+      "name": "Jett Howard",
+      "sportsName": "Ховард",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2150566",
+      "espnId": "4396963",
+      "nbaId": 1642396,
+      "name": "Blake Hinson",
+      "sportsName": "Хинсон",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2176899",
+      "espnId": "4590360",
+      "nbaId": 1642935,
+      "name": "Chucky Hepburn",
+      "sportsName": "Хепберн",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2090551",
+      "espnId": "4397251",
+      "nbaId": 1631199,
+      "name": "Ron Harper Jr.",
+      "sportsName": "Харпер",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2150586",
+      "espnId": "4592699",
+      "nbaId": 1642402,
+      "name": "Enrique Freeman",
+      "sportsName": "Фримен",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2150588",
+      "espnId": "5157066",
+      "nbaId": 1642277,
+      "name": "Johnny Furphy",
+      "sportsName": "Ферфи",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2176777",
+      "espnId": "4702745",
+      "nbaId": 1642873,
+      "name": "Amari Williams",
+      "sportsName": "Уильямс",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2078011",
+      "espnId": "5159925",
+      "nbaId": 1642260,
+      "name": "Nikola Topic",
+      "sportsName": "Топич",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2116571",
+      "espnId": "4431695",
+      "nbaId": 1631166,
+      "name": "Drew Timme",
+      "sportsName": "Тимми",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2177043",
+      "espnId": "4781746",
+      "nbaId": 1642914,
+      "name": "Javon Small",
+      "sportsName": "Смолл",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2150560",
+      "espnId": "4397882",
+      "nbaId": 1642449,
+      "name": "Tolu Smith",
+      "sportsName": "Смит",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2208875",
+      "espnId": "5105854",
+      "nbaId": null,
+      "name": "Braden Smith",
+      "sportsName": "Смит",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "2208864",
+      "espnId": "5142621",
+      "nbaId": null,
+      "name": "Chris Cenac Jr.",
+      "sportsName": "Сенак",
+      "sportsClub": "Бостон"
+    },
+    {
+      "sportsId": "2117703",
+      "espnId": "5099752",
+      "nbaId": 1641712,
+      "name": "Rayan Rupert",
+      "sportsName": "Рупер",
+      "sportsClub": "Филадельфия"
+    },
+    {
+      "sportsId": "2150645",
+      "espnId": "4592979",
+      "nbaId": 1642389,
+      "name": "Zyon Pullin",
+      "sportsName": "Пуллин",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2177030",
+      "espnId": "4898238",
+      "nbaId": 1642967,
+      "name": "John Poulakidas",
+      "sportsName": "Пулакидас",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2116475",
+      "espnId": "4595400",
+      "nbaId": 1641765,
+      "name": "Olivier-Maxence Prosper",
+      "sportsName": "Проспер",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2176955",
+      "espnId": "5023693",
+      "nbaId": 1642878,
+      "name": "Tyrese Proctor",
+      "sportsName": "Проктор",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2177022",
+      "espnId": "4703421",
+      "nbaId": 1643007,
+      "name": "Taelon Peter",
+      "sportsName": "Питер",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2208867",
+      "espnId": "5041953",
+      "nbaId": null,
+      "name": "Koa Peat",
+      "sportsName": "Пит",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2150587",
+      "espnId": "4592965",
+      "nbaId": 1641803,
+      "name": "Tristen Newton",
+      "sportsName": "Ньютон",
+      "sportsClub": "Сакраменто"
+    },
+    {
+      "sportsId": "2187052",
+      "espnId": "4683934",
+      "nbaId": 1642942,
+      "name": "Jahmai Mashack",
+      "sportsName": "Мэйшэк",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2176987",
+      "espnId": "4593034",
+      "nbaId": 1631457,
+      "name": "Alex Morales",
+      "sportsName": "Моралес",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2150714",
+      "espnId": "5177362",
+      "nbaId": 1642434,
+      "name": "Riley Minix",
+      "sportsName": "Миникс",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2176901",
+      "espnId": "4702656",
+      "nbaId": 1642918,
+      "name": "Alijah Martin",
+      "sportsName": "Мартин",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2095980",
+      "espnId": "5214989",
+      "nbaId": null,
+      "name": "Bogoljub Markovic",
+      "sportsName": "Маркович",
+      "sportsClub": "Милуоки"
+    },
+    {
+      "sportsId": "2177038",
+      "espnId": "4702972",
+      "nbaId": 1643024,
+      "name": "Chris Manon",
+      "sportsName": "Маньон",
+      "sportsClub": "Лейкерс"
+    },
+    {
+      "sportsId": "2090163",
+      "espnId": "4576086",
+      "nbaId": 1631121,
+      "name": "Bryce McGowens",
+      "sportsName": "Макгауэнс",
+      "sportsClub": "Новый Орлеан"
+    },
+    {
+      "sportsId": "2208858",
+      "espnId": "5231919",
+      "nbaId": null,
+      "name": "Karim Lopez",
+      "sportsName": "Лопес",
+      "sportsClub": "Мемфис"
+    },
+    {
+      "sportsId": "2150667",
+      "espnId": "4897449",
+      "nbaId": 1642502,
+      "name": "Malevy Leons",
+      "sportsName": "Леонс",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2176983",
+      "espnId": "4700852",
+      "nbaId": 1642404,
+      "name": "Chaz Lanier",
+      "sportsName": "Ланир",
+      "sportsClub": "Детройт"
+    },
+    {
+      "sportsId": "2208857",
+      "espnId": "5101845",
+      "nbaId": null,
+      "name": "Jayden Quaintance",
+      "sportsName": "Куэйнтанс",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2150711",
+      "espnId": "4592857",
+      "nbaId": 1642384,
+      "name": "Isaiah Crawford",
+      "sportsName": "Кроуфорд",
+      "sportsClub": "Хьюстон"
+    },
+    {
+      "sportsId": "2177013",
+      "espnId": "4433149",
+      "nbaId": 1643018,
+      "name": "LJ Cryer",
+      "sportsName": "Крайер",
+      "sportsClub": "Голден Стэйт"
+    },
+    {
+      "sportsId": "2192736",
+      "espnId": "4703889",
+      "nbaId": 1643257,
+      "name": "Jayson Kent",
+      "sportsName": "Кент",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2116509",
+      "espnId": "4397204",
+      "nbaId": 1630658,
+      "name": "Colin Castleton",
+      "sportsName": "Каслтон",
+      "sportsClub": "Орландо"
+    },
+    {
+      "sportsId": "2150717",
+      "espnId": "4592435",
+      "nbaId": 1642382,
+      "name": "Branden Carlson",
+      "sportsName": "Карлсон",
+      "sportsClub": "Портленд"
+    },
+    {
+      "sportsId": "2119447",
+      "espnId": "5159895",
+      "nbaId": 1642530,
+      "name": "Yuki Kawamura",
+      "sportsName": "Кавамура",
+      "sportsClub": "Клипперс"
+    },
+    {
+      "sportsId": "2177034",
+      "espnId": "5157587",
+      "nbaId": 1642911,
+      "name": "Rocco Zikarsky",
+      "sportsName": "Зикарски",
+      "sportsClub": "Миннесота"
+    },
+    {
+      "sportsId": "2002461",
+      "espnId": "4997530",
+      "nbaId": null,
+      "name": "Khalifa Diop",
+      "sportsName": "Диоп",
+      "sportsClub": "Кливленд"
+    },
+    {
+      "sportsId": "2046285",
+      "espnId": "4065813",
+      "nbaId": null,
+      "name": "Alpha Diallo",
+      "sportsName": "Диалло",
+      "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "2176958",
+      "espnId": "5174655",
+      "nbaId": 1643052,
+      "name": "Chaney Johnson",
+      "sportsName": "Джонсон",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2155499",
+      "espnId": "4713010",
+      "nbaId": 1642357,
+      "name": "David Jones Garcia",
+      "sportsName": "Джонс-Гарсия",
+      "sportsClub": "Сан-Антонио"
+    },
+    {
+      "sportsId": "2208865",
+      "espnId": "4870564",
+      "nbaId": null,
+      "name": "Joshua Jefferson",
+      "sportsName": "Джефферсон",
+      "sportsClub": "Бруклин"
+    },
+    {
+      "sportsId": "2125156",
+      "espnId": "4395623",
+      "nbaId": 1641998,
+      "name": "Trey Jemison III",
+      "sportsName": "Джемисон",
+      "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "2150591",
+      "espnId": "4431941",
+      "nbaId": 1642484,
+      "name": "RayJ Dennis",
+      "sportsName": "Деннис",
+      "sportsClub": "Атланта"
+    },
+    {
+      "sportsId": "2060843",
+      "espnId": "5211983",
+      "nbaId": 1642359,
+      "name": "Pacome Dadiet",
+      "sportsName": "Дадье",
+      "sportsClub": "Нью-Йорк"
+    },
+    {
+      "sportsId": "2177048",
+      "espnId": "4700818",
+      "nbaId": 1642884,
+      "name": "Vladislav Goldin",
+      "sportsName": "Голдин",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "1971132",
+      "espnId": "2581184",
+      "nbaId": 1630264,
+      "name": "Anthony Gill",
+      "sportsName": "Гилл",
+      "sportsClub": "Вашингтон"
+    },
+    {
+      "sportsId": "2177047",
+      "espnId": "4431772",
+      "nbaId": 1642066,
+      "name": "Myron Gardner",
+      "sportsName": "Гарднер",
+      "sportsClub": "Майами"
+    },
+    {
+      "sportsId": "2176977",
+      "espnId": "4683933",
+      "nbaId": null,
+      "name": "Tamar Bates",
+      "sportsName": "Бэйтс",
+      "sportsClub": "Юта"
+    },
+    {
+      "sportsId": "2090364",
+      "espnId": "4280245",
+      "nbaId": 1631123,
+      "name": "Jamaree Bouyea",
+      "sportsName": "Буей",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2176973",
+      "espnId": "4591259",
+      "nbaId": 1642886,
+      "name": "Koby Brea",
+      "sportsName": "Бри",
+      "sportsClub": "Финикс"
+    },
+    {
+      "sportsId": "2116505",
+      "espnId": "4431752",
+      "nbaId": 1641738,
+      "name": "Kobe Brown",
+      "sportsName": "Браун",
+      "sportsClub": "Индиана"
+    },
+    {
+      "sportsId": "1999940",
+      "espnId": "5148538",
+      "nbaId": null,
+      "name": "Tarik Biberovic",
+      "sportsName": "Биберович",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2177020",
+      "espnId": "4684208",
+      "nbaId": 1642964,
+      "name": "Brooks Barnhizer",
+      "sportsName": "Барнхайзер",
+      "sportsClub": "Оклахома-Сити"
+    },
+    {
+      "sportsId": "2208884",
+      "espnId": "5106040",
+      "nbaId": null,
+      "name": "Tobi Lawal",
+      "sportsName": "Lawal",
+      "sportsClub": "Даллас"
+    },
+    {
+      "sportsId": "2208885",
+      "espnId": "4565698",
+      "nbaId": null,
+      "name": "Bryce Hopkins",
+      "sportsName": "Hopkins",
+      "sportsClub": "Денвер"
+    }
+  ]
+}

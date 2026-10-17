@@ -1,3 +1,4 @@
+import {completionPlan} from './completion.js';
 import {scoringMetric,fullSeason,FULL_SEASON} from './season-scoring.js';
 import {rosterFits} from './engine.js';
 import {severeRisk} from './valuation.js';
@@ -46,6 +47,7 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
  const plans=Array.from({length:8},(_,team)=>{const from=Math.max(profile.from,rosters[team].length+1);return from+Math.floor(random(seed+team*997)()*Math.max(1,profile.to-from+1));});
  let actualRookieRound=state.picks.find(p=>p.team===0&&byId.get(p.playerId).isRookie)?.number;actualRookieRound=actualRookieRound?Math.floor((actualRookieRound-1)/8)+1:null;
  const rookies=players.filter(p=>p.isRookie),compatibility=Array.from({length:8},()=>new Map());
+ let budgetWitness=Array(8).fill(null);const pendingPlans=new Map();
  function reserveRookies(candidate,team){
   const remaining=rookies.filter(p=>!used.has(p.id)&&p.id!==candidate.id),requirements=[];
   for(let other=0;other<8;other++){
@@ -75,6 +77,16 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
    const cheapest=players.filter(x=>!used.has(x.id)&&x.id!==p.id).map(x=>x.price).sort((a,b)=>a-b).slice(0,remaining);
    if(cheapest.length<remaining||cost+cheapest.reduce((a,b)=>a+b,0)>state.cap)return false;
   }
+  if(state.priceMode==='ON'){
+   const after={...state,players,picks:[...picks,{number:picks.length+1,team,playerId:p.id}]};
+   const plans=budgetWitness.slice();
+   for(let other=0;other<8;other++){
+    // A surviving witness is still a feasible completion after an unrelated removal.
+    if(other===team||!plans[other]||plans[other].playerIds.includes(p.id))plans[other]=completionPlan(after,other);
+    if(!plans[other].possible)return false;
+   }
+   pendingPlans.set(p.id,plans);
+  }
   if(reserve&&!reserveRookies(p,team))return false;
   return true;
  }
@@ -82,12 +94,18 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
   const team=(number-1)%8,round=Math.floor((number-1)/8)+1,needs=!rosters[team].some(p=>p.isRookie);
   const wants=needs&&(round>=(team===0?targetRound:plans[team])||rosters[team].length===9);
   const order=team===0||wants?valueOrder:marketOrder;
-  function choices(rookie,safer=false){const selected=[];for(const p of order){if(Boolean(p.isRookie)!==rookie||(safer&&severeRisk(p))||!allowed(p,team))continue;selected.push(p);if(selected.length===(team===0?1:3))break;}return selected;}
+  function choices(rookie,safer=false,reserveAverage=state.priceMode==='ON'&&team!==0){
+   const average=(state.cap-rosters[team].reduce((sum,p)=>sum+(p.price||0),0))/(10-rosters[team].length);
+   const selected=[];for(const p of order){if(Boolean(p.isRookie)!==rookie||(safer&&severeRisk(p))||(reserveAverage&&p.price>average)||!allowed(p,team))continue;selected.push(p);if(selected.length===(team===0?1:3))break;}
+   return !selected.length&&reserveAverage?choices(rookie,safer,false):selected;
+  }
   let candidates=wants?choices(true):choices(false,team===0);
   if(!candidates.length&&!wants)candidates=choices(false);
   if(!candidates.length)candidates=choices(true);
+  if(!candidates.length&&wants)candidates=choices(false);
   if(!candidates.length)return {valid:false,reason:'Нет легального продолжения',picks};
   const draw=random(seed+number*7919)(),p=candidates[team===0?0:Math.min(candidates.length-1,Math.floor(draw*draw*candidates.length))];
+  if(state.priceMode==='ON')budgetWitness=pendingPlans.get(p.id);pendingPlans.clear();
   used.add(p.id);rosters[team].push(p);compatibility[team].clear();picks.push({number,team,playerId:p.id});
   if(team===0&&p.isRookie&&actualRookieRound===null)actualRookieRound=round;
  }
@@ -161,5 +179,5 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
   }
  }
  return {sensitivityDrafts:forecastSensitivity.length*profilesToUse.length*3*2,forecastSensitivity,metric:scoringMetric(state),decision,reason,paired,ourPick:current?.pick??null,nextPick:next?.pick??null,teamsNeedingRookie:Array.from({length:7},(_,i)=>i+1).filter(team=>!state.picks.some(p=>p.team===team&&players.find(x=>x.id===p.playerId)?.isRookie)).length,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
-  method:'Основной критерий — максимальная средняя сумма сезонных оценок полного состава в единой метрике при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. Для автоматической базы учитываются все компоненты формулы, включая оценочные фолы и бонусы. Импорт без полной модели сравнивается отдельно по частичным ФО. Позиции ESPN не подтверждены по Yahoo. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
+  method:'Основной критерий — максимальная средняя сумма сезонных оценок полного состава в единой метрике при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. Для автоматической базы учитываются все компоненты формулы, включая оценочные фолы и бонусы. Импорт без полной модели сравнивается отдельно по частичным ФО. Допуск автоматического драфта берётся строго из Sports.ru; позиции Yahoo не расширяют доступные места. При включённом бюджете проверяется допустимый добор всех команд; соперники по возможности сохраняют средний бюджет на оставшиеся места. Это заданная бюджетная стратегия GM, не доказательство глобально оптимального состава. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
 }
