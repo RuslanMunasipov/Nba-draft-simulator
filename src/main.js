@@ -295,12 +295,9 @@ function renderPostDraft(){
  for(const t of rows){
   const team=t.team-1,players=teamRoster(state,team),details=document.createElement('details');details.className='team-roster';if(team===0)details.open=true;
   details.append(text('summary',`${name(t.team)} · ${players.length}/10 · ${t.mean==null?'—':Math.round(t.mean).toLocaleString('ru-RU')+' ФО'} · бюджет ${t.cost??'—'} / ${state.cap}`));
-  for(const p of players){
-   const item=document.createElement('details');item.className='roster-player';
-   item.append(text('summary',`${p.name} · ${p.positions.join('/')} · ${p.price??'—'} · ${p.forecast?Math.round(p.forecast.meanSeason)+' ФО':'нет прогноза'}${p.isRookie?' · rookie':''}`));
-   item.addEventListener('toggle',()=>{if(item.open&&item.children.length===1){const c=card(p,null,true);c.querySelector('details.card-details')?.setAttribute('open','');item.append(c);}});
-   details.append(item);
-  }
+  // Opening a team shows its player cards directly; one tap on a name opens the full card.
+  const fill=()=>{if(details.open&&details.children.length===1)for(const p of players)details.append(card(p,null,true));};
+  details.addEventListener('toggle',fill);fill();
   rosters.append(details);
  }
 }
