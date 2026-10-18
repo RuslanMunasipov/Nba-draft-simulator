@@ -1,7 +1,7 @@
 """Collect all listed Summer League protocols for accepted season aliases.
 Data reconciliation only: no model, simulations, application tests or deployment.
 """
-import argparse,concurrent.futures,gzip,hashlib,json,urllib.request
+import argparse,concurrent.futures,gzip,hashlib,json,time,urllib.request
 from collections import Counter
 from datetime import datetime,timezone
 from pathlib import Path
@@ -15,7 +15,13 @@ def fetch(url,root):
   if hashlib.sha256(raw).hexdigest()!=metadata['sha256']:raise ValueError('Raw checksum mismatch')
   return json.loads(raw),metadata
  req=urllib.request.Request(url,headers={'User-Agent':'FBL-History-Collector/1.0'})
- with urllib.request.urlopen(req,timeout=20) as response:raw=response.read(20_000_001);status=response.status
+ for attempt in range(3):
+  try:
+   with urllib.request.urlopen(req,timeout=20) as response:raw=response.read(20_000_001);status=response.status
+   break
+  except Exception as exc:
+   if attempt==2 or getattr(exc,'code',None) not in (None,500,502,503,504):raise
+   time.sleep(1+attempt)
  if len(raw)>20_000_000:raise ValueError('Response too large')
  data=json.loads(raw);sha=hashlib.sha256(raw).hexdigest();path=Path('raw')/sha[:2]/(sha+'.json.gz')
  (root/path).parent.mkdir(parents=True,exist_ok=True);(root/path).write_bytes(gzip.compress(raw,mtime=0))
@@ -59,7 +65,7 @@ def game(job,root):
      aid=str(athlete['athlete']['id']);raw=dict(zip(labels,athlete.get('stats',[])))
      membership[aid]=dict(teamId=team_id,starter=athlete.get('starter'),rawStats=raw)
      dnp=athlete.get('didNotPlay')
-     result['participation'].append(dict(espnId=aid,teamId=team_id,didNotPlay=dnp,reason=athlete.get('reason'),rawMinutes=raw.get('MIN')))
+     result['participation'].append(dict(espnId=aid,teamId=team_id,didNotPlay=dnp,reason=athlete.get('reason'),rawMinutes=raw.get('MIN'),rawStats=raw))
      if not dnp:source_active.add(aid)
   seen=set()
   for row in rows:
@@ -70,7 +76,7 @@ def game(job,root):
    row.update(providerCompetition=code,competition=competition,year=year,teamId=context['teamId'],starter=context.get('starter'),valueKind='OBSERVED')
    result['players'].append(row)
   # Never silently drop non-DNP rows that the existing parser cannot interpret.
-  for aid in sorted(source_active-seen):warnings.append(dict(kind='NON_DNP_ROW_NOT_NORMALIZED',espnId=aid,rawStats=membership[aid]['rawStats']))
+  for aid in sorted(source_active-seen):warnings.append(dict(kind='NON_DNP_ROW_NOT_NORMALIZED',espnId=aid,teamId=membership[aid]['teamId'],rawStats=membership[aid]['rawStats']))
   reconciliation=[]
   for team_id,team in teams.items():
    score=team['score'];score=score.get('value') if isinstance(score,dict) else score
@@ -79,7 +85,7 @@ def game(job,root):
    parsed=sum(p['stats']['pts'] for p in rows if p['teamId']==team_id)
    ok=score is not None and abs(parsed-score)<1e-6
    reconciliation.append(dict(teamId=team_id,score=score,playerPointSum=parsed,pointsReconciled=ok))
-   if not ok:warnings.append(dict(kind='POINTS_RECONCILIATION_FAILED',teamId=team_id))
+   if not ok:warnings.append(dict(kind='POINTS_RECONCILIATION_FAILED',teamId=team_id,reportedScore=score,parsedPoints=parsed,difference=None if score is None else parsed-score))
   if len(teams)!=2:warnings.append(dict(kind='EXPECTED_TWO_TEAMS',actual=len(teams)))
   result.update(status='NORMALIZED_WITH_WARNINGS' if warnings else 'NORMALIZED_RECONCILED_POINTS',teams=list(teams.values()),reconciliation=reconciliation,warnings=warnings)
  except Exception as exc:result['error']=str(exc)
