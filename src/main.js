@@ -350,6 +350,17 @@ function renderPostDraft(){
   rosters.append(details);
  }
 }
+// Plain-text draft results for the commissioner: picks by round, then every roster with its budget.
+function draftResultsText(){
+ const by=id=>state.players.find(p=>p.id===id),line=p=>`${p.name} (${p.positions.join('/')}, ${p.price??'—'})`;
+ const out=[`FBL 2026/27 — итоги драфта (${state.picks.length}/80)`];
+ state.picks.forEach((x,i)=>{if(i%8===0)out.push('',`Раунд ${i/8+1}`);out.push(`${x.number}. ${teamName(x.team)} — ${line(by(x.playerId))}`);});
+ out.push('','Составы');
+ for(let team=0;team<8;team++){const roster=teamRoster(state,team);if(!roster.length)continue;
+  out.push('',`${teamLabel(team)} — бюджет ${roster.reduce((s,p)=>s+(p.price||0),0)} / ${state.cap}`);
+  for(const p of roster)out.push(`• ${line(p)}${p.isRookie?' · rookie':''}`);}
+ return out.join('\n');
+}
 function render(){
  const n=state.picks.length;
  updateBatchLabel();
@@ -435,6 +446,10 @@ $('load-retry').onclick=()=>loadDatabase(true);
 $('search').oninput=render;$('rookies-only').onchange=render;
 $('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
 document.getElementById('old-advice')?.addEventListener('toggle',()=>{if(document.getElementById('old-advice').open)render();});
+$('export-telegram').onclick=async()=>{const value=draftResultsText(),area=$('export-text');area.value=value;
+ try{await navigator.clipboard.writeText(value);$('export-telegram').textContent='Скопировано ✓';setTimeout(()=>{$('export-telegram').textContent='Скопировать итоги для Telegram';},2000);}
+ catch{area.hidden=false;area.focus();area.select();$('export-telegram').textContent='Выдели текст ниже и скопируй';}};
+$('export-txt').onclick=()=>{const url=URL.createObjectURL(new Blob([draftResultsText()],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='fbl-draft-2026-27.txt';a.click();URL.revokeObjectURL(url);};
 $('replace-cancel').onclick=()=>{stopReplace();render();};
 $('undo').onclick=()=>{state=undo(state);if(state.priceMode==='ON')state=enforceBudget(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};
