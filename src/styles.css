@@ -252,3 +252,5 @@ section[hidden]{display:none!important}
 .roster-player>summary{cursor:pointer;font-size:13px}
 .insights{margin:8px 0}.insights ul{margin:4px 0 8px;padding-left:18px}.insights li{font-size:13px;line-height:1.5;margin:3px 0}
 .insights .pros{color:var(--green);font-size:13px}.insights .cons{color:#e0a458;font-size:13px}
+.export-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.export-row button{width:auto;flex:1 1 auto}
+#export-text{width:100%;min-height:220px;font-size:12px;margin-bottom:10px}
