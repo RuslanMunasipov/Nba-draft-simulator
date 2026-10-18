@@ -11,6 +11,7 @@ import {reportElement} from './rookie-reports.js';
 import './baseline.js';
 import './history.js';
 import {newDraft,pick,undo,replacePick,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
+import {teamName,teamLabel} from './teams.js';
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
@@ -43,7 +44,7 @@ function renderScenarioAnalysis(result,startPick){
   $('simulation-status').textContent=`${result.runs} вариантов завершения драфта от пика №${startPick} за ${seconds} с · допустимых ${result.eligibleRuns}/${result.runs}.`;
   if(result.wins){
    const list=document.createElement('ol');
-   result.wins.forEach((count,i)=>list.append(text('li',`GM ${i+1}: первое место по базовому сезонному прогнозу в ${count.toFixed(1)} из ${result.runs} вариантов`)));
+   result.wins.forEach((count,i)=>list.append(text('li',`${teamName(i)}: первое место по базовому сезонному прогнозу в ${count.toFixed(1)} из ${result.runs} вариантов`)));
    box.append(list,text('p','Меняются только оставшиеся пики ботов. Это не симуляция матчей и не вероятность победы в FBL.'));
   }else box.append(text('p','Есть недопустимый состав, поэтому лидер не определяется.'));
   return;
@@ -281,7 +282,7 @@ function renderPostDraft(){
  const n=state.picks.length,box=$('postdraft');box.hidden=!n||!state.players.length;if(box.hidden)return;
  const complete=n===80,summary=draftSummary(state);
  if(complete&&standingsState!==state){standingsState=state;try{standings=seasonSensitivitySimulations(state,{runs:5000,seed:1});}catch{standings=null;}}
- const sim=complete?standings:null,name=t=>t===1?'GM 1 (ты)':'GM '+t;
+ const sim=complete?standings:null,name=t=>teamLabel(t-1)+(t===1?' (ты)':'');
  const rows=summary.map((t,i)=>({...t,mean:sim?sim.teams[i].mean:t.score,sim:sim?.teams[i]})).sort((a,b)=>(b.mean??-1)-(a.mean??-1));
  $('standings-note').textContent=complete?`Прогноз мест: ${sim?.runs??0} сценариев сезона по прогнозам ФО Sports.ru-формулы (общие колебания лиги, клубов NBA и игроков). Это вероятности, а не гарантия.`:`Драфт идёт (${n}/80): места по сумме прогнозов уже выбранных игроков; вероятности мест появятся после 80-го пика.`;
  const table=document.createElement('table');table.className='standings-table';
@@ -310,7 +311,7 @@ function render(){
  document.querySelector('.hero-meta .limited').textContent=state.priceMode==='ON'?'Salary cap 20 000 · цены Sports.ru':'Ручная база · без бюджета';
  $('draft-rules').textContent=state.priceMode==='ON'?'Лимит 20 000 на команду. Проверяются цены Sports.ru, позиции Sports.ru, rookie и бюджет полного добора.':'Ручная база без подтверждённых цен: бюджет не проверяется.';
  const budget=budgetSummary(state),reserve=state.priceMode==='ON'?completionPlan(state):null;
- $('budget-status').textContent=state.priceMode==='ON'?`GM ${n%8+1}: потрачено ${budget.spent??'неизвестно'} / ${state.cap} · остаток ${budget.remaining??'неизвестно'} · свободно ${budget.slots} мест`+(reserve?.possible?` · минимум на добор ${reserve.minimumRemainingCost}`:' · допустимый добор не найден'):'Ручная база: бюджет отключён';
+ $('budget-status').textContent=state.priceMode==='ON'?`${teamName(n%8)}: потрачено ${budget.spent??'неизвестно'} / ${state.cap} · остаток ${budget.remaining??'неизвестно'} · свободно ${budget.slots} мест`+(reserve?.possible?` · минимум на добор ${reserve.minimumRemainingCost}`:' · допустимый добор не найден'):'Ручная база: бюджет отключён';
  $('pricing-warning').textContent=state.pricingIssue||'';$('pricing-warning').hidden=!state.pricingIssue;
  $('draft-progress-fill').style.width=(n/80*100)+'%';document.querySelector('.draft-progress').setAttribute('aria-valuenow',String(n));
  const own=state.picks.filter(p=>p.team===0).map(p=>state.players.find(x=>x.id===p.playerId));
@@ -319,10 +320,10 @@ function render(){
  const rookie=own.some(p=>p.isRookie);ownBox.append(text('p',`${own.length}/10 игроков · Rookie: ${rookie?'выбран ✓':'ещё нужен'}`));
  const list=document.createElement('ol');list.className='roster-grid';
  for(let i=0;i<10;i++){const row=text('li',own[i]?own[i].name:'Свободное место');if(own[i])row.append(text('small',own[i].positions.join(' / ')+(own[i].isRookie?' · rookie':'')));else row.className='empty-slot';list.append(row);}ownBox.append(list);
- $('turn').textContent=replacing!==null?`Перевыбор пика #${replacing+1} · Команда ${state.picks[replacing].team+1}`:n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
+ $('turn').textContent=replacing!==null?`Перевыбор пика #${replacing+1} · ${teamName(state.picks[replacing].team)}`:n===80?'Драфт завершён':`Пик ${n+1} / 80 · ${teamLabel(n%8)}`;
  $('replace-banner').hidden=replacing===null&&!replaceNote;$('replace-cancel').hidden=replacing===null;
  $('replace-text').textContent=replacing!==null?`Сейчас: ${state.players.find(x=>x.id===state.picks[replacing].playerId)?.name}. Найди нового игрока в списке и нажми «Поставить на пик». Советы ниже относятся к следующему пику, а не к перевыбору.`:replaceNote;
- $('history').replaceChildren();for(const [i,p] of state.picks.entries()){const row=text('li',`#${p.number} · GM ${p.team+1} · ${state.players.find(x=>x.id===p.playerId)?.name||p.playerId} `);const edit=text('button','Перевыбрать');edit.className='replace-pick';edit.onclick=()=>startReplace(i);row.append(edit);$('history').append(row);}
+ $('history').replaceChildren();for(const [i,p] of state.picks.entries()){const row=text('li',`#${p.number} · ${teamName(p.team)} · ${state.players.find(x=>x.id===p.playerId)?.name||p.playerId} `);const edit=text('button','Перевыбрать');edit.className='replace-pick';edit.onclick=()=>startReplace(i);row.append(edit);$('history').append(row);}
  $('candidates').parentElement.open=Boolean($('search').value||$('rookies-only').checked);
  const query=normalizeSearch($('search').value);
  const used=new Set(target().picks.map(p=>p.playerId));
@@ -355,7 +356,7 @@ function render(){
  renderRookies();
  renderPlan();
  renderPostDraft();
- $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} ${state.priceMode==='ON'?' · бюджет '+t.cost+' / '+state.cap:''} · rookie ${t.rookieCount} (${t.rookieRule})`));}
+ $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`${teamName(t.team-1)}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} ${state.priceMode==='ON'?' · бюджет '+t.cost+' / '+state.cap:''} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 let databaseLoading=false;
 async function loadDatabase(force=false){
