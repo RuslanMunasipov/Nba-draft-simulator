@@ -2,7 +2,7 @@ import {playerSearchMatches,playerSearchExact,playerSearchLabel,normalizeSearch}
 import {onlinePanel} from './online.js';
 import {rookieWatch,rookieSlotWarnings} from './rookie-watch.js';
 import {restoreBudgetDraft,enforceBudget,budgetSummary} from './budget.js';
-import {draftValue} from './valuation.js';
+import {draftValue,riskAdjustedValue} from './valuation.js';
 import './model-audit.js';
 import {readStored,writeStored,storageFailed} from './storage.js';
 import {fetchDatabase} from './database-loader.js';
@@ -202,6 +202,41 @@ function renderRookies(){
 }
 function seasonScenarioLabel(){return $('season-runs').value==='20000'?'20 000':'5 000';}
 function updateBatchLabel(){$('batch').textContent=state.picks.length===80?`${seasonScenarioLabel()} сценариев сезона`:'100 сценариев драфта';}
+// The roster planner runs in its own worker so the live draft stays responsive on a phone.
+let planWorker=null,planState=null,planRequest=0;
+function renderPlan(){
+ if(planState===state)return;
+ planState=state;planWorker?.terminate();planWorker=null;const box=$('plan');box.replaceChildren();
+ const remaining=Array.from({length:10},(_,r)=>r*8+1).filter(k=>k>state.picks.length);
+ if(!state.players.length||!remaining.length||state.priceMode!=='ON')return;
+ box.append(text('h3','Оптимальный план десятки'),text('p',`Моделирую соперников и ищу лучший состав на твои пики ${remaining.join(', ')}… (на телефоне до 30 секунд)`));
+ try{planWorker=new Worker(new URL('./plan-worker.js',import.meta.url),{type:'module'});}catch{box.lastChild.textContent='Браузер не поддерживает фоновый расчёт плана.';return;}
+ const snapshot=state,requestId=++planRequest;
+ planWorker.onmessage=({data})=>{
+  if(state!==snapshot||data.requestId!==planRequest)return;
+  planWorker.terminate();planWorker=null;box.replaceChildren(text('h3','Оптимальный план десятки'));
+  if(data.error){box.append(text('p','Не удалось построить план: '+data.error));return;}
+  const a=data.advice,live=id=>state.players.find(p=>p.id===id);
+  if(!a.best){box.append(text('p','Нет допустимого плана при текущем бюджете, позициях и rookie.'));return;}
+  const pct=x=>x==null?'—':Math.round(x*100)+'%',fp=p=>Math.round(riskAdjustedValue(p)*82);
+  box.append(text('p',(a.onTheClock?`Бери сейчас: ${a.best.now.name}. `:`К твоему пику #${a.profile.picks[0]}: лучший вариант ${a.best.now.name}. `)+`План десятки: ${Math.round(a.best.value)} ФО с учётом риска, бюджет ${a.best.spent} / ${state.cap}.`));
+  const plan=document.createElement('ol');plan.className='plan-list';
+  for(const x of a.best.plan)plan.append(text('li',`#${x.pick} · ${x.player.name} (${x.player.positions.join('/')}, ${x.player.price}${x.player.isRookie?', rookie':''}) · ${fp(x.player)} ФО · доживёт ${pct(x.survival)}`));
+  box.append(plan,text('h4','Цена каждого выбора сейчас'));
+  const options=document.createElement('ol');options.className='plan-options';
+  for(const o of a.options){
+   const row=text('li',`${o.player.name} (${o.player.price}) · план ${Math.round(o.value)} ФО${o.delta?` (${Math.round(o.delta)})`:' — лучший'} · если не брать, доживёт до #${a.profile.picks[1]??'—'}: ${pct(o.nextSurvival)}`);
+   const player=live(o.player.id);
+   if(a.onTheClock&&player&&replacing===null){const b=text('button','Выбрать');b.className='plan-pick';b.onclick=()=>choose(player);row.append(b);}
+   options.append(row);
+  }
+  box.append(options);
+  const now=live(a.best.now.id);if(now)box.append(card(now));
+  box.append(text('small',`Метод: ${a.profile.runs} симуляций драфта соперниками-ботами приложения от текущего состояния; игрок попадает в раунд плана, только если доживает до этого пика с вероятностью ≥${Math.round(a.threshold*100)}%. Затем точная оптимизация (целочисленное программирование) суммы сезонных прогнозов ФО с поправкой на риск при лимите, двух слотах на позицию и rookie. Живые GM могут выбирать иначе, чем боты: вероятности приблизительные, план пересчитывается после каждого пика.`));
+ };
+ planWorker.onerror=()=>{planWorker=null;box.replaceChildren(text('h3','Оптимальный план десятки'),text('p','Ошибка расчёта плана.'));};
+ planWorker.postMessage({state,requestId,runs:50});
+}
 function render(){
  const n=state.picks.length;
  updateBatchLabel();
@@ -251,6 +286,7 @@ function render(){
   }
  }
  renderRookies();
+ renderPlan();
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} ${state.priceMode==='ON'?' · бюджет '+t.cost+' / '+state.cap:''} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 let databaseLoading=false;
