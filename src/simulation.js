@@ -148,7 +148,7 @@ export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
   return {kind:'SEASON_SENSITIVITY',metric:FULL_SEASON,runs,teams,
     assumptions:{range:'Сезонный диапазон условно интерпретирован как P10–P90',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
 }
-export function scenarioAnalysis(state,{seed=1,draftRuns=500,seasonRuns=5000}={}) {
+export function scenarioAnalysis(state,{seed=1,draftRuns=100,seasonRuns=5000}={}) {
   if(isComplete(state))return seasonSensitivitySimulations(state,{runs:seasonRuns,seed});
   return {kind:'DRAFT_COMPLETION',...batchSimulations(state,{runs:draftRuns,seed})};
 }
