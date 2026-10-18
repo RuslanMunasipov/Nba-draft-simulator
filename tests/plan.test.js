@@ -34,3 +34,8 @@ test('ADP opponents complete a legal 80-pick draft and follow consensus ranks',a
  assert.equal(done.picks.length,80);assert.deepEqual(importDraft(exportDraft(done)).picks,done.picks);
  assert.ok(done.picks.slice(0,8).every(p=>p.playerId<=20));
 });
+test('GM adjustments change our plan value and choice',()=>{
+ const state=newDraft(players,24000,'ON'),profile={picks,availability:new Map(players.map(p=>[p.id,odds(p)]))};
+ const base=planRoster(state,profile,{threshold:.8}),cut=planRoster(state,profile,{threshold:.8,adjust:{[base.now.id]:-90}});
+ assert.ok(cut.value<base.value);assert.notEqual(cut.now.id,base.now.id);
+});

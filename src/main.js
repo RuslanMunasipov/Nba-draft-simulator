@@ -108,7 +108,7 @@ function card(p,analysis=null){
  if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: ${[source.projectedGames!=null?'прогноз матчей '+source.projectedGames:null,Number.isFinite(source.adp)?'ADP '+source.adp.toFixed(2):null].filter(Boolean).join(' · ')}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
  if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
- if(p.forecast)el.append(forecastCard(p));
+ if(p.forecast)el.append(forecastCard(p));if(p.sportsHistory)el.append(sportsHistoryPanel(p));el.append(adjustControl(p));
  if(p.onlineSummary||p.onlineEvidence)el.append(onlinePanel(p));
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
  if(replacing!==null)b.textContent=`Поставить на пик #${replacing+1}: ${p.name}`;
@@ -123,6 +123,15 @@ function card(p,analysis=null){
 }
 
 
+// Official Sports.ru fantasy points are the reference the forecast is checked against.
+function sportsHistoryPanel(p){
+ const box=document.createElement('div');box.className='sports-history';
+ const rows=Object.entries(p.sportsHistory).slice(-5).map(([season,s])=>`${season}: ${s.perGame.toFixed(1)} ФО/матч (${s.games} м.)`);
+ box.append(text('strong','Sports.ru, официальные ФО по формуле'),text('p',rows.join(' · ')));
+ const c=p.sportsCheck;
+ if(c)box.append(text('small',`${c.flag?'⚠ ':''}Прогноз ${c.forecastPerGame.toFixed(1)} ФО/матч: ${c.gap>0?'+':''}${Math.round(c.gap*100)}% к сезону ${c.season} на Sports.ru (${c.perGame.toFixed(1)}, ${c.games} м.).${c.flag?' Расхождение больше 15%: проверь причину (роль, состав, травма) и при необходимости задай свою поправку.':''}`));
+ return box;
+}
 function forecastCard(p){
  const f=p.forecast,box=document.createElement('div');box.className='forecast-panel';
  if(f.basis)box.append(text('p',f.basis));
@@ -167,6 +176,7 @@ function organizeCard(el,b,previewCount){
 }
 
 function renderRookies(){
+ if($('rookie-board').hidden)return;
  renderTiming(state);
  const watch=$('rookie-watch');watch.replaceChildren();
  if(state.players.length&&state.picks.length<80){watch.append(text('h3','Сильные rookie · доступность'));
@@ -193,7 +203,7 @@ function renderRookies(){
   el.append(text('p','Роль, сильные стороны и ограничения игрока — в репорте выше. Момент пика сравнивается в блоке «Rookie сейчас или ветеран сейчас».'));
   el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Допуск: '+(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED'?'публикация Yahoo Fantasy на NBA.com':p.positionStatus==='SPORTS_RU_VERIFIED'?'Sports.ru':'не подтверждён')+'. Статус rookie — по источнику ESPN.'));
   if(state.priceMode==='ON')el.append(text('p','Цена Sports.ru: '+p.price+' ед.'));
-  if(p.forecast)el.append(forecastCard(p));
+  if(p.forecast)el.append(forecastCard(p));if(p.sportsHistory)el.append(sportsHistoryPanel(p));el.append(adjustControl(p));
   const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);
   el.children[1]?.classList.add('player-score');el.children[2]?.classList.add('player-meta');
   organizeCard(el,b,4);
@@ -202,6 +212,15 @@ function renderRookies(){
 }
 function seasonScenarioLabel(){return $('season-runs').value==='20000'?'20 000':'5 000';}
 function updateBatchLabel(){$('batch').textContent=state.picks.length===80?`${seasonScenarioLabel()} сценариев сезона`:'100 сценариев драфта';}
+// The GM's own forecast adjustments in percent, kept on this device; they change only our plan, not the bots.
+let adjust={};try{adjust=JSON.parse(readStored('fbl-adjust')||'{}')||{};}catch{adjust={};}
+function setAdjust(p,value){const pct=Math.max(-90,Math.min(200,Math.round(Number(value)||0)));if(pct)adjust[p.id]=pct;else delete adjust[p.id];writeStored('fbl-adjust',JSON.stringify(adjust));planState=null;render();}
+function adjustControl(p){
+ const row=document.createElement('label');row.className='adjust-row';
+ const input=document.createElement('input');input.type='number';input.step='5';input.inputMode='numeric';input.value=adjust[p.id]??'';input.placeholder='0';input.setAttribute('aria-label','Моя поправка к прогнозу '+p.name);
+ input.onchange=()=>setAdjust(p,input.value);
+ row.append(text('span','Моя поправка к прогнозу, % (роль, состав, мнение экспертов): '),input);return row;
+}
 // The roster planner runs in its own worker so the live draft stays responsive on a phone.
 let planWorker=null,planState=null,planRequest=0;
 function renderPlan(){
@@ -218,24 +237,28 @@ function renderPlan(){
   if(data.error){box.append(text('p','Не удалось построить план: '+data.error));return;}
   const a=data.advice,live=id=>state.players.find(p=>p.id===id);
   if(!a.best){box.append(text('p','Нет допустимого плана при текущем бюджете, позициях и rookie.'));return;}
-  const pct=x=>x==null?'—':Math.round(x*100)+'%',fp=p=>Math.round(riskAdjustedValue(p)*82);
+  const pct=x=>x==null?'—':Math.round(x*100)+'%',fp=p=>Math.round(riskAdjustedValue(p)*82*(1+(adjust[p.id]||0)/100))+(adjust[p.id]?` (поправка ${adjust[p.id]>0?'+':''}${adjust[p.id]}%)`:'');
   box.append(text('p',(a.onTheClock?`Бери сейчас: ${a.best.now.name}. `:`К твоему пику #${a.profile.picks[0]}: лучший вариант ${a.best.now.name}. `)+`План десятки: ${Math.round(a.best.value)} ФО с учётом риска, бюджет ${a.best.spent} / ${state.cap}.`));
+  const cell=(cls,value)=>{const node=text('span',value);node.className=cls;return node;};
+  const now=live(a.best.now.id);
+  if(now){const hero=document.createElement('div');hero.className='plan-now';hero.append(cell('plan-now-label',a.onTheClock?'Бери сейчас':`К твоему пику #${a.profile.picks[0]}`),card(now));box.append(hero);}
+  box.append(text('h4','План десятки'));
   const plan=document.createElement('ol');plan.className='plan-list';
-  for(const x of a.best.plan)plan.append(text('li',`#${x.pick} · ${x.player.name} (${x.player.positions.join('/')}, ${x.player.price}${x.player.isRookie?', rookie':''}) · ${fp(x.player)} ФО · доживёт ${pct(x.survival)}`));
+  for(const x of a.best.plan){const row=document.createElement('li');const who=cell('plan-name',x.player.name);who.append(cell('plan-pos',`${x.player.positions.join('/')}${x.player.isRookie?' · rookie':''}`));row.append(cell('plan-num','#'+x.pick),who,cell('plan-price',String(x.player.price)),cell('plan-fp',`${fp(x.player)} ФО`),cell('plan-surv',pct(x.survival)));row.title=`#${x.pick} · ${x.player.name} · ${fp(x.player)} ФО · доживёт ${pct(x.survival)}`;plan.append(row);}
   box.append(plan,text('h4','Цена каждого выбора сейчас'));
   const options=document.createElement('ol');options.className='plan-options';
   for(const o of a.options){
-   const row=text('li',`${o.player.name} (${o.player.price}) · план ${Math.round(o.value)} ФО${o.delta?` (${Math.round(o.delta)})`:' — лучший'} · если не брать, доживёт до #${a.profile.picks[1]??'—'}: ${pct(o.nextSurvival)}`);
+   const row=document.createElement('li'),info=cell('plan-opt-info','');
+   info.append(cell('plan-name',`${o.player.name} · ${o.player.price}`),cell('plan-opt-meta',`план ${Math.round(o.value)} ФО${o.delta?` (${Math.round(o.delta)})`:' — лучший'} · доживёт до #${a.profile.picks[1]??'—'}: ${pct(o.nextSurvival)}`));row.append(info);
    const player=live(o.player.id);
    if(a.onTheClock&&player&&replacing===null){const b=text('button','Выбрать');b.className='plan-pick';b.onclick=()=>choose(player);row.append(b);}
    options.append(row);
   }
   box.append(options);
-  const now=live(a.best.now.id);if(now)box.append(card(now));
-  box.append(text('small',`Метод: ${a.profile.runs} симуляций драфта соперниками-ботами приложения от текущего состояния; игрок попадает в раунд плана, только если доживает до этого пика с вероятностью ≥${Math.round(a.threshold*100)}%. Затем точная оптимизация (целочисленное программирование) суммы сезонных прогнозов ФО с поправкой на риск при лимите, двух слотах на позицию и rookie. Живые GM могут выбирать иначе, чем боты: вероятности приблизительные, план пересчитывается после каждого пика.`));
+  const method=document.createElement('details');method.className='plan-method';method.append(text('summary','Как считается'),text('small',`Метод: ${a.profile.runs} симуляций драфта соперниками-ботами приложения от текущего состояния; игрок попадает в раунд плана, только если доживает до этого пика с вероятностью ≥${Math.round(a.threshold*100)}%. Затем точная оптимизация (целочисленное программирование) суммы сезонных прогнозов ФО с поправкой на риск при лимите, двух слотах на позицию и rookie. Живые GM могут выбирать иначе, чем боты: вероятности приблизительные, план пересчитывается после каждого пика.`));box.append(method);
  };
  planWorker.onerror=()=>{planWorker=null;box.replaceChildren(text('h3','Оптимальный план десятки'),text('p','Ошибка расчёта плана.'));};
- planWorker.postMessage({state,requestId,runs:50});
+ planWorker.postMessage({state,requestId,runs:50,adjust});
 }
 function render(){
  const n=state.picks.length;
@@ -269,7 +292,8 @@ function render(){
  if(changed||n===80){adviceWorker?.terminate();adviceWorker=null;}
  if(changed||n===80)$('advice').replaceChildren(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':'Сравниваю продолжения до полной десятки…'));
  if(changed||n===80){$('risky-advice').replaceChildren();$('risk-section').hidden=true;}
- if(n<80&&state.players.length){
+ // The old rollout comparison only runs when its collapsed section is opened.
+ if(n<80&&state.players.length&&document.getElementById('old-advice')?.open){
   const snapshot=state,requestId=++adviceRequest;
   if(!adviceWorker)try{adviceWorker=new Worker(new URL('./advice-worker.js',import.meta.url),{type:'module'});}
   catch{ $('advice').replaceChildren(...recommendations(state).slice(0,5).map(p=>card(p))); $('advice').append(text('p','Расчёт продолжений недоступен: показан риск-скорректированный список без оптимизации состава.'));adviceWorker=null; }
@@ -319,6 +343,7 @@ async function loadDatabase(force=false){
 $('load-retry').onclick=()=>loadDatabase(true);
 $('search').oninput=render;$('rookies-only').onchange=render;
 $('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
+document.getElementById('old-advice')?.addEventListener('toggle',()=>{if(document.getElementById('old-advice').open)render();});
 $('replace-cancel').onclick=()=>{stopReplace();render();};
 $('undo').onclick=()=>{state=undo(state);if(state.priceMode==='ON')state=enforceBudget(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};
