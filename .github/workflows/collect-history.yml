@@ -3,6 +3,8 @@ on:
   push:
     branches: [data/history-foundation]
     paths:
+      - data/verified-identities.json
+      - scripts/history_normalization.py
       - scripts/collect_history.py
       - scripts/restore_history_checkpoint.py
       - .github/workflows/collect-history.yml

@@ -11,28 +11,30 @@
       "requirement": "Все игроки каталога, ID и независимая сверка личности",
       "status": "COLLECTING",
       "complete": false,
-      "workflowRunId": 39096546338
+      "workflowRunId": 39097917559,
+      "verifiedPlayers": 840,
+      "unresolvedPlayers": 45
     },
     {
       "id": "nba_seasons",
       "requirement": "Все сезоны с дебюта, включая ранее отклонённые карьеры",
       "status": "COLLECTING",
       "complete": false,
-      "workflowRunId": 39096231160
+      "workflowRunId": 39098125392
     },
     {
       "id": "nba_games",
       "requirement": "Игровые логи, фактический тип сезона, исходные компоненты",
       "status": "COLLECTING",
       "complete": false,
-      "workflowRunId": 39096231160
+      "workflowRunId": 39098125392
     },
     {
       "id": "ncaa",
       "requirement": "Все колледжи, сезоны, доступные матчи и независимая сверка",
       "status": "COLLECTING",
       "complete": false,
-      "workflowRunId": 39096231160
+      "workflowRunId": 39098125392
     },
     {
       "id": "summer_league",
@@ -44,9 +46,9 @@
     {
       "id": "european_cups",
       "requirement": "EuroLeague/EuroCup карьеры; нативные ID и NBA-сопоставление",
-      "status": "COLLECTION_ADAPTER_PREPARED",
+      "status": "COLLECTING",
       "complete": false,
-      "workflowRunId": null
+      "workflowRunId": 39097917564
     },
     {
       "id": "domestic_international",
@@ -58,7 +60,7 @@
     {
       "id": "gleague",
       "requirement": "Карьеры, этапы соревнований, матчи и перемещения",
-      "status": "NO_ACCEPTED_COMPLETE_ADAPTER",
+      "status": "PARTIAL_OFFICIAL_TABLES_WITH_EMPTY_RESPONSES",
       "complete": false,
       "workflowRunId": null
     },
@@ -163,5 +165,18 @@
     "ESPN game log request type filter does not separate returned regular/postseason blocks.",
     "Historical ESPN roster season label can coexist with current coach fields; historical head-coach roles not established.",
     "ESPN athlete index remains 752 for the tested active=false filter; not a historical universe."
-  ]
+  ],
+  "asOf": "2026-10-18T04:57:38.586388+00:00",
+  "latestHistoryEvidence": {
+    "nbaNormalizedPlayerGames": 239301,
+    "ncaaNormalizedPlayerGames": 53520,
+    "ncaaUnnormalizedPlayerGames": 1,
+    "independentNBASeasonInventory": {
+      "expected": 4015,
+      "found": 4012,
+      "missing": 3
+    },
+    "artifactId": 12125164373,
+    "complete": false
+  }
 }
