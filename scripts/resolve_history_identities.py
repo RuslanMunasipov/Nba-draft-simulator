@@ -37,6 +37,7 @@ def resolve(player,root,official_index):
   birth=(info.get('BIRTHDATE') or '')[:10]
   result['nbaProfile']=dict(name=info['DISPLAY_FIRST_LAST'],birthDate=birth,fromYear=info.get('FROM_YEAR'),toYear=info.get('TO_YEAR'),seasons=info.get('SEASONS',[]),draftYear=info.get('DRAFT_YEAR'),draftRound=info.get('DRAFT_ROUND'),draftNumber=info.get('DRAFT_NUMBER'))
   result['expectedNBARegularEndYears']=sorted({int(code[1:])+1 for code in info.get('SEASONS',[]) if len(code)==5 and code[0]=='2' and code[1:].isdigit()})
+  candidate_leagues={}
   candidates=[str(player['espnId'])] if player.get('espnId') else []
   if not candidates:
    url='https://site.web.api.espn.com/apis/common/v3/search?'+urllib.parse.urlencode(dict(query=player['name'],limit=100,type='player',sport='basketball',league='nba'))
@@ -49,13 +50,19 @@ def resolve(player,root,official_index):
     for p in group.get('contents',[]):
      if p.get('sport')=='basketball' and normalize(p.get('displayName') or '')==normalize(player['name']):
       m=re.search(r'~a:(\d+)$',p.get('uid',''))
-      if m:candidates.append(m.group(1))
+      if m:
+       candidates.append(m.group(1));candidate_leagues[m.group(1)]=p.get('defaultLeagueSlug','nba')
    candidates=list(dict.fromkeys(candidates))
   result['candidateEspnIds']=candidates;matches=[]
   for eid in candidates:
-   raw,meta=fetch('https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/athletes/'+eid,root);result['sources'].append(meta)
-   p=json.loads(raw);p=p.get('athlete',p);dob=(p.get('dateOfBirth') or '')[:10]
-   if birth and dob==birth and normalize(p.get('displayName') or '')==normalize(info['DISPLAY_FIRST_LAST']):matches.append(eid)
+   for league in dict.fromkeys(['nba',candidate_leagues.get(eid,'nba')]):
+    url='https://sports.core.api.espn.com/v2/sports/basketball/leagues/'+league+'/athletes/'+eid
+    try:
+     raw,meta=fetch(url,root);result['sources'].append(meta)
+     p=json.loads(raw);p=p.get('athlete',p);dob=(p.get('dateOfBirth') or '')[:10]
+     if birth and dob==birth and normalize(p.get('displayName') or '')==normalize(info['DISPLAY_FIRST_LAST']):matches.append(eid);break
+    except Exception as exc:result.setdefault('candidateErrors',[]).append(dict(espnId=eid,sourceUrl=url,error=str(exc)))
+  matches=list(dict.fromkeys(matches))
   if len(matches)==1:result.update(status='VERIFIED_NAME_DOB_NBA_ID',espnId=matches[0])
   else:result['reason']='No unique name + birth date corroboration across NBA and ESPN'
  except Exception as exc:result['reason']=str(exc)
