@@ -86,30 +86,19 @@ function card(p,analysis=null){
  if(p.coverageStatus==='EARLIER_SEASON')el.append(text('p','Пропуск/малая выборка последнего сезона: автоматически использована база '+p.projectionBaseSeason+'. Текущая нагрузка неизвестна.'));
  if(p.injuries?.length)el.append(text('p','Статус источника: '+p.injuries.map(i=>(i.status||'неизвестно')+' ('+(i.date||'дата неизвестна')+')').join(', ')));
  if(p.returnContext)el.append(text('p',p.returnContext.note));
- if(p.positionStatus==='SPORTS_RU_VERIFIED'){el.append(text('small','Допуск драфта: позиция Sports.ru.'));el.append(text('small','Yahoo для переноса: '+(p.yahooPositions?.join('/')||'допуск не подтверждён')+'. На лимиты драфта Sports.ru не влияет.'));}
- if(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED')el.append(text('small','Позиции из публикации Yahoo Fantasy на NBA.com.'));
- if(p.positionStatus==='ESTIMATED_FROM_ESPN_NOT_YAHOO')el.append(text('small','Позиции ESPN, допуск Yahoo не подтверждён.'));
- if(state.priceMode==='ON')el.append(text('p','Цена Sports.ru: '+(p.priceStatus==='VERIFIED'?p.price+' ед.':'отсутствует — выбор заблокирован')));
- if(analysis&&!individualRookie){
-  if(analysis.stability!==null)el.append(text('p','Уверенность пика: '+analysis.stability+'% первых мест в условных сценариях'));
-  el.append(text('p',analysis.conclusion));
-  if(analysis.pressure!==null)el.append(text('p','Брать сейчас или ждать: в '+analysis.pressure+' из 100 эвристических сценариев игрок уходил за следующие 7 выборов, если мы брали альтернативу. Это не реальная вероятность действий GM.'));
-  el.append(text('strong','Плюсы пика'));const pros=document.createElement('ul');for(const value of analysis.advantages)pros.append(text('li',value));el.append(pros);
-  el.append(text('strong','Минусы и альтернативы'));const cons=document.createElement('ul');for(const value of analysis.drawbacks)cons.append(text('li',value));el.append(cons);
-
-  const details=document.createElement('details');details.append(text('summary','Как рассчитан прогноз'),text('p',analysis.method));el.append(details);
- }
- if(p.sourceUpdatedAt||p.rosterSource){
-  const evidence=document.createElement('details');evidence.append(text('summary','Источники и актуальность'));
-  if(p.sourceUpdatedAt)evidence.append(text('p','Срез ростера: '+new Date(p.sourceUpdatedAt).toLocaleString('ru-RU')));
-  evidence.append(text('p',p.forecast?.origin==='ESPN_INDIVIDUAL'?'Индивидуальный прогноз ESPN на 2026/27; фолы, бонусы и разброс дополнены моделью.':p.forecast?.basis||'Статистическая база: '+(p.projectionBaseSeason||'групповой ориентир')+'.'));
-  if(p.rosterSource){const source=document.createElement('a');source.href=p.rosterSource;source.textContent='Источник ростера и статусов ESPN';evidence.append(source);}el.append(evidence);
- }
- if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: ${[source.projectedGames!=null?'прогноз матчей '+source.projectedGames:null,Number.isFinite(source.adp)?'ADP '+source.adp.toFixed(2):null].filter(Boolean).join(' · ')}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
- if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
+ // Sports.ru history and our forecast come first; sources, formula and career sit under «Подробнее».
+ el.append(sportsHistoryPanel(p));
+ if(p.forecast)el.append(forecastSummary(p));
+ el.append(adjustControl(p));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
- if(p.forecast)el.append(forecastCard(p));if(p.sportsHistory)el.append(sportsHistoryPanel(p));el.append(adjustControl(p));
- if(p.onlineSummary||p.onlineEvidence)el.append(onlinePanel(p));
+ if(analysis&&!individualRookie)el.append(text('p',analysis.conclusion));
+ const more=document.createElement('details');more.className='card-more';more.append(text('summary','Подробнее: формула, источники, карьера'));
+ if(p.forecast)more.append(forecastCard(p));
+ if(p.espnContext){const source=p.espnContext;more.append(text('p',`ESPN 2026/27: ${[source.projectedGames!=null?'прогноз матчей '+source.projectedGames:null,Number.isFinite(source.adp)?'ADP '+source.adp.toFixed(1):null].filter(Boolean).join(' · ')}.`));}
+ if(p.positionStatus==='SPORTS_RU_VERIFIED')more.append(text('small','Позиция Sports.ru. Yahoo (для переноса): '+(p.yahooPositions?.join('/')||'не подтверждена')+'.'));
+ if(p.sourceUpdatedAt)more.append(text('small','Срез ростера ESPN: '+new Date(p.sourceUpdatedAt).toLocaleString('ru-RU')));
+ if(p.onlineSummary||p.onlineEvidence)more.append(onlinePanel(p));
+ el.append(more);
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
  if(replacing!==null)b.textContent=`Поставить на пик #${replacing+1}: ${p.name}`;
  if(pickCompletion(target(),p.id).possible===false){b.disabled=true;b.title=pickCompletion(target(),p.id).reason;}
@@ -126,10 +115,21 @@ function card(p,analysis=null){
 // Official Sports.ru fantasy points are the reference the forecast is checked against.
 function sportsHistoryPanel(p){
  const box=document.createElement('div');box.className='sports-history';
- const rows=Object.entries(p.sportsHistory).slice(-5).map(([season,s])=>`${season}: ${s.perGame.toFixed(1)} ФО/матч (${s.games} м.)`);
- box.append(text('strong','Sports.ru, официальные ФО по формуле'),text('p',rows.join(' · ')));
- const c=p.sportsCheck;
- if(c)box.append(text('small',`${c.flag?'⚠ ':''}Прогноз ${c.forecastPerGame.toFixed(1)} ФО/матч: ${c.gap>0?'+':''}${Math.round(c.gap*100)}% к сезону ${c.season} на Sports.ru (${c.perGame.toFixed(1)}, ${c.games} м.).${c.flag?' Расхождение больше 15%: проверь причину (роль, состав, травма) и при необходимости задай свою поправку.':''}`));
+ box.append(text('strong','Sports.ru · официальные ФО по сезонам'));
+ const seasons=Object.entries(p.sportsHistory||{});
+ if(!seasons.length){box.append(text('p','На Sports.ru сезонов нет: новичок или не играл в NBA.'));return box;}
+ const table=document.createElement('table');table.className='sports-table';
+ const head=document.createElement('tr');for(const h of ['Сезон','Матчи','ФО/матч','ФО всего'])head.append(text('th',h));table.append(head);
+ for(const [season,s] of seasons.reverse()){const row=document.createElement('tr');for(const v of [season,String(s.games),s.perGame.toFixed(1),String(Math.round(s.points))])row.append(text('td',v));table.append(row);}
+ box.append(table);return box;
+}
+function forecastSummary(p){
+ const f=p.forecast,c=p.sportsCheck,box=document.createElement('div');box.className='forecast-summary';
+ box.append(text('strong',`Прогноз 2026/27: ${f.meanPerGame.toFixed(1)} ФО/матч × ${Math.round(f.games)} матчей = ${Math.round(f.meanSeason)} ФО`));
+ if(Number.isFinite(f.seasonFloor)&&Number.isFinite(f.seasonCeiling))box.append(text('small',`Диапазон сезона: ${Math.round(f.seasonFloor)}–${Math.round(f.seasonCeiling)} ФО (слабый–сильный)`));
+ if(c)box.append(text('small',`${c.flag?'⚠ ':''}${c.gap>0?'+':''}${Math.round(c.gap*100)}% к сезону ${c.season} на Sports.ru (${c.perGame.toFixed(1)} ФО/матч).${c.flag?' Проверь роль, состав или травму и при необходимости задай поправку.':''}`));
+ if(p.injuries?.length)box.append(text('small','Статус: '+p.injuries.map(i=>i.status||'неизвестно').join(', ')));
+ if(p.returnContext?.note)box.append(text('small',p.returnContext.note));
  return box;
 }
 function forecastCard(p){
