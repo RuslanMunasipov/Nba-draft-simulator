@@ -11,7 +11,7 @@ import {reportElement} from './rookie-reports.js';
 import './baseline.js';
 import './history.js';
 import {newDraft,pick,undo,replacePick,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
-import {advanceBots,simulateDraft,draftSummary} from './simulation.js';
+import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
 import {rookieRecommendations} from './rookies.js';
@@ -71,7 +71,7 @@ function chooseReplacement(p){
  }catch(e){showError(e);}
 }
 function choose(p){$('draft-message').hidden=true;replaceNote='';if(replacing!==null)return chooseReplacement(p);try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
-function card(p,analysis=null){
+function card(p,analysis=null,readonly=false){
  const el=document.createElement('article');el.className='player-card';
  const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
  el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
@@ -100,9 +100,12 @@ function card(p,analysis=null){
  if(p.onlineSummary||p.onlineEvidence)more.append(onlinePanel(p));
  el.append(more);
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
+ if(readonly)b.hidden=true;
+ else{
  if(replacing!==null)b.textContent=`Поставить на пик #${replacing+1}: ${p.name}`;
  if(pickCompletion(target(),p.id).possible===false){b.disabled=true;b.title=pickCompletion(target(),p.id).reason;}
  try{pick(target(),p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
+ }
  el.append(b);
  el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[4]?.classList.add('player-score');
  el.dataset.risk=risk.level.includes('ВЫСОКИЙ')?'high':risk.level.includes('СРЕДНИЙ')?'medium':'low';
@@ -260,6 +263,34 @@ function renderPlan(){
  planWorker.onerror=()=>{planWorker=null;box.replaceChildren(text('h3','Оптимальный план десятки'),text('p','Ошибка расчёта плана.'));};
  planWorker.postMessage({state,requestId,runs:50,adjust});
 }
+// Every GM's roster with expandable cards and the projected standings; partial during the draft, simulated after it.
+let standingsState=null,standings=null;
+function renderPostDraft(){
+ const n=state.picks.length,box=$('postdraft');box.hidden=!n||!state.players.length;if(box.hidden)return;
+ const complete=n===80,summary=draftSummary(state);
+ if(complete&&standingsState!==state){standingsState=state;try{standings=seasonSensitivitySimulations(state,{runs:5000,seed:1});}catch{standings=null;}}
+ const sim=complete?standings:null,name=t=>t===1?'GM 1 (ты)':'GM '+t;
+ const rows=summary.map((t,i)=>({...t,mean:sim?sim.teams[i].mean:t.score,sim:sim?.teams[i]})).sort((a,b)=>(b.mean??-1)-(a.mean??-1));
+ $('standings-note').textContent=complete?`Прогноз мест: ${sim?.runs??0} сценариев сезона по прогнозам ФО Sports.ru-формулы (общие колебания лиги, клубов NBA и игроков). Это вероятности, а не гарантия.`:`Драфт идёт (${n}/80): места по сумме прогнозов уже выбранных игроков; вероятности мест появятся после 80-го пика.`;
+ const table=document.createElement('table');table.className='standings-table';
+ const head=document.createElement('tr');for(const h of complete?['#','GM','Прогноз ФО','P10–P90','1-е место','Места 1–8, %']:['#','GM','Игроков','Сумма прогнозов'])head.append(text('th',h));table.append(head);
+ rows.forEach((t,rank)=>{const row=document.createElement('tr');if(t.team===1)row.className='mine';
+  const cells=complete&&t.sim?[String(rank+1),name(t.team),Math.round(t.sim.mean).toLocaleString('ru-RU'),`${Math.round(t.sim.p10)}–${Math.round(t.sim.p90)}`,t.sim.firstPlaceShare.toFixed(1)+'%',t.sim.places.map(x=>Math.round(x)).join(' · ')]:[String(rank+1),name(t.team),`${t.players}/10`,t.score==null?'—':Math.round(t.score).toLocaleString('ru-RU')];
+  for(const c of cells)row.append(text('td',c));table.append(row);});
+ $('standings').replaceChildren(table);
+ const rosters=$('team-rosters');rosters.replaceChildren();
+ for(const t of rows){
+  const team=t.team-1,players=teamRoster(state,team),details=document.createElement('details');details.className='team-roster';if(team===0)details.open=true;
+  details.append(text('summary',`${name(t.team)} · ${players.length}/10 · ${t.mean==null?'—':Math.round(t.mean).toLocaleString('ru-RU')+' ФО'} · бюджет ${t.cost??'—'} / ${state.cap}`));
+  for(const p of players){
+   const item=document.createElement('details');item.className='roster-player';
+   item.append(text('summary',`${p.name} · ${p.positions.join('/')} · ${p.price??'—'} · ${p.forecast?Math.round(p.forecast.meanSeason)+' ФО':'нет прогноза'}${p.isRookie?' · rookie':''}`));
+   item.addEventListener('toggle',()=>{if(item.open&&item.children.length===1){const c=card(p,null,true);c.querySelector('details.card-details')?.setAttribute('open','');item.append(c);}});
+   details.append(item);
+  }
+  rosters.append(details);
+ }
+}
 function render(){
  const n=state.picks.length;
  updateBatchLabel();
@@ -311,6 +342,7 @@ function render(){
  }
  renderRookies();
  renderPlan();
+ renderPostDraft();
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} ${state.priceMode==='ON'?' · бюджет '+t.cost+' / '+state.cap:''} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 let databaseLoading=false;

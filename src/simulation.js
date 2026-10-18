@@ -133,6 +133,7 @@ export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
   validateCompletedRoster(state);
   const random=randomFromSeed(seed),rosters=Array.from({length:TEAM_COUNT},(_,i)=>teamRoster(state,i));
   const totals=Array.from({length:TEAM_COUNT},()=>[]),wins=Array(TEAM_COUNT).fill(0);
+  const places=Array.from({length:TEAM_COUNT},()=>Array(TEAM_COUNT).fill(0));
   for(let run=0;run<runs;run++){
     const leagueShock=normalDraw(random),nbaTeamShocks=new Map(),scores=[];
     for(let team=0;team<TEAM_COUNT;team++){
@@ -146,13 +147,14 @@ export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
       }
       scores.push(total);totals[team].push(total);
     }
+    scores.map((score,i)=>[score,i]).sort((a,b)=>b[0]-a[0]).forEach(([,i],rank)=>places[i][rank]++);
     const best=Math.max(...scores),leaders=scores.map((score,i)=>score===best?i:-1).filter(i=>i>=0);
     for(const team of leaders)wins[team]+=1/leaders.length;
   }
   const base=draftSummary(state);
   const teams=totals.map((values,i)=>{
     const sorted=[...values].sort((a,b)=>a-b);
-    return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100,firstPlaceCI:wilsonInterval(wins[i],runs)};
+    return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100,firstPlaceCI:wilsonInterval(wins[i],runs),places:places[i].map(c=>c/runs*100)};
   });
   return {kind:'SEASON_SENSITIVITY',metric:FULL_SEASON,runs,teams,
     assumptions:{range:'P10–P90 — квантили только сгенерированных сценариев; входные слабый/сильный ориентиры не являются откалиброванными P10/P90. Симметричный ограниченный разброс сохраняет базовое ожидание',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
