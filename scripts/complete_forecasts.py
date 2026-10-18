@@ -7,6 +7,11 @@ from pathlib import Path
 from build_forecasts import partial
 KEYS=['pts','reb','ast','stl','blk','tov','pf','fgm','fga','ftm','fta','minutes']
 def from_history(player,history):
+ career=(player.get('onlineEvidence',{}).get('career') or {}).get('seasons',[])
+ usable=[r for r in career if r.get('year',9999)<=2026 and r.get('games',0)>0 and r.get('perGame') and all(k in r['perGame'] for k in KEYS)]
+ if usable:
+  row=max(usable,key=lambda r:r['year'])
+  return dict(perGame=row['perGame'],games=row['games'],season=row['season'])
  p=history.get(player.get('nbaId'))
  if not p:return None
  year=max(p['seasons']);row=p['seasons'][year]
@@ -40,7 +45,7 @@ def complete(data,history):
    s=rookie['perGame'];games=rookie['games'];origin='NCAA_TRAINED_TRANSFER'
    basis='Перенос личной NCAA-статистики '+rookie['collegeSeason']+' в NBA; обучение на '+str(rookie['trainingPlayers'])+' игроках'
    tier='LIMITED_PERSONAL'
-  elif prediction:
+  elif prediction and prediction.get('eligibleForPrimary'):
    s=prediction['perGame'];games=prediction['games'];origin='CAREER_TRAINED'
    basis='Модель всей доступной NBA-карьеры: '+str(prediction['historySeasons'])+' сезонов; '+prediction['firstSeason']+' — '+prediction['lastSeason']
    tier='PERSONAL_HISTORY';career_replaced+=bool(f)

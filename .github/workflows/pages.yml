@@ -76,6 +76,7 @@ jobs:
             public/data/*audit*.json
             public/data/history-integration-audit.json
             public/data/forecast-coverage.json
+            public/data/default-draft.json
           if-no-files-found: warn
       - uses: actions/setup-node@v4
         with:

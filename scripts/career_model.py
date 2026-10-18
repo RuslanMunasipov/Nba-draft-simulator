@@ -51,6 +51,8 @@ def transitions(players,profile='BASE'):
   for year in range(max(2005,seasons[0]['year']+1),2027):
    x=features(seasons,year,p.get('age'),profile)
    if x is None:continue
+   # A known source gap is not evidence of a missed NBA season.
+   if year in history.get('unusableEndYears',[]):continue
    actual=byyear.get(year);past=[r for r in seasons if r['year']<year]
    if year-past[-1]['year']>1:continue
    # Availability includes absent next seasons; conditional stat model does not

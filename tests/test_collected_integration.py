@@ -25,3 +25,11 @@ class Integration(unittest.TestCase):
   self.assertEqual(report['summer']['excludedWarningEvents'],1)
   self.assertEqual(p['onlineEvidence']['unusableNBASeasons'],['2021-22'])
 if __name__=='__main__':unittest.main()
+
+class GapTraining(unittest.TestCase):
+ def test_known_missing_source_season_is_not_a_zero_availability_target(self):
+  from career_model import transitions
+  stat=dict.fromkeys(KEYS,1)
+  seasons=[dict(year=2024,games=50,perGame=stat),dict(year=2026,games=50,perGame=stat)]
+  players=[dict(id=1,onlineEvidence=dict(career=dict(seasons=seasons,unusableEndYears=[2025])))]
+  self.assertFalse(any(r['year']==2025 for r in transitions(players)))

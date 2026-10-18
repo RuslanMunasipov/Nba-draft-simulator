@@ -16,3 +16,10 @@ class IntervalRegressionTests(unittest.TestCase):
    self.assertLessEqual(f['seasonFloor'],f['meanSeason']);self.assertLessEqual(f['meanSeason'],f['seasonCeiling'])
    self.assertEqual(f['meanSeason']-f['seasonFloor'],100*p['id'])
    self.assertNotEqual(f['intervalCalibration'],'P10_P90')
+
+class PromotionGate(unittest.TestCase):
+ def test_personal_career_fallback_survives_rejected_model(self):
+  from complete_forecasts import from_history
+  s={k:1.0 for k in ['pts','reb','ast','stl','blk','tov','pf','fgm','fga','ftm','fta','minutes']}
+  player={'onlineEvidence':{'career':{'seasons':[{'year':2019,'season':'2018-19','games':30,'perGame':s}]}}}
+  self.assertEqual(from_history(player,{})['season'],'2018-19')

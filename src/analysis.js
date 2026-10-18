@@ -7,6 +7,7 @@ import {completionPlan,pickCompletion} from './completion.js';
 import {randomFromSeed} from './simulation.js';
 export function riskProfile(p){
  const games=Object.values(p.historyGames||{});const flags=[];
+ if(p.historyUnusableEndYears?.length)flags.push('В истории есть сезоны без полных компонентов: '+p.historyUnusableEndYears.join(', ')+'. Они не считаются нулевыми сезонами.');
  if(p.forecast?.coverageTier==='GROUP_PRIOR')flags.push('Групповой ориентир NBA-роли, не персональный прогноз статистики');
  if(p.forecast?.coverageTier==='LIMITED_PERSONAL')flags.push('Прогноз по малой или устаревшей личной выборке');
  if(p.forecast?.conditionalOnRoster)flags.push('Отдача условна: действующий ростер NBA не подтверждён');
@@ -93,7 +94,7 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
   }else conclusion='Единственный доступный кандидат с допустимым добором состава.';
   if(severeRisk(p))conclusion='Рискованная ставка. '+conclusion;
   const evaluation=evaluations.find(x=>x.player.id===p.id),otherEvaluation=evaluations.find(x=>x.player.id!==p.id);
-  if(evaluation?.expectedRoster!==null){
+  if(evaluation?.expectedRoster!=null){
    const delta=otherEvaluation?.expectedRoster==null?null:evaluation.expectedRoster-otherEvaluation.expectedRoster;
    const budget=state.priceMode==='ON'?state.cap-own.reduce((sum,x)=>sum+x.price,0)-p.price:null;
    advantages.push(`Итог десятки: ${Math.round(evaluation.expectedRoster)} ФО; риск-скорректированная оценка состава ${Math.round(evaluation.adjustedRoster)}. ${evaluation.runs} парных продолжения, не точный оптимум.`);

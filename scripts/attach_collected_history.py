@@ -44,9 +44,13 @@ def attach(data,db,identities,summer_root):
   p['historyGames']=inventory.get((pid,'nba'),p.get('historyGames',{}));p['historyReferenceSeason']='2025-26'
   observed=inventory.get((pid,'nba'),{})
   absent=[year for year in observed if int(year[:4])+1 not in {r['year'] for r in nba}]
+  expected=set(match.get('expectedNBARegularEndYears',[])) if match else set()
+  unusable_years=sorted((expected|{int(year[:4])+1 for year in observed})-{r['year'] for r in nba})
+  p['historyUnusableEndYears']=[year for year in unusable_years if year<=2026]
   if absent:unusable.append(dict(id=p['id'],seasons=absent,reason='Participation exists; complete season components unavailable'))
   def evidence(rows,comp):return dict(seasons=rows,checkedAt=data.get('generatedAt'),source='Collected ESPN '+comp+' snapshots; per-season URLs and raw SHA-256 retained',stale=False,collectionIsComplete=False)
-  p['onlineEvidence']=dict(career=evidence(nba,'NBA'),college=evidence(ncaa,'NCAA'),recentGames=games.get(eid,[]),unusableNBASeasons=absent,note='All complete collected personal NBA/NCAA seasons enter their respective models. Summer League is separate descriptive evidence, not an unvalidated NBA scoring adjustment. Collection remains incomplete.')
+  career=evidence(nba,'NBA');career['unusableEndYears']=p['historyUnusableEndYears']
+  p['onlineEvidence']=dict(career=career,college=evidence(ncaa,'NCAA'),recentGames=games.get(eid,[]),unusableNBASeasons=absent,note='All complete collected personal NBA/NCAA seasons enter their respective models. Summer League is separate descriptive evidence, not an unvalidated NBA scoring adjustment. Collection remains incomplete.')
  report=dict(asOf=datetime.now(timezone.utc).isoformat(),status='PARTIAL_COLLECTION_INTEGRATED',careerPlayers=attached,careerSeasons=sum(len(p['onlineEvidence']['career']['seasons']) for p in data['players']),collegePlayers=college,collegeSeasons=sum(len(p['onlineEvidence']['college']['seasons']) for p in data['players']),summer=dict(excludedWarningEvents=excluded,acceptedPlayerGames=sum(len(x) for x in games.values()),use='DESCRIPTIVE_ONLY_NOT_CALIBRATED_NBA_EQUIVALENT'),missingCareerPlayers=missing,unusableSeasons=unusable,limitations=['Missing seasons remain missing, never zero talent.','Current-catalog survivor selection remains a training limitation.','No calibrated coach, lineup, tracking or injury forecast is implied.','Full FBL game arithmetic comes from the three parquet seasons; career target lacks game-result bonus.'])
  data['onlineAudit']=report;data['historyIntegrationAudit']=report
  return report
