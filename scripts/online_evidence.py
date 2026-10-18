@@ -68,7 +68,7 @@ def parse_career(payload):
   result.append(dict(rows[-1],games=games,perGame={k:sum(r['perGame'][k]*r['games'] for r in rows)/games for k in rows[0]['perGame']}))
  return sorted(result,key=lambda r:r['year'])
 
-def parse_box(payload,event,league):
+def parse_box(payload,event,league,include_zero=False):
  result=[]
  for team in payload.get('boxscore',{}).get('players',[]):
   for group in team.get('statistics',[]):
@@ -78,7 +78,7 @@ def parse_box(payload,event,league):
     s=dict(zip(labels,athlete.get('stats',[])))
     try:
      raw=str(s['MIN']);minutes=number(raw.split(':')[0])+number(raw.split(':')[1])/60 if ':' in raw else number(raw)
-     if minutes<=0:continue
+     if minutes<0 or (minutes==0 and not include_zero):continue
      fgm,fga=pair(s['FG']);ftm,fta=pair(s['FT'])
      stat=dict(minutes=minutes,pts=number(s['PTS']),reb=number(s['REB']),ast=number(s['AST']),stl=number(s['STL']),
                blk=number(s['BLK']),tov=number(s['TO']),pf=number(s['PF']),fgm=fgm,fga=fga,ftm=ftm,fta=fta)

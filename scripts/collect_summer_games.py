@@ -51,7 +51,7 @@ def game(job,root):
   if returned is not None and str(returned)!=identifier:raise ValueError('Protocol event ID mismatch')
   if not event.get('status',{}).get('type',{}).get('completed'):
    result['status']='NOT_COMPLETED';return result
-  rows=parse_box(payload,event,code)
+  rows=parse_box(payload,event,code,include_zero=True)
   if not rows:raise ValueError('No parsed player observations')
   competition_header=(header.get('competitions') or [{}])[0]
   opponents=competition_header.get('competitors',[])
@@ -73,10 +73,16 @@ def game(job,root):
    if aid in seen:raise ValueError('Duplicate player rows in protocol')
    seen.add(aid);context=membership.get(aid,{})
    if not context.get('teamId') or context['teamId'] not in teams:raise ValueError('Player team cannot be mapped to scoreboard')
-   row.update(providerCompetition=code,competition=competition,year=year,teamId=context['teamId'],starter=context.get('starter'),valueKind='OBSERVED')
+   row.update(providerCompetition=code,competition=competition,year=year,teamId=context['teamId'],starter=context.get('starter'),valueKind='OBSERVED',recordedMinutesStatus='ZERO_REPORTED' if row['stats']['minutes']==0 else 'POSITIVE_REPORTED',eligibleForRateFeatures=row['stats']['minutes']>0,rulesVersion='SUMMER_2026_VARIABLE_POINT_FREE_THROW' if year==2026 else 'RULE_VERSION_NOT_YET_VERIFIED')
    result['players'].append(row)
   # Never silently drop non-DNP rows that the existing parser cannot interpret.
   for aid in sorted(source_active-seen):warnings.append(dict(kind='NON_DNP_ROW_NOT_NORMALIZED',espnId=aid,teamId=membership[aid]['teamId'],rawStats=membership[aid]['rawStats']))
+  fingerprints={}
+  for row in rows:
+   signature=(row['teamId'],(row.get('name') or '').casefold(),json.dumps(row['stats'],sort_keys=True))
+   if row['stats']['minutes']>0 and signature in fingerprints:
+    warnings.append(dict(kind='POSSIBLE_DUPLICATE_IDENTITIES',espnIds=[fingerprints[signature],row['espnId']],teamId=row['teamId'],name=row.get('name')))
+   fingerprints[signature]=row['espnId']
   reconciliation=[]
   for team_id,team in teams.items():
    score=team['score'];score=score.get('value') if isinstance(score,dict) else score
@@ -116,8 +122,8 @@ def main():
  groups=[]
  for c in calendars:
   own=[r for r in results if r['competition']==c['competition'] and r['year']==c['year']]
-  groups.append(dict(competition=c['competition'],year=c['year'],providerCode=c['providerCode'],calendarStatus=c['calendarStatus'],listedEvents=len(c['events']),observedCountChanged=c.get('observedCountChanged'),statuses=dict(Counter(r['status'] for r in own)),playerGames=sum(len(r['players']) for r in own),participationRows=sum(len(r['participation']) for r in own),independentCalendarReconciled=False))
- report=dict(asOf=now(),status='COLLECTED_PROVIDER_EVENTS_NOT_INDEPENDENTLY_COMPLETE',calendarsExpected=len(entries),calendarsFetched=sum(c['calendarStatus']=='FETCHED' for c in calendars),listedUniqueEvents=len(jobs),eventCollisions=collisions,groups=groups,statuses=dict(Counter(r['status'] for r in results)),playerGames=sum(len(r['players']) for r in results),uniquePlayers=len({p['espnId'] for r in results for p in r['players']}),failures=[dict(eventId=r['eventId'],competition=r['competition'],year=r['year'],error=r.get('error'),warnings=r.get('warnings')) for r in results if r['status']!='NORMALIZED_RECONCILED_POINTS'],calendarFailures=[dict(competition=c['competition'],year=c['year'],error=c.get('error')) for c in calendars if c['calendarStatus']!='FETCHED'],limitations=['All rows retain raw response hashes; checks reconcile player points to protocol scores only.','No independent full-calendar reconciliation yet.','No automatic claim that every returned athlete row has complete stats.','DNP reasons are provider descriptions, not medical diagnoses.','Summer League observations are not NBA predictions or FBL season points.','Raw and normalized output is a checkpoint artifact until permanent storage is deployed.'])
+  groups.append(dict(competition=c['competition'],year=c['year'],providerCode=c['providerCode'],calendarStatus=c['calendarStatus'],listedEvents=len(c['events']),observedCountChanged=c.get('observedCountChanged'),statuses=dict(Counter(r['status'] for r in own)),playerGames=sum(len(r['players']) for r in own),positiveMinutePlayerGames=sum(p['stats']['minutes']>0 for r in own for p in r['players']),zeroMinuteRows=sum(p['stats']['minutes']==0 for r in own for p in r['players']),participationRows=sum(len(r['participation']) for r in own),independentCalendarReconciled=False))
+ report=dict(asOf=now(),status='COLLECTED_PROVIDER_EVENTS_NOT_INDEPENDENTLY_COMPLETE',calendarsExpected=len(entries),calendarsFetched=sum(c['calendarStatus']=='FETCHED' for c in calendars),listedUniqueEvents=len(jobs),eventCollisions=collisions,groups=groups,statuses=dict(Counter(r['status'] for r in results)),playerGames=sum(len(r['players']) for r in results),positiveMinutePlayerGames=sum(p['stats']['minutes']>0 for r in results for p in r['players']),zeroMinuteRows=sum(p['stats']['minutes']==0 for r in results for p in r['players']),uniquePlayers=len({p['espnId'] for r in results for p in r['players']}),failures=[dict(eventId=r['eventId'],competition=r['competition'],year=r['year'],error=r.get('error'),warnings=r.get('warnings')) for r in results if r['status']!='NORMALIZED_RECONCILED_POINTS'],calendarFailures=[dict(competition=c['competition'],year=c['year'],error=c.get('error')) for c in calendars if c['calendarStatus']!='FETCHED'],limitations=['All rows retain raw response hashes; checks reconcile player points to protocol scores only.','No independent full-calendar reconciliation yet.','No automatic claim that every returned athlete row has complete stats.','DNP reasons are provider descriptions, not medical diagnoses.','Summer League observations are not NBA predictions or FBL season points.','Raw and normalized output is a checkpoint artifact until permanent storage is deployed.'])
  (root/'coverage.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));Path('data/summer-games-coverage.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
  print('SUMMER_COLLECTION_REPORT_BEGIN'+json.dumps(report,ensure_ascii=False)+'SUMMER_COLLECTION_REPORT_END',flush=True)
 if __name__=='__main__':main()

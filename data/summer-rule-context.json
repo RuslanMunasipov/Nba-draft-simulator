@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "rules": {
+    "SUMMER_2026_VARIABLE_POINT_FREE_THROW": {
+      "year": 2026,
+      "competitions": ["LAS_VEGAS", "SALT_LAKE_CITY", "CALIFORNIA_CLASSIC"],
+      "freeThrowPoints": "A single attempt may award 1, 2 or 3 points; standard rules apply in final two minutes of fourth period and overtime.",
+      "sources": ["https://www.nba.com/news/nba-summer-league-free-throw-connected-basketball", "https://www.nba.com/news/2026-summer-league-format"],
+      "nbaFreeThrowAccountingEquivalent": false,
+      "standardUsageProxyAccepted": false,
+      "transferPolicy": "Keep observed PTS, FTM and FTA. Never rewrite PTS as 2*FGM+3PM+FTM or apply an unadjusted NBA free-throw possession proxy to these games. Event-level shot values are needed for equivalence."
+    }
+  },
+  "otherYears": "Full rule versions not yet verified for every tournament. Do not silently inherit current NBA rules."
+}
