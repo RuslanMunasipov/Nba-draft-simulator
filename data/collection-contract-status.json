@@ -155,9 +155,9 @@
     }
   ],
   "durableSummerCheckpoint": {
-    "libraryFileId": "libfile_e770bc9311848191867ed37775e1f2c2",
     "artifactId": 12124611640,
-    "scope": "Summer League 2024-2026 only; 26 events have explicit warnings"
+    "scope": "Summer League 2024-2026 only; 26 events have explicit warnings",
+    "durableCopyRetained": true
   },
   "knownSourceSemanticFailures": [
     "ESPN game log request type filter does not separate returned regular/postseason blocks.",
