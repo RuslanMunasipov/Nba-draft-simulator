@@ -64,10 +64,14 @@ def resolve(player,root,official_index):
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--catalog',type=Path,required=True);parser.add_argument('--output',type=Path,default=Path('.cache/identities'));parser.add_argument('--workers',type=int,default=3);args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
  data=json.loads(args.catalog.read_text());rows=[];official_index={}
- raw,meta=fetch('https://www.nba.com/players',args.output)
- marker=re.search(rb'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>',raw,re.S)
- if marker:
-  for p in json.loads(marker[1]).get('props',{}).get('pageProps',{}).get('players',[]):
+ try:
+  raw,meta=fetch('https://www.nba.com/players',args.output)
+  marker=re.search(rb'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>',raw,re.S)
+  official_players=json.loads(marker[1]).get('props',{}).get('pageProps',{}).get('players',[]) if marker else []
+ except Exception as exc:
+  snapshot=json.loads(Path('data/official-nba-player-index.json').read_text());official_players=snapshot['players'];meta=dict(snapshot['source'],snapshotFallback=True,liveFetchError=str(exc))
+ if official_players:
+  for p in official_players:
    name=normalize((p.get('PLAYER_FIRST_NAME') or '')+' '+(p.get('PLAYER_LAST_NAME') or ''))
    official_index.setdefault(name,[]).append(p)
  (args.output/'official-index-source.json').write_text(json.dumps(meta))

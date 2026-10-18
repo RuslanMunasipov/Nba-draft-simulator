@@ -7,15 +7,21 @@ from pathlib import Path
 from audit_data_sources import params
 
 def main():
- parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,default=Path('.cache/nba-context'));args=parser.parse_args();root=args.output;root.mkdir(parents=True,exist_ok=True)
+ parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,default=Path('.cache/nba-context'));parser.add_argument('--league-id',default='00');parser.add_argument('--first-year',type=int,default=1996);parser.add_argument('--last-year',type=int,default=2025);parser.add_argument('--workers',type=int,default=3);parser.add_argument('--include-games',action='store_true');parser.add_argument('--include-totals',action='store_true');args=parser.parse_args();root=args.output;root.mkdir(parents=True,exist_ok=True)
  jobs=[]
- for start in range(1996,2026):
+ for start in range(args.first_year,args.last_year+1):
   season=f'{start}-{str(start+1)[-2:]}'
   for endpoint,measure in [('leaguedashplayerstats','Base'),('leaguedashplayerstats','Advanced'),('leaguedashteamstats','Base'),('leaguedashteamstats','Advanced')]:
    jobs.append(dict(endpoint=endpoint,measure=measure,season=season))
+  if args.include_totals:
+   for endpoint in ['leaguedashplayerstats','leaguedashteamstats']:jobs.append(dict(endpoint=endpoint,measure='Base',season=season,perMode='Totals'))
+  if args.include_games:
+   for season_type in ['Regular Season','Playoffs','Pre Season']:
+    for measure in ['Base','Advanced']:jobs.append(dict(endpoint='playergamelogs',measure=measure,season=season,seasonType=season_type))
   if start>=2007:jobs.append(dict(endpoint='leaguedashlineups',measure='Advanced',season=season,groupQuantity=5))
  def collect(job):
-  query=dict(params,Season=job['season'],MeasureType=job['measure'])
+  query=dict(params,LeagueID=args.league_id,Season=job['season'],MeasureType=job['measure'],SeasonType=job.get('seasonType','Regular Season'),PerMode=job.get('perMode','PerGame'))
+  if job['endpoint']=='playergamelogs':query['PlayerID']=0
   if job.get('groupQuantity'):query['GroupQuantity']=job['groupQuantity']
   url='https://stats.nba.com/stats/'+job['endpoint']+'?'+urllib.parse.urlencode(query)
   key=hashlib.sha256(url.encode()).hexdigest();metadata=root/(key+'.json');record=dict(job,sourceUrl=url,status='PENDING')
@@ -37,11 +43,11 @@ def main():
   except Exception as exc:record.update(status='SOURCE_REQUEST_FAILED',error=str(exc),httpStatus=getattr(exc,'code',None))
   return record
  observations=[];failures=0
- for at in range(0,len(jobs),3):
-  batch=jobs[at:at+3]
+ for at in range(0,len(jobs),args.workers):
+  batch=jobs[at:at+args.workers]
   if failures>=3:
    observations.extend(dict(job,status='PENDING_SOURCE_ACCESS_FAILURE') for job in batch);continue
-  with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:records=list(pool.map(collect,batch))
+  with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:records=list(pool.map(collect,batch))
   for record in records:
    failures=failures+1 if record['status']=='SOURCE_REQUEST_FAILED' else 0
    observations.append(record);print(record['season'],record['endpoint'],record['measure'],record['status'],flush=True)

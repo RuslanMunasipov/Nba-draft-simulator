@@ -18,6 +18,7 @@ def connect(root):
  CREATE TABLE IF NOT EXISTS jobs(url TEXT PRIMARY KEY,player_id TEXT,competition TEXT,kind TEXT,season INTEGER,status TEXT DEFAULT 'PENDING',attempts INTEGER DEFAULT 0,next_attempt TEXT,error TEXT);
  CREATE TABLE IF NOT EXISTS responses(url TEXT,sha256 TEXT,observed_at TEXT,status_code INTEGER,relative_path TEXT,bytes INTEGER,PRIMARY KEY(url,sha256));
  CREATE TABLE IF NOT EXISTS season_inventory(player_id TEXT,competition TEXT,year INTEGER,season TEXT,games REAL,source_url TEXT,sha256 TEXT,PRIMARY KEY(player_id,competition,year));
+ CREATE TABLE IF NOT EXISTS expected_nba_seasons(player_id TEXT,year INTEGER,evidence_json TEXT,PRIMARY KEY(player_id,year));
  CREATE TABLE IF NOT EXISTS season_stats(player_id TEXT,competition TEXT,year INTEGER,stats_json TEXT,source_url TEXT,sha256 TEXT,PRIMARY KEY(player_id,competition,year));
  CREATE TABLE IF NOT EXISTS provider_identities(espn_id TEXT PRIMARY KEY,name TEXT,birth_date TEXT,active INTEGER,source_url TEXT,record_json TEXT);
  CREATE TABLE IF NOT EXISTS player_games(player_id TEXT,competition TEXT,event_id TEXT,season INTEGER,season_type TEXT,status TEXT,stats_json TEXT,source_url TEXT,sha256 TEXT,PRIMARY KEY(player_id,competition,event_id,season_type));
@@ -133,18 +134,33 @@ def report(db,root):
   reconciliation.append(dict(playerId=pid,competition=comp,year=year,expectedGames=expected,observedGames=n,normalizedGames=valid,status='INTRA_PROVIDER_COUNT_MATCH' if n==expected and valid==n else 'UNRESOLVED'))
  (root/'season-reconciliation.json').write_text(json.dumps(reconciliation,ensure_ascii=False,indent=2))
  normalizedGames=[dict(competition=c,status=s,rows=n) for c,s,n in db.execute('SELECT competition,status,count(*) FROM player_games GROUP BY competition,status')]
- output=dict(seasonReconciliation=dict(total=len(reconciliation),countMatched=sum(r['status']=='INTRA_PROVIDER_COUNT_MATCH' for r in reconciliation),independentVerification=False),normalizedGames=normalizedGames,providerIdentities=db.execute('SELECT count(*) FROM provider_identities').fetchone()[0],unverifiedIdentityCandidates=db.execute('SELECT count(*) FROM identity_candidates').fetchone()[0],asOf=now(),status='INCOMPLETE_EVIDENCE_COLLECTION',jobs=statuses,competitionCoverage=competitions,missingIdentities=missing,pricedWithoutIndexedNBACareer=no_career,
+ expected=db.execute('SELECT count(*) FROM expected_nba_seasons').fetchone()[0]
+ found=db.execute("SELECT count(*) FROM expected_nba_seasons e JOIN season_inventory s ON e.player_id=s.player_id AND e.year=s.year AND s.competition='nba'").fetchone()[0]
+ output=dict(independentExpectedNBASeasons=dict(expected=expected,foundInProviderSeasonInventory=found,missing=expected-found),seasonReconciliation=dict(total=len(reconciliation),countMatched=sum(r['status']=='INTRA_PROVIDER_COUNT_MATCH' for r in reconciliation),independentVerification=False),normalizedGames=normalizedGames,providerIdentities=db.execute('SELECT count(*) FROM provider_identities').fetchone()[0],unverifiedIdentityCandidates=db.execute('SELECT count(*) FROM identity_candidates').fetchone()[0],asOf=now(),status='INCOMPLETE_EVIDENCE_COLLECTION',jobs=statuses,competitionCoverage=competitions,missingIdentities=missing,pricedWithoutIndexedNBACareer=no_career,
   limitations=['Inventory covers fetched provider seasons, not independently verified career completeness.','Game logs are normalized with source type labels; count matching is within provider, not independent verification or full component reconciliation.','Current catalog is not an unbiased historical training population.','USG, lineup stints, coach tenures and international leagues are not yet collected by this adapter.','Unavailable, empty, parser failure and pending have distinct meanings; none imply zero talent.'])
  (root/'coverage.json').write_text(json.dumps(output,ensure_ascii=False,indent=2))
  return output
 def main():
- parser=argparse.ArgumentParser();parser.add_argument('--catalog',type=Path,required=True);parser.add_argument('--output',type=Path,default=Path('.cache/history'));parser.add_argument('--requests',type=int,default=100);parser.add_argument('--workers',type=int,default=3);args=parser.parse_args()
+ parser=argparse.ArgumentParser();parser.add_argument('--catalog',type=Path,required=True);parser.add_argument('--output',type=Path,default=Path('.cache/history'));parser.add_argument('--requests',type=int,default=100);parser.add_argument('--workers',type=int,default=3);parser.add_argument('--identity-map',type=Path);parser.add_argument('--max-seconds',type=int,default=4500);args=parser.parse_args()
  db=connect(args.output)
  raw=args.catalog.read_bytes();digest=hashlib.sha256(raw).hexdigest()
  (args.output/('catalog-'+digest+'.json.gz')).write_bytes(gzip.compress(raw,mtime=0))
- seed(db,json.loads(raw));replay_saved(db,args.output);done=0
+ catalog=json.loads(raw);verified={}
+ if args.identity_map:
+  identity_raw=args.identity_map.read_bytes();identity_data=json.loads(identity_raw)
+  verified={str(r['playerId']):r for r in identity_data['mappings'] if r['status']=='VERIFIED_NAME_DOB_NBA_ID'}
+  identity_sha=hashlib.sha256(identity_raw).hexdigest();(args.output/('identity-map-'+identity_sha+'.json.gz')).write_bytes(gzip.compress(identity_raw,mtime=0))
+  for p in catalog['players']:
+   match=verified.get(str(p['id']))
+   if match:p['espnId']=match['espnId'];p['nbaId']=match['nbaId']
+ seed(db,catalog);replay_saved(db,args.output);done=0;started=time.monotonic()
+ for pid,match in verified.items():
+  for year in match['expectedNBARegularEndYears']:
+   db.execute('INSERT OR REPLACE INTO expected_nba_seasons VALUES(?,?,?)',(pid,year,json.dumps(match['evidence'])))
+   queue(db,WEB+'nba/athletes/'+match['espnId']+'/gamelog?season='+str(year),pid,'nba','GAMELOG',year)
+ db.commit()
  # Keep requests bounded and checkpoint every batch, including failures.
- while done<args.requests:
+ while done<args.requests and time.monotonic()-started<args.max_seconds:
   jobs=db.execute("SELECT url,player_id,competition,kind,season FROM jobs WHERE status='PENDING' OR (status='RETRY' AND next_attempt<=?) ORDER BY CASE kind WHEN 'IDENTITY_INDEX' THEN 0 WHEN 'IDENTITY_REFERENCE_INDEX' THEN 0 WHEN 'CAREER' THEN 1 WHEN 'GAMELOG' THEN 2 WHEN 'IDENTITY_DETAIL' THEN 3 ELSE 4 END,player_id,competition LIMIT ?",(now(),min(args.workers,args.requests-done))).fetchall()
   if not jobs:break
   with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:

@@ -20,29 +20,30 @@ def fetch(url,root):
  index.parent.mkdir(parents=True,exist_ok=True);index.write_text(json.dumps(meta));time.sleep(1);return data,meta
 
 def normalize(payload,game,season):
- output=dict(eventId=game['identifier'],season=season,date=game.get('utcDate'),calendar=game,players=[],participation=[],coaches=[],warnings=[])
- mapping={'Points':'pts','FieldGoalsMade2':'fg2m','FieldGoalsAttempted2':'fg2a','FieldGoalsMade3':'fg3m','FieldGoalsAttempted3':'fg3a','FreeThrowsMade':'ftm','FreeThrowsAttempted':'fta','TotalRebounds':'reb','OffensiveRebounds':'oreb','DefensiveRebounds':'dreb','Assistances':'ast','Steals':'stl','Turnovers':'tov','BlocksFavour':'blk','FoulsCommited':'pf'}
- for team in payload.get('Stats',[]):
-  output['coaches'].append(dict(team=team.get('Team'),name=team.get('Coach'),evidence='AS_REPORTED_IN_GAME_PROTOCOL',roleTenureNotInferred=True))
+ output=dict(parserVersion='EUROLEAGUE_V2_1',eventId=game['identifier'],season=season,date=game.get('utcDate'),calendar=game,players=[],participation=[],coaches=[],warnings=[])
+ mapping={'points':'pts','fieldGoalsMade2':'fg2m','fieldGoalsAttempted2':'fg2a','fieldGoalsMade3':'fg3m','fieldGoalsAttempted3':'fg3a','freeThrowsMade':'ftm','freeThrowsAttempted':'fta','totalRebounds':'reb','offensiveRebounds':'oreb','defensiveRebounds':'dreb','assistances':'ast','steals':'stl','turnovers':'tov','blocksFavour':'blk','foulsCommited':'pf'}
+ for side in ['local','road']:
+  team=payload.get(side)
+  if not isinstance(team,dict):output['warnings'].append(dict(kind='MISSING_TEAM',side=side));continue
+  club=(game.get(side,{}).get('club') or {}).get('code');coach=team.get('coach') or {}
+  output['coaches'].append(dict(team=club,code=coach.get('code'),name=coach.get('name'),evidence='AS_REPORTED_IN_GAME_PROTOCOL',roleTenureNotInferred=True))
   points=0;ids=set()
-  for player in team.get('PlayersStats',[]):
-   pid=(player.get('Player_ID') or '').strip();minutes=player.get('Minutes');participation=dict(playerId=pid,team=player.get('Team'),name=player.get('Player'),sourceMinutes=minutes,isStarter=player.get('IsStarter'),sourceIsPlaying=player.get('IsPlaying'))
-   output['participation'].append(participation)
-   if minutes=='DNP':continue
+  for row in team.get('players',[]):
+   person=(row.get('player') or {}).get('person') or {};pid=str(person.get('code') or '').strip();raw=row.get('stats') or {}
+   output['participation'].append(dict(playerId=pid,team=club,name=person.get('name'),sourceTimePlayed=raw.get('timePlayed'),sourceStartFive=raw.get('startFive'),didNotPlay=None))
    try:
     if not pid or pid in ids:raise ValueError('Missing or duplicated native player ID')
-    ids.add(pid);parts=str(minutes).split(':')
-    if len(parts)!=2:raise ValueError('Unknown minute representation')
-    stats={target:float(player[source]) for source,target in mapping.items()};stats['minutes']=float(parts[0])+float(parts[1])/60
+    ids.add(pid);stats={target:float(raw[source]) for source,target in mapping.items()};stats['minutes']=float(raw['timePlayed'])/60
     if any(not math.isfinite(x) or x<0 for x in stats.values()):raise ValueError('Invalid statistic')
     if any(stats[a]>stats[b] for a,b in [('fg2m','fg2a'),('fg3m','fg3a'),('ftm','fta')]):raise ValueError('Makes exceed attempts')
     stats['fgm']=stats['fg2m']+stats['fg3m'];stats['fga']=stats['fg2a']+stats['fg3a'];points+=stats['pts']
     if stats['pts']!=2*stats['fg2m']+3*stats['fg3m']+stats['ftm']:output['warnings'].append(dict(kind='POINT_COMPONENT_MISMATCH',playerId=pid))
-    output['players'].append(dict(playerId=pid,provider='EUROLEAGUE',name=player.get('Player'),team=player.get('Team'),stats=stats,valueKind='OBSERVED',nbaIdentityStatus='NOT_MAPPED'))
+    output['players'].append(dict(playerId=pid,provider='EUROLEAGUE',name=person.get('name'),birthDate=person.get('birthDate'),team=club,stats=stats,eligibleForRateFeatures=stats['minutes']>0,valueKind='OBSERVED',nbaIdentityStatus='NOT_MAPPED'))
    except Exception as exc:output['warnings'].append(dict(kind='PLAYER_ROW_NOT_NORMALIZED',playerId=pid,reason=str(exc)))
-  expected=team.get('totr',{}).get('Points')
-  if expected is None or points!=float(expected):output['warnings'].append(dict(kind='TEAM_POINTS_MISMATCH',team=team.get('Team'),reported=expected,parsed=points))
- if len(payload.get('Stats',[]))!=2 or not output['players']:output['warnings'].append(dict(kind='INCOMPLETE_BOXSCORE'))
+  expected=(team.get('total') or {}).get('points');calendar_score=game.get(side,{}).get('score')
+  if expected is None or points!=float(expected):output['warnings'].append(dict(kind='TEAM_POINTS_MISMATCH',team=club,reported=expected,parsed=points))
+  if expected!=calendar_score:output['warnings'].append(dict(kind='CALENDAR_PROTOCOL_SCORE_MISMATCH',team=club,calendar=calendar_score,protocol=expected))
+ if not output['players']:output['warnings'].append(dict(kind='INCOMPLETE_BOXSCORE'))
  output['status']='NORMALIZED_WITH_WARNINGS' if output['warnings'] else 'NORMALIZED_POINTS_RECONCILED'
  return output
 
@@ -66,9 +67,11 @@ def main():
     if not game.get('played'):continue
     if processed>=args.requests:stopped=True;break
     normalized=root/'games'/(game['identifier']+'.json')
-    if normalized.exists():results.append(json.loads(normalized.read_text()));continue
+    if normalized.exists():
+     old=json.loads(normalized.read_text())
+     if old.get('parserVersion')=='EUROLEAGUE_V2_1':results.append(old);continue
     try:
-     url=f"https://live.euroleague.net/api/Boxscore?gamecode={game['gameCode']}&seasoncode={season}";payload,meta=fetch(url,root);processed+=1
+     url=f"https://api-live.euroleague.net/v2/competitions/{code}/seasons/{season}/games/{game['gameCode']}/stats";payload,meta=fetch(url,root);processed+=1
      row=normalize(payload,game,season);row['source']=meta;normalized.parent.mkdir(parents=True,exist_ok=True);normalized.write_text(json.dumps(row,ensure_ascii=False));results.append(row)
     except Exception as exc:
      processed+=1;failures.append(dict(season=season,eventId=game.get('identifier'),kind='PROTOCOL_FETCH_FAILED',reason=str(exc)))
