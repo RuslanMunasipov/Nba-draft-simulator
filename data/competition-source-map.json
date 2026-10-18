@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "VERIFIED_SAMPLES_NOT_FULL_ARCHIVE",
+  "status": "LISTED_PROTOCOLS_COLLECTED_WITH_EXPLICIT_QUALITY_GAPS",
   "entries": [
     {
       "competition": "CALIFORNIA_CLASSIC",
@@ -12,7 +12,15 @@
       "sampleBoxPlayers": 25,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 142,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "CALIFORNIA_CLASSIC",
@@ -24,7 +32,15 @@
       "sampleBoxPlayers": 20,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 12,
+        "fetched": 12,
+        "normalizedPlayerRows": 241,
+        "warnings": 4,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "LAS_VEGAS",
@@ -36,7 +52,15 @@
       "sampleBoxPlayers": 22,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 76,
+        "fetched": 76,
+        "normalizedPlayerRows": 1597,
+        "warnings": 15,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "LAS_VEGAS",
@@ -48,7 +72,15 @@
       "sampleBoxPlayers": 20,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 76,
+        "fetched": 76,
+        "normalizedPlayerRows": 1610,
+        "warnings": 4,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "LAS_VEGAS",
@@ -60,7 +92,15 @@
       "sampleBoxPlayers": 20,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 76,
+        "fetched": 76,
+        "normalizedPlayerRows": 1653,
+        "warnings": 2,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "SALT_LAKE_CITY",
@@ -72,7 +112,15 @@
       "sampleBoxPlayers": 20,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 122,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "SALT_LAKE_CITY",
@@ -84,7 +132,15 @@
       "sampleBoxPlayers": 24,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 121,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "SALT_LAKE_CITY",
@@ -96,7 +152,15 @@
       "sampleBoxPlayers": 24,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 126,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
     },
     {
       "competition": "CALIFORNIA_CLASSIC",
@@ -108,7 +172,15 @@
       "sampleBoxPlayers": 21,
       "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
       "fullBoxscoreCoverage": false,
-      "independentCalendarReconciled": false
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 12,
+        "fetched": 12,
+        "normalizedPlayerRows": 269,
+        "warnings": 1,
+        "independentCalendarReconciled": false
+      }
     }
   ],
   "policy": "Use a canonical competition key separate from provider code. Observed event counts are not expected full coverage counts. Before historical collection resolve aliases per year and deduplicate events."
