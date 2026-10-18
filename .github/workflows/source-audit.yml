@@ -4,6 +4,7 @@ on:
     branches: [data/history-foundation]
     paths:
       - scripts/audit_data_sources.py
+      - scripts/audit_source_fallbacks.py
       - .github/workflows/source-audit.yml
   workflow_dispatch:
 permissions:
@@ -18,8 +19,8 @@ jobs:
         with:
           python-version: '3.11'
       - name: Inspect public source responses only
-        run: python scripts/audit_data_sources.py
+        run: python scripts/audit_source_fallbacks.py
       - uses: actions/upload-artifact@v4
         with:
           name: source-availability-audit
-          path: data/source-audit.json
+          path: data/source-fallback-audit.json
