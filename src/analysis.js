@@ -105,7 +105,7 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
    conclusion=`${severeRisk(p)?'Рискованная ставка. ':''}${p.id===pool[0]?.id?'Сбалансированный лидер':'Альтернатива'}: ${p.name}. Ожидаемый итог десятки ${Math.round(evaluation.expectedRoster)} ФО${delta===null?'':`; разница с ${otherEvaluation.player.name}: ${delta>=0?'+':''}${Math.round(delta)} ФО`}. Рейтинг учитывает риск всей десятки; raw-прогноз игрока сам по себе не определяет порядок.`;
   }
   const completion=pickCompletion(state,p.id);
-  if(completion.minimumRemainingCost!==null)advantages.push(`Обязательный минимальный добор после пика: ${completion.minimumRemainingCost} ед. (включая выбранного игрока).`);
+  if(completion.minimumRemainingCost!==null)advantages.push(`Обязательный минимальный добор после пика: ${completion.minimumRemainingCost} ед. на оставшиеся места; цена текущего пика уже вычтена из бюджета.`);
   advantages.push(`Позиции Sports.ru: ${p.positions.join('/')}; оставшиеся слоты закрываются точным позиционным назначением. Источник: ${forecast?.origin||'историческая основа'}; сезонов NBA: ${p.careerPrediction?.historySeasons??Object.keys(p.historyGames||{}).length}.`);
   // Feasibility is a constraint, not a selling point for a player.
   return {player:p,risk,advantages,drawbacks,stability:null,pressure:null,completion,availability,valueIndex:draftValue(p),speculative:severeRisk(p),forecast,difference,conclusion,
