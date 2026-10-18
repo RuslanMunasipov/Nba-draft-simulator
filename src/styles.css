@@ -254,3 +254,4 @@ section[hidden]{display:none!important}
 .insights .pros{color:var(--green);font-size:13px}.insights .cons{color:#e0a458;font-size:13px}
 .export-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.export-row button{width:auto;flex:1 1 auto}
 #export-text{width:100%;min-height:220px;font-size:12px;margin-bottom:10px}
+#postdraft{order:20}
