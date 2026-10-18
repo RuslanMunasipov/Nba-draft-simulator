@@ -52,3 +52,12 @@ html{background:var(--bg)}
 .forecast-grid strong{font-size:20px;color:var(--ink)}
 .forecast-panel p,#model-report p{font-size:12px;line-height:1.8}
 .forecast-grid+ p{margin-top:12px}
+.replace-banner{border:1px solid var(--green);border-radius:9px;padding:10px;margin:8px 0;background:var(--bg)}
+.replace-banner p{margin:0 0 8px;font-size:13px;color:var(--ink)}
+#history .replace-pick{margin-left:8px;padding:4px 10px;font-size:12px;min-height:0;width:auto}
+.plan-box{border:2px solid var(--green);border-radius:12px;padding:12px;margin:10px 0;background:var(--paper)}
+.plan-box:empty{display:none}
+.plan-box h3{margin:0 0 6px}.plan-box h4{margin:12px 0 4px;font-size:14px}
+.plan-list li,.plan-options li{font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+.plan-options .plan-pick{margin-left:8px;padding:4px 10px;font-size:12px;min-height:0;width:auto}
+.plan-box small{display:block;margin-top:8px;color:var(--muted);line-height:1.5}

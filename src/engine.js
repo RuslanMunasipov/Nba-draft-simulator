@@ -46,6 +46,14 @@ export function pick(state,playerId){
  return {...state,picks:[...state.picks,{number:state.picks.length+1,team,playerId}]};
 }
 export function undo(state){return {...state,picks:state.picks.slice(0,-1)};}
+// Straight order fixes each later pick's team, so replay stops at the first pick the change made illegal.
+export function replacePick(state,index,playerId){
+ if(!Number.isInteger(index)||index<0||index>=state.picks.length)throw Error('Нет такого пика');
+ const later=state.picks.slice(index+1);
+ let next=pick({...state,picks:state.picks.slice(0,index)},playerId),kept=0;
+ for(const choice of later){try{next=pick(next,choice.playerId);kept++;}catch{break;}}
+ return {state:next,dropped:later.slice(kept)};
+}
 export function exportDraft(state){return JSON.stringify(state,null,2);}
 export function importDraft(json){const state=JSON.parse(json);if(state.version!==1||!Array.isArray(state.players)||!Array.isArray(state.picks)||!Number.isFinite(state.cap)||state.cap<0)throw Error('Неверный формат');let replay=newDraft(state.players,state.cap,state.priceMode??'ON');for(const p of state.picks){if(p.team!==replay.picks.length%8||p.number!==replay.picks.length+1)throw Error('Нарушен порядок пиков');replay=pick(replay,p.playerId);}return {...replay,...(typeof state.databaseVersion==='string'?{databaseVersion:state.databaseVersion}:{})};}
 export function riskPriority(player){return player.injuries?.some(i=>/out|suspension/i.test(i.status||''))?2:player.injuries?.length||player.returnContext?1:0;}
