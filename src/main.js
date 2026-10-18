@@ -1,3 +1,4 @@
+import {playerSearchMatches,playerSearchExact,normalizeSearch} from './player-search.js';
 import {onlinePanel} from './online.js';
 import {rookieWatch,rookieSlotWarnings} from './rookie-watch.js';
 import {restoreBudgetDraft,enforceBudget,budgetSummary} from './budget.js';
@@ -51,7 +52,7 @@ function renderScenarioAnalysis(result,startPick){
  const details=document.createElement('details');details.append(text('summary','Как читать сезонные сценарии'),text('p',`${result.assumptions.range}. Корреляция: ${result.assumptions.correlation}.`),text('p','«Первые места» — доля первых мест только в этих модельных сценариях, не вероятность победы в FBL. Не моделируются трансферы, waiver, недельный календарь, решения GM и новые травмы вне заложенного диапазона.'));
  box.append(details);
 }
-function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(p.sportsName||'')+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
+const matches=playerSearchMatches;
 function choose(p){$('draft-message').hidden=true;try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
@@ -199,10 +200,10 @@ function render(){
  $('turn').textContent=n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
  $('history').replaceChildren();for(const p of state.picks)$('history').append(text('li',`#${p.number} · GM ${p.team+1} · ${state.players.find(x=>x.id===p.playerId)?.name||p.playerId}`));
  $('candidates').parentElement.open=Boolean($('search').value||$('rookies-only').checked);
- const query=$('search').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const query=normalizeSearch($('search').value);
  const used=new Set(state.picks.map(p=>p.playerId));
  const available=state.players.filter(p=>!used.has(p.id)&&matches(p,query)&&(!$('rookies-only').checked||p.isRookie));
- const exact=p=>Boolean(query)&&p.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')===query.trim();
+ const exact=p=>playerSearchExact(p,query);
  available.sort((a,b)=>Number(exact(b))-Number(exact(a))||(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||Number(Boolean(b.forecast))-Number(Boolean(a.forecast))||riskPriority(a)-riskPriority(b)||draftValue(b)-draftValue(a));
  $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p,query.length>=2&&index<5?analyzeRecommendations(state,p)[0]:null)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
