@@ -1,0 +1,47 @@
+name: Collect historical evidence (no tests or deployment)
+on:
+  push:
+    branches: [data/history-foundation]
+    paths:
+      - scripts/collect_history.py
+      - scripts/restore_history_checkpoint.py
+      - .github/workflows/collect-history.yml
+  workflow_dispatch:
+    inputs:
+      requests:
+        description: Maximum source requests in this batch
+        required: true
+        default: '300'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: history-collection
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Restore latest evidence checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/restore_history_checkpoint.py
+      - name: Fetch current catalog snapshot
+        run: curl --fail --retry 2 --max-time 60 https://ruslanmunasipov.github.io/Nba-draft-simulator/data/default-draft.json -o /tmp/catalog.json
+      - name: Collect evidence only
+        env:
+          REQUEST_BUDGET: ${{ inputs.requests || '900' }}
+        run: python scripts/collect_history.py --catalog /tmp/catalog.json --requests "$REQUEST_BUDGET" --output .cache/history
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: history-checkpoint
+          path: .cache/history/
+          include-hidden-files: true
+          retention-days: 90
