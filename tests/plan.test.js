@@ -39,3 +39,9 @@ test('GM adjustments change our plan value and choice',()=>{
  const base=planRoster(state,profile,{threshold:.8}),cut=planRoster(state,profile,{threshold:.8,adjust:{[base.now.id]:-90}});
  assert.ok(cut.value<base.value);assert.notEqual(cut.now.id,base.now.id);
 });
+test('white rule: the plan keeps at least one marked player',()=>{
+ const state=newDraft(players,24000,'ON'),profile={picks,availability:new Map(players.map(p=>[p.id,odds(p)]))};
+ const base=planRoster(state,profile,{threshold:.8}),outside=players.find(p=>!base.plan.some(x=>x.player.id===p.id));
+ const plan=planRoster(state,profile,{threshold:.8,white:[outside.id]});
+ assert.ok(plan.plan.some(x=>x.player.id===outside.id));assert.ok(plan.value<=base.value);
+});
