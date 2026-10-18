@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "status": "SOURCE_DISCOVERY_IN_PROGRESS",
+  "modelTestsPaused": true,
+  "deploymentPaused": true,
+  "authority": {
+    "prices": "Sports.ru",
+    "draftPositions": "Sports.ru",
+    "transferPositions": "Sports.ru",
+    "scoring": "Sports.ru plus commissioner-confirmed league rules",
+    "yahoo": "MIRROR_ONLY"
+  },
+  "requiredObservationFields": ["playerId", "competitionId", "seasonId", "seasonType", "teamId", "sourceUrl", "sourceRecordId", "eventAt", "publishedAt", "fetchedAt", "parserVersion", "rawSha256", "valueKind", "units", "missingReason"],
+  "timestampPolicy": "Unknown publishedAt remains null; fetchedAt must never be relabelled as publishedAt. All timestamps use UTC with original timezone retained where applicable.",
+  "valueKinds": ["OBSERVED", "PROVIDER_FORECAST", "MODEL_ESTIMATE", "DERIVED_PROXY"],
+  "missingStates": ["NOT_FETCHED", "SOURCE_UNAVAILABLE", "PARSE_FAILED", "NOT_RECORDED_IN_ERA", "NOT_APPLICABLE", "CONFIRMED_NO_PARTICIPATION", "UNRESOLVED"],
+  "identityPolicy": "Provider ID mapping requires evidence. Name-only similarity creates a review candidate, never a verified identity.",
+  "coveragePolicy": "Sample HTTP or schema success does not establish per-player or historical completeness. Expected seasons and games require independent inventories.",
+  "conflictPolicy": "Keep both source observations. Choose authoritative fields by competition and effective date. Do not silently average conflicting facts.",
+  "nbaTotalsPolicy": "Preserve provider season totals and team stints separately. Never add aggregate totals to constituent rows; transferred players may exceed 82 games.",
+  "historicalPopulation": "Current draft catalog plus historical cohorts including inactive players, failed transitions and zero-NBA-minute prospects; completeness not yet established.",
+  "refreshTargetsMinutes": {
+    "injuriesAndRosterActivePeriods": [15, 30],
+    "calendar": 1440,
+    "providerForecastAndADP": 1440,
+    "closedHistory": null,
+    "sportsPricesAndPositions": null
+  },
+  "refreshPolicy": "Targets are not achieved SLAs. Match data is rechecked after final status and next day. Sports catalog checked before draft/transfer and on detected change. Historical corrections use source-specific schedules not yet accepted.",
+  "freshnessStates": ["CURRENT_WITHIN_TARGET", "STALE", "PARTIAL", "FAILED", "FRESHNESS_UNVERIFIED"],
+  "onlineInfrastructure": "NOT_DEPLOYED",
+  "checkpointStorage": "GitHub Actions artifacts are temporary, currently 90 days; not the permanent online database.",
+  "acceptanceGates": [
+    "Access method and applicable source conditions recorded",
+    "Sample response schema and parser semantics understood",
+    "Pagination and competition/season type filters verified",
+    "Expected season/game inventory established",
+    "Identity conflicts resolved for draft-eligible players",
+    "Aggregates reconciled and discrepancies retained",
+    "Per-field coverage and missingness reported",
+    "Historical availability timestamps preserved",
+    "Refresh and failure behavior measured"
+  ],
+  "unresolvedLeagueRules": ["Which matches contribute to the fantasy result", "Active versus bench counting if applicable", "Roster lock timing", "Transfer limits and timing", "Any NBA-club roster limit", "Complete minute and match-result bonus table"],
+  "knownPublicDataLimits": ["No complete private medical history", "No complete private coaching plans", "No assumed tracking history before the metric existed", "No historical provider forecast unless an actual dated snapshot exists"]
+}

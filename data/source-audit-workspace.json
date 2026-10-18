@@ -1,0 +1,691 @@
+{
+  "version": 1,
+  "asOf": "2026-10-18T03:47:28.143583+00:00",
+  "purpose": "Read-only source discovery; not model validation or a claim of completeness",
+  "sources": [
+    {
+      "id": "sports_rules",
+      "block": "Правила FBL",
+      "sampleUrl": "https://www.sports.ru/fantasy/basketball/tournament/rules/150.html",
+      "responseKind": "PAGE",
+      "targetDepth": "Текущая версия + изменения",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:46:45.650409+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://www.sports.ru/fantasy/basketball/tournament/rules/150.html",
+      "bytes": 749222,
+      "sha256": "55bee12d22d83ab3a130efd8668aa328119fd660a4388eb694d9d689433e1669",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "sports_prices",
+      "block": "Цены и позиции",
+      "sampleUrl": "https://www.sports.ru/fantasy/basketball/team/transfers/5930241.html",
+      "responseKind": "PAGE",
+      "targetDepth": "Текущий каталог + датированные снимки",
+      "bulkAccess": "AUTHENTICATION_AND_SCHEMA_NOT_VERIFIED",
+      "checkedAt": "2026-10-18T03:46:45.651302+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://www.sports.ru/fantasy/basketball/team/5930241.html",
+      "bytes": 735800,
+      "sha256": "92e6649ea2f4612c921e443788766b4b93c72c4014d9c471ed4cec9fb29a2ba5",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "espn_career",
+      "block": "NBA seasons",
+      "sampleUrl": "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/1966/stats",
+      "responseKind": "CAREER",
+      "targetDepth": "Все сезоны каждого игрока",
+      "bulkAccess": "PUBLIC_UNDOCUMENTED_ENDPOINT",
+      "checkedAt": "2026-10-18T03:46:45.652097+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "finalUrl": "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/1966/stats",
+      "bytes": 41567,
+      "sha256": "b5c079433351781a6651aca7814f731c60f09da49229e25ca6e689fc70cc3a05",
+      "topLevelKeys": [
+        "filters",
+        "teams",
+        "categories",
+        "glossary"
+      ],
+      "sampleStatus": "SEASONS_PARSED",
+      "sampleSeasons": [
+        {
+          "year": 2004,
+          "season": "2003-04",
+          "games": 79.0
+        },
+        {
+          "year": 2005,
+          "season": "2004-05",
+          "games": 80.0
+        },
+        {
+          "year": 2006,
+          "season": "2005-06",
+          "games": 79.0
+        },
+        {
+          "year": 2007,
+          "season": "2006-07",
+          "games": 78.0
+        },
+        {
+          "year": 2008,
+          "season": "2007-08",
+          "games": 75.0
+        },
+        {
+          "year": 2009,
+          "season": "2008-09",
+          "games": 81.0
+        },
+        {
+          "year": 2010,
+          "season": "2009-10",
+          "games": 76.0
+        },
+        {
+          "year": 2011,
+          "season": "2010-11",
+          "games": 79.0
+        },
+        {
+          "year": 2012,
+          "season": "2011-12",
+          "games": 62.0
+        },
+        {
+          "year": 2013,
+          "season": "2012-13",
+          "games": 76.0
+        },
+        {
+          "year": 2014,
+          "season": "2013-14",
+          "games": 77.0
+        },
+        {
+          "year": 2015,
+          "season": "2014-15",
+          "games": 69.0
+        },
+        {
+          "year": 2016,
+          "season": "2015-16",
+          "games": 76.0
+        },
+        {
+          "year": 2017,
+          "season": "2016-17",
+          "games": 74.0
+        },
+        {
+          "year": 2018,
+          "season": "2017-18",
+          "games": 82.0
+        },
+        {
+          "year": 2019,
+          "season": "2018-19",
+          "games": 55.0
+        },
+        {
+          "year": 2020,
+          "season": "2019-20",
+          "games": 67.0
+        },
+        {
+          "year": 2021,
+          "season": "2020-21",
+          "games": 45.0
+        },
+        {
+          "year": 2022,
+          "season": "2021-22",
+          "games": 56.0
+        },
+        {
+          "year": 2023,
+          "season": "2022-23",
+          "games": 55.0
+        },
+        {
+          "year": 2024,
+          "season": "2023-24",
+          "games": 71.0
+        },
+        {
+          "year": 2025,
+          "season": "2024-25",
+          "games": 70.0
+        },
+        {
+          "year": 2026,
+          "season": "2025-26",
+          "games": 60.0
+        }
+      ]
+    },
+    {
+      "id": "espn_gamelog",
+      "block": "NBA games",
+      "sampleUrl": "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/1966/gamelog?season=2026&seasontype=2",
+      "responseKind": "JSON",
+      "targetDepth": "Каждый доступный сезон, типы сезона раздельно",
+      "bulkAccess": "PUBLIC_UNDOCUMENTED_ENDPOINT",
+      "checkedAt": "2026-10-18T03:46:45.652895+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "finalUrl": "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/1966/gamelog?season=2026&seasontype=2",
+      "bytes": 689904,
+      "sha256": "4649e1b861ed115ab276fa7cbd0cd6659998a493ee3de23e87110debde227e98",
+      "topLevelKeys": [
+        "filters",
+        "labels",
+        "names",
+        "displayNames",
+        "events",
+        "seasonTypes",
+        "glossary"
+      ],
+      "sampleStatus": "JSON_RECEIVED_SCHEMA_NOT_ACCEPTED"
+    },
+    {
+      "id": "nba_advanced",
+      "block": "USG and advanced",
+      "sampleUrl": "https://stats.nba.com/stats/leaguedashplayerstats?College=&Conference=&Country=&DateFrom=&DateTo=&Division=&DraftPick=&DraftYear=&GameScope=&GameSegment=&Height=&LastNGames=0&LeagueID=00&Location=&MeasureType=Advanced&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season=2025-26&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&StarterBench=&TeamID=0&VsConference=&VsDivision=&Weight=",
+      "responseKind": "NBA_TABLE",
+      "targetDepth": "Все доступные сезоны; полнота каждого поля отдельно",
+      "bulkAccess": "REQUIRES_ACCESS_TERMS_DECISION",
+      "checkedAt": "2026-10-18T03:46:52.562286+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=utf-8",
+      "finalUrl": "https://stats.nba.com/stats/leaguedashplayerstats?College=&Conference=&Country=&DateFrom=&DateTo=&Division=&DraftPick=&DraftYear=&GameScope=&GameSegment=&Height=&LastNGames=0&LeagueID=00&Location=&MeasureType=Advanced&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season=2025-26&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&StarterBench=&TeamID=0&VsConference=&VsDivision=&Weight=",
+      "bytes": 225296,
+      "sha256": "c1d0b3b63019b77d75bdb7af09e9abcebaa8a6224ae813683bac90d91f8769ba",
+      "topLevelKeys": [
+        "resource",
+        "parameters",
+        "resultSets"
+      ],
+      "sampleStatus": "TABLE_RECEIVED",
+      "tables": [
+        {
+          "name": "LeagueDashPlayerStats",
+          "rows": 582,
+          "columns": [
+            "PLAYER_ID",
+            "PLAYER_NAME",
+            "NICKNAME",
+            "TEAM_ID",
+            "TEAM_ABBREVIATION",
+            "AGE",
+            "GP",
+            "W",
+            "L",
+            "W_PCT",
+            "MIN",
+            "E_OFF_RATING",
+            "OFF_RATING",
+            "sp_work_OFF_RATING",
+            "E_DEF_RATING",
+            "DEF_RATING",
+            "sp_work_DEF_RATING",
+            "E_NET_RATING",
+            "NET_RATING",
+            "sp_work_NET_RATING",
+            "AST_PCT",
+            "AST_TO",
+            "AST_RATIO",
+            "OREB_PCT",
+            "DREB_PCT",
+            "REB_PCT",
+            "TM_TOV_PCT",
+            "E_TOV_PCT",
+            "EFG_PCT",
+            "TS_PCT",
+            "USG_PCT",
+            "E_USG_PCT",
+            "E_PACE",
+            "PACE",
+            "PACE_PER40",
+            "sp_work_PACE",
+            "PIE",
+            "POSS",
+            "FGM",
+            "FGA",
+            "FGM_PG",
+            "FGA_PG",
+            "FG_PCT",
+            "GP_RANK",
+            "W_RANK",
+            "L_RANK",
+            "W_PCT_RANK",
+            "MIN_RANK",
+            "E_OFF_RATING_RANK",
+            "OFF_RATING_RANK",
+            "sp_work_OFF_RATING_RANK",
+            "E_DEF_RATING_RANK",
+            "DEF_RATING_RANK",
+            "sp_work_DEF_RATING_RANK",
+            "E_NET_RATING_RANK",
+            "NET_RATING_RANK",
+            "sp_work_NET_RATING_RANK",
+            "AST_PCT_RANK",
+            "AST_TO_RANK",
+            "AST_RATIO_RANK",
+            "OREB_PCT_RANK",
+            "DREB_PCT_RANK",
+            "REB_PCT_RANK",
+            "TM_TOV_PCT_RANK",
+            "E_TOV_PCT_RANK",
+            "EFG_PCT_RANK",
+            "TS_PCT_RANK",
+            "USG_PCT_RANK",
+            "E_USG_PCT_RANK",
+            "E_PACE_RANK",
+            "PACE_RANK",
+            "sp_work_PACE_RANK",
+            "PIE_RANK",
+            "FGM_RANK",
+            "FGA_RANK",
+            "FGM_PG_RANK",
+            "FGA_PG_RANK",
+            "FG_PCT_RANK",
+            "TEAM_COUNT"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nba_lineups",
+      "block": "Lineups",
+      "sampleUrl": "https://www.nba.com/stats/lineups/advanced",
+      "responseKind": "PAGE",
+      "targetDepth": "Все доступные сезоны и игровые отрезки",
+      "bulkAccess": "REQUIRES_ACCESS_TERMS_DECISION",
+      "checkedAt": "2026-10-18T03:46:52.603264+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "finalUrl": "https://www.nba.com/stats/lineups/advanced",
+      "bytes": 317078,
+      "sha256": "34388cc4edea82dfb870081ad175ba01c67e8d78c9ce0f16536ead5244df4c5f",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "nba_tracking",
+      "block": "Tracking",
+      "sampleUrl": "https://www.nba.com/stats/players/touches",
+      "responseKind": "PAGE",
+      "targetDepth": "Каждый доступный показатель по годам",
+      "bulkAccess": "REQUIRES_ACCESS_TERMS_DECISION",
+      "checkedAt": "2026-10-18T03:46:53.406095+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "finalUrl": "https://www.nba.com/stats/players/touches",
+      "bytes": 400882,
+      "sha256": "54b60a954541945605e55820c4b4d2d67ed1adce95a22b4b1408d2782665ab9e",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "nba_transactions",
+      "block": "Transactions",
+      "sampleUrl": "https://www.nba.com/players/transactions",
+      "responseKind": "PAGE",
+      "targetDepth": "Полная история команд по датам",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:00.608625+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "finalUrl": "https://www.nba.com/players/transactions",
+      "bytes": 232758,
+      "sha256": "2f25fa7fdb51b9590dc1a77c1b7d1f6ade9b1c836d1f4624a56e2a41583252b1",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "nba_injury",
+      "block": "Injuries",
+      "sampleUrl": "https://official.nba.com/nba-injury-report-2025-26-season",
+      "responseKind": "PAGE",
+      "targetDepth": "Все доступные выпуски; текущий сезон отдельно",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:01.519019+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://official.nba.com/nba-injury-report-2025-26-season",
+      "bytes": 117149,
+      "sha256": "14dac9dd0b1dd18bad68c5c7a68412366c0afbcd2e2e727e27995617fec502e0",
+      "sampleStatus": "PAGE_RECEIVED_DATA_NOT_VERIFIED"
+    },
+    {
+      "id": "nba_schedule",
+      "block": "Calendar",
+      "sampleUrl": "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+      "responseKind": "JSON",
+      "targetDepth": "Текущий сезон + история календарей",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:01.648136+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/plain",
+      "finalUrl": "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+      "bytes": 5000001,
+      "sha256": "992edcd06096f6b949794a10fc11a97c60c78ad9f4df80f12648e049e6378d69",
+      "sampleStatus": "REQUEST_OR_PARSE_FAILED",
+      "error": "Sample exceeds response size bound"
+    },
+    {
+      "id": "ncaa_official",
+      "block": "NCAA verification",
+      "sampleUrl": "https://www.ncaa.org/championships/statistics-and-records/",
+      "responseKind": "PAGE",
+      "targetDepth": "Все сезоны колледжей каждого игрока",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:01.773846+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://www.ncaa.org/championships/statistics-and-records/",
+      "bytes": 206782,
+      "sha256": "016185d6c6610745665c8d0372ef21eb8ecb3806546dea3fe465a241ce551708",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "espn_ncaa",
+      "block": "NCAA seasons",
+      "sampleUrl": "https://site.web.api.espn.com/apis/common/v3/sports/basketball/mens-college-basketball/athletes/5041939/stats",
+      "responseKind": "CAREER",
+      "targetDepth": "Все сезоны, игровые логи отдельно",
+      "bulkAccess": "PUBLIC_UNDOCUMENTED_ENDPOINT",
+      "checkedAt": "2026-10-18T03:47:01.856767+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "finalUrl": "https://site.web.api.espn.com/apis/common/v3/sports/basketball/mens-college-basketball/athletes/5041939/stats",
+      "bytes": 13722,
+      "sha256": "47a8e9902f3f33f5e573fa0a063f34b656a6afe40ff2d2f60c046fd87f522bef",
+      "topLevelKeys": [
+        "filters",
+        "teams",
+        "categories",
+        "glossary"
+      ],
+      "sampleStatus": "SEASONS_PARSED",
+      "sampleSeasons": [
+        {
+          "year": 2025,
+          "season": "2024-25",
+          "games": 37.0
+        }
+      ]
+    },
+    {
+      "id": "espn_sl_vegas",
+      "block": "Summer League Vegas",
+      "sampleUrl": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-las-vegas/scoreboard?dates=2026&limit=1000",
+      "responseKind": "SCOREBOARD",
+      "targetDepth": "Все годы существования турнира",
+      "bulkAccess": "PUBLIC_UNDOCUMENTED_ENDPOINT",
+      "checkedAt": "2026-10-18T03:47:08.076714+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "finalUrl": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-las-vegas/scoreboard?dates=2026&limit=1000",
+      "bytes": 1105800,
+      "sha256": "0cef54a1d855b1ddd094a3b9637edbf81eeaa87e138d55650d53782f64de8603",
+      "topLevelKeys": [
+        "leagues",
+        "events",
+        "provider"
+      ],
+      "sampleStatus": "EVENTS_RECEIVED",
+      "events": 76,
+      "dateRange": [
+        "2026-07-09T19:30Z",
+        "2026-07-20T01:00Z"
+      ]
+    },
+    {
+      "id": "espn_sl_utah",
+      "block": "Summer League Utah",
+      "sampleUrl": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-utah/scoreboard?dates=2026&limit=1000",
+      "responseKind": "SCOREBOARD",
+      "targetDepth": "Все годы существования турнира",
+      "bulkAccess": "PUBLIC_UNDOCUMENTED_ENDPOINT",
+      "checkedAt": "2026-10-18T03:47:08.189475+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "finalUrl": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-utah/scoreboard?dates=2026&limit=1000",
+      "bytes": 58472,
+      "sha256": "4e1240c441f8e025ad57f7d9d221ab49b4dac0cae95b3bc07927682bc476e639",
+      "topLevelKeys": [
+        "leagues",
+        "events",
+        "provider"
+      ],
+      "sampleStatus": "EVENTS_RECEIVED",
+      "events": 6,
+      "dateRange": [
+        "2026-07-04T19:00Z",
+        "2026-07-08T01:00Z"
+      ]
+    },
+    {
+      "id": "espn_sl_california",
+      "block": "Summer League California",
+      "sampleUrl": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-sacramento/scoreboard?dates=2026&limit=1000",
+      "responseKind": "SCOREBOARD",
+      "targetDepth": "Все годы, включая изменения названия",
+      "bulkAccess": "PUBLIC_UNDOCUMENTED_ENDPOINT",
+      "checkedAt": "2026-10-18T03:47:08.210410+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "finalUrl": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-sacramento/scoreboard?dates=2026&limit=1000",
+      "bytes": 432,
+      "sha256": "4162d510a6f7c2e54c68156903dcd31f993d4dc6766a0350ae72fdee322c22f3",
+      "topLevelKeys": [
+        "leagues",
+        "events",
+        "provider"
+      ],
+      "sampleStatus": "EMPTY_OR_UNSUPPORTED",
+      "events": 0,
+      "dateRange": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "gleague",
+      "block": "G League",
+      "sampleUrl": "https://stats.gleague.nba.com/players/advanced/",
+      "responseKind": "PAGE",
+      "targetDepth": "Все сезоны выступлений; этапы отдельно",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:09.638930+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://stats.gleague.nba.com/players/advanced/",
+      "bytes": 138009,
+      "sha256": "ef895f9eea510db28e6941e131851fccbe440f1934188be2776f1760267b76a5",
+      "sampleStatus": "PAGE_RECEIVED_DATA_NOT_VERIFIED"
+    },
+    {
+      "id": "euroleague",
+      "block": "EuroLeague and EuroCup",
+      "sampleUrl": "https://www.euroleaguebasketball.net/euroleague/stats/",
+      "responseKind": "PAGE",
+      "targetDepth": "Сезоны выступлений конкретных игроков",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:15.329804+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "sampleStatus": "REQUEST_OR_PARSE_FAILED",
+      "error": "HTTP Error 403: Forbidden",
+      "httpStatus": 403
+    },
+    {
+      "id": "acb",
+      "block": "Spain ACB",
+      "sampleUrl": "https://acb.com/es/liga/estadisticas/estadisticas-de-jugador",
+      "responseKind": "PAGE",
+      "targetDepth": "Сезоны выступлений конкретных игроков",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:15.330419+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "finalUrl": "https://acb.com/es/liga/estadisticas/estadisticas-de-jugador",
+      "bytes": 636670,
+      "sha256": "216209f21b28126af814c93f3a71b0729dd40bc11a340691aa31609696f70f94",
+      "sampleStatus": "PAGE_RECEIVED_DATA_NOT_VERIFIED"
+    },
+    {
+      "id": "nbl",
+      "block": "Australia NBL",
+      "sampleUrl": "https://www.nbl.com.au/stats/statistics",
+      "responseKind": "PAGE",
+      "targetDepth": "Сезоны выступлений конкретных игроков",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:15.392503+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "finalUrl": "https://www.nbl.com.au/stats/statistics",
+      "bytes": 239614,
+      "sha256": "a2d8c6c1f571b325ea0be062c4cd20eb3bacb4bd1c5c951716d0ff73f6ab45ab",
+      "sampleStatus": "PAGE_RECEIVED_DATA_NOT_VERIFIED"
+    },
+    {
+      "id": "fiba",
+      "block": "National teams",
+      "sampleUrl": "https://www.fiba.basketball/en",
+      "responseKind": "PAGE",
+      "targetDepth": "Турниры сборных; не замена клубным лигам",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:18.457887+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "finalUrl": "https://www.fiba.basketball/en",
+      "bytes": 439298,
+      "sha256": "de13e1d579046996602d0e1f5dc715ca8332cfcbc2d0e9c3405905bf12529ba7",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "nba_combine",
+      "block": "Draft and physical data",
+      "sampleUrl": "https://www.nba.com/stats/draft/combine-strength-agility",
+      "responseKind": "PAGE",
+      "targetDepth": "Все доступные классы драфта",
+      "bulkAccess": "UNCONFIRMED",
+      "checkedAt": "2026-10-18T03:47:22.058499+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "finalUrl": "https://www.nba.com/stats/draft/combine-strength-agility",
+      "bytes": 268504,
+      "sha256": "5cb9c465d6ce573d7930d59c13547ecac079ba7a5a4f8cd18498d46e00d9c30a",
+      "sampleStatus": "POSSIBLE_CHALLENGE_PAGE"
+    },
+    {
+      "id": "espn_universe",
+      "block": "Historical identities",
+      "sampleUrl": "https://sports.core.api.espn.com/v3/sports/basketball/nba/athletes?limit=1000&page=1",
+      "responseKind": "JSON",
+      "targetDepth": "Активные и неактивные; пагинация и фильтры подлежат проверке",
+      "bulkAccess": "PUBLIC_UNDOCUMENTED_ENDPOINT",
+      "checkedAt": "2026-10-18T03:47:22.474555+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "normalizedAdapter": "NOT_ACCEPTED",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=utf-8",
+      "finalUrl": "https://sports.core.api.espn.com/v3/sports/basketball/nba/athletes?limit=1000&page=1",
+      "bytes": 358140,
+      "sha256": "f6a91934106c539657aee4ce6b8534609f038b5c409414974f7d1dd8314fd06f",
+      "topLevelKeys": [
+        "count",
+        "pageIndex",
+        "pageSize",
+        "pageCount",
+        "items"
+      ],
+      "sampleStatus": "JSON_RECEIVED_SCHEMA_NOT_ACCEPTED"
+    }
+  ],
+  "unresolvedBlocks": [
+    {
+      "block": "Historical coaching tenures",
+      "status": "NO_ACCEPTED_ADAPTER",
+      "required": "Датированные назначения, увольнения и временные тренеры из официальных объявлений"
+    },
+    {
+      "block": "International leagues beyond listed sources",
+      "status": "NO_ACCEPTED_ADAPTER",
+      "required": "Определить лиги по карьерам всех целевых игроков, затем источники"
+    },
+    {
+      "block": "Preseason archive",
+      "status": "NO_ACCEPTED_ADAPTER",
+      "required": "Официальные протоколы; проверить фильтрацию типа сезона по каждому году"
+    },
+    {
+      "block": "Play-by-play and lineup stints",
+      "status": "NO_ACCEPTED_ADAPTER",
+      "required": "Проверить источник, замены, длительности отрезков и ошибки восстановления"
+    },
+    {
+      "block": "ESPN projections and ADP archive",
+      "status": "NO_ACCEPTED_ADAPTER",
+      "required": "Текущий адаптер scripts/espn_context.py; исторические датированные снимки не подтверждены"
+    },
+    {
+      "block": "Historical injuries and minute restrictions",
+      "status": "NO_ACCEPTED_ADAPTER",
+      "required": "Архивы отчётов + официальные объявления; полнота не подтверждена"
+    },
+    {
+      "block": "Persistent online data service",
+      "status": "NO_ACCEPTED_ADAPTER",
+      "required": "Постоянное хранилище, API и мониторинг свежести ещё не развёрнуты"
+    }
+  ],
+  "executionEnvironment": "workspace"
+}
