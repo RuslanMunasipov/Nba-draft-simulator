@@ -1,0 +1,28 @@
+name: Collect Summer League protocols (data only)
+on:
+  push:
+    branches: [data/history-foundation]
+    paths:
+      - scripts/collect_summer_games.py
+      - .github/workflows/collect-summer.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Collect and reconcile source observations
+        run: python scripts/collect_summer_games.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: summer-league-protocols
+          path: .cache/summer-games/
+          include-hidden-files: true
+          retention-days: 90
