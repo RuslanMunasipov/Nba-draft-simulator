@@ -11,7 +11,7 @@ on:
       requests:
         description: Maximum source requests in this batch
         required: true
-        default: '300'
+        default: '12000'
 permissions:
   contents: read
   actions: read
@@ -36,7 +36,7 @@ jobs:
         run: curl --fail --retry 2 --max-time 60 https://ruslanmunasipov.github.io/Nba-draft-simulator/data/default-draft.json -o /tmp/catalog.json
       - name: Collect evidence only
         env:
-          REQUEST_BUDGET: ${{ inputs.requests || '900' }}
+          REQUEST_BUDGET: ${{ inputs.requests || '12000' }}
         run: python scripts/collect_history.py --catalog /tmp/catalog.json --requests "$REQUEST_BUDGET" --output .cache/history
       - uses: actions/upload-artifact@v4
         if: always()
