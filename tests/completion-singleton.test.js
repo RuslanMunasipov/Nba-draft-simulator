@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {newDraft,pick} from '../src/engine.js';import {completionPlan} from '../src/completion.js';
 const positions=['PG','SG','SF','PF','C'];
-const players=positions.flatMap((pos,k)=>Array.from({length:8},(_,i)=>({id:k*100+i,name:`Player ${k}-${i}`,positions:[pos],price:100+i*11+k,isRookie:i===7,priceStatus:'VERIFIED',projectedFP:20})));
+const players=positions.flatMap((pos,k)=>Array.from({length:8},(_,i)=>({id:k*100+i+1,name:`Player ${k}-${i}`,positions:[pos],price:100+i*11+k,isRookie:i===7,priceStatus:'VERIFIED',projectedFP:20})));
 test('strict Sports.ru solver matches general flow with a costly irrelevant flexible player',()=>{
  for(let fixed=0;fixed<5;fixed++){
   let state=newDraft(players,20000,'ON');
@@ -12,7 +12,7 @@ test('strict Sports.ru solver matches general flow with a costly irrelevant flex
  }
 });
 test('the rookie exchange cannot use an already full fixed position',()=>{
- let state=newDraft(players.map(p=>({...p,isRookie:p.id===7})),20000,'ON');
- state={...state,picks:[{number:1,team:0,playerId:0},{number:9,team:0,playerId:1}]};
+ let state=newDraft(players.map(p=>({...p,isRookie:p.id===8})),20000,'ON');
+ state={...state,picks:[{number:1,team:0,playerId:1},{number:9,team:0,playerId:2}]};
  assert.equal(completionPlan(state,0).possible,false);
 });
