@@ -1,4 +1,4 @@
-import {playerSearchMatches,playerSearchExact,normalizeSearch} from './player-search.js';
+import {playerSearchMatches,playerSearchExact,playerSearchLabel,normalizeSearch} from './player-search.js';
 import {onlinePanel} from './online.js';
 import {rookieWatch,rookieSlotWarnings} from './rookie-watch.js';
 import {restoreBudgetDraft,enforceBudget,budgetSummary} from './budget.js';
@@ -57,7 +57,7 @@ function choose(p){$('draft-message').hidden=true;try{if(!database&&state.databa
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
  const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
- el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
+ el.append(text('h3',playerSearchLabel(p)+(p.isRookie?' · rookie':'')));
  const risk=analysis?.risk||riskProfile(p);el.append(text('strong','Риск: '+risk.level));
  el.append(text('p',[p.team,p.positions.join('/'),state.priceMode==='ON'?(p.priceStatus==='VERIFIED'?p.price+' ед.':'цена отсутствует'):null].filter(Boolean).join(' · ')));
  if(p.forecast)el.append(text('strong',`${p.forecast.meanPerGame.toFixed(1)} ФО/матч · ${Math.round(p.forecast.meanSeason)} ФО за сезон`));

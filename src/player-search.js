@@ -12,11 +12,26 @@ const letters={а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ж:'zh',з:'z',и:'i',�
 // This fallback expands search results only; it never joins database identities.
 function phonetic(value){return normalizeSearch(value).replace(/[а-я]/g,c=>letters[c]??c).replace(/ch/g,'c').replace(/c/g,'k').replace(/y/g,'i');}
 function sourceName(p){return official.get(`nba:${p.nbaId??p.id}`)||official.get(`espn:${p.espnId??String(p.id).replace(/^espn:/,'')}`)||official.get(`sports:${p.sportsId}`);}
+const initialVariants={a:['а','э'],b:['б'],c:['к','с'],d:['д'],e:['е','э'],f:['ф'],g:['г','дж','ж'],h:['х','эйч'],i:['и','а'],j:['дж','ж','й','д'],k:['к'],l:['л'],m:['м'],n:['н'],o:['о'],p:['п'],q:['к'],r:['р'],s:['с','ш'],t:['т'],u:['у','ю'],v:['в'],w:['в','у'],x:['кс','з'],y:['й','и'],z:['з']};
+const initialTokens=new Set([...Object.keys(initialVariants),...Object.values(initialVariants).flat()]);
+function initialsFor(p){
+ const first=normalizeSearch(p.name).split(' ')[0]||'';
+ const english=first[0]||'';
+ const result=new Set([english,...(initialVariants[english]||[])]);
+ const alias=normalizeSearch(aliases[p.nbaId??p.id]||'').split(' ')[0];
+ if(alias)result.add(alias.startsWith('дж')?'дж':alias[0]);
+ return result;
+}
+export function playerSearchLabel(p){const source=sourceName(p);return [p.name,source?.sportsName||p.sportsName,source?.sportsClub||p.sportsClub||p.team].filter(Boolean).join(' · ');}
 export function playerSearchMatches(p,query){
  const tokens=normalizeSearch(query).split(' ').filter(Boolean);if(!tokens.length)return true;
+ const initials=initialsFor(p);
+ // Only short standalone tokens act as initials; a surname remains mandatory.
+ const initialAt=tokens.length>1?tokens.findIndex(token=>initialTokens.has(token)):-1;
+ if(initialAt>=0&&!initials.has(tokens[initialAt]))return false;
  const source=sourceName(p);const team=String(p.nbaTeam??p.team??'');
  const text=normalizeSearch([p.name,p.sportsName,p.sportsClub,source?.sportsName,source?.sportsClub,aliases[p.nbaId??p.id],team,teams[team.toUpperCase()]].filter(Boolean).join(' '));
  const fallback=phonetic(text);
- return tokens.every(token=>{const key=phonetic(token);return text.includes(token)||Boolean(key&&fallback.includes(key));});
+ return tokens.every((token,index)=>{if(index===initialAt)return true;const key=phonetic(token);return text.includes(token)||Boolean(key&&fallback.includes(key));});
 }
 export function playerSearchExact(p,query){const q=normalizeSearch(query);if(!q)return false;const source=sourceName(p);return [p.name,p.sportsName,source?.sportsName].some(name=>name&&normalizeSearch(name)===q);}
