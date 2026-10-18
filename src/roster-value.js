@@ -27,7 +27,7 @@ export function evaluateRosterPicks(state,candidates){
    }catch{failed++;}
   }
   const average=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
-  const result={player,expectedRoster:average(scores),adjustedRoster:average(adjusted),firstPlaceShare:average(shares),survival:average(survives),runs:scores.length,failed,completion:pickCompletion(state,player.id)};
+  const result={player,expectedRoster:average(scores),adjustedRoster:average(adjusted),adjustedRuns:adjusted,firstPlaceShare:average(shares),survival:average(survives),runs:scores.length,failed,completion:pickCompletion(state,player.id)};
   stored.set(player.id,result);return result;
  }).sort((a,b)=>(b.adjustedRoster??-Infinity)-(a.adjustedRoster??-Infinity)||riskAdjustedValue(b.player)-riskAdjustedValue(a.player));
 }

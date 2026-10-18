@@ -34,6 +34,15 @@ export function selectionPressure(pool,player,seed){
  }
  return lost;
 }
+// One rollout of the remaining draft varies by ~440 risk-adjusted FP (measured on the 2026-10-18 database),
+// so a few paired seeds cannot separate close candidates; the floor keeps a lucky low spread from looking decisive.
+const ROLLOUT_SD_FLOOR=400;
+export function rolloutTie(a,b){
+ if(!a||!b||a.failed||b.failed||!a.adjustedRuns?.length||a.adjustedRuns.length!==b.adjustedRuns?.length)return null;
+ const diffs=a.adjustedRuns.map((x,i)=>x-b.adjustedRuns[i]),n=diffs.length,gap=diffs.reduce((s,x)=>s+x,0)/n;
+ const sd=n>1?Math.sqrt(diffs.reduce((s,x)=>s+(x-gap)**2,0)/(n-1)):0,margin=2*Math.max(sd,ROLLOUT_SD_FLOOR)/Math.sqrt(n);
+ return Math.abs(gap)<margin?{other:b.player.name,gap,margin,runs:n}:null;
+}
 export function analyzeRecommendations(state,focus=null,riskyOnly=false){
  const metric=scoringMetric(state),used=new Set(state.picks.map(p=>p.playerId));
  const legal=availableCandidates(state).filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>riskAdjustedValue(b)-riskAdjustedValue(a)||String(a.id).localeCompare(String(b.id)));
@@ -102,7 +111,8 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
    if(evaluation.survival!==null)drawbacks.push(`Дожил до следующего хода в ${Math.round(evaluation.survival*evaluation.runs)} из ${evaluation.runs} продолжений альтернативы. Малая модельная выборка, не калиброванная вероятность.`);
    if(evaluation.firstPlaceShare!==null)drawbacks.push(`Доля первых мест в условных сезонных сценариях продолжений: ${evaluation.firstPlaceShare.toFixed(1)}%.`);
    if(evaluation.failed)drawbacks.push(`Не завершены ${evaluation.failed} продолжений: рейтинг ограничен, результат может быть смещён.`);
-   conclusion=`${severeRisk(p)?'Рискованная ставка. ':''}${p.id===pool[0]?.id?'Сбалансированный лидер':'Альтернатива'}: ${p.name}. Ожидаемый итог десятки ${Math.round(evaluation.expectedRoster)} ФО${delta===null?'':`; разница с ${otherEvaluation.player.name}: ${delta>=0?'+':''}${Math.round(delta)} ФО`}. Рейтинг учитывает риск всей десятки; raw-прогноз игрока сам по себе не определяет порядок.`;
+   const tie=rolloutTie(evaluation,evaluation===evaluations[0]?evaluations[1]:evaluations[0]);
+   conclusion=`${severeRisk(p)?'Рискованная ставка. ':''}${p.id===pool[0]?.id?'Сбалансированный лидер':'Альтернатива'}: ${p.name}. Ожидаемый итог десятки ${Math.round(evaluation.expectedRoster)} ФО${delta===null?'':`; разница с ${otherEvaluation.player.name}: ${delta>=0?'+':''}${Math.round(delta)} ФО`}. Рейтинг учитывает риск всей десятки; raw-прогноз игрока сам по себе не определяет порядок.${tie?` Практически равны с ${tie.other}: разница ${tie.gap>=0?'+':''}${Math.round(tie.gap)} ФО с учётом риска в пределах погрешности ±${Math.round(tie.margin)} по ${tie.runs} продолжениям — порядок между ними не доказан.`:''}`;
   }
   const completion=pickCompletion(state,p.id);
   if(completion.minimumRemainingCost!==null)advantages.push(`Обязательный минимальный добор после пика: ${completion.minimumRemainingCost} ед. на оставшиеся места; цена текущего пика уже вычтена из бюджета.`);
