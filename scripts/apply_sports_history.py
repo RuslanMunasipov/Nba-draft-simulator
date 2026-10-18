@@ -22,8 +22,12 @@ def attach(database, history):
         record = players.get(str(player.get('sportsId') or ''))
         if not record or not record.get('seasons'):
             continue
-        seasons = {k: v for k, v in sorted(record['seasons'].items(), key=lambda kv: season_key(kv[0]))
-                   if isinstance(v.get('games'), int) and v['games'] > 0 and isinstance(v.get('perGame'), (int, float))}
+        # Sports.ru's own average counts every game with minutes, including 0-point games.
+        seasons = {k: {**v, 'games': v.get('gamesWithMinutes', v.get('games')),
+                       'perGame': v.get('sportsPerGame', v.get('perGame'))}
+                   for k, v in sorted(record['seasons'].items(), key=lambda kv: season_key(kv[0]))}
+        seasons = {k: v for k, v in seasons.items()
+                   if isinstance(v['games'], int) and v['games'] > 0 and isinstance(v['perGame'], (int, float))}
         if not seasons:
             continue
         player['sportsHistory'] = seasons
