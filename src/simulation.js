@@ -27,7 +27,8 @@ export function availableCandidates(state) {
    .filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
 }
 function botValue(player,style) { return riskAdjustedValue(player,style); }
-export function botPick(state,random=randomFromSeed(1),style='balanced') {
+function rankingFor(state,style){const metric=scoringMetric(state);return state.players.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>botValue(b,style)-botValue(a,style)||riskPriority(a)-riskPriority(b));}
+export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=null) {
   const metric=scoringMetric(state);
   let candidates=availableCandidates(state).filter(p=>metric!==FULL_SEASON||seasonScore(p,metric)!==null);
   const roster=teamRoster(state,currentTeam(state));
@@ -39,7 +40,8 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
   else if(needsRookie&&roster.length>=5)candidates=rookies;
   if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
-  const ranked=candidates.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>botValue(b,style)-botValue(a,style)||riskPriority(a)-riskPriority(b));
+  const allowed=new Set(candidates.map(p=>p.id));
+  const ranked=(ranking||rankingFor(state,style)).filter(p=>allowed.has(p.id));
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
   const pool=ranked.slice(0,Math.min(8,ranked.length));
   const index=style==='best' ? 0 : Math.min(pool.length-1,Math.floor(Math.pow(random(),style==='volatile'?0.65:2)*pool.length));
@@ -53,16 +55,17 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
 }
 export function advanceBots(state,{humanTeam=0,seed=1,style='balanced'}={}) {
   const random=randomFromSeed(seed);
-  let next=state;
-  while(!isComplete(next)&&currentTeam(next)!==humanTeam) next=botPick(next,random,style);
+  let next=state;const ranking=rankingFor(state,style);
+  while(!isComplete(next)&&currentTeam(next)!==humanTeam) next=botPick(next,random,style,ranking);
   return next;
 }
 export function simulateDraft(state,{seed=1,styles=['balanced','best','volatile']}={}) {
   const random=randomFromSeed(seed);
-  let next=state;
+  let next=state;const rankings=new Map();
   while(!isComplete(next)) {
     const style=styles[Math.floor(random()*styles.length)];
-    next=botPick(next,random,style);
+    if(!rankings.has(style))rankings.set(style,rankingFor(state,style));
+    next=botPick(next,random,style,rankings.get(style));
   }
   return next;
 }

@@ -24,3 +24,13 @@ test('an elite risky player remains in the main roster recommendations',async()=
  assert.ok(advice.some(r=>r.player.id===pool[0].id));
  assert.ok(advice.find(r=>r.player.id===pool[0].id).drawbacks.some(s=>s.includes('менее чем 50')));
 });
+
+test('precomputed bot rankings preserve identical seeded choices',async()=>{
+ const {botPick,randomFromSeed,isComplete}=await import('../src/simulation.js');
+ const state=newDraft(players),styles=['balanced','best','volatile'];
+ for(const seed of [1,19]){
+  const rng=randomFromSeed(seed);let reference=state;
+  while(!isComplete(reference)){const style=styles[Math.floor(rng()*styles.length)];reference=botPick(reference,rng,style);}
+  assert.deepEqual(simulateDraft(state,{seed}).picks,reference.picks);
+ }
+});

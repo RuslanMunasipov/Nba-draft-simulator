@@ -4,7 +4,7 @@ import {playerSearchMatches,playerSearchExact} from '../src/player-search.js';
 const jaylen={id:1627759,name:'Jaylen Brown',team:'BOS'};
 const bruce={id:1628971,name:'Bruce Brown',team:'DEN'};
 test('Russian initials narrow surnames without selecting a homonym',()=>{
- for(const q of ['Дж. Браун','Дж Браун','J.Brown','браун дж']){assert.ok(playerSearchMatches(jaylen,q),q);assert.equal(playerSearchMatches(bruce,q),false,q);}
+ for(const q of ['Дж. Браун','Дж Браун','J.Brown','браун дж','Джейлен Браун']){assert.ok(playerSearchMatches(jaylen,q),q);assert.equal(playerSearchMatches(bruce,q),false,q);}
  assert.ok(playerSearchMatches(jaylen,'браун'));assert.ok(playerSearchMatches(bruce,'браун'));
  assert.ok(playerSearchMatches(bruce,'Б. Браун Денвер'));
  assert.equal(playerSearchMatches(jaylen,'Дж. Браун Денвер'),false);

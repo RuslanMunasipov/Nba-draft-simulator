@@ -23,7 +23,7 @@ let database;
 let adviceWorker,adviceWorkerState;
 let adviceRequest=0;
 let mode=readStored('fbl-mode')||'LIVE';
-function save(){writeStored('fbl-draft',exportDraft(state));render();updateSaveStatus();}
+function save(){writeStored('fbl-draft',JSON.stringify(state));render();updateSaveStatus();}
 function updateSaveStatus(){
  const message=storageFailed()?'Хранилище недоступно: пики только до закрытия страницы. Сохрани резервную копию в настройках.':'Сохранение на устройстве';
  $('save-state').textContent=message;$('storage-status').textContent=storageFailed()?message:'';
