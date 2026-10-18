@@ -30,6 +30,7 @@ def main():
     try:
      old=json.loads(metadata.read_text());raw=gzip.decompress((root/old['rawPath']).read_bytes())
      if hashlib.sha256(raw).hexdigest()!=old['rawSha256']:raise ValueError('Cached raw checksum mismatch')
+     old['status']='TABLES_RECEIVED_NOT_RECONCILED' if any(t.get('rows',0)>0 for t in old.get('tables',[])) else 'EMPTY_TABLE_UNVERIFIED'
      return old
     except Exception:metadata.rename(metadata.with_suffix('.invalid'))
    request=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0','Referer':'https://www.nba.com/','Origin':'https://www.nba.com'})
@@ -38,10 +39,18 @@ def main():
    data=json.loads(raw);sets=data.get('resultSets',[])
    if not isinstance(sets,list):raise ValueError('Unexpected official response schema')
    sha=hashlib.sha256(raw).hexdigest();path=Path('raw')/(sha+'.json.gz');(root/path).parent.mkdir(parents=True,exist_ok=True);(root/path).write_bytes(gzip.compress(raw,mtime=0))
-   record.update(status='TABLES_RECEIVED_NOT_RECONCILED',fetchedAt=datetime.now(timezone.utc).isoformat(),rawSha256=sha,rawPath=str(path),tables=[dict(name=t.get('name'),rows=len(t.get('rowSet',[])),columns=t.get('headers',[])) for t in sets])
+   record.update(status='TABLES_RECEIVED_NOT_RECONCILED' if any(t.get('rowSet') for t in sets) else 'EMPTY_TABLE_UNVERIFIED',fetchedAt=datetime.now(timezone.utc).isoformat(),rawSha256=sha,rawPath=str(path),tables=[dict(name=t.get('name'),rows=len(t.get('rowSet',[])),columns=t.get('headers',[])) for t in sets])
    temporary=metadata.with_suffix('.tmp');temporary.write_text(json.dumps(record));temporary.replace(metadata)
   except Exception as exc:record.update(status='SOURCE_REQUEST_FAILED',error=str(exc),httpStatus=getattr(exc,'code',None))
   return record
+ # Read cached evidence before network work, including when access has failed.
+ def cached(job):
+  query=dict(params,LeagueID=args.league_id,Season=job['season'],MeasureType=job['measure'],SeasonType=job.get('seasonType','Regular Season'),PerMode=job.get('perMode','PerGame'))
+  if job['endpoint']=='playergamelogs':query['PlayerID']=0
+  if job.get('groupQuantity'):query['GroupQuantity']=job['groupQuantity']
+  url='https://stats.nba.com/stats/'+job['endpoint']+'?'+urllib.parse.urlencode(query)
+  return (root/(hashlib.sha256(url.encode()).hexdigest()+'.json')).exists()
+ jobs.sort(key=lambda job:not cached(job))
  observations=[];failures=0
  for at in range(0,len(jobs),args.workers):
   batch=jobs[at:at+args.workers]
