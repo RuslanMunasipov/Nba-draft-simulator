@@ -136,6 +136,11 @@ test('completed draft runs 5000 season uncertainty scenarios with visible ranges
  await expect(page.locator('#scenario-results tbody tr')).toHaveCount(8);
  await expect(page.locator('#scenario-results')).toContainText('P10–P90');
  await expect(page.locator('#scenario-results')).toContainText('не вероятность победы в FBL');
+ await page.locator('#season-runs').selectOption('20000');
+ await expect(page.locator('#batch')).toHaveText('20 000 сценариев сезона');
+ await page.locator('#batch').click();
+ await expect(page.locator('#simulation-status')).toContainText('20000 сценариев неопределённости сезона',{timeout:180000});
+ await expect(page.locator('#scenario-results tbody tr')).toHaveCount(8);
 });
 
 test('specific rookie tradeoff updates after seven bots and disappears after our rookie pick',async({page})=>{
@@ -290,4 +295,17 @@ test('Russian initials keep Brown homonyms separate and permit a manual pick',as
  await page.locator('#candidates').getByRole('button',{name:'Выбрать Jaylen Brown',exact:true}).click();
  await expect(page.locator('#my-roster')).toContainText('Jaylen Brown');
  await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
+});
+
+
+test('Russian initials and Sports.ru team terms keep Brown names distinct',async({page})=>{
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ const search=page.getByRole('textbox',{name:'Поиск игрока',exact:true});
+ await search.fill('браун');
+ await expect(page.locator('#candidates')).toContainText('Jaylen Brown');
+ await expect(page.locator('#candidates')).toContainText('Bruce Brown');
+ await search.fill('дж.браун');
+ await expect(page.locator('#candidates h3')).toHaveText(['Jaylen Brown']);
+ await search.fill('браун филадельфия');
+ await expect(page.locator('#candidates h3')).toHaveText(['Jaylen Brown']);
 });
