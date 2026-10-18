@@ -64,3 +64,5 @@ html{background:var(--bg)}
 .sports-history{background:var(--bg);border-radius:9px;padding:10px;margin:8px 0}
 .sports-history p{font-size:12px;line-height:1.6;margin:4px 0}
 .sports-history small{display:block;font-size:12px;color:var(--ink)}
+.adjust-row{display:flex;align-items:center;gap:8px;font-size:12px;margin:8px 0;color:var(--muted)}
+.adjust-row input{width:72px;padding:6px;font-size:14px}
