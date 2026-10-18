@@ -10,7 +10,7 @@ import './theme.js';
 import {reportElement} from './rookie-reports.js';
 import './baseline.js';
 import './history.js';
-import {newDraft,pick,undo,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
+import {newDraft,pick,undo,replacePick,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
 import {advanceBots,simulateDraft,draftSummary} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
@@ -23,7 +23,12 @@ let database;
 let adviceWorker,adviceWorkerState;
 let adviceRequest=0;
 let mode=readStored('fbl-mode')||'LIVE';
-function save(){writeStored('fbl-draft',JSON.stringify(state));render();updateSaveStatus();}
+// While re-picking, legality is checked against the draft as it stood before that pick.
+let replacing=null,replaceBase=null,replaceNote='';
+function target(){return replaceBase||state;}
+function startReplace(index){replacing=index;replaceBase={...state,picks:state.picks.slice(0,index)};replaceNote='';render();$('turn').scrollIntoView({block:'start'});}
+function stopReplace(){replacing=null;replaceBase=null;}
+function save(){stopReplace();writeStored('fbl-draft',JSON.stringify(state));render();updateSaveStatus();}
 function updateSaveStatus(){
  const message=storageFailed()?'Хранилище недоступно: пики только до закрытия страницы. Сохрани резервную копию в настройках.':'Сохранение на устройстве';
  $('save-state').textContent=message;$('storage-status').textContent=storageFailed()?message:'';
@@ -55,7 +60,17 @@ function renderScenarioAnalysis(result,startPick){
  box.append(details);
 }
 const matches=playerSearchMatches;
-function choose(p){$('draft-message').hidden=true;try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
+function chooseReplacement(p){
+ try{
+  const index=replacing,old=state.picks[index],name=id=>state.players.find(x=>x.id===id)?.name||id;
+  const plan=pickCompletion(replaceBase,p.id);if(!plan.possible)throw Error(plan.reason);
+  const result=replacePick(state,index,p.id);
+  if(result.dropped.length&&!confirm(`Пик #${old.number}: ${name(old.playerId)} → ${p.name}.\nПосле него станут недопустимы и будут удалены пики: ${result.dropped.map(d=>`#${d.number} ${name(d.playerId)}`).join(', ')}. Их нужно будет внести заново. Продолжить?`))return;
+  state=result.state.priceMode==='ON'?enforceBudget(result.state):result.state;save();
+  replaceNote=`Пик #${old.number} заменён: ${name(old.playerId)} → ${p.name}. `+(result.dropped.length?`Удалены пики с #${result.dropped[0].number}: внеси их заново.`:'Остальные пики сохранены.');render();
+ }catch(e){showError(e);}
+}
+function choose(p){$('draft-message').hidden=true;replaceNote='';if(replacing!==null)return chooseReplacement(p);try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
  const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
@@ -96,8 +111,9 @@ function card(p,analysis=null){
  if(p.forecast)el.append(forecastCard(p));
  if(p.onlineSummary||p.onlineEvidence)el.append(onlinePanel(p));
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
- if(pickCompletion(state,p.id).possible===false){b.disabled=true;b.title=pickCompletion(state,p.id).reason;}
- try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
+ if(replacing!==null)b.textContent=`Поставить на пик #${replacing+1}: ${p.name}`;
+ if(pickCompletion(target(),p.id).possible===false){b.disabled=true;b.title=pickCompletion(target(),p.id).reason;}
+ try{pick(target(),p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
  el.append(b);
  el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[4]?.classList.add('player-score');
  el.dataset.risk=risk.level.includes('ВЫСОКИЙ')?'high':risk.level.includes('СРЕДНИЙ')?'medium':'low';
@@ -202,11 +218,13 @@ function render(){
  const rookie=own.some(p=>p.isRookie);ownBox.append(text('p',`${own.length}/10 игроков · Rookie: ${rookie?'выбран ✓':'ещё нужен'}`));
  const list=document.createElement('ol');list.className='roster-grid';
  for(let i=0;i<10;i++){const row=text('li',own[i]?own[i].name:'Свободное место');if(own[i])row.append(text('small',own[i].positions.join(' / ')+(own[i].isRookie?' · rookie':'')));else row.className='empty-slot';list.append(row);}ownBox.append(list);
- $('turn').textContent=n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
- $('history').replaceChildren();for(const p of state.picks)$('history').append(text('li',`#${p.number} · GM ${p.team+1} · ${state.players.find(x=>x.id===p.playerId)?.name||p.playerId}`));
+ $('turn').textContent=replacing!==null?`Перевыбор пика #${replacing+1} · Команда ${state.picks[replacing].team+1}`:n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
+ $('replace-banner').hidden=replacing===null&&!replaceNote;$('replace-cancel').hidden=replacing===null;
+ $('replace-text').textContent=replacing!==null?`Сейчас: ${state.players.find(x=>x.id===state.picks[replacing].playerId)?.name}. Найди нового игрока в списке и нажми «Поставить на пик». Советы ниже относятся к следующему пику, а не к перевыбору.`:replaceNote;
+ $('history').replaceChildren();for(const [i,p] of state.picks.entries()){const row=text('li',`#${p.number} · GM ${p.team+1} · ${state.players.find(x=>x.id===p.playerId)?.name||p.playerId} `);const edit=text('button','Перевыбрать');edit.className='replace-pick';edit.onclick=()=>startReplace(i);row.append(edit);$('history').append(row);}
  $('candidates').parentElement.open=Boolean($('search').value||$('rookies-only').checked);
  const query=normalizeSearch($('search').value);
- const used=new Set(state.picks.map(p=>p.playerId));
+ const used=new Set(target().picks.map(p=>p.playerId));
  const available=state.players.filter(p=>!used.has(p.id)&&matches(p,query)&&(!$('rookies-only').checked||p.isRookie));
  const exact=p=>playerSearchExact(p,query);
  available.sort((a,b)=>Number(exact(b))-Number(exact(a))||(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||Number(Boolean(b.forecast))-Number(Boolean(a.forecast))||riskPriority(a)-riskPriority(b)||draftValue(b)-draftValue(a));
@@ -265,6 +283,7 @@ async function loadDatabase(force=false){
 $('load-retry').onclick=()=>loadDatabase(true);
 $('search').oninput=render;$('rookies-only').onchange=render;
 $('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
+$('replace-cancel').onclick=()=>{stopReplace();render();};
 $('undo').onclick=()=>{state=undo(state);if(state.priceMode==='ON')state=enforceBudget(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};
 $('refresh-database').onclick=()=>loadDatabase(true);

@@ -52,3 +52,6 @@ html{background:var(--bg)}
 .forecast-grid strong{font-size:20px;color:var(--ink)}
 .forecast-panel p,#model-report p{font-size:12px;line-height:1.8}
 .forecast-grid+ p{margin-top:12px}
+.replace-banner{border:1px solid var(--green);border-radius:9px;padding:10px;margin:8px 0;background:var(--bg)}
+.replace-banner p{margin:0 0 8px;font-size:13px;color:var(--ink)}
+#history .replace-pick{margin-left:8px;padding:4px 10px;font-size:12px;min-height:0;width:auto}
