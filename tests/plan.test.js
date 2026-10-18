@@ -27,3 +27,10 @@ test('forcing a player puts him on the current pick',()=>{
  const state=newDraft(players,20000,'ON'),profile={picks,availability:new Map(players.map(p=>[p.id,odds(p)]))};
  const plan=planRoster(state,profile,{threshold:.8,force:3});assert.equal(plan.now.id,3);
 });
+test('ADP opponents complete a legal 80-pick draft and follow consensus ranks',async()=>{
+ const {adpDraft}=await import('../src/plan.js');const {importDraft,exportDraft}=await import('../src/engine.js');
+ const pool=Array.from({length:100},(_,i)=>({id:i+1,name:'A'+(i+1),positions:[['PG'],['SG'],['SF'],['PF'],['C']][i%5],price:1000+(i%7)*200,priceStatus:'VERIFIED',projectedFP:30-i/5,isRookie:i%9===0,espnContext:i<90?{adp:i+1}:undefined}));
+ const done=adpDraft(newDraft(pool,20000,'ON'),3);
+ assert.equal(done.picks.length,80);assert.deepEqual(importDraft(exportDraft(done)).picks,done.picks);
+ assert.ok(done.picks.slice(0,8).every(p=>p.playerId<=20));
+});

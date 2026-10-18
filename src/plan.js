@@ -1,6 +1,7 @@
 import solver from 'javascript-lp-solver';
-import {POSITIONS,TEAM_COUNT,ROUNDS,rosterFits} from './engine.js';
-import {simulateDraft,teamRoster} from './simulation.js';
+import {POSITIONS,TEAM_COUNT,ROUNDS,rosterFits,pick} from './engine.js';
+import {pickCompletion} from './completion.js';
+import {simulateDraft,teamRoster,randomFromSeed} from './simulation.js';
 import {riskAdjustedValue,draftValue} from './valuation.js';
 
 // Our future pick numbers in a straight draft.
@@ -9,12 +10,29 @@ export function ownPicks(state,team=0){
 }
 // Monte Carlo of the bot opponents from the current state: for each undrafted player,
 // the share of drafts in which he is still undrafted when each of our future picks arrives.
+// Human GMs follow consensus ranks more than our forecasts: each pick takes the best legal player by ESPN ADP
+// with rank noise growing with ADP (players without ADP rank after everyone who has one).
+export function adpDraft(state,seed){
+ const random=randomFromSeed(seed),gauss=()=>Math.sqrt(-2*Math.log(1-random()))*Math.cos(2*Math.PI*random());
+ const fallback=new Map([...state.players].filter(p=>!Number.isFinite(p.espnContext?.adp)).sort((a,b)=>riskAdjustedValue(b)-riskAdjustedValue(a)).map((p,i)=>[p.id,150+i]));
+ const rank=p=>{const adp=Number.isFinite(p.espnContext?.adp)?p.espnContext.adp:fallback.get(p.id);return adp+gauss()*(1.5+0.2*adp);};
+ let next=state;
+ while(next.picks.length<TEAM_COUNT*ROUNDS){
+  const used=new Set(next.picks.map(p=>p.playerId));
+  const order=next.players.filter(p=>!used.has(p.id)&&p.positions.length&&(next.priceMode!=='ON'||p.priceStatus==='VERIFIED')).map(p=>[rank(p),p]).sort((a,b)=>a[0]-b[0]);
+  let moved=false;
+  for(const [,p] of order){try{if(!pickCompletion(next,p.id).possible)continue;next=pick(next,p.id);moved=true;break;}catch{}}
+  if(!moved)throw Error('ADP-модель не нашла допустимый пик');
+ }
+ return next;
+}
 export function availabilityProfile(state,{runs=50,team=0}={}){
  const picks=ownPicks(state,team),used=new Set(state.picks.map(p=>p.playerId));
  const counts=new Map(state.players.filter(p=>!used.has(p.id)).map(p=>[p.id,picks.map(()=>0)]));
  let done=0;
+ // Half the futures use the app's forecast-driven bots, half ADP-driven humans: the plan must survive both.
  for(let seed=1;seed<=runs;seed++){
-  let draft;try{draft=simulateDraft(state,{seed:7919*seed});}catch{continue;}
+  let draft;try{draft=seed%2?simulateDraft(state,{seed:7919*seed}):adpDraft(state,7919*seed);}catch{continue;}
   done++;const takenAt=new Map(draft.picks.slice(state.picks.length).map(x=>[x.playerId,x.number]));
   for(const [id,row] of counts){const at=takenAt.get(id)??Infinity;picks.forEach((k,r)=>{if(at>=k)row[r]++;});}
  }
