@@ -287,7 +287,8 @@ function render(){
  if(changed||n===80){adviceWorker?.terminate();adviceWorker=null;}
  if(changed||n===80)$('advice').replaceChildren(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':'Сравниваю продолжения до полной десятки…'));
  if(changed||n===80){$('risky-advice').replaceChildren();$('risk-section').hidden=true;}
- if(n<80&&state.players.length){
+ // The old rollout comparison only runs when its collapsed section is opened.
+ if(n<80&&state.players.length&&$('old-advice').open){
   const snapshot=state,requestId=++adviceRequest;
   if(!adviceWorker)try{adviceWorker=new Worker(new URL('./advice-worker.js',import.meta.url),{type:'module'});}
   catch{ $('advice').replaceChildren(...recommendations(state).slice(0,5).map(p=>card(p))); $('advice').append(text('p','Расчёт продолжений недоступен: показан риск-скорректированный список без оптимизации состава.'));adviceWorker=null; }
@@ -337,6 +338,7 @@ async function loadDatabase(force=false){
 $('load-retry').onclick=()=>loadDatabase(true);
 $('search').oninput=render;$('rookies-only').onchange=render;
 $('draft-mode').onchange=()=>{mode=$('draft-mode').value;writeStored('fbl-mode',mode);$('bots').hidden=mode!=='INTERACTIVE';};
+$('old-advice').addEventListener('toggle',()=>{if($('old-advice').open)render();});
 $('replace-cancel').onclick=()=>{stopReplace();render();};
 $('undo').onclick=()=>{state=undo(state);if(state.priceMode==='ON')state=enforceBudget(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};

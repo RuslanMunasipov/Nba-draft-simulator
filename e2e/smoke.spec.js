@@ -1,6 +1,8 @@
 import {test,expect} from '@playwright/test';
+// The old rollout comparison is collapsed by default; these checks still cover it.
+const openOld=page=>page.locator('#old-advice').evaluate(e=>e.open=true);
 test('mobile fresh open needs no file and preserves a chosen returning player',async({page})=>{
- const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('./');
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('./');await openOld(page);
  await expect(page.locator('#player-count')).toContainText(/в базе [1-9][0-9]{2,}/);
  await expect(page.locator('#settings')).not.toHaveAttribute('open','');
  await expect(page.locator('#advice .player-card')).toHaveCount(5);
@@ -9,13 +11,13 @@ test('mobile fresh open needs no file and preserves a chosen returning player',a
  await expect(page.locator('#candidates')).toContainText('2024-25');
  await page.locator('#candidates').getByRole('button',{name:'Выбрать Tyrese Haliburton',exact:true}).click();
  await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
- await page.reload();await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
- await page.route('**/data/default-draft.json',route=>route.abort());await page.reload();
+ await page.reload();await openOld(page);await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
+ await page.route('**/data/default-draft.json',route=>route.abort());await page.reload();await openOld(page);
  await expect(page.locator('#database-status')).toContainText('сохранённая база');
  await expect(page.locator('#turn')).toContainText('Пик 2 / 80');expect(errors).toEqual([]);
 });
 test('training automatically executes seven bots and full default draft',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('combobox',{name:'Режим',exact:true}).selectOption('INTERACTIVE');
  await page.locator('#advice .player-card button').first().click();
  await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
@@ -34,7 +36,7 @@ test('training automatically executes seven bots and full default draft',async({
  await expect(page.locator('#rookie-status')).toContainText('Драфт завершён');
 });
 test('rookies and all requested explanation fields appear without settings',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  const first=page.locator('#advice .player-card').first();
  await expect(first).toContainText('Риск:');await expect(first).toContainText('Прогноз сезона:');
  await expect(first).toContainText('Плюсы пика');await expect(first).toContainText('Минусы и альтернативы');
@@ -44,7 +46,7 @@ test('rookies and all requested explanation fields appear without settings',asyn
 });
 
 test('unknown Sports.ru price blocks Kawhi while Maxey retains comparison',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Kawhi');
  await expect(page.locator('#candidates .player-card').first()).toContainText('Цена Sports.ru: отсутствует');
  await expect(page.locator('#candidates .player-card').first().getByRole('button',{name:'Выбрать Kawhi Leonard',exact:true})).toBeDisabled();
@@ -61,7 +63,7 @@ test('unknown Sports.ru price blocks Kawhi while Maxey retains comparison',async
 test('mobile blocks a searched pick that strands the required rookie',async({page})=>{
  const players=Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+(i+1),positions:i<22?['PG']:['PG','SG','SF','PF','C'],projectedFP:120-i,isRookie:i<20}));
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-16T00:00:00Z',players,coverage:{players:120,rookies:20}}}));
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  for(const id of [21,30,31,32,33,34,35,36]){
   await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC '+id);
   await page.locator('#candidates').getByRole('button',{name:'Выбрать SYNTHETIC '+id,exact:true}).click();
@@ -76,7 +78,7 @@ test('mobile blocks a searched pick that strands the required rookie',async({pag
 test('high per-game injury risks do not crowd out five safer mobile choices',async({page})=>{
  const players=Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+(i+1),positions:['PG','SG','SF','PF','C'],projectedFP:i<2?40:20,isRookie:i>=100,historyGames:i<2?{'2024-25':19,'2025-26':38}:{'2024-25':78,'2025-26':78}}));
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-16T00:00:00Z',players,coverage:{players:120,rookies:20}}}));
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await expect(page.locator('#advice')).toContainText('Риск:');
  await page.getByText('Рискованные ставки — отдельно от основного ядра',{exact:true}).click();
  await expect(page.locator('#risky-advice')).toContainText('Рискованная ставка');
@@ -86,7 +88,7 @@ test('high per-game injury risks do not crowd out five safer mobile choices',asy
 });
 
 test('Embiid source game projection is visible without promoting him into safe picks',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await expect(page.locator('#advice')).toContainText('Риск:');
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Embiid');
  const card=page.locator('#candidates .player-card').first();
@@ -96,7 +98,7 @@ test('Embiid source game projection is visible without promoting him into safe p
 });
 
 test('rookie board uses individual ESPN projections instead of one group value',async({page})=>{
- await page.goto('./');await expect(page.locator('#rookie-advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#rookie-advice .player-card')).toHaveCount(5);
  const card=page.locator('#rookie-advice .player-card').first();
  await expect(card).toContainText('ФО/матч');await expect(card).toContainText('мин/матч');
  await expect(card).toContainText('PTS');await expect(card).toContainText('TOV');
@@ -105,7 +107,7 @@ test('rookie board uses individual ESPN projections instead of one group value',
 });
 
 test('rookie timing worker compares all ten rounds while the mobile UI remains usable',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('link',{name:'Топ rookie по индивидуальному прогнозу',exact:true}).click();
  await expect(page.locator('#timing-result')).toContainText('Условный лучший план:',{timeout:180000});
  await expect(page.locator('#timing-result table tr')).toHaveCount(11);
@@ -115,7 +117,7 @@ test('rookie timing worker compares all ten rounds while the mobile UI remains u
 });
 
 test('published mobile batch completes 100 draft scenarios without blocking input',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.locator('#batch').click();
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Jokic');
  await expect(page.locator('#candidates')).toContainText('Jokic');
@@ -127,7 +129,7 @@ test('published mobile batch completes 100 draft scenarios without blocking inpu
 });
 
 test('completed draft runs 5000 season uncertainty scenarios with visible ranges',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.locator('#simulate').click();
  await expect(page.locator('#turn')).toContainText('Драфт завершён',{timeout:180000});
  await expect(page.locator('#batch')).toContainText('5 000 сценариев сезона');
@@ -146,7 +148,7 @@ test('completed draft runs 5000 season uncertainty scenarios with visible ranges
 test('specific rookie tradeoff updates after seven bots and disappears after our rookie pick',async({page})=>{
  const players=Array.from({length:140},(_,i)=>({id:i+1,name:'SYNTHETIC '+i,isRookie:i>=120,positions:['PG','SG','SF','PF','C'],projectedFP:30-i/10,historyGames:{'2024-25':78,'2025-26':78},espnContext:{fetchedAt:'2026-10-16T00:00:00Z',adp:i+1,projectedGames:78,individualProjection:{metric:'FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES',componentSeasonTotal:2400-i*10,componentFPPerGame:(2400-i*10)/78,games:78,perGame:{minutes:30,points:20,rebounds:5,assists:4,steals:1,blocks:1,turnovers:2}}}}));
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-16T00:00:00Z',players,coverage:{players:140,rookies:20}}}));
- await page.goto('./');
+ await page.goto('./');await openOld(page);
  await expect(page.locator('#rookie-tradeoff')).toContainText('Наш пик №1 → следующий №9',{timeout:180000});
  await expect(page.locator('#rookie-tradeoff')).toContainText('Потеря rookie до следующего хода:');
  await page.getByRole('combobox',{name:'Режим',exact:true}).selectOption('INTERACTIVE');
@@ -164,7 +166,7 @@ test('missing forecast in recorded picks blocks timing instead of inventing a co
  players[0].espnContext=null;
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-16T00:00:00Z',players,coverage:{players:140,rookies:20}}}));
 
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC 0');
  await page.locator('#candidates').getByRole('button',{name:'Выбрать SYNTHETIC 0',exact:true}).click();
  await expect(page.locator('#timing-status')).toContainText('нет сопоставимого индивидуального прогноза',{timeout:30000});
@@ -172,7 +174,7 @@ test('missing forecast in recorded picks blocks timing instead of inventing a co
 });
 
 test('player name toggles a formatted full report and roster progress stays visible',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await expect(page.getByRole('heading',{name:'Собери сильный состав.'})).toBeVisible();
  const card=page.locator('#advice .player-card').first(),details=card.locator('.card-details');
  await expect(details).not.toHaveAttribute('open','');
@@ -185,7 +187,7 @@ test('player name toggles a formatted full report and roster progress stays visi
  for(const width of [360,768,1280]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);}
 });
 test('rookie name opens sourced editorial scouting report beside individual forecast',async({page})=>{
- await page.goto('./');const card=page.locator('#rookie-advice .player-card').first();
+ await page.goto('./');await openOld(page);const card=page.locator('#rookie-advice .player-card').first();
  await expect(card.locator('.forecast-panel')).toHaveCount(1);
  await card.locator('h3').click();
  await expect(card.getByRole('heading',{name:'Что даёт в фэнтези',exact:true})).toBeVisible();
@@ -195,7 +197,7 @@ test('rookie name opens sourced editorial scouting report beside individual fore
 });
 
 test('season forecasts include full formula, distinct ceilings and no fake confidence',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  const card=page.locator('#advice .player-card').first();await card.locator('h3').click();
  await expect(card.locator('.forecast-panel')).toContainText('Верхний ориентир матча');
  await expect(card.locator('.forecast-panel')).toContainText('Сильный сезон');
@@ -209,7 +211,7 @@ test('season forecasts include full formula, distinct ceilings and no fake confi
 });
 
 test('Sports.ru determines draft positions while Yahoo remains a separate transfer reference',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Victor Wembanyama');
  const card=page.locator('#candidates .player-card').first();
  await expect(card.locator('h3')).toHaveText('Victor Wembanyama');
@@ -222,7 +224,7 @@ test('Sports.ru determines draft positions while Yahoo remains a separate transf
 test('searched rookie group prior is explicitly labelled and never presented as personal history',async({page})=>{
  const players=Array.from({length:120},(_,i)=>({id:i+1,name:'PRIOR TEST '+i,positions:['PG','SG','SF','PF','C'],projectedFP:i===101?null:20,isRookie:i>=100,projectionStatus:i>=100?'EMPIRICAL_ROOKIE_PRIOR':'HISTORICAL_CORE_ESTIMATE'}));
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-17T00:00:00Z',players,coverage:{players:120,rookies:20}}}));
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('PRIOR TEST 100');
  const card=page.locator('#candidates .player-card').first();
  await expect(card).toContainText('Групповой ориентир rookie:');
@@ -234,7 +236,7 @@ test('searched rookie group prior is explicitly labelled and never presented as 
 });
 
 test('Cade exposes the actual turnover deduction and historical negative games',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Cade Cunningham');
  const card=page.locator('#candidates .player-card').first();await card.locator('h3').click();
  await expect(card.locator('.scoring-breakdown')).toContainText('Потери × −2');
@@ -244,13 +246,13 @@ test('Cade exposes the actual turnover deduction and historical negative games',
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
 test('Boozer can be selected directly, survives seven bots and reload, then completes a legal draft',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('combobox',{name:'Режим',exact:true}).selectOption('INTERACTIVE');
  await page.locator('#rookie-watch').getByRole('button',{name:'Взять rookie Cameron Boozer',exact:true}).click();
  await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
  await expect(page.locator('#my-roster')).toContainText('Cameron Boozer');
  await expect(page.locator('#rookie-watch')).toContainText('Выбран GM 1 на пике №1');
- await page.reload();await expect(page.locator('#my-roster')).toContainText('Cameron Boozer');
+ await page.reload();await openOld(page);await expect(page.locator('#my-roster')).toContainText('Cameron Boozer');
  await page.getByRole('button',{name:'Завершить симуляцию',exact:true}).click();
  await expect(page.locator('#turn')).toHaveText('Драфт завершён');
  await expect(page.locator('#history li')).toHaveCount(80);
@@ -260,17 +262,17 @@ test('Boozer can be selected directly, survives seven bots and reload, then comp
 
 for(const name of ['Caleb Wilson','AJ Dybantsa','Darryn Peterson','Darius Acuff Jr.']){
  test('leading rookie '+name+' is selectable and saved after seven bots',async({page})=>{
-  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+  await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
   await page.getByRole('combobox',{name:'Режим',exact:true}).selectOption('INTERACTIVE');
   await page.locator('#rookie-watch').getByRole('button',{name:'Взять rookie '+name,exact:true}).click();
   await expect(page.locator('#turn')).toContainText('Пик 9 / 80');
   await expect(page.locator('#my-roster')).toContainText(name);
-  await page.reload();await expect(page.locator('#my-roster')).toContainText(name);
+  await page.reload();await openOld(page);await expect(page.locator('#my-roster')).toContainText(name);
  });
 }
 
 test('full career loads on demand without replacing the draft forecast',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Nikola Jokic');
  const card=page.locator('#candidates .player-card').first();await card.locator('h3').click();
  await card.locator('.online-evidence summary').click();
@@ -285,7 +287,7 @@ test('Russian initials keep Brown homonyms separate and permit a manual pick',as
  players[0]={...players[0],id:1627759,name:'Jaylen Brown',team:'BOS'};
  players[1]={...players[1],id:1628971,name:'Bruce Brown',team:'DEN'};
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-18',players}}));
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  const search=page.getByRole('textbox',{name:'Поиск игрока',exact:true});
  await search.fill('Браун');await expect(page.locator('#candidates .player-card')).toHaveCount(2);
  for(const query of ['Дж. Браун','Дж Браун Бостон','J.Brown']){
@@ -299,7 +301,7 @@ test('Russian initials keep Brown homonyms separate and permit a manual pick',as
 
 
 test('Russian initials and Sports.ru team terms keep Brown names distinct',async({page})=>{
- await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ await page.goto('./');await openOld(page);await expect(page.locator('#advice .player-card')).toHaveCount(5);
  const search=page.getByRole('textbox',{name:'Поиск игрока',exact:true});
  await search.fill('браун');
  await expect(page.locator('#candidates')).toContainText('Jaylen Brown');

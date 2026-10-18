@@ -68,3 +68,5 @@ html{background:var(--bg)}
 .adjust-row input{width:72px;padding:6px;font-size:14px}
 
 .advice-title{font-size:13px;color:var(--muted);margin:18px 0 8px;font-weight:600;line-height:1.5}
+.old-advice{margin:16px 0;font-size:13px;color:var(--muted)}
+.old-advice>summary{cursor:pointer;padding:8px 0}
