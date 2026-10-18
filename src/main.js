@@ -108,7 +108,7 @@ function card(p,analysis=null){
  if(p.espnContext){const source=p.espnContext;el.append(text('p',`ESPN 2026/27: ${[source.projectedGames!=null?'прогноз матчей '+source.projectedGames:null,Number.isFinite(source.adp)?'ADP '+source.adp.toFixed(2):null].filter(Boolean).join(' · ')}. ADP — средний номер выбора, не ФО FBL.`));el.append(text('small','Срез ESPN: '+new Date(source.fetchedAt).toLocaleString('ru-RU')));}
  if(p.marketContext)el.append(text('p',`Ориентир ESPN: №${p.marketContext.pick} в одном экспертном mock draft (ROTO), не ADP и не прогноз ФО FBL.`));
  if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
- if(p.forecast)el.append(forecastCard(p));
+ if(p.forecast)el.append(forecastCard(p));if(p.sportsHistory)el.append(sportsHistoryPanel(p));
  if(p.onlineSummary||p.onlineEvidence)el.append(onlinePanel(p));
  const b=text('button','Выбрать '+p.name);b.onclick=()=>choose(p);
  if(replacing!==null)b.textContent=`Поставить на пик #${replacing+1}: ${p.name}`;
@@ -123,6 +123,15 @@ function card(p,analysis=null){
 }
 
 
+// Official Sports.ru fantasy points are the reference the forecast is checked against.
+function sportsHistoryPanel(p){
+ const box=document.createElement('div');box.className='sports-history';
+ const rows=Object.entries(p.sportsHistory).slice(-5).map(([season,s])=>`${season}: ${s.perGame.toFixed(1)} ФО/матч (${s.games} м.)`);
+ box.append(text('strong','Sports.ru, официальные ФО по формуле'),text('p',rows.join(' · ')));
+ const c=p.sportsCheck;
+ if(c)box.append(text('small',c.flag?`⚠ Прогноз ${c.forecastPerGame.toFixed(1)} ФО/матч расходится с сезоном ${c.season} на Sports.ru (${c.perGame.toFixed(1)}) на ${c.gap>0?'+':''}${Math.round(c.gap*100)}%: проверь причину (роль, травма, клуб).`:`Прогноз ${c.forecastPerGame.toFixed(1)} ФО/матч согласуется с сезоном ${c.season} на Sports.ru (${c.perGame.toFixed(1)}).`));
+ return box;
+}
 function forecastCard(p){
  const f=p.forecast,box=document.createElement('div');box.className='forecast-panel';
  if(f.basis)box.append(text('p',f.basis));
@@ -193,7 +202,7 @@ function renderRookies(){
   el.append(text('p','Роль, сильные стороны и ограничения игрока — в репорте выше. Момент пика сравнивается в блоке «Rookie сейчас или ветеран сейчас».'));
   el.append(text('small','Индивидуальный прогноз ESPN, срез '+new Date(p.espnContext.fetchedAt).toLocaleString('ru-RU')+'. Допуск: '+(p.positionStatus==='YAHOO_ANALYST_PUBLISHED_NOT_PLATFORM_VERIFIED'?'публикация Yahoo Fantasy на NBA.com':p.positionStatus==='SPORTS_RU_VERIFIED'?'Sports.ru':'не подтверждён')+'. Статус rookie — по источнику ESPN.'));
   if(state.priceMode==='ON')el.append(text('p','Цена Sports.ru: '+p.price+' ед.'));
-  if(p.forecast)el.append(forecastCard(p));
+  if(p.forecast)el.append(forecastCard(p));if(p.sportsHistory)el.append(sportsHistoryPanel(p));
   const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);
   el.children[1]?.classList.add('player-score');el.children[2]?.classList.add('player-meta');
   organizeCard(el,b,4);

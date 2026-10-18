@@ -61,3 +61,6 @@ html{background:var(--bg)}
 .plan-list li,.plan-options li{font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
 .plan-options .plan-pick{margin-left:8px;padding:4px 10px;font-size:12px;min-height:0;width:auto}
 .plan-box small{display:block;margin-top:8px;color:var(--muted);line-height:1.5}
+.sports-history{background:var(--bg);border-radius:9px;padding:10px;margin:8px 0}
+.sports-history p{font-size:12px;line-height:1.6;margin:4px 0}
+.sports-history small{display:block;font-size:12px;color:var(--ink)}
