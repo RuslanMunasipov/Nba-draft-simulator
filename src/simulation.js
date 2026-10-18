@@ -17,7 +17,14 @@ export function isComplete(state) { return state.picks.length === TEAM_COUNT*ROU
 export function availableCandidates(state) {
   if(isComplete(state)) return [];
   const used=new Set(state.picks.map(p=>p.playerId));
-  return state.players.filter(p=>!used.has(p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
+  const roster=teamRoster(state,currentTeam(state));
+  const spent=state.priceMode==='ON'?roster.reduce((sum,p)=>sum+p.price,0):0;
+  const counts=roster.every(p=>p.positions.length===1)?Object.fromEntries(['PG','SG','SF','PF','C'].map(pos=>[pos,roster.filter(p=>p.positions[0]===pos).length])):null;
+  return state.players.filter(p=>!used.has(p.id)&&p.positions.length&&
+   (state.priceMode!=='ON'||p.priceStatus==='VERIFIED'&&Number.isFinite(p.price)&&spent+p.price<=state.cap)&&
+   (roster.length!==9||roster.some(x=>x.isRookie===true)||p.isRookie===true)&&
+   (!counts||p.positions.some(pos=>counts[pos]<2)))
+   .filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
 }
 function botValue(player,style) { return riskAdjustedValue(player,style); }
 export function botPick(state,random=randomFromSeed(1),style='balanced') {

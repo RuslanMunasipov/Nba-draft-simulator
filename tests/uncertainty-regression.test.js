@@ -15,3 +15,12 @@ test('Wilson includes endpoint uncertainty and shared risk scoring retains elite
  const elite={...players[0],historyGames:{'2024-25':19,'2025-26':38},forecast:{...players[0].forecast,meanSeason:3000,seasonFloor:1700,seasonCeiling:4000}};
  assert.ok(riskAdjustedValue(elite)<draftValue(elite));assert.ok(riskAdjustedValue(elite)>riskAdjustedValue(players[1]));
 });
+
+test('an elite risky player remains in the main roster recommendations',async()=>{
+ const {analyzeRecommendations}=await import('../src/analysis.js');
+ const pool=players.map(p=>({...p,isRookie:p.id>80,forecast:{...p.forecast,meanPerGame:20,games:50,gameCeiling:30,sampleGames:0}}));
+ pool[0]={...pool[0],historyGames:{'2024-25':19,'2025-26':38},forecast:{...pool[0].forecast,meanSeason:5000,seasonFloor:3000,seasonCeiling:6500}};
+ const advice=analyzeRecommendations(newDraft(pool));
+ assert.ok(advice.some(r=>r.player.id===pool[0].id));
+ assert.ok(advice.find(r=>r.player.id===pool[0].id).drawbacks.some(s=>s.includes('менее чем 50')));
+});

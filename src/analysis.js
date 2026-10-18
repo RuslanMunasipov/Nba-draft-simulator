@@ -4,7 +4,7 @@ import {scoringMetric,seasonScore} from './season-scoring.js';
 import {pick} from './engine.js';
 import {availabilityEvidence,draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
 import {completionPlan,pickCompletion} from './completion.js';
-import {randomFromSeed} from './simulation.js';
+import {randomFromSeed,availableCandidates} from './simulation.js';
 export function riskProfile(p){
  const games=Object.values(p.historyGames||{});const flags=[];
  if(p.historyUnusableEndYears?.length)flags.push('В истории есть сезоны без полных компонентов: '+p.historyUnusableEndYears.join(', ')+'. Они не считаются нулевыми сезонами.');
@@ -36,7 +36,7 @@ export function selectionPressure(pool,player,seed){
 }
 export function analyzeRecommendations(state,focus=null,riskyOnly=false){
  const metric=scoringMetric(state),used=new Set(state.picks.map(p=>p.playerId));
- const legal=state.players.filter(p=>!used.has(p.id)&&seasonScore(p,metric)!==null).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>riskAdjustedValue(b)-riskAdjustedValue(a)||String(a.id).localeCompare(String(b.id)));
+ const legal=availableCandidates(state).filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>riskAdjustedValue(b)-riskAdjustedValue(a)||String(a.id).localeCompare(String(b.id)));
  const normal=legal.filter(p=>!severeRisk(p)),risky=legal.filter(p=>severeRisk(p));
  const ranked=riskyOnly?risky:legal;
  // Include budget alternatives and scarce slots before bounded rollout search.

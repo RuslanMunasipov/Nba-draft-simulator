@@ -20,7 +20,8 @@ import {installDatabase,restartDraft} from './database.js';
 const $=id=>document.getElementById(id);
 let state;try{state=restoreBudgetDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
 let database;
-let adviceWorker;
+let adviceWorker,adviceWorkerState;
+let adviceRequest=0;
 let mode=readStored('fbl-mode')||'LIVE';
 function save(){writeStored('fbl-draft',exportDraft(state));render();updateSaveStatus();}
 function updateSaveStatus(){
@@ -98,9 +99,9 @@ function card(p,analysis=null){
  if(pickCompletion(state,p.id).possible===false){b.disabled=true;b.title=pickCompletion(state,p.id).reason;}
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
  el.append(b);
- el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[3]?.classList.add('player-score');
+ el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[4]?.classList.add('player-score');
  el.dataset.risk=risk.level.includes('ВЫСОКИЙ')?'high':risk.level.includes('СРЕДНИЙ')?'medium':'low';
- organizeCard(el,b,4);
+ organizeCard(el,b,5);
  for(const warning of rookieSlotWarnings(state,p)){const notice=text('p',warning);notice.className='warning';el.insertBefore(notice,b);}
  return el;
 }
@@ -209,23 +210,24 @@ function render(){
  available.sort((a,b)=>Number(exact(b))-Number(exact(a))||(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||Number(Boolean(b.forecast))-Number(Boolean(a.forecast))||riskPriority(a)-riskPriority(b)||draftValue(b)-draftValue(a));
  $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
- adviceWorker?.terminate();
- $('advice').replaceChildren(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':'Сравниваю продолжения до полной десятки…'));
- $('risky-advice').replaceChildren();$('risk-section').hidden=true;
+ const changed=adviceWorkerState!==state;
+ if(changed||n===80){adviceWorker?.terminate();adviceWorker=null;}
+ if(changed||n===80)$('advice').replaceChildren(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':'Сравниваю продолжения до полной десятки…'));
+ if(changed||n===80){$('risky-advice').replaceChildren();$('risk-section').hidden=true;}
  if(n<80&&state.players.length){
-  const snapshot=state;
-  try{adviceWorker=new Worker(new URL('./advice-worker.js',import.meta.url),{type:'module'});}
+  const snapshot=state,requestId=++adviceRequest;
+  if(!adviceWorker)try{adviceWorker=new Worker(new URL('./advice-worker.js',import.meta.url),{type:'module'});}
   catch{ $('advice').replaceChildren(...recommendations(state).slice(0,5).map(p=>card(p))); $('advice').append(text('p','Расчёт продолжений недоступен: показан риск-скорректированный список без оптимизации состава.'));adviceWorker=null; }
   if(adviceWorker){
+  adviceWorkerState=state;
   adviceWorker.onmessage=({data})=>{
-   if(state!==snapshot)return;
+   if(state!==snapshot||data.requestId!==adviceRequest)return;
    if(data.error){$('advice').replaceChildren(text('p','Не удалось оценить продолжения: '+data.error));return;}
    $('advice').replaceChildren(...data.advice.map(a=>card(a.player,a)));
    $('risky-advice').replaceChildren(...data.risky.map(a=>card(a.player,a)));$('risk-section').hidden=!data.risky.length;
    for(const report of data.focused||[]){if(!report)continue;const index=available.slice(0,30).findIndex(p=>p.id===report.player.id);if(index>=0)$('candidates').children[index]?.replaceWith(card(report.player,report));}
-   adviceWorker.terminate();
   };
-  adviceWorker.postMessage({state,focus:query.length>=2?available.slice(0,5):[]});
+  adviceWorker.postMessage({...(changed?{state}:{}),requestId,focus:query.length>=2?available.slice(0,5):[]});
   }
  }
  renderRookies();
