@@ -42,12 +42,12 @@ def resolve(player,root,official_index):
    url='https://site.web.api.espn.com/apis/common/v3/search?'+urllib.parse.urlencode(dict(query=player['name'],limit=100,type='player',sport='basketball',league='nba'))
    raw,meta=fetch(url,root);result['sources'].append(meta);data=json.loads(raw)
    candidates=[str(p['id']) for p in data.get('items',[]) if p.get('league')=='nba' and normalize(p.get('displayName') or '')==normalize(player['name'])]
-  if not candidates:
+  if not player.get('espnId'):
    raw,meta=fetch('https://site.web.api.espn.com/apis/search/v2?'+urllib.parse.urlencode(dict(query=player['name'],limit=100)),root);result['sources'].append(meta)
    for group in json.loads(raw).get('results',[]):
     if group.get('type')!='player':continue
     for p in group.get('contents',[]):
-     if p.get('defaultLeagueSlug')=='nba' and normalize(p.get('displayName') or '')==normalize(player['name']):
+     if p.get('sport')=='basketball' and normalize(p.get('displayName') or '')==normalize(player['name']):
       m=re.search(r'~a:(\d+)$',p.get('uid',''))
       if m:candidates.append(m.group(1))
    candidates=list(dict.fromkeys(candidates))
@@ -74,7 +74,11 @@ def main():
   for p in official_players:
    name=normalize((p.get('PLAYER_FIRST_NAME') or '')+' '+(p.get('PLAYER_LAST_NAME') or ''))
    official_index.setdefault(name,[]).append(p)
- (args.output/'official-index-source.json').write_text(json.dumps(meta))
+ historical=json.loads(Path('data/official-nba-historical-index.json').read_text())
+ for pid,name in historical['players']:
+  bucket=official_index.setdefault(normalize(name),[])
+  if not any(str(p['PERSON_ID'])==str(pid) for p in bucket):bucket.append({'PERSON_ID':pid})
+ (args.output/'official-index-source.json').write_text(json.dumps({'current':meta,'historical':historical['source']}))
  with (args.output/'identities.ndjson').open('w') as out:
   with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
    for row in pool.map(lambda p:resolve(p,args.output,official_index),data['players']):
