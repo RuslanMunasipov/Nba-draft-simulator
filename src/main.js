@@ -326,7 +326,8 @@ function renderPlan(){
  planWorker.postMessage({state,requestId,runs:50,adjust});
 }
 // Every GM's roster with expandable cards and the projected standings; partial during the draft, simulated after it.
-let standingsState=null,standings=null;
+// Rosters stay open or closed as the GM left them across re-renders after each pick.
+let standingsState=null,standings=null;const openTeams=new Set();
 function renderPostDraft(){
  const n=state.picks.length,box=$('postdraft');box.hidden=!n||!state.players.length;if(box.hidden)return;
  const complete=n===80,summary=draftSummary(state);
@@ -342,11 +343,11 @@ function renderPostDraft(){
  $('standings').replaceChildren(table);
  const rosters=$('team-rosters');rosters.replaceChildren();
  for(const t of rows){
-  const team=t.team-1,players=teamRoster(state,team),details=document.createElement('details');details.className='team-roster';if(team===0)details.open=true;
+  const team=t.team-1,players=teamRoster(state,team),details=document.createElement('details');details.className='team-roster';details.open=openTeams.has(team);
   details.append(text('summary',`${name(t.team)} · ${players.length}/10 · ${t.mean==null?'—':Math.round(t.mean).toLocaleString('ru-RU')+' ФО'} · бюджет ${t.cost??'—'} / ${state.cap}`));
   // Opening a team shows its player cards directly; one tap on a name opens the full card.
   const fill=()=>{if(details.open&&details.children.length===1)for(const p of players)details.append(card(p,null,true));};
-  details.addEventListener('toggle',fill);fill();
+  details.addEventListener('toggle',()=>{if(details.open)openTeams.add(team);else openTeams.delete(team);fill();});fill();
   rosters.append(details);
  }
 }
