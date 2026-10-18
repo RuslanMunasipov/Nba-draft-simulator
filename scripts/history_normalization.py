@@ -36,3 +36,30 @@ def normalize_gamelog(data,year):
     except Exception as exc:item.update(status='UNNORMALIZED',error=str(exc))
     result.append(item)
  return result
+
+
+def career_inventory_without_totals(payload,existing):
+ """Keep source-reported participation even when a totals row is absent.
+ Rounded averages never reconstruct missing counting totals.
+ """
+ present={r['year'] for r in existing};by_year={}
+ for category in payload.get('categories',[]):
+  if category.get('name')!='averages':continue
+  for row in category.get('statistics',[]):
+   season=row.get('season',{});year=season.get('year')
+   if not isinstance(year,int) or year in present:continue
+   raw=dict(zip(category.get('names',[]),row.get('stats',[])))
+   try:games=value(raw['gamesPlayed'])
+   except (KeyError,ValueError,TypeError):continue
+   if not games.is_integer() or not 0<games<=90:continue
+   by_year.setdefault(year,[]).append(dict(year=year,season=season.get('displayName'),games=games,teamId=row.get('teamId'),sourceAverages=raw,statsStatus='TOTALS_NOT_REPORTED',perGame=None))
+ result=[]
+ for year,rows in by_year.items():
+  aggregates=[r for r in rows if r['teamId'] is None]
+  if len(aggregates)==1:result.append(aggregates[0]);continue
+  ids=[r['teamId'] for r in rows]
+  if len(set(ids))!=len(ids):raise ValueError('Ambiguous average-only season stints '+str(year))
+  games=sum(r['games'] for r in rows)
+  if games>90:raise ValueError('Ambiguous average-only season game count '+str(year))
+  result.append(dict(rows[0],games=games,sourceStints=rows))
+ return result

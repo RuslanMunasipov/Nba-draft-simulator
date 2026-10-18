@@ -71,6 +71,8 @@ def ingest(db,root,result):
   from online_evidence import parse_career
   try:
    rows=parse_career(data)
+   from history_normalization import career_inventory_without_totals
+   rows+=career_inventory_without_totals(data,rows)
    for row in rows:
     db.execute('INSERT OR REPLACE INTO season_inventory VALUES(?,?,?,?,?,?,?)',(pid,competition,row['year'],row['season'],row['games'],url,digest))
     eid=db.execute('SELECT espn_id FROM players WHERE id=?',(pid,)).fetchone()[0]
