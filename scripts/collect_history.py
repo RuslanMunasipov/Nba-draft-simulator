@@ -2,7 +2,7 @@
 Raw provider responses are immutable, hashed and never mistaken for observations.
 Use --requests to bound a run; rerun to continue the durable SQLite queue.
 """
-import argparse,concurrent.futures,gzip,hashlib,json,sqlite3,urllib.request
+import argparse,concurrent.futures,gzip,hashlib,json,sqlite3,time,urllib.request
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
 
