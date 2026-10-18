@@ -18,14 +18,14 @@ test('risk automatically detects role changes and unstable availability',()=>{
 });
 test('pick confidence is reproducible scenario stability, not a promise',()=>{
  const state=newDraft(players);const a=analyzeRecommendations(state),b=analyzeRecommendations(state);assert.deepEqual(a,b);assert.equal(a.length,5);
- for(const r of a){assert.equal(r.stability,null);assert.equal(r.pressure,null);assert.ok(r.advantages.length);assert.ok(r.drawbacks.length);assert.match(r.method,/Это не вероятность/);}
+ for(const r of a){assert.equal(r.stability,null);assert.equal(r.pressure,null);assert.ok(r.advantages.length);assert.ok(r.drawbacks.length);assert.match(r.method,/не вероятность/);}
 });
 
 test('searched candidate outside top twenty receives an honest comparison',()=>{
  const state=newDraft(players),focus=players[90],report=analyzeRecommendations(state,focus);
  assert.equal(report.length,1);assert.equal(report[0].player.id,focus.id);
  assert.ok(report[0].advantages.length);assert.ok(report[0].drawbacks.some(x=>x.includes('Альтернатива')));
- assert.match(report[0].conclusion,/Сравнить/);
+ assert.match(report[0].conclusion,/Ожидаемый итог десятки/);
 });
 
 test('advice excludes high-FP picks that prevent rookie completion',()=>{
@@ -43,7 +43,7 @@ test('advice explains numerical tradeoff and exact full-roster budget',()=>{
  const report=analyzeRecommendations(state)[0];assert.equal(report.completion.minimumCost,1000);
  assert.ok(!report.advantages.some(s=>/Минимальный бюджет|полный позиционный состав/.test(s)));
  assert.ok(report.drawbacks.some(s=>s.includes('Альтернатива сейчас')));
- assert.match(report.method,/Проверка добора состава выполняется отдельно/);
+ assert.match(report.method,/Рейтинг — риск-скорректированный итог всей десятки/);
 });
 
 test('new automatic draft discards pinned old eligibility and forecasts using latest catalog',()=>{

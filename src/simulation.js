@@ -1,6 +1,6 @@
 import {pickCompletion} from './completion.js';
 import {scoringMetric,seasonScore,FULL_SEASON} from './season-scoring.js';
-import {draftValue,severeRisk} from './valuation.js';
+import {draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
 import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority, getPlayer } from './engine.js';
 
 // Deterministic PRNG: identical seed + player data => identical draft.
@@ -19,13 +19,7 @@ export function availableCandidates(state) {
   const used=new Set(state.picks.map(p=>p.playerId));
   return state.players.filter(p=>!used.has(p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
 }
-function botValue(player,style) {
-  const value=draftValue(player);
-  if(!severeRisk(player))return value;
-  // Risk appetite changes the discount, but never hides an elite player behind
-  // every nominally safe option. Season forecasts already include availability.
-  return value*(style==='volatile'?.98:style==='best'?.9:.86);
-}
+function botValue(player,style) { return riskAdjustedValue(player,style); }
 export function botPick(state,random=randomFromSeed(1),style='balanced') {
   const metric=scoringMetric(state);
   let candidates=availableCandidates(state).filter(p=>metric!==FULL_SEASON||seasonScore(p,metric)!==null);
@@ -102,11 +96,11 @@ function quantile(sorted,q) {
 }
 function scenarioSeasonScore(player,z) {
   const {seasonFloor:floor,meanSeason:mean,seasonCeiling:ceiling}=player.forecast;
-  // The published range targets 80% marginal coverage. For sensitivity analysis
-  // we place its ends at normal P10/P90 and extrapolate only to P1/P99.
-  const limited=Math.max(-2.326347874,Math.min(2.326347874,z));
-  const score=limited<0?mean+(mean-floor)*limited/1.281551566:mean+(ceiling-mean)*limited/1.281551566;
-  return Math.max(0,score);
+  // Symmetric bounded sensitivity around the stated expectation. Asymmetric
+  // bounds must not silently change the mean or reward wide upside intervals.
+  const radius=Math.max(0,Math.min(mean-floor,ceiling-mean));
+  return mean+radius*Math.tanh(z);
+
 }
 function validateCompletedRoster(state) {
   if(!isComplete(state))throw Error('Сценарии сезона доступны после 80-го пика');
@@ -118,6 +112,11 @@ function validateCompletedRoster(state) {
     const f=player.forecast;
     if(!f||![f.seasonFloor,f.meanSeason,f.seasonCeiling].every(Number.isFinite)||f.seasonFloor>f.meanSeason||f.meanSeason>f.seasonCeiling)throw Error('У каждого выбранного игрока нужен согласованный диапазон слабый / базовый / сильный сезон');
   }
+}
+export function wilsonInterval(wins,runs){
+ const z=1.95996398454,p=wins/runs,d=1+z*z/runs;
+ const center=(p+z*z/(2*runs))/d,half=z*Math.sqrt(p*(1-p)/runs+z*z/(4*runs*runs))/d;
+ return [Math.max(0,center-half)*100,Math.min(1,center+half)*100];
 }
 export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
   if(!Number.isInteger(runs)||runs<100||runs>20000)throw Error('Число сезонных сценариев должно быть от 100 до 20000');
@@ -143,10 +142,10 @@ export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
   const base=draftSummary(state);
   const teams=totals.map((values,i)=>{
     const sorted=[...values].sort((a,b)=>a-b);
-    return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100};
+    return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100,firstPlaceCI:wilsonInterval(wins[i],runs)};
   });
   return {kind:'SEASON_SENSITIVITY',metric:FULL_SEASON,runs,teams,
-    assumptions:{range:'Сезонный диапазон условно интерпретирован как P10–P90',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
+    assumptions:{range:'P10–P90 — квантили только сгенерированных сценариев; входные слабый/сильный ориентиры не являются откалиброванными P10/P90. Симметричный ограниченный разброс сохраняет базовое ожидание',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
 }
 export function scenarioAnalysis(state,{seed=1,draftRuns=100,seasonRuns=5000}={}) {
   if(isComplete(state))return seasonSensitivitySimulations(state,{runs:seasonRuns,seed});

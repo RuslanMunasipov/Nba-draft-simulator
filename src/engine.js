@@ -1,4 +1,4 @@
-import {draftValue,severeRisk} from './valuation.js';
+import {draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
 export const POSITIONS=['PG','SG','SF','PF','C'];
 export const TEAM_COUNT=8, ROUNDS=10;
 export const STATUS=['VERIFIED','ESTIMATED','MISSING'];
@@ -49,4 +49,4 @@ export function undo(state){return {...state,picks:state.picks.slice(0,-1)};}
 export function exportDraft(state){return JSON.stringify(state,null,2);}
 export function importDraft(json){const state=JSON.parse(json);if(state.version!==1||!Array.isArray(state.players)||!Array.isArray(state.picks)||!Number.isFinite(state.cap)||state.cap<0)throw Error('Неверный формат');let replay=newDraft(state.players,state.cap,state.priceMode??'ON');for(const p of state.picks){if(p.team!==replay.picks.length%8||p.number!==replay.picks.length+1)throw Error('Нарушен порядок пиков');replay=pick(replay,p.playerId);}return {...replay,...(typeof state.databaseVersion==='string'?{databaseVersion:state.databaseVersion}:{})};}
 export function riskPriority(player){return player.injuries?.some(i=>/out|suspension/i.test(i.status||''))?2:player.injuries?.length||player.returnContext?1:0;}
-export function recommendations(state){const legal=state.players.filter(p=>!state.picks.some(x=>x.playerId===p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).filter(p=>Number.isFinite(p.projectedFP));const safer=legal.filter(p=>!severeRisk(p));return (safer.length?safer:legal).sort((a,b)=>draftValue(b)-draftValue(a)).slice(0,5);}
+export function recommendations(state){const legal=state.players.filter(p=>!state.picks.some(x=>x.playerId===p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).filter(p=>Number.isFinite(p.projectedFP));return legal.sort((a,b)=>riskAdjustedValue(b)-riskAdjustedValue(a)).slice(0,5);}

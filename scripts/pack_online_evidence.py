@@ -14,7 +14,7 @@ for player in data['players']:
  if prediction:player['careerModelSummary']={k:v for k,v in prediction.items() if k not in ('perGame',)}
  filename=str(player['id']).replace(':','-')+'.json'
  (folder/filename).write_text(json.dumps(dict(name=player['name'],espnId=player.get('espnId'),evidence=evidence,draft=player.get('draftContext')),ensure_ascii=False),encoding='utf-8')
-path.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
+path.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
 size=path.stat().st_size
 if size>4_000_000:raise ValueError('Mobile draft payload too large: '+str(size))
 print(json.dumps(dict(mobileDatabaseBytes=size,playerDetailFiles=len(data['players'])),ensure_ascii=False))

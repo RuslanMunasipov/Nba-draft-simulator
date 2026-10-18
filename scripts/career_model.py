@@ -107,6 +107,14 @@ def run(data):
  promote=validation_report['seasonMAE']<validation_report['lastSeasonMAE']
  production=fit(rows,alpha)
  error=validation_report['error80']
+ cohort_validation=stage_report(fit(train,alpha),validation)
+ cohort_test=stage_report(frozen,test)
+ for name,report in cohort_test.items():
+  accept={'SECOND_SEASON':lambda n:n==1,'THIRD_SEASON':lambda n:n==2,'FOURTH_FIFTH_SEASON':lambda n:3<=n<=4,'LATER_CAREER':lambda n:n>=5}[name]
+  radius=cohort_validation.get(name,{}).get('error80',error)
+  observed=evaluate(frozen,[r for r in test if accept(r['experience'])])['details']
+  report['validationRadius']=radius
+  report['coverageAtValidationRadius']=sum(r['error']<=radius for r in observed)/len(observed)
  forecast_count=0
  for p in data['players']:
   career=(p.get('onlineEvidence',{}).get('career') or {}).get('seasons',[])
@@ -115,11 +123,14 @@ def run(data):
   s,g=predict(production,x)
   p['careerPrediction']=dict(perGame=s,games=g,partialSeason=core(s)*g,model='PAST_ONLY_RIDGE',alpha=alpha,featureProfile=profile,
                             historySeasons=len(career),firstSeason=career[0]['season'],lastSeason=career[-1]['season'],
-                            eligibleForPrimary=promote,seasonError80=error)
+                            eligibleForPrimary=promote,seasonError80=error,intervalCohort=('SECOND_SEASON' if len(career)==1 else 'THIRD_SEASON' if len(career)==2 else 'FOURTH_FIFTH_SEASON' if len(career)<=4 else 'LATER_CAREER'))
+  cohort_name=p['careerPrediction']['intervalCohort']
+  radius=cohort_validation.get(cohort_name,{}).get('error80',error)
+  p['careerPrediction']['seasonError80']=radius
   forecast_count+=1
  report=dict(trainingTransitions=len(train),validationSeason='2024-25',validationPlayers=len(validation),testSeason='2025-26',
              testPlayers=len(test),selectedAlpha=alpha,selectedProfile=profile,candidates=candidates,
-             developmentCohorts=dict(validation=stage_report(fit(train,alpha),validation),test=stage_report(frozen,test)),
+             developmentCohorts=dict(validation=stage_report(fit(train,alpha),validation),test=cohort_test),
              validation={k:v for k,v in validation_report.items() if k!='details'},test={k:v for k,v in test_report.items() if k!='details'},
              promotedByValidation=promote,predictions=forecast_count,
              limitations=['Career cohort is current provider universe plus uniquely matched history; selection/survivorship limits remain.',

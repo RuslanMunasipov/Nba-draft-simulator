@@ -9,6 +9,7 @@ on:
     - cron: '0 2 * * *'
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -32,23 +33,26 @@ jobs:
           python scripts/build_baseline.py
       - name: Fetch current rosters and build automatic draft database
         run: python scripts/build_default_database.py
-      - uses: actions/cache@v4
-        with:
-          path: .cache/online
-          key: online-evidence-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: online-evidence-${{ runner.os }}-
-      - name: Fetch full careers, Summer League and current games
-        run: python scripts/online_evidence.py
-      - name: Preserve fetched evidence even if a later check fails
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: .cache/online
-          key: online-evidence-${{ runner.os }}-${{ github.run_id }}
+      - name: Restore collected NBA and NCAA history
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKPOINT_BRANCH: data/history-foundation
+          CHECKPOINT_NAME: history-checkpoint
+          CHECKPOINT_PATH: .cache/history
+        run: python scripts/restore_collection_checkpoint.py
+      - name: Restore reconciled Summer League protocols
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKPOINT_BRANCH: data/history-foundation
+          CHECKPOINT_NAME: summer-league-protocols
+          CHECKPOINT_PATH: .cache/summer-games
+        run: python scripts/restore_collection_checkpoint.py
       - name: Fetch optional Yahoo transfer-position reference
         run: python scripts/apply_positions.py
       - name: Apply verified Sports.ru prices, draft positions and salary cap
         run: python scripts/apply_sports_prices.py
+      - name: Attach collected personal history to prediction inputs
+        run: python scripts/attach_collected_history.py
       - name: Audit historical projection provenance
         run: python scripts/audit_projection_archive.py
       - name: Train and evaluate the career model in temporal order
@@ -63,6 +67,16 @@ jobs:
         run: python scripts/audit_scoring.py
       - name: Pack career evidence for mobile loading
         run: python scripts/pack_online_evidence.py
+      - name: Preserve generated model and integration audits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prediction-integration-audits
+          path: |
+            public/data/*audit*.json
+            public/data/history-integration-audit.json
+            public/data/forecast-coverage.json
+          if-no-files-found: warn
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
