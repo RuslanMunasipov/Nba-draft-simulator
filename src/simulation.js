@@ -1,6 +1,6 @@
 import {pickCompletion} from './completion.js';
 import {scoringMetric,seasonScore,FULL_SEASON} from './season-scoring.js';
-import {draftValue,severeRisk} from './valuation.js';
+import {draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
 import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority, getPlayer } from './engine.js';
 
 // Deterministic PRNG: identical seed + player data => identical draft.
@@ -17,16 +17,18 @@ export function isComplete(state) { return state.picks.length === TEAM_COUNT*ROU
 export function availableCandidates(state) {
   if(isComplete(state)) return [];
   const used=new Set(state.picks.map(p=>p.playerId));
-  return state.players.filter(p=>!used.has(p.id)).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
+  const roster=teamRoster(state,currentTeam(state));
+  const spent=state.priceMode==='ON'?roster.reduce((sum,p)=>sum+p.price,0):0;
+  const counts=roster.every(p=>p.positions.length===1)?Object.fromEntries(['PG','SG','SF','PF','C'].map(pos=>[pos,roster.filter(p=>p.positions[0]===pos).length])):null;
+  return state.players.filter(p=>!used.has(p.id)&&p.positions.length&&
+   (state.priceMode!=='ON'||p.priceStatus==='VERIFIED'&&Number.isFinite(p.price)&&spent+p.price<=state.cap)&&
+   (roster.length!==9||roster.some(x=>x.isRookie===true)||p.isRookie===true)&&
+   (!counts||p.positions.some(pos=>counts[pos]<2)))
+   .filter(p=>{try{pick(state,p.id);return true;}catch{return false;}});
 }
-function botValue(player,style) {
-  const value=draftValue(player);
-  if(!severeRisk(player))return value;
-  // Risk appetite changes the discount, but never hides an elite player behind
-  // every nominally safe option. Season forecasts already include availability.
-  return value*(style==='volatile'?.98:style==='best'?.9:.86);
-}
-export function botPick(state,random=randomFromSeed(1),style='balanced') {
+function botValue(player,style) { return riskAdjustedValue(player,style); }
+function rankingFor(state,style){const metric=scoringMetric(state);return state.players.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>botValue(b,style)-botValue(a,style)||riskPriority(a)-riskPriority(b));}
+export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=null) {
   const metric=scoringMetric(state);
   let candidates=availableCandidates(state).filter(p=>metric!==FULL_SEASON||seasonScore(p,metric)!==null);
   const roster=teamRoster(state,currentTeam(state));
@@ -38,7 +40,8 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
   else if(needsRookie&&roster.length>=5)candidates=rookies;
   if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
-  const ranked=candidates.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>botValue(b,style)-botValue(a,style)||riskPriority(a)-riskPriority(b));
+  const allowed=new Set(candidates.map(p=>p.id));
+  const ranked=(ranking||rankingFor(state,style)).filter(p=>allowed.has(p.id));
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
   const pool=ranked.slice(0,Math.min(8,ranked.length));
   const index=style==='best' ? 0 : Math.min(pool.length-1,Math.floor(Math.pow(random(),style==='volatile'?0.65:2)*pool.length));
@@ -52,16 +55,17 @@ export function botPick(state,random=randomFromSeed(1),style='balanced') {
 }
 export function advanceBots(state,{humanTeam=0,seed=1,style='balanced'}={}) {
   const random=randomFromSeed(seed);
-  let next=state;
-  while(!isComplete(next)&&currentTeam(next)!==humanTeam) next=botPick(next,random,style);
+  let next=state;const ranking=rankingFor(state,style);
+  while(!isComplete(next)&&currentTeam(next)!==humanTeam) next=botPick(next,random,style,ranking);
   return next;
 }
 export function simulateDraft(state,{seed=1,styles=['balanced','best','volatile']}={}) {
   const random=randomFromSeed(seed);
-  let next=state;
+  let next=state;const rankings=new Map();
   while(!isComplete(next)) {
     const style=styles[Math.floor(random()*styles.length)];
-    next=botPick(next,random,style);
+    if(!rankings.has(style))rankings.set(style,rankingFor(state,style));
+    next=botPick(next,random,style,rankings.get(style));
   }
   return next;
 }
@@ -102,11 +106,11 @@ function quantile(sorted,q) {
 }
 function scenarioSeasonScore(player,z) {
   const {seasonFloor:floor,meanSeason:mean,seasonCeiling:ceiling}=player.forecast;
-  // The published range targets 80% marginal coverage. For sensitivity analysis
-  // we place its ends at normal P10/P90 and extrapolate only to P1/P99.
-  const limited=Math.max(-2.326347874,Math.min(2.326347874,z));
-  const score=limited<0?mean+(mean-floor)*limited/1.281551566:mean+(ceiling-mean)*limited/1.281551566;
-  return Math.max(0,score);
+  // Symmetric bounded sensitivity around the stated expectation. Asymmetric
+  // bounds must not silently change the mean or reward wide upside intervals.
+  const radius=Math.max(0,Math.min(mean-floor,ceiling-mean));
+  return mean+radius*Math.tanh(z);
+
 }
 function validateCompletedRoster(state) {
   if(!isComplete(state))throw Error('Сценарии сезона доступны после 80-го пика');
@@ -118,6 +122,11 @@ function validateCompletedRoster(state) {
     const f=player.forecast;
     if(!f||![f.seasonFloor,f.meanSeason,f.seasonCeiling].every(Number.isFinite)||f.seasonFloor>f.meanSeason||f.meanSeason>f.seasonCeiling)throw Error('У каждого выбранного игрока нужен согласованный диапазон слабый / базовый / сильный сезон');
   }
+}
+export function wilsonInterval(wins,runs){
+ const z=1.95996398454,p=wins/runs,d=1+z*z/runs;
+ const center=(p+z*z/(2*runs))/d,half=z*Math.sqrt(p*(1-p)/runs+z*z/(4*runs*runs))/d;
+ return [Math.max(0,center-half)*100,Math.min(1,center+half)*100];
 }
 export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
   if(!Number.isInteger(runs)||runs<100||runs>20000)throw Error('Число сезонных сценариев должно быть от 100 до 20000');
@@ -143,10 +152,10 @@ export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
   const base=draftSummary(state);
   const teams=totals.map((values,i)=>{
     const sorted=[...values].sort((a,b)=>a-b);
-    return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100};
+    return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100,firstPlaceCI:wilsonInterval(wins[i],runs)};
   });
   return {kind:'SEASON_SENSITIVITY',metric:FULL_SEASON,runs,teams,
-    assumptions:{range:'Сезонный диапазон условно интерпретирован как P10–P90',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
+    assumptions:{range:'P10–P90 — квантили только сгенерированных сценариев; входные слабый/сильный ориентиры не являются откалиброванными P10/P90. Симметричный ограниченный разброс сохраняет базовое ожидание',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
 }
 export function scenarioAnalysis(state,{seed=1,draftRuns=100,seasonRuns=5000}={}) {
   if(isComplete(state))return seasonSensitivitySimulations(state,{runs:seasonRuns,seed});

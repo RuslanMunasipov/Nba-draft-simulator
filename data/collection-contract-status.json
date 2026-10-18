@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "status": "CONTRACT_NOT_FULFILLED",
+  "allowModelWork": false,
+  "allowModelTests": false,
+  "allowSiteDeployment": false,
+  "completionPolicy": "Every required block must satisfy its documented acceptance gates. Successful workflows, returned records, pending work, unavailable sources and unverified coverage never count as contract completion.",
+  "blocks": [
+    {
+      "id": "identities",
+      "requirement": "Все игроки каталога, ID и независимая сверка личности",
+      "status": "COLLECTING",
+      "complete": false,
+      "workflowRunId": 39112398471,
+      "verifiedPlayers": 864,
+      "unresolvedPlayers": 19
+    },
+    {
+      "id": "nba_seasons",
+      "requirement": "Все сезоны с дебюта, включая ранее отклонённые карьеры",
+      "status": "COLLECTING",
+      "complete": false,
+      "workflowRunId": 39112651013
+    },
+    {
+      "id": "nba_games",
+      "requirement": "Игровые логи, фактический тип сезона, исходные компоненты",
+      "status": "COLLECTING",
+      "complete": false,
+      "workflowRunId": 39112651013
+    },
+    {
+      "id": "ncaa",
+      "requirement": "Все колледжи, сезоны, доступные матчи и независимая сверка",
+      "status": "COLLECTING",
+      "complete": false,
+      "workflowRunId": 39112651013
+    },
+    {
+      "id": "summer_league",
+      "requirement": "Все необходимые годы и турниры; независимый календарь и исправление расхождений",
+      "status": "PARTIAL",
+      "complete": false,
+      "workflowRunId": 39095778721
+    },
+    {
+      "id": "european_cups",
+      "requirement": "EuroLeague/EuroCup карьеры; нативные ID и NBA-сопоставление",
+      "status": "COLLECTING",
+      "complete": false,
+      "workflowRunId": 39097917564
+    },
+    {
+      "id": "domestic_international",
+      "requirement": "Национальные лиги по установленным карьерам целевых игроков",
+      "status": "NO_ACCEPTED_COMPLETE_ADAPTER",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "gleague",
+      "requirement": "Карьеры, этапы соревнований, матчи и перемещения",
+      "status": "PARTIAL_OFFICIAL_TABLES_WITH_EMPTY_RESPONSES",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "advanced",
+      "requirement": "USG/TS/AST/REB/TOV/pace, все доступные годы",
+      "status": "COLLECTING_WORKSPACE",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "lineups",
+      "requirement": "Сочетания, совместные минуты/владения, on/off и PBP",
+      "status": "PARTIAL_ADAPTER",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "tracking",
+      "requirement": "Touches, potential assists, rebound chances, типы бросков",
+      "status": "NO_ACCEPTED_COMPLETE_ADAPTER",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "coaches",
+      "requirement": "Главные/временные тренеры и подтверждённые даты работы",
+      "status": "INCOMPLETE",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "injuries",
+      "requirement": "История статусов, участия, причин отсутствия, ограничений",
+      "status": "INCOMPLETE",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "rosters_transactions",
+      "requirement": "Ростеры, контракты и переходы по датам",
+      "status": "INCOMPLETE",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "calendar",
+      "requirement": "Все относящиеся к задаче матчи, переносы, контекст отдыха",
+      "status": "INCOMPLETE",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "preseason",
+      "requirement": "Все доступные предсезонные участия отдельно от регулярки",
+      "status": "INCOMPLETE",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "provider_forecasts",
+      "requirement": "Реальные датированные ESPN projections/games/ADP snapshots",
+      "status": "CURRENT_SNAPSHOT_ONLY",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "sports_rules_prices",
+      "requirement": "Sports.ru цены/позиции/формула и подтверждённые правила FBL",
+      "status": "DATED_SNAPSHOT_NOT_REFRESHED",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "independent_reconciliation",
+      "requirement": "Независимые реестры сезонов/матчей, суммы, дубли и конфликты",
+      "status": "INCOMPLETE",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "durability",
+      "requirement": "Постоянное хранение всех raw и нормализованных записей",
+      "status": "PARTIAL_CHECKPOINTS",
+      "complete": false,
+      "workflowRunId": null
+    },
+    {
+      "id": "online_refresh",
+      "requirement": "Постоянный API и подтверждённое обновление данных",
+      "status": "NOT_DEPLOYED",
+      "complete": false,
+      "workflowRunId": null
+    }
+  ],
+  "durableSummerCheckpoint": {
+    "artifactId": 12124611640,
+    "scope": "Summer League 2024-2026 only; 26 events have explicit warnings",
+    "durableCopyRetained": true
+  },
+  "knownSourceSemanticFailures": [
+    "ESPN game log request type filter does not separate returned regular/postseason blocks.",
+    "Historical ESPN roster season label can coexist with current coach fields; historical head-coach roles not established.",
+    "ESPN athlete index remains 752 for the tested active=false filter; not a historical universe.",
+    "ESPN can return an averages season while omitting all totals rows; preserve participation inventory without reconstructing exact totals from rounded averages."
+  ],
+  "asOf": "2026-10-18T08:46:23.644477+00:00",
+  "latestHistoryEvidence": {
+    "nbaNormalizedPlayerGames": 242824,
+    "ncaaNormalizedPlayerGames": 54487,
+    "ncaaUnnormalizedPlayerGames": 1,
+    "independentNBASeasonInventory": {
+      "expected": 4090,
+      "found": 4089,
+      "missing": 1
+    },
+    "scope": "Completed run 39112525072; subsequent collection still running",
+    "complete": false
+  }
+}

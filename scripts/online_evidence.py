@@ -42,7 +42,7 @@ def parse_career(payload):
   try:
    games=number(a['gamesPlayed']);minutes=number(a['avgMinutes'])
    fgm,fga=pair(s['fieldGoalsMade-fieldGoalsAttempted']);ftm,fta=pair(s['freeThrowsMade-freeThrowsAttempted'])
-   if not 0<games<=82 or not 0<minutes<=48 or fgm>fga or ftm>fta:continue
+   if not 0<games<=90 or not 0<minutes<=48 or fgm>fga or ftm>fta:continue
    values=dict(pts=number(s['points']),reb=number(s['totalRebounds']),ast=number(s['assists']),stl=number(s['steals']),
                blk=number(s['blocks']),tov=number(s['turnovers']),pf=number(s['fouls']),fgm=fgm,fga=fga,ftm=ftm,fta=fta)
    if any(v<0 for v in values.values()):continue
@@ -56,7 +56,7 @@ def parse_career(payload):
  for row in output:by_year[row['year']].append(row)
  result=[]
  for year,rows in by_year.items():
-  total=next((r for r in rows if str(r['teamId']) in ('0','-1') or r.get('team') in ('tot','total')),None)
+  total=next((r for r in rows if r['teamId'] is None or str(r['teamId']) in ('0','-1') or r.get('team') in ('tot','total')),None)
   if not total and len(rows)>=3:
    for candidate in rows:
     others=[r for r in rows if r is not candidate]
@@ -64,11 +64,11 @@ def parse_career(payload):
      total=candidate;break
   if total:result.append(total);continue
   games=sum(r['games'] for r in rows)
-  if games>82:raise ValueError('Duplicated career season '+str(year))
+  if games>90:raise ValueError('Duplicated career season '+str(year))
   result.append(dict(rows[-1],games=games,perGame={k:sum(r['perGame'][k]*r['games'] for r in rows)/games for k in rows[0]['perGame']}))
  return sorted(result,key=lambda r:r['year'])
 
-def parse_box(payload,event,league):
+def parse_box(payload,event,league,include_zero=False):
  result=[]
  for team in payload.get('boxscore',{}).get('players',[]):
   for group in team.get('statistics',[]):
@@ -78,7 +78,7 @@ def parse_box(payload,event,league):
     s=dict(zip(labels,athlete.get('stats',[])))
     try:
      raw=str(s['MIN']);minutes=number(raw.split(':')[0])+number(raw.split(':')[1])/60 if ':' in raw else number(raw)
-     if minutes<=0:continue
+     if minutes<0 or (minutes==0 and not include_zero):continue
      fgm,fga=pair(s['FG']);ftm,fta=pair(s['FT'])
      stat=dict(minutes=minutes,pts=number(s['PTS']),reb=number(s['REB']),ast=number(s['AST']),stl=number(s['STL']),
                blk=number(s['BLK']),tov=number(s['TO']),pf=number(s['PF']),fgm=fgm,fga=fga,ftm=ftm,fta=fta)

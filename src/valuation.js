@@ -22,3 +22,14 @@ export function draftValue(player){
  const evidence=availabilityEvidence(player);
  return (Number.isFinite(player.projectedFP)?player.projectedFP:-Infinity)*evidence.weight;
 }
+
+// The forecast already contains projected games: never multiply availability twice.
+// This is a transparent risk preference, not another prediction of missed games.
+export function riskAdjustedValue(player,style='balanced'){
+ const raw=draftValue(player),f=player.forecast,e=availabilityEvidence(player);
+ const width=f&&Number.isFinite(f.seasonFloor)?Math.max(0,f.meanSeason-f.seasonFloor)/82:Math.abs(raw)*.25;
+ const evidencePenalty=player.forecast?.coverageTier==='GROUP_PRIOR'?.18:player.forecast?.coverageTier==='LIMITED_PERSONAL'?.10:0;
+ const chronic=e.repeatedAbsences?.08:0;
+ const coefficient=style==='volatile'?.02:style==='best'?.08:.14;
+ return raw-width*coefficient-Math.abs(raw)*(evidencePenalty+chronic+(player.injuries?.some(i=>/out|suspension/i.test(i.status||''))?.04:0));
+}

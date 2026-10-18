@@ -10,6 +10,35 @@ export function completionPlan(state,team=state.picks.length%TEAM_COUNT){
  const candidates=state.players.filter(p=>(fixed.has(p.id)||!used.has(p.id))&&p.positions.length&&
   (state.priceMode!=='ON'||(p.priceStatus==='VERIFIED'&&Number.isFinite(p.price))));
  if([...fixed].some(id=>!candidates.some(p=>p.id===id)))return {possible:false,reason:'Цена или позиции выбранного игрока не подтверждены'};
+ // With strict Sports.ru singleton positions, independent slot minima plus
+ // the cheapest rookie exchange are the exact solution of the same problem.
+ if(candidates.every(p=>p.positions.length===1)){
+  const fixedPlayers=candidates.filter(p=>fixed.has(p.id));
+  const selected=[...fixedPlayers],groups=[];
+  const cost=p=>state.priceMode==='ON'?p.price:0;
+  for(const position of POSITIONS){
+   const remaining=2-fixedPlayers.filter(p=>p.positions[0]===position).length;
+   if(remaining<0)return {possible:false,reason:'Невозможно назначить позиции'};
+   const pool=candidates.filter(p=>!fixed.has(p.id)&&p.positions[0]===position).sort((a,b)=>cost(a)-cost(b));
+   if(pool.length<remaining)return {possible:false,reason:'Недостаточно игроков для добора позиции '+position};
+   const chosen=pool.slice(0,remaining);selected.push(...chosen);groups.push({pool,chosen});
+  }
+  if(!selected.some(p=>p.isRookie===true)){
+   let exchange=null;
+   for(const {pool,chosen} of groups){
+    if(!chosen.length)continue;
+    const rookie=pool.find(p=>p.isRookie===true);if(!rookie)continue;
+    const replace=chosen.at(-1),extra=cost(rookie)-cost(replace);
+    if(!exchange||extra<exchange.extra)exchange={rookie,replace,extra};
+   }
+   if(!exchange)return {possible:false,reason:'Нельзя добрать минимум одного rookie на свободную позицию'};
+   selected[selected.findIndex(p=>p.id===exchange.replace.id)]=exchange.rookie;
+  }
+  const minimumCost=state.priceMode==='ON'?selected.reduce((sum,p)=>sum+p.price,0):null;
+  if(minimumCost!==null&&minimumCost>state.cap+1e-9)return {possible:false,minimumCost,reason:`Минимальный бюджет полного состава ${minimumCost.toFixed(2)} превышает лимит ${state.cap}`};
+  const existingCost=state.priceMode==='ON'?fixedPlayers.reduce((sum,p)=>sum+p.price,0):null;
+  return {possible:true,minimumCost,minimumRemainingCost:minimumCost===null?null:minimumCost-existingCost,playerIds:selected.map(p=>p.id)};
+ }
  const source=0,rookies=1,veterans=2,firstPlayer=3,firstPosition=firstPlayer+candidates.length,sink=firstPosition+5,ss=sink+1,tt=sink+2;
  const graph=Array.from({length:tt+1},()=>[]),balance=Array(tt+1).fill(0),playerEdges=[];
  function edge(a,b,lower,upper,cost=0){

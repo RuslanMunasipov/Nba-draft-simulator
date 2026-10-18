@@ -1,0 +1,35 @@
+name: Collect EuroLeague and EuroCup history (data only)
+on:
+  push:
+    branches: [data/history-foundation]
+    paths:
+      - scripts/collect_european_history.py
+      - .github/workflows/collect-europe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  europe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Restore collected European evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKPOINT_NAME: europe-history-checkpoint
+          CHECKPOINT_PATH: .cache/europe-history
+        run: python scripts/restore_collection_checkpoint.py
+      - name: Collect official calendars and protocols
+        run: python scripts/collect_european_history.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: europe-history-checkpoint
+          path: .cache/europe-history/
+          include-hidden-files: true
+          retention-days: 90

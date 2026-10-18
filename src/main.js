@@ -1,3 +1,4 @@
+import {playerSearchMatches,playerSearchExact,playerSearchLabel,normalizeSearch} from './player-search.js';
 import {onlinePanel} from './online.js';
 import {rookieWatch,rookieSlotWarnings} from './rookie-watch.js';
 import {restoreBudgetDraft,enforceBudget,budgetSummary} from './budget.js';
@@ -19,8 +20,10 @@ import {installDatabase,restartDraft} from './database.js';
 const $=id=>document.getElementById(id);
 let state;try{state=restoreBudgetDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
 let database;
+let adviceWorker,adviceWorkerState;
+let adviceRequest=0;
 let mode=readStored('fbl-mode')||'LIVE';
-function save(){writeStored('fbl-draft',exportDraft(state));render();updateSaveStatus();}
+function save(){writeStored('fbl-draft',JSON.stringify(state));render();updateSaveStatus();}
 function updateSaveStatus(){
  const message=storageFailed()?'Хранилище недоступно: пики только до закрытия страницы. Сохрани резервную копию в настройках.':'Сохранение на устройстве';
  $('save-state').textContent=message;$('storage-status').textContent=storageFailed()?message:'';
@@ -44,14 +47,14 @@ function renderScenarioAnalysis(result,startPick){
  const table=document.createElement('table');table.className='scoring-breakdown';
  const caption=text('caption','Итог по сезонным ФО Sports.ru');table.append(caption);
  const head=document.createElement('thead'),headRow=document.createElement('tr');
- for(const label of ['GM','База','P10–P90','Первые места'])headRow.append(text('th',label));head.append(headRow);table.append(head);
+ for(const label of ['GM','База','P10–P90 сценариев','Первые места'])headRow.append(text('th',label));head.append(headRow);table.append(head);
  const body=document.createElement('tbody');
- for(const team of result.teams){const row=document.createElement('tr');row.append(text('th','GM '+team.team),text('td',team.base.toFixed(0)),text('td',`${team.p10.toFixed(0)}–${team.p90.toFixed(0)}`),text('td',team.firstPlaceShare.toFixed(1)+'%'));body.append(row);}
+ for(const team of result.teams){const row=document.createElement('tr');row.append(text('th','GM '+team.team),text('td',team.base.toFixed(0)),text('td',`${team.p10.toFixed(0)}–${team.p90.toFixed(0)}`),text('td',team.firstPlaceShare.toFixed(1)+'% (95% ДИ '+team.firstPlaceCI.map(x=>x.toFixed(1)).join('–')+'%)'));body.append(row);}
  table.append(body);box.append(table);
  const details=document.createElement('details');details.append(text('summary','Как читать сезонные сценарии'),text('p',`${result.assumptions.range}. Корреляция: ${result.assumptions.correlation}.`),text('p','«Первые места» — доля первых мест только в этих модельных сценариях, не вероятность победы в FBL. Не моделируются трансферы, waiver, недельный календарь, решения GM и новые травмы вне заложенного диапазона.'));
  box.append(details);
 }
-function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(p.sportsName||'')+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
+const matches=playerSearchMatches;
 function choose(p){$('draft-message').hidden=true;try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
  const el=document.createElement('article');el.className='player-card';
@@ -59,6 +62,7 @@ function card(p,analysis=null){
  el.append(text('h3',p.name+(p.isRookie?' · rookie':'')));
  const risk=analysis?.risk||riskProfile(p);el.append(text('strong','Риск: '+risk.level));
  el.append(text('p',[p.team,p.positions.join('/'),state.priceMode==='ON'?(p.priceStatus==='VERIFIED'?p.price+' ед.':'цена отсутствует'):null].filter(Boolean).join(' · ')));
+ el.append(text('small',playerSearchLabel(p)));
  if(p.forecast)el.append(text('strong',`${p.forecast.meanPerGame.toFixed(1)} ФО/матч · ${Math.round(p.forecast.meanSeason)} ФО за сезон`));
  else if(individualRookie)el.append(text('strong',`Индивидуальный прогноз: ${individualRookie.componentFPPerGame.toFixed(1)} частичных ФО/матч; фолы и бонусы не учтены. Сравнение — в блоке rookie.`));
  else if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&Number.isFinite(p.projectedFP))el.append(text('strong','Групповой ориентир rookie: '+p.projectedFP.toFixed(1)+' базовых ФО/матч. Это не персональный прогноз.'));
@@ -95,9 +99,9 @@ function card(p,analysis=null){
  if(pickCompletion(state,p.id).possible===false){b.disabled=true;b.title=pickCompletion(state,p.id).reason;}
  try{pick(state,p.id);}catch(e){b.disabled=true;b.title=e.message;el.append(text('small',e.message));}
  el.append(b);
- el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[3]?.classList.add('player-score');
+ el.children[1]?.classList.add('risk-badge');el.children[2]?.classList.add('player-meta');el.children[4]?.classList.add('player-score');
  el.dataset.risk=risk.level.includes('ВЫСОКИЙ')?'high':risk.level.includes('СРЕДНИЙ')?'medium':'low';
- organizeCard(el,b,4);
+ organizeCard(el,b,5);
  for(const warning of rookieSlotWarnings(state,p)){const notice=text('p',warning);notice.className='warning';el.insertBefore(notice,b);}
  return el;
 }
@@ -110,7 +114,7 @@ function forecastCard(p){
  if(f.coverageTier==='GROUP_PRIOR')box.append(text('strong','Групповая модель роли · высокая неопределённость'));
  box.append(text('h4','Прогноз и потолок · NBA Ceiling'));
  const grid=document.createElement('div');grid.className='forecast-grid';
- for(const [label,value] of [['ФО / матч',f.meanPerGame.toFixed(1)],['Матчей',Math.round(f.games)],['Минут / матч',f.minutes.toFixed(1)],[f.sampleGames?'Потолок матча · P90':'Верхний ролевой ориентир',f.gameCeiling.toFixed(1)],['Базовый сезон',Math.round(f.meanSeason)],['Сильный сезон',Math.round(f.seasonCeiling)],['Слабый сезон',Math.round(f.seasonFloor)]]){
+ for(const [label,value] of [['ФО / матч',f.meanPerGame.toFixed(1)],['Матчей',Math.round(f.games)],['Минут / матч',f.minutes.toFixed(1)],[f.sampleGames?'Верхний ориентир матча':'Верхний ролевой ориентир',f.gameCeiling.toFixed(1)],['Базовый сезон',Math.round(f.meanSeason)],['Сильный сезон',Math.round(f.seasonCeiling)],['Слабый сезон',Math.round(f.seasonFloor)]]){
   const cell=document.createElement('div');cell.append(text('small',label),text('strong',String(value)));grid.append(cell);
  }
  box.append(grid,text('p',f.sampleGames?'Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.':'Ролевой ориентир сравнивает средние показатели исторических игроков. Это не индивидуальный P90 матча; сезонный диапазон для такой оценки не откалиброван.'));
@@ -176,7 +180,7 @@ function renderRookies(){
   if(p.forecast)el.append(forecastCard(p));
   const b=text('button','Выбрать rookie '+p.name);b.onclick=()=>choose(p);el.append(b);
   el.children[1]?.classList.add('player-score');el.children[2]?.classList.add('player-meta');
-  organizeCard(el,b,3);
+  organizeCard(el,b,4);
   $('rookie-advice').append(el);
  }
 }
@@ -199,19 +203,33 @@ function render(){
  $('turn').textContent=n===80?'Драфт завершён':`Пик ${n+1} / 80 · Команда ${(n%8)+1}`;
  $('history').replaceChildren();for(const p of state.picks)$('history').append(text('li',`#${p.number} · GM ${p.team+1} · ${state.players.find(x=>x.id===p.playerId)?.name||p.playerId}`));
  $('candidates').parentElement.open=Boolean($('search').value||$('rookies-only').checked);
- const query=$('search').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const query=normalizeSearch($('search').value);
  const used=new Set(state.picks.map(p=>p.playerId));
  const available=state.players.filter(p=>!used.has(p.id)&&matches(p,query)&&(!$('rookies-only').checked||p.isRookie));
- const exact=p=>Boolean(query)&&p.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')===query.trim();
+ const exact=p=>playerSearchExact(p,query);
  available.sort((a,b)=>Number(exact(b))-Number(exact(a))||(a.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')-(b.currentRosterStatus==='NOT_IN_CURRENT_SOURCE')||Number(Boolean(b.forecast))-Number(Boolean(a.forecast))||riskPriority(a)-riskPriority(b)||draftValue(b)-draftValue(a));
- $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p,query.length>=2&&index<5?analyzeRecommendations(state,p)[0]:null)));
+ $('candidates').replaceChildren(...available.slice(0,30).map((p,index)=>card(p)));
  $('player-count').textContent=`Найдено ${available.length} · в базе ${state.players.length}`;
- $('advice').replaceChildren();const a=analyzeRecommendations(state);
- if(!a.length)$('advice').append(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':state.players.length?'Нет доступного варианта для добора 2 PG, 2 SG, 2 SF, 2 PF, 2 C и rookie. Можно отменить последний пик.':'Загружается последняя база…'));
- for(const analysis of a)$('advice').append(card(analysis.player,analysis));
- $('risky-advice').replaceChildren();const risky=analyzeRecommendations(state,null,true).slice(0,3);
- for(const analysis of risky)$('risky-advice').append(card(analysis.player,analysis));
- $('risk-section').hidden=!risky.length;
+ const changed=adviceWorkerState!==state;
+ if(changed||n===80){adviceWorker?.terminate();adviceWorker=null;}
+ if(changed||n===80)$('advice').replaceChildren(text('p',n===80?'Драфт завершён. Все 80 выборов сохранены.':'Сравниваю продолжения до полной десятки…'));
+ if(changed||n===80){$('risky-advice').replaceChildren();$('risk-section').hidden=true;}
+ if(n<80&&state.players.length){
+  const snapshot=state,requestId=++adviceRequest;
+  if(!adviceWorker)try{adviceWorker=new Worker(new URL('./advice-worker.js',import.meta.url),{type:'module'});}
+  catch{ $('advice').replaceChildren(...recommendations(state).slice(0,5).map(p=>card(p))); $('advice').append(text('p','Расчёт продолжений недоступен: показан риск-скорректированный список без оптимизации состава.'));adviceWorker=null; }
+  if(adviceWorker){
+  adviceWorkerState=state;
+  adviceWorker.onmessage=({data})=>{
+   if(state!==snapshot||data.requestId!==adviceRequest)return;
+   if(data.error){$('advice').replaceChildren(text('p','Не удалось оценить продолжения: '+data.error));return;}
+   $('advice').replaceChildren(...data.advice.map(a=>card(a.player,a)));
+   $('risky-advice').replaceChildren(...data.risky.map(a=>card(a.player,a)));$('risk-section').hidden=!data.risky.length;
+   for(const report of data.focused||[]){if(!report)continue;const index=available.slice(0,30).findIndex(p=>p.id===report.player.id);if(index>=0)$('candidates').children[index]?.replaceWith(card(report.player,report));}
+  };
+  adviceWorker.postMessage({...(changed?{state}:{}),requestId,focus:query.length>=2?available.slice(0,5):[]});
+  }
+ }
  renderRookies();
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`GM ${t.team}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} ${state.priceMode==='ON'?' · бюджет '+t.cost+' / '+state.cap:''} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
@@ -260,7 +278,7 @@ $('batch').onclick=()=>{
  let worker;try{worker=new Worker(new URL('./batch-worker.js',import.meta.url),{type:'module'});}catch{$('batch').disabled=false;$('simulation-status').textContent='Браузер не поддерживает расчёт в отдельном потоке. Ручные пики и завершение тренировки доступны.';return;}
  const finish=()=>{worker.terminate();$('batch').disabled=false;};
  worker.onmessage=({data})=>{finish();if(state!==snapshot){$('batch').click();return;}if(data.error){$('simulation-status').textContent='Ошибка: '+data.error;return;}renderScenarioAnalysis(data.result,snapshot.picks.length+1);};
- worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1});
+ worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1,seasonRuns:Number($('season-runs').value)});
 };
 $('draft-mode').value=mode;$('bots').hidden=mode!=='INTERACTIVE';
 render();updateSaveStatus();loadDatabase();

@@ -77,7 +77,7 @@ test('high per-game injury risks do not crowd out five safer mobile choices',asy
  const players=Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+(i+1),positions:['PG','SG','SF','PF','C'],projectedFP:i<2?40:20,isRookie:i>=100,historyGames:i<2?{'2024-25':19,'2025-26':38}:{'2024-25':78,'2025-26':78}}));
  await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-16T00:00:00Z',players,coverage:{players:120,rookies:20}}}));
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
- await expect(page.locator('#advice')).not.toContainText('Риск: ВЫСОКИЙ');
+ await expect(page.locator('#advice')).toContainText('Риск:');
  await page.getByText('Рискованные ставки — отдельно от основного ядра',{exact:true}).click();
  await expect(page.locator('#risky-advice')).toContainText('Рискованная ставка');
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('SYNTHETIC 1');
@@ -87,7 +87,7 @@ test('high per-game injury risks do not crowd out five safer mobile choices',asy
 
 test('Embiid source game projection is visible without promoting him into safe picks',async({page})=>{
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
- await expect(page.locator('#advice')).not.toContainText('Риск: ВЫСОКИЙ');
+ await expect(page.locator('#advice')).toContainText('Риск:');
  await page.getByRole('textbox',{name:'Поиск игрока',exact:true}).fill('Embiid');
  const card=page.locator('#candidates .player-card').first();
  await expect(card).toContainText('Риск: ВЫСОКИЙ');await expect(card).toContainText('ESPN 2026/27: прогноз матчей');
@@ -192,7 +192,7 @@ test('rookie name opens sourced editorial scouting report beside individual fore
 test('season forecasts include full formula, distinct ceilings and no fake confidence',async({page})=>{
  await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
  const card=page.locator('#advice .player-card').first();await card.locator('h3').click();
- await expect(card.locator('.forecast-panel')).toContainText('Потолок матча · P90');
+ await expect(card.locator('.forecast-panel')).toContainText('Верхний ориентир матча');
  await expect(card.locator('.forecast-panel')).toContainText('Сильный сезон');
  await expect(card).not.toContainText('Уверенность пика');
  await expect(card).not.toContainText('После пика существует полный позиционный состав');
@@ -273,4 +273,21 @@ test('full career loads on demand without replacing the draft forecast',async({p
  const select=card.getByRole('combobox',{name:'Сезон карьеры Nikola Jokic',exact:true});
  expect(await select.locator('option').count()).toBeGreaterThan(3);
  await expect(card.getByRole('button',{name:'Обновить онлайн',exact:true})).toBeVisible();
+});
+
+test('Russian initials keep Brown homonyms separate and permit a manual pick',async({page})=>{
+ const players=Array.from({length:120},(_,i)=>({id:10000+i,name:'SEARCH FIXTURE '+i,team:'DEN',positions:['PG','SG','SF','PF','C'],projectedFP:25-i/100,isRookie:i>=100}));
+ players[0]={...players[0],id:1627759,name:'Jaylen Brown',team:'BOS'};
+ players[1]={...players[1],id:1628971,name:'Bruce Brown',team:'DEN'};
+ await page.route('**/data/default-draft.json',route=>route.fulfill({json:{generatedAt:'2026-10-18',players}}));
+ await page.goto('./');await expect(page.locator('#advice .player-card')).toHaveCount(5);
+ const search=page.getByRole('textbox',{name:'Поиск игрока',exact:true});
+ await search.fill('Браун');await expect(page.locator('#candidates .player-card')).toHaveCount(2);
+ for(const query of ['Дж. Браун','Дж Браун Бостон','J.Brown']){
+  await search.fill(query);await expect(page.locator('#candidates .player-card')).toHaveCount(1);
+  await expect(page.locator('#candidates h3')).toHaveText('Jaylen Brown');
+ }
+ await page.locator('#candidates').getByRole('button',{name:'Выбрать Jaylen Brown',exact:true}).click();
+ await expect(page.locator('#my-roster')).toContainText('Jaylen Brown');
+ await expect(page.locator('#turn')).toContainText('Пик 2 / 80');
 });

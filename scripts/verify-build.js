@@ -13,6 +13,7 @@ console.log('Vite build artifact verified:',entries.length,'assets');
 const {readdir}=await import('node:fs/promises');
 const assets=await readdir('dist/assets');
 assert.ok(assets.some(name=>/^rookie-timing-worker-.*\.js$/.test(name)), 'Missing rookie timing worker');
+assert.ok(assets.some(name=>/^advice-worker-.*\.js$/.test(name)), 'Missing recommendation worker');
 assert.ok(assets.some(name=>/^batch-worker-.*\.js$/.test(name)), 'Missing simulation worker');
 for(const name of assets)assert.ok((await stat('dist/assets/'+name)).size>0);
 console.log('Worker and all emitted assets verified:',assets.length);
@@ -55,7 +56,7 @@ console.log('Real automatic database verified:',database.coverage,'80 picks and 
 const {analyzeRecommendations}=await import('../src/analysis.js');
 const {severeRisk}=await import('../src/valuation.js');
 const later={...draft,picks:full.picks.slice(0,8)};
-const safer=analyzeRecommendations(later);assert.equal(safer.length,5);assert.ok(safer.every(r=>!severeRisk(r.player)));
+const safer=analyzeRecommendations(later);assert.equal(safer.length,5);assert.ok(safer.every(r=>r.speculative===severeRisk(r.player)));
 for(const id of [203954,203076]){
  const p=database.players.find(p=>p.id===id);assert.ok(p?.espnContext?.projectedGames>0);assert.ok(p.espnContext.adp>0);
  assert.ok(severeRisk(p),'Repeated absence risk must remain despite optimistic source forecasts');
@@ -126,7 +127,7 @@ for(const p of database.players){
 }
 console.log('Full forecast coverage:',JSON.stringify(database.forecastCoverage));
 console.log('Career model temporal test:',JSON.stringify(database.careerModelAudit));
-console.log('Online source coverage:',JSON.stringify({...database.onlineAudit,errors:database.onlineAudit.errors.length}));
+console.log('Online source coverage:',JSON.stringify({...database.onlineAudit,errors:database.onlineAudit.errors?.length??0}));
 
 assert.ok(database.onlineAudit.careerSeasons>500,'Online career seasons must be fetched');
 for(const p of database.players){assert.ok(p.onlineSummary);const evidence=JSON.parse(await readFile('dist/data/players/'+String(p.id).replace(':','-')+'.json','utf8'));assert.equal(evidence.name,p.name);}

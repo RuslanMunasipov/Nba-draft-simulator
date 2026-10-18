@@ -1,0 +1,36 @@
+name: Corroborate player identities (data only)
+on:
+  push:
+    branches: [data/history-foundation]
+    paths:
+      - scripts/resolve_history_identities.py
+      - .github/workflows/resolve-identities.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  identities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: curl --fail --retry 2 --max-time 60 https://ruslanmunasipov.github.io/Nba-draft-simulator/data/default-draft.json -o /tmp/catalog.json
+      - name: Restore identity source evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKPOINT_NAME: corroborated-player-identities
+          CHECKPOINT_PATH: .cache/identities
+        run: python scripts/restore_collection_checkpoint.py
+      - name: Corroborate source IDs and expected seasons
+        run: python scripts/resolve_history_identities.py --catalog /tmp/catalog.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: corroborated-player-identities
+          path: .cache/identities/
+          include-hidden-files: true
+          retention-days: 90

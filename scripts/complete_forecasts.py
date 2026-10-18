@@ -7,6 +7,11 @@ from pathlib import Path
 from build_forecasts import partial
 KEYS=['pts','reb','ast','stl','blk','tov','pf','fgm','fga','ftm','fta','minutes']
 def from_history(player,history):
+ career=(player.get('onlineEvidence',{}).get('career') or {}).get('seasons',[])
+ usable=[r for r in career if r.get('year',9999)<=2026 and r.get('games',0)>0 and r.get('perGame') and all(k in r['perGame'] for k in KEYS)]
+ if usable:
+  row=max(usable,key=lambda r:r['year'])
+  return dict(perGame=row['perGame'],games=row['games'],season=row['season'])
  p=history.get(player.get('nbaId'))
  if not p:return None
  year=max(p['seasons']);row=p['seasons'][year]
@@ -30,6 +35,9 @@ def complete(data,history):
   f=p.get('forecast');prediction=p.get('careerPrediction')
   if f and not (prediction and prediction['eligibleForPrimary'] and not p.get('isRookie')):
    f['coverageTier']='PERSONAL_PROVIDER' if f['origin']=='ESPN_INDIVIDUAL' else 'PERSONAL_HISTORY'
+   f['intervalCalibration']='UNVALIDATED_PROVIDER' if f['origin']=='ESPN_INDIVIDUAL' else 'HISTORICAL_MODEL_ONLY'
+   f['seasonFloor']=min(f['meanSeason'],max(0,f['seasonFloor']))
+   f['seasonCeiling']=max(f['meanSeason'],f['seasonCeiling'])
    continue
   conditional=p.get('currentRosterStatus')!='SOURCE_REPORTED'
   rookie=p.get('rookiePrediction')
@@ -37,7 +45,7 @@ def complete(data,history):
    s=rookie['perGame'];games=rookie['games'];origin='NCAA_TRAINED_TRANSFER'
    basis='Перенос личной NCAA-статистики '+rookie['collegeSeason']+' в NBA; обучение на '+str(rookie['trainingPlayers'])+' игроках'
    tier='LIMITED_PERSONAL'
-  elif prediction:
+  elif prediction and prediction.get('eligibleForPrimary'):
    s=prediction['perGame'];games=prediction['games'];origin='CAREER_TRAINED'
    basis='Модель всей доступной NBA-карьеры: '+str(prediction['historySeasons'])+' сезонов; '+prediction['firstSeason']+' — '+prediction['lastSeason']
    tier='PERSONAL_HISTORY';career_replaced+=bool(f)
@@ -65,14 +73,22 @@ def complete(data,history):
    floor=rates[int(.1*(len(rates)-1))];ceiling=rates[int(.9*(len(rates)-1))]
    sample=0;analogs=[]
   base=mean*games
+  # Different evidence classes use separate, explicitly uncalibrated safeguards.
+  # Career radius is selected on earlier validation in the matching career cohort.
+  if origin=='CAREER_TRAINED':
+   radius=prediction.get('seasonError80',error)
+  else:
+   relative={'NCAA_TRAINED_TRANSFER':.65,'PERSONAL_SMALL_OR_OLD_HISTORY':.55,'EMPIRICAL_ROLE_PRIOR':.85}[origin]
+   radius=max(abs(base)*relative,abs(mean)*20)
   p['forecast']=dict(version=3,metric='FBL_FULL_FORMULA_ESTIMATE',origin=origin,coverageTier=tier,basis=basis,
     conditionalOnRoster=conditional,inputStats=s,meanPerGame=mean,games=games,minutes=s['minutes'],meanSeason=base,
-    gameFloor=min(mean,floor),gameCeiling=max(mean,ceiling),seasonFloor=min(base,0,base-error),seasonCeiling=max(base,base+error),
+    gameFloor=min(mean,floor),gameCeiling=max(mean,ceiling),seasonFloor=min(base,max(0,base-radius)),seasonCeiling=max(base,base+radius),
+    intervalCalibration='UNVALIDATED_FULL_FORMULA_TRANSFER',intervalCohort=prediction.get('intervalCohort') if origin=='CAREER_TRAINED' else tier,
     components=dict(countingAndMisses=partial(s),personalFouls=-s['pf'],participation=participation,teamResult=result,historicalAdjustment=0),
     sampleGames=sample,analogs=analogs,rookieExtrapolation=bool(p.get('isRookie')),
     rulesSource='https://www.sports.ru/fantasy/basketball/tournament/rules/150.html',asOf=data['generatedAt'],
     gameRangeBasis='Existing own game residuals where available; otherwise cross-player season-rate range, NOT a calibrated game P90',
-    seasonRangeBasis='Career model earlier validation absolute-error range; uncalibrated extrapolation for rookies and weak priors',
+    seasonRangeBasis='Career cohort validation absolute-error radius (target excludes result bonus); separate relative sensitivity safeguards for NCAA, limited history and group priors. Not calibrated P10/P90',
     rangeMeaning='Forecast coverage does not imply equal evidence or confidence. Conditional on participation for players without a confirmed roster.')
   added+=not bool(f)
  totals=Counter(p['forecast']['coverageTier'] for p in data['players'])

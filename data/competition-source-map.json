@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "status": "LISTED_PROTOCOLS_COLLECTED_WITH_EXPLICIT_QUALITY_GAPS",
+  "entries": [
+    {
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2025,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-california",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-california/scoreboard?dates=2025&limit=1000",
+      "observedEvents": 6,
+      "sampleBoxPlayers": 25,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 142,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-california",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-california/scoreboard?dates=2026&limit=1000",
+      "observedEvents": 12,
+      "sampleBoxPlayers": 20,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 12,
+        "fetched": 12,
+        "normalizedPlayerRows": 241,
+        "warnings": 4,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-las-vegas",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-las-vegas/scoreboard?dates=2024&limit=1000",
+      "observedEvents": 76,
+      "sampleBoxPlayers": 22,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 76,
+        "fetched": 76,
+        "normalizedPlayerRows": 1597,
+        "warnings": 15,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-las-vegas",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-las-vegas/scoreboard?dates=2025&limit=1000",
+      "observedEvents": 76,
+      "sampleBoxPlayers": 20,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 76,
+        "fetched": 76,
+        "normalizedPlayerRows": 1610,
+        "warnings": 4,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "LAS_VEGAS",
+      "year": 2026,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-las-vegas",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-las-vegas/scoreboard?dates=2026&limit=1000",
+      "observedEvents": 76,
+      "sampleBoxPlayers": 20,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 76,
+        "fetched": 76,
+        "normalizedPlayerRows": 1653,
+        "warnings": 2,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "SALT_LAKE_CITY",
+      "year": 2024,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-utah",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-utah/scoreboard?dates=2024&limit=1000",
+      "observedEvents": 6,
+      "sampleBoxPlayers": 20,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 122,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "SALT_LAKE_CITY",
+      "year": 2025,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-utah",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-utah/scoreboard?dates=2025&limit=1000",
+      "observedEvents": 6,
+      "sampleBoxPlayers": 24,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 121,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "SALT_LAKE_CITY",
+      "year": 2026,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-utah",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-utah/scoreboard?dates=2026&limit=1000",
+      "observedEvents": 6,
+      "sampleBoxPlayers": 24,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 6,
+        "fetched": 6,
+        "normalizedPlayerRows": 126,
+        "warnings": 0,
+        "independentCalendarReconciled": false
+      }
+    },
+    {
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2024,
+      "provider": "ESPN",
+      "providerCode": "nba-summer-sacramento",
+      "scheduleSource": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-sacramento/scoreboard?dates=2024&limit=1000",
+      "observedEvents": 12,
+      "sampleBoxPlayers": 21,
+      "sampleStatus": "SCHEDULE_AND_ONE_BOXSCORE_PARSED",
+      "fullBoxscoreCoverage": false,
+      "independentCalendarReconciled": false,
+      "collectedProtocolCoverage": {
+        "workflowRunId": 39095778721,
+        "listed": 12,
+        "fetched": 12,
+        "normalizedPlayerRows": 269,
+        "warnings": 1,
+        "independentCalendarReconciled": false
+      }
+    }
+  ],
+  "policy": "Use a canonical competition key separate from provider code. Observed event counts are not expected full coverage counts. Before historical collection resolve aliases per year and deduplicate events."
+}

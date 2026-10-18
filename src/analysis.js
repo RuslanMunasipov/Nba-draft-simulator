@@ -1,11 +1,13 @@
+import {evaluateRosterPicks} from './roster-value.js';
 import {rookieSlotWarnings} from './rookie-watch.js';
 import {scoringMetric,seasonScore} from './season-scoring.js';
 import {pick} from './engine.js';
-import {availabilityEvidence,draftValue,severeRisk} from './valuation.js';
+import {availabilityEvidence,draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
 import {completionPlan,pickCompletion} from './completion.js';
-import {randomFromSeed} from './simulation.js';
+import {randomFromSeed,availableCandidates} from './simulation.js';
 export function riskProfile(p){
  const games=Object.values(p.historyGames||{});const flags=[];
+ if(p.historyUnusableEndYears?.length)flags.push('В истории есть сезоны без полных компонентов: '+p.historyUnusableEndYears.join(', ')+'. Они не считаются нулевыми сезонами.');
  if(p.forecast?.coverageTier==='GROUP_PRIOR')flags.push('Групповой ориентир NBA-роли, не персональный прогноз статистики');
  if(p.forecast?.coverageTier==='LIMITED_PERSONAL')flags.push('Прогноз по малой или устаревшей личной выборке');
  if(p.forecast?.conditionalOnRoster)flags.push('Отдача условна: действующий ростер NBA не подтверждён');
@@ -34,22 +36,35 @@ export function selectionPressure(pool,player,seed){
 }
 export function analyzeRecommendations(state,focus=null,riskyOnly=false){
  const metric=scoringMetric(state),used=new Set(state.picks.map(p=>p.playerId));
- const legal=state.players.filter(p=>!used.has(p.id)&&seasonScore(p,metric)!==null).filter(p=>{try{pick(state,p.id);return true;}catch{return false;}}).sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id)));
+ const legal=availableCandidates(state).filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>riskAdjustedValue(b)-riskAdjustedValue(a)||String(a.id).localeCompare(String(b.id)));
  const normal=legal.filter(p=>!severeRisk(p)),risky=legal.filter(p=>severeRisk(p));
- const candidates=riskyOnly?risky:normal.length?normal:legal;
+ const ranked=riskyOnly?risky:legal;
+ // Include budget alternatives and scarce slots before bounded rollout search.
+ const diverse=[...ranked.slice(0,8),...ranked.filter(p=>p.isRookie).slice(0,2),...['PG','SG','SF','PF','C'].map(pos=>ranked.find(p=>p.positions.includes(pos))),...ranked.filter(p=>p.price>0).sort((a,b)=>riskAdjustedValue(b)/b.price-riskAdjustedValue(a)/a.price).slice(0,2)];
+ const candidates=[...new Map(diverse.filter(Boolean).map(p=>[p.id,p])).values(),...ranked];
  const base=completionPlan(state),pool=[];
- if(base.possible)for(const candidate of candidates){if(pickCompletion(state,candidate.id).possible)pool.push(candidate);if(pool.length===20)break;}
- if(base.possible&&!pool.length&&!riskyOnly)for(const candidate of risky){if(pickCompletion(state,candidate.id).possible)pool.push(candidate);if(pool.length===20)break;}
+ if(base.possible)for(const candidate of candidates){if(!pool.some(p=>p.id===candidate.id)&&pickCompletion(state,candidate.id).possible)pool.push(candidate);if(pool.length===17)break;}
+ if(base.possible&&!pool.length&&!riskyOnly)for(const candidate of risky){if(!pool.some(p=>p.id===candidate.id)&&pickCompletion(state,candidate.id).possible)pool.push(candidate);if(pool.length===17)break;}
  if(focus){
   const plan=pickCompletion(state,focus.id);
   if(!plan.possible)return [{player:focus,risk:riskProfile(focus),stability:null,pressure:null,completion:plan,advantages:[],drawbacks:[plan.reason],conclusion:'Не рекомендован: после пика нельзя завершить допустимый состав',method:'Проверено точное назначение пяти позиций, rookie, уже выбранные игроки и подтверждённые цены при включённом бюджете. Прогноз силы здесь не отменяет нарушение правил.'}];
   if(!pool.some(p=>p.id===focus.id)&&legal.some(p=>p.id===focus.id))pool.push(focus);
  }
- // Primary ranking uses season contribution; arbitrary stress draws do not select the leader.
- pool.sort((a,b)=>draftValue(b)-draftValue(a)||String(a.id).localeCompare(String(b.id)));
- return (focus?pool.filter(p=>p.id===focus.id):pool.slice(0,5)).map(p=>{
+ const evaluations=evaluateRosterPicks(state,pool);
+ pool.splice(0,pool.length,...evaluations.map(x=>x.player));
+ const labels=new Map();
+ const label=(id,name)=>labels.set(id,[...(labels.get(id)||[]),name]);
+ if(pool.length){
+  label(pool[0].id,'Сбалансированный');
+  const best=(score)=>[...pool].sort((a,b)=>score(b)-score(a))[0];
+  label(best(p=>p.forecast?.seasonCeiling??draftValue(p)*82).id,'Агрессивный');
+  label(best(p=>p.forecast?.seasonFloor??riskAdjustedValue(p)*82).id,'Безопасный');
+  label(best(p=>p.price>0?riskAdjustedValue(p)/p.price:-Infinity).id,'Value');
+ }
+ const selected=focus?pool.filter(p=>p.id===focus.id):[...new Set([pool[0],...pool.filter(p=>labels.has(p.id)),...pool].filter(Boolean))].slice(0,5);
+ return selected.map(p=>{
   const risk=riskProfile(p),availability=availabilityEvidence(p),alternative=pool.find(x=>x.id!==p.id),forecast=p.forecast;
-  const advantages=[],drawbacks=[...risk.flags,...rookieSlotWarnings(state,p)];
+  const advantages=labels.has(p.id)?['Вариант: '+labels.get(p.id).join(' / ')]:[],drawbacks=[...risk.flags,...rookieSlotWarnings(state,p)];
   const breakdown=forecast?.scoringBreakdown,downside=forecast?.historicalDownside;
   if(breakdown)drawbacks.push(`Потери: ${(-breakdown.turnovers/2).toFixed(1)} за матч → ${breakdown.turnovers.toFixed(1)} ФО/матч, ${Math.round(breakdown.turnovers*forecast.games)} ФО за прогнозируемый сезон. Уже вычтены из оценки.`);
   if(downside)drawbacks.push(`История ${downside.season}: ${downside.negativeGames} из ${downside.games} матчей ниже нуля; среднее худших 10% игр ${downside.meanWorstTenPercent.toFixed(1)} ФО. Это прошлые результаты, не вероятность будущего минуса.`);
@@ -78,9 +93,22 @@ export function analyzeRecommendations(state,focus=null,riskyOnly=false){
    }
   }else conclusion='Единственный доступный кандидат с допустимым добором состава.';
   if(severeRisk(p))conclusion='Рискованная ставка. '+conclusion;
+  const evaluation=evaluations.find(x=>x.player.id===p.id),otherEvaluation=evaluations.find(x=>x.player.id!==p.id);
+  if(evaluation?.expectedRoster!=null){
+   const delta=otherEvaluation?.expectedRoster==null?null:evaluation.expectedRoster-otherEvaluation.expectedRoster;
+   const budget=state.priceMode==='ON'?state.cap-own.reduce((sum,x)=>sum+x.price,0)-p.price:null;
+   advantages.push(`Итог десятки: ${Math.round(evaluation.expectedRoster)} ФО; риск-скорректированная оценка состава ${Math.round(evaluation.adjustedRoster)}. ${evaluation.runs} парных продолжения, не точный оптимум.`);
+   advantages.push(`Риск-скорректированное значение игрока: ${(riskAdjustedValue(p)*82).toFixed(0)} ФО; цена ${p.price??'неизвестна'}; остаток бюджета ${budget??'цены выключены'}.`);
+   if(evaluation.survival!==null)drawbacks.push(`Дожил до следующего хода в ${Math.round(evaluation.survival*evaluation.runs)} из ${evaluation.runs} продолжений альтернативы. Малая модельная выборка, не калиброванная вероятность.`);
+   if(evaluation.firstPlaceShare!==null)drawbacks.push(`Доля первых мест в условных сезонных сценариях продолжений: ${evaluation.firstPlaceShare.toFixed(1)}%.`);
+   if(evaluation.failed)drawbacks.push(`Не завершены ${evaluation.failed} продолжений: рейтинг ограничен, результат может быть смещён.`);
+   conclusion=`${severeRisk(p)?'Рискованная ставка. ':''}${p.id===pool[0]?.id?'Сбалансированный лидер':'Альтернатива'}: ${p.name}. Ожидаемый итог десятки ${Math.round(evaluation.expectedRoster)} ФО${delta===null?'':`; разница с ${otherEvaluation.player.name}: ${delta>=0?'+':''}${Math.round(delta)} ФО`}. Рейтинг учитывает риск всей десятки; raw-прогноз игрока сам по себе не определяет порядок.`;
+  }
   const completion=pickCompletion(state,p.id);
+  if(completion.minimumRemainingCost!==null)advantages.push(`Обязательный минимальный добор после пика: ${completion.minimumRemainingCost} ед. (включая выбранного игрока).`);
+  advantages.push(`Позиции Sports.ru: ${p.positions.join('/')}; оставшиеся слоты закрываются точным позиционным назначением. Источник: ${forecast?.origin||'историческая основа'}; сезонов NBA: ${p.careerPrediction?.historySeasons??Object.keys(p.historyGames||{}).length}.`);
   // Feasibility is a constraint, not a selling point for a player.
   return {player:p,risk,advantages,drawbacks,stability:null,pressure:null,completion,availability,valueIndex:draftValue(p),speculative:severeRisk(p),forecast,difference,conclusion,
-   method:'Основной порядок — ожидаемые ФО за сезон. При наличии полного расчёта: индивидуальные показатели ESPN, оценка фолов, бонус минут и результата команды по истории. Потолок матча — P90 исторических ролевых сценариев; потолок сезона — отдельный сценарий совместного изменения игр и ФО/матч. Это не вероятность успеха. Подробности и отложенная проверка — в разделе «Модель и проверка». Для исторического fallback применяется прозрачный индекс доступности. Проверка добора состава выполняется отдельно и не считается преимуществом игрока.'};
+   method:'Ограниченный поиск по максимум 17 кандидатам: три парных продолжения до 80 пиков, стратегии balanced/best/volatile. Рейтинг — риск-скорректированный итог всей десятки; доля первых мест показана как диагностика допущений. Это не глобальный оптимум и не вероятность выиграть FBL. Полная формула и цены/позиции — Sports.ru; карьерная история, projected games и прогноз — ESPN; игровые логи за три сезона; NCAA для rookie; групповой ориентир не персональный прогноз.'};
  });
 }

@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "asOf": "2026-10-18T03:55:19.389373+00:00",
+  "purpose": "Bounded access and historical-sample audit; no completeness claim",
+  "observations": [
+    {
+      "id": "nba-summer-sacramento_2024",
+      "kind": "SCOREBOARD",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-sacramento/scoreboard?dates=2024&limit=1000",
+      "expectedYear": 2024,
+      "checkedAt": "2026-10-18T03:55:18.788610+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "httpStatus": 200,
+      "bytes": 114258,
+      "sha256": "c663345c255fb7539e53e7f880ca6d672ba70a0e0eb8f84b78d0b3ca49e718ad",
+      "keys": [
+        "leagues",
+        "events",
+        "provider"
+      ],
+      "status": "EVENTS_RECEIVED",
+      "events": 12,
+      "uniqueEvents": 12,
+      "dateRange": [
+        "2024-07-06T20:30Z",
+        "2024-07-11T02:00Z"
+      ],
+      "leagueSlugs": [
+        "nba-summer-sacramento"
+      ],
+      "reportedSeason": null,
+      "eventIds": [
+        "401679122",
+        "401679123",
+        "401679124",
+        "401679125",
+        "401679126",
+        "401679127",
+        "401679128",
+        "401679129",
+        "401679130",
+        "401679131",
+        "401679132",
+        "401679133"
+      ],
+      "possiblyTruncated": false,
+      "sampleBoxUrl": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba-summer-sacramento/summary?event=401679122",
+      "sampleBox": {
+        "status": "PARSED",
+        "playerRows": 21,
+        "sha256": "f03a4574319e63537b3f08c120c7fb3246202e0cb7d7f76ca8029fb2bc2b36f0",
+        "competition": "nba-summer-sacramento"
+      }
+    },
+    {
+      "id": "espn_nba_october_2026",
+      "kind": "SCOREBOARD",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20261001-20261031&limit=1000",
+      "expectedYear": null,
+      "checkedAt": "2026-10-18T03:55:18.789261+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "status": "REQUEST_OR_PARSE_FAILED",
+      "httpStatus": 400,
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "id": "espn_nba_november_2026",
+      "kind": "SCOREBOARD",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20261101-20261130&limit=1000",
+      "expectedYear": null,
+      "checkedAt": "2026-10-18T03:55:18.789414+00:00",
+      "coverageStatus": "NOT_ESTABLISHED",
+      "status": "REQUEST_OR_PARSE_FAILED",
+      "httpStatus": 400,
+      "error": "HTTP Error 400: Bad Request"
+    }
+  ],
+  "executionEnvironment": "github-actions",
+  "workflowRunId": 39095293686
+}

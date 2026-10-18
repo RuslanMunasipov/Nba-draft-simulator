@@ -1,0 +1,1613 @@
+{
+  "asOf": "2026-10-18T03:59:29.423719+00:00",
+  "status": "COLLECTED_PROVIDER_EVENTS_NOT_INDEPENDENTLY_COMPLETE",
+  "calendarsExpected": 9,
+  "calendarsFetched": 9,
+  "listedUniqueEvents": 276,
+  "eventCollisions": [],
+  "groups": [
+    {
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2025,
+      "providerCode": "nba-summer-california",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 6,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 6
+      },
+      "playerGames": 142,
+      "participationRows": 204,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "providerCode": "nba-summer-california",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 12,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 6,
+        "NORMALIZED_WITH_WARNINGS": 6
+      },
+      "playerGames": 239,
+      "participationRows": 345,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "providerCode": "nba-summer-las-vegas",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 76,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 57,
+        "NORMALIZED_WITH_WARNINGS": 18,
+        "FAILED": 1
+      },
+      "playerGames": 1568,
+      "participationRows": 2233,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "providerCode": "nba-summer-las-vegas",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 76,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 70,
+        "NORMALIZED_WITH_WARNINGS": 5,
+        "FAILED": 1
+      },
+      "playerGames": 1589,
+      "participationRows": 2328,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "LAS_VEGAS",
+      "year": 2026,
+      "providerCode": "nba-summer-las-vegas",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 76,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 72,
+        "NORMALIZED_WITH_WARNINGS": 4
+      },
+      "playerGames": 1651,
+      "participationRows": 2234,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "SALT_LAKE_CITY",
+      "year": 2024,
+      "providerCode": "nba-summer-utah",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 6,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 6
+      },
+      "playerGames": 122,
+      "participationRows": 193,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "SALT_LAKE_CITY",
+      "year": 2025,
+      "providerCode": "nba-summer-utah",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 6,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 6
+      },
+      "playerGames": 121,
+      "participationRows": 225,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "SALT_LAKE_CITY",
+      "year": 2026,
+      "providerCode": "nba-summer-utah",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 6,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 6
+      },
+      "playerGames": 126,
+      "participationRows": 198,
+      "independentCalendarReconciled": false
+    },
+    {
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2024,
+      "providerCode": "nba-summer-sacramento",
+      "calendarStatus": "FETCHED",
+      "listedEvents": 12,
+      "observedCountChanged": false,
+      "statuses": {
+        "NORMALIZED_RECONCILED_POINTS": 10,
+        "NORMALIZED_WITH_WARNINGS": 2
+      },
+      "playerGames": 268,
+      "participationRows": 341,
+      "independentCalendarReconciled": false
+    }
+  ],
+  "statuses": {
+    "NORMALIZED_RECONCILED_POINTS": 239,
+    "NORMALIZED_WITH_WARNINGS": 35,
+    "FAILED": 2
+  },
+  "playerGames": 5826,
+  "uniquePlayers": 989,
+  "failures": [
+    {
+      "eventId": "401881934",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5367324",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401881925",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "POINTS_RECONCILIATION_FAILED",
+          "teamId": "110755"
+        }
+      ]
+    },
+    {
+      "eventId": "401881935",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5107655",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401881930",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4397654",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4432117",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4565846",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4897696",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5105552",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5106058",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5107264",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5107897",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5108141",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5241365",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "POINTS_RECONCILIATION_FAILED",
+          "teamId": "110755"
+        }
+      ]
+    },
+    {
+      "eventId": "401881931",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5367418",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401881932",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4897696",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686820",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4396681",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4897357",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686825",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "3906977",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-2",
+            "3PT": "0-2",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686826",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4066367",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "-1"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4397210",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686828",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4398226",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686830",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4433136",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4433627",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686831",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": "HTTP Error 504: Gateway Time-out",
+      "warnings": null
+    },
+    {
+      "eventId": "401686833",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5165257",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686834",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4597259",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686835",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4396681",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4897357",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686850",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4597259",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686851",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4592308",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686852",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5165257",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686855",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4278235",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686856",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4397916",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4433136",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4433627",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686867",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4433136",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686868",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4396681",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4597259",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4897357",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686903",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4277886",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5165257",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686904",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4597259",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401686910",
+      "competition": "LAS_VEGAS",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4396681",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4897357",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401793883",
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4431760",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401793894",
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4684153",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4896614",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401793911",
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "error": "HTTP Error 502: Bad Gateway",
+      "warnings": null
+    },
+    {
+      "eventId": "401793916",
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4702023",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401793928",
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4702176",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4702719",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401801697",
+      "competition": "LAS_VEGAS",
+      "year": 2025,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4397821",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4684153",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4896614",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401881828",
+      "competition": "LAS_VEGAS",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5367350",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "POINTS_RECONCILIATION_FAILED",
+          "teamId": "15"
+        }
+      ]
+    },
+    {
+      "eventId": "401881856",
+      "competition": "LAS_VEGAS",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5108992",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "2",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "1-1",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        },
+        {
+          "kind": "POINTS_RECONCILIATION_FAILED",
+          "teamId": "26"
+        }
+      ]
+    },
+    {
+      "eventId": "401881863",
+      "competition": "LAS_VEGAS",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "5116468",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "-2"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401881870",
+      "competition": "LAS_VEGAS",
+      "year": 2026,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4565846",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401679127",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4432852",
+          "rawStats": {
+            "MIN": "--",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    },
+    {
+      "eventId": "401679132",
+      "competition": "CALIFORNIA_CLASSIC",
+      "year": 2024,
+      "error": null,
+      "warnings": [
+        {
+          "kind": "NON_DNP_ROW_NOT_NORMALIZED",
+          "espnId": "4601025",
+          "rawStats": {
+            "MIN": "0",
+            "PTS": "0",
+            "FG": "0-0",
+            "3PT": "0-0",
+            "FT": "0-0",
+            "REB": "0",
+            "AST": "0",
+            "TO": "0",
+            "STL": "0",
+            "BLK": "0",
+            "OREB": "0",
+            "DREB": "0",
+            "PF": "0",
+            "+/-": "0"
+          }
+        }
+      ]
+    }
+  ],
+  "calendarFailures": [],
+  "limitations": [
+    "All rows retain raw response hashes; checks reconcile player points to protocol scores only.",
+    "No independent full-calendar reconciliation yet.",
+    "No automatic claim that every returned athlete row has complete stats.",
+    "DNP reasons are provider descriptions, not medical diagnoses.",
+    "Summer League observations are not NBA predictions or FBL season points.",
+    "Raw and normalized output is a checkpoint artifact until permanent storage is deployed."
+  ],
+  "workflowRunId": 39095492690,
+  "executionEnvironment": "github-actions"
+}

@@ -10,7 +10,7 @@ test('availability changes candidate value before the top twenty cutoff',()=>{
  assert.ok(draftValue(players[0])<draftValue(players[2]));assert.equal(severeRisk(players[0]),true);
  assert.equal(availabilityEvidence(players[0]).weightedGames,(19+2*38)/3);
  const advice=analyzeRecommendations(newDraft(players));assert.equal(advice.length,5);assert.ok(advice.every(r=>!r.speculative));
- assert.ok(analyzeRecommendations(newDraft(players),null,true).some(r=>r.player.id===1));
+ assert.ok(analyzeRecommendations(newDraft(players),players[0],true).some(r=>r.player.id===1));
 });
 test('a risky searched player remains available with an explicit warning and safer alternative',()=>{
  const report=analyzeRecommendations(newDraft(players),players[0])[0];assert.equal(report.speculative,true);

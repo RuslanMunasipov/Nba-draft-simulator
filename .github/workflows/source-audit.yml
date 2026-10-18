@@ -1,0 +1,26 @@
+name: Audit source availability (no model tests)
+on:
+  push:
+    branches: [data/history-foundation]
+    paths:
+      - scripts/audit_data_sources.py
+      - scripts/audit_source_fallbacks.py
+      - .github/workflows/source-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Inspect public source responses only
+        run: python scripts/audit_source_fallbacks.py --phase targeted
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-availability-audit
+          path: data/source-targeted-audit.json
