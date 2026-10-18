@@ -182,7 +182,7 @@ function renderRookies(){
 }
 function render(){
  const n=state.picks.length;
- $('batch').textContent=n===80?'5 000 сценариев сезона':'500 сценариев драфта';
+ $('batch').textContent=n===80?'5 000 сценариев сезона':'100 сценариев драфта';
  $('scenario-results').replaceChildren();
  document.querySelector('.hero-meta .limited').textContent=state.priceMode==='ON'?'Salary cap 20 000 · цены Sports.ru':'Ручная база · без бюджета';
  $('draft-rules').textContent=state.priceMode==='ON'?'Лимит 20 000 на команду. Проверяются цены Sports.ru, позиции Sports.ru, rookie и бюджет полного добора.':'Ручная база без подтверждённых цен: бюджет не проверяется.';
@@ -255,7 +255,7 @@ function runAction(fn){try{state=fn();save();$('simulation-status').textContent=
 $('bots').onclick=()=>runAction(()=>advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1}));
 $('simulate').onclick=()=>runAction(()=>simulateDraft(state,{seed:Number($('seed').value)||1}));
 $('batch').onclick=()=>{
- $('batch').disabled=true;$('simulation-status').textContent=state.picks.length===80?'Выполняются 5 000 сценариев сезона…':'Выполняются 500 вариантов завершения драфта…';
+ $('batch').disabled=true;$('simulation-status').textContent=state.picks.length===80?'Выполняются 5 000 сценариев сезона…':'Выполняются 100 вариантов завершения драфта…';
  const snapshot=state;
  let worker;try{worker=new Worker(new URL('./batch-worker.js',import.meta.url),{type:'module'});}catch{$('batch').disabled=false;$('simulation-status').textContent='Браузер не поддерживает расчёт в отдельном потоке. Ручные пики и завершение тренировки доступны.';return;}
  const finish=()=>{worker.terminate();$('batch').disabled=false;};
