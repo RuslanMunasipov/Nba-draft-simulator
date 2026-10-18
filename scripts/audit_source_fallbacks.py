@@ -1,5 +1,5 @@
 """Bounded follow-up source observations; no model tests, build or deployment."""
-import concurrent.futures,hashlib,json,re,urllib.parse,urllib.request
+import argparse,concurrent.futures,hashlib,json,re,urllib.parse,urllib.request
 from datetime import datetime,timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -80,10 +80,16 @@ def sample_box(result):
  return result
 
 def main():
- with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:results=list(pool.map(inspect,jobs()))
+ parser=argparse.ArgumentParser();parser.add_argument('--phase',choices=['fallback','targeted'],default='fallback');args=parser.parse_args()
+ selected=jobs() if args.phase=='fallback' else [
+  dict(id='nba-summer-sacramento_2024',kind='SCOREBOARD',url=BASE+'nba-summer-sacramento/scoreboard?dates=2024&limit=1000',expectedYear=2024),
+  dict(id='espn_nba_october_2026',kind='SCOREBOARD',url=BASE+'nba/scoreboard?dates=20261001-20261031&limit=1000',expectedYear=None),
+  dict(id='espn_nba_november_2026',kind='SCOREBOARD',url=BASE+'nba/scoreboard?dates=20261101-20261130&limit=1000',expectedYear=None)
+ ]
+ with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:results=list(pool.map(inspect,selected))
  with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:results=list(pool.map(sample_box,results))
  out=dict(version=1,asOf=datetime.now(timezone.utc).isoformat(),purpose='Bounded access and historical-sample audit; no completeness claim',observations=results)
- Path('data/source-fallback-audit.json').write_text(json.dumps(out,ensure_ascii=False,indent=2))
+ Path('data/source-'+args.phase+'-audit.json').write_text(json.dumps(out,ensure_ascii=False,indent=2))
  for row in results:print(row['id'],row['status'],row.get('events'),row.get('sampleBox'),flush=True)
  print('FALLBACK_AUDIT_REPORT_BEGIN'+json.dumps(out,ensure_ascii=False)+'FALLBACK_AUDIT_REPORT_END',flush=True)
 if __name__=='__main__':main()

@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: '3.11'
       - name: Inspect public source responses only
-        run: python scripts/audit_source_fallbacks.py
+        run: python scripts/audit_source_fallbacks.py --phase targeted
       - uses: actions/upload-artifact@v4
         with:
           name: source-availability-audit
-          path: data/source-fallback-audit.json
+          path: data/source-targeted-audit.json
