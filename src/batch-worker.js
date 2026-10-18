@@ -1,5 +1,6 @@
-import {batchSimulations} from './simulation.js';
+import {scenarioAnalysis} from './simulation.js';
 self.onmessage=({data})=>{
- try{self.postMessage({result:batchSimulations(data.state,{runs:100,seed:data.seed})});}
+ const started=performance.now();
+ try{self.postMessage({result:{...scenarioAnalysis(data.state,{seed:data.seed}),elapsedMs:performance.now()-started}});}
  catch(error){self.postMessage({error:error.message});}
 };

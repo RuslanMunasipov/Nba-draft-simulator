@@ -91,3 +91,64 @@ export function batchSimulations(state,{runs=100,seed=1}={}) {
     // No winner claims if even one simulation violates the rookie rule.
     wins:results.every(x=>x.eligible)?Array.from({length:TEAM_COUNT},(_,i)=>results.reduce((sum,r)=>sum+(r.winners.includes(i+1)?1/r.winners.length:0),0)):null};
 }
+
+function normalDraw(random) {
+  const u=Math.max(Number.EPSILON,random()),v=random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function quantile(sorted,q) {
+  const at=(sorted.length-1)*q,low=Math.floor(at),high=Math.ceil(at);
+  return sorted[low]+(sorted[high]-sorted[low])*(at-low);
+}
+function scenarioSeasonScore(player,z) {
+  const {seasonFloor:floor,meanSeason:mean,seasonCeiling:ceiling}=player.forecast;
+  // The published range targets 80% marginal coverage. For sensitivity analysis
+  // we place its ends at normal P10/P90 and extrapolate only to P1/P99.
+  const limited=Math.max(-2.326347874,Math.min(2.326347874,z));
+  const score=limited<0?mean+(mean-floor)*limited/1.281551566:mean+(ceiling-mean)*limited/1.281551566;
+  return Math.max(0,score);
+}
+function validateCompletedRoster(state) {
+  if(!isComplete(state))throw Error('Сценарии сезона доступны после 80-го пика');
+  if(scoringMetric(state)!==FULL_SEASON)throw Error('Для сценариев сезона нужны прогнозы полной формулы Sports.ru');
+  const summary=draftSummary(state);
+  const legal=summary.every((t,i)=>t.players===ROUNDS&&t.score!==null&&t.rookieRule==='PASS'&&(state.priceMode!=='ON'||t.cost<=state.cap)&&rosterFits(teamRoster(state,i)));
+  if(!legal)throw Error('Составы должны соблюдать позиции Sports.ru, rookie и salary cap');
+  for(const team of Array.from({length:TEAM_COUNT},(_,i)=>teamRoster(state,i)))for(const player of team){
+    const f=player.forecast;
+    if(!f||![f.seasonFloor,f.meanSeason,f.seasonCeiling].every(Number.isFinite)||f.seasonFloor>f.meanSeason||f.meanSeason>f.seasonCeiling)throw Error('У каждого выбранного игрока нужен согласованный диапазон слабый / базовый / сильный сезон');
+  }
+}
+export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
+  if(!Number.isInteger(runs)||runs<100||runs>20000)throw Error('Число сезонных сценариев должно быть от 100 до 20000');
+  validateCompletedRoster(state);
+  const random=randomFromSeed(seed),rosters=Array.from({length:TEAM_COUNT},(_,i)=>teamRoster(state,i));
+  const totals=Array.from({length:TEAM_COUNT},()=>[]),wins=Array(TEAM_COUNT).fill(0);
+  for(let run=0;run<runs;run++){
+    const leagueShock=normalDraw(random),nbaTeamShocks=new Map(),scores=[];
+    for(let team=0;team<TEAM_COUNT;team++){
+      let total=0;
+      for(const player of rosters[team]){
+        const key=player.team||`player:${player.id}`;
+        if(!nbaTeamShocks.has(key))nbaTeamShocks.set(key,normalDraw(random));
+        // Marginal variance stays one: 15% league, 20% real NBA team, 65% player.
+        const z=Math.sqrt(.15)*leagueShock+Math.sqrt(.20)*nbaTeamShocks.get(key)+Math.sqrt(.65)*normalDraw(random);
+        total+=scenarioSeasonScore(player,z);
+      }
+      scores.push(total);totals[team].push(total);
+    }
+    const best=Math.max(...scores),leaders=scores.map((score,i)=>score===best?i:-1).filter(i=>i>=0);
+    for(const team of leaders)wins[team]+=1/leaders.length;
+  }
+  const base=draftSummary(state);
+  const teams=totals.map((values,i)=>{
+    const sorted=[...values].sort((a,b)=>a-b);
+    return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100};
+  });
+  return {kind:'SEASON_SENSITIVITY',metric:FULL_SEASON,runs,teams,
+    assumptions:{range:'Сезонный диапазон условно интерпретирован как P10–P90',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
+}
+export function scenarioAnalysis(state,{seed=1,draftRuns=100,seasonRuns=5000}={}) {
+  if(isComplete(state))return seasonSensitivitySimulations(state,{runs:seasonRuns,seed});
+  return {kind:'DRAFT_COMPLETION',...batchSimulations(state,{runs:draftRuns,seed})};
+}

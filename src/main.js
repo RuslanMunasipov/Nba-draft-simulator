@@ -28,6 +28,29 @@ function updateSaveStatus(){
 }
 function showError(error){const message='Не удалось выполнить: '+error.message;$('simulation-status').textContent=message;$('draft-message').textContent=message;$('draft-message').hidden=false;}
 function text(tag,value){const el=document.createElement(tag);el.textContent=value;return el;}
+function renderScenarioAnalysis(result,startPick){
+ const box=$('scenario-results');box.replaceChildren();
+ const seconds=(result.elapsedMs/1000).toFixed(2);
+ if(result.kind==='DRAFT_COMPLETION'){
+  $('simulation-status').textContent=`${result.runs} вариантов завершения драфта от пика №${startPick} за ${seconds} с · допустимых ${result.eligibleRuns}/${result.runs}.`;
+  if(result.wins){
+   const list=document.createElement('ol');
+   result.wins.forEach((count,i)=>list.append(text('li',`GM ${i+1}: первое место по базовому сезонному прогнозу в ${count.toFixed(1)} из ${result.runs} вариантов`)));
+   box.append(list,text('p','Меняются только оставшиеся пики ботов. Это не симуляция матчей и не вероятность победы в FBL.'));
+  }else box.append(text('p','Есть недопустимый состав, поэтому лидер не определяется.'));
+  return;
+ }
+ $('simulation-status').textContent=`${result.runs} сценариев неопределённости сезона за ${seconds} с. Быстрый расчёт выполняется локально в отдельном потоке.`;
+ const table=document.createElement('table');table.className='scoring-breakdown';
+ const caption=text('caption','Итог по сезонным ФО Sports.ru');table.append(caption);
+ const head=document.createElement('thead'),headRow=document.createElement('tr');
+ for(const label of ['GM','База','P10–P90','Первые места'])headRow.append(text('th',label));head.append(headRow);table.append(head);
+ const body=document.createElement('tbody');
+ for(const team of result.teams){const row=document.createElement('tr');row.append(text('th','GM '+team.team),text('td',team.base.toFixed(0)),text('td',`${team.p10.toFixed(0)}–${team.p90.toFixed(0)}`),text('td',team.firstPlaceShare.toFixed(1)+'%'));body.append(row);}
+ table.append(body);box.append(table);
+ const details=document.createElement('details');details.append(text('summary','Как читать сезонные сценарии'),text('p',`${result.assumptions.range}. Корреляция: ${result.assumptions.correlation}.`),text('p','«Первые места» — доля первых мест только в этих модельных сценариях, не вероятность победы в FBL. Не моделируются трансферы, waiver, недельный календарь, решения GM и новые травмы вне заложенного диапазона.'));
+ box.append(details);
+}
 function matches(p,query){const aliases={1630169:'халибертон халлибертон тайриз',202681:'кайри ирвинг',203999:'йокич никола'};return (p.name+' '+(p.sportsName||'')+' '+(aliases[p.id]||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);}
 function choose(p){$('draft-message').hidden=true;try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null){
@@ -159,6 +182,8 @@ function renderRookies(){
 }
 function render(){
  const n=state.picks.length;
+ $('batch').textContent=n===80?'5 000 сценариев сезона':'100 сценариев драфта';
+ $('scenario-results').replaceChildren();
  document.querySelector('.hero-meta .limited').textContent=state.priceMode==='ON'?'Salary cap 20 000 · цены Sports.ru':'Ручная база · без бюджета';
  $('draft-rules').textContent=state.priceMode==='ON'?'Лимит 20 000 на команду. Проверяются цены Sports.ru, позиции Sports.ru, rookie и бюджет полного добора.':'Ручная база без подтверждённых цен: бюджет не проверяется.';
  const budget=budgetSummary(state),reserve=state.priceMode==='ON'?completionPlan(state):null;
@@ -230,11 +255,11 @@ function runAction(fn){try{state=fn();save();$('simulation-status').textContent=
 $('bots').onclick=()=>runAction(()=>advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1}));
 $('simulate').onclick=()=>runAction(()=>simulateDraft(state,{seed:Number($('seed').value)||1}));
 $('batch').onclick=()=>{
- $('batch').disabled=true;$('simulation-status').textContent='Выполняются 100 сценариев…';
+ $('batch').disabled=true;$('simulation-status').textContent=state.picks.length===80?'Выполняются 5 000 сценариев сезона…':'Выполняются 100 вариантов завершения драфта…';
  const snapshot=state;
  let worker;try{worker=new Worker(new URL('./batch-worker.js',import.meta.url),{type:'module'});}catch{$('batch').disabled=false;$('simulation-status').textContent='Браузер не поддерживает расчёт в отдельном потоке. Ручные пики и завершение тренировки доступны.';return;}
  const finish=()=>{worker.terminate();$('batch').disabled=false;};
- worker.onmessage=({data})=>{finish();if(state!==snapshot){$('batch').click();return;}$('simulation-status').textContent=data.error?'Ошибка: '+data.error:`100 сценариев; допустимых: ${data.result.eligibleRuns}/100. Сценарии от пика №${snapshot.picks.length+1}. `+(data.result.wins?(data.result.metric==='FBL_FULL_FORMULA_ESTIMATE'?'Лидеры по сезонным ФО: ':'Лидеры по импортированным оценкам: ')+data.result.wins.map((n,i)=>`GM ${i+1}: ${n}`).join(', '):'Победитель сценария не определяется.')+' Результаты зависят от оценочных позиций и прогнозов, это не вероятность победы в FBL.';};
+ worker.onmessage=({data})=>{finish();if(state!==snapshot){$('batch').click();return;}if(data.error){$('simulation-status').textContent='Ошибка: '+data.error;return;}renderScenarioAnalysis(data.result,snapshot.picks.length+1);};
  worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1});
 };
 $('draft-mode').value=mode;$('bots').hidden=mode!=='INTERACTIVE';
