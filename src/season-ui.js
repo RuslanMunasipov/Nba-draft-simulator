@@ -61,7 +61,7 @@ export async function refreshSeason(){
   else if(live?.espnInjuries){injuries=parseInjuries(live.espnInjuries);notes.injuries=`травмы ESPN ${stamp(live.espnInjuries.fetchedAt)}`;}
   else notes.injuries='травмы недоступны';
   if(lg?.transfers)league=lg;
-  const connected=Object.keys(live?.teams||{}).length;notes.league=`команд с Sports.ru: ${connected}/8`+(connected<8?(lg?.transfers?` · журнал Лиги: ${lg.transfers.length}`:' · журнал Лиги недоступен'):'');
+  const connected=merged().connected.size;notes.league=(live?.yahoo?`Yahoo ${stamp(live.yahoo.fetchedAt)} · `:'')+`команд подключено: ${connected}/8`;
   await refreshGames();
  }).finally(()=>{loading=null;renderSeason();});
  return loading;
@@ -248,7 +248,22 @@ function transfersView(ctx){
  if(replacing)sel.value=String(replacing);
  sel.onchange=()=>{replacing=Number(sel.value)||null;query='';renderSeason();};
  pick.append(sel);if(replacing&&ctx.rosters[team].includes(replacing))pick.append(replacementPanel(byId.get(replacing),ctx));
- return [controls(ctx),packageBlock(ctx),alertBox,singles,pick,transferLog(ctx)];
+ return [controls(ctx),packageBlock(ctx),alertBox,singles,pick,transferLog(ctx),...(live?.yahoo?[]:[yahooHelper()])];
+}
+// One-time Yahoo connection from a tablet: consent page for the app's Client ID, then the GitHub workflow that stores the token.
+function yahooHelper(){
+ const box=el('details',null,'sp-log');box.append(el('summary','Подключить лигу Yahoo (все трансферы автоматически)'));
+ const id=el('input');id.placeholder='Client ID приложения Yahoo';id.value=readStored('fbl-yahoo-client')||'';
+ const redirect=el('input');redirect.placeholder='Redirect URI (по умолчанию oob)';redirect.value=readStored('fbl-yahoo-redirect')||'';
+ const go=link('2. Открыть Yahoo и нажать «Agree» ↗','#');
+ const update=()=>{writeStored('fbl-yahoo-client',id.value.trim());writeStored('fbl-yahoo-redirect',redirect.value.trim());
+  go.href=`https://api.login.yahoo.com/oauth2/request_auth?client_id=${encodeURIComponent(id.value.trim())}&redirect_uri=${encodeURIComponent(redirect.value.trim()||'oob')}&response_type=code&language=en-us`;};
+ id.oninput=update;redirect.oninput=update;update();
+ const steps=el('ul');
+ const s1=el('li','1. Вставь Client ID (он не секретный; Client Secret сюда не вводи):');s1.append(id,redirect);
+ const s2=el('li');s2.append(go);
+ const s3=el('li');s3.append(document.createTextNode('3. Скопируй код от Yahoo, открой '),link('workflow «Connect Yahoo league» ↗',`https://github.com/${REPO}/actions/workflows/yahoo-connect.yml`),document.createTextNode(' → Run workflow → вставь код → Run. Через минуту запусти сбор данных или подожди до 2 часов.'));
+ steps.append(s1,s2,s3);box.append(steps);return box;
 }
 function record(moves,ctx){
  if(sportsTeam(team)){alert(`${teamLabel(team)} подключена к Sports.ru: сделай трансфер на Sports.ru после одобрения Лиги — здесь он появится сам при следующем обновлении (до 2 часов).`);return;}
@@ -263,15 +278,15 @@ function transferLog(ctx){
  const box=el('div',null,'sp-log');box.append(el('h3',`Журнал трансферов Лиги (${ctx.transfers.length})`));
  const list=el('ol');
  ctx.transfers.forEach((x,i)=>{
-  const isPending=!x.source,li=el('li',`${ddmm(x.date)} · ${teamName(x.team)}: ${byId.get(x.outId)?.name} (${x.outPrice}) → ${byId.get(x.inId)?.name} (${x.inPrice}) · ${x.source==='sports.ru'?'Sports.ru':x.source==='league'?'журнал Лиги':'не отправлено'}`);
+  const isPending=!x.source,li=el('li',`${ddmm(x.date)} · ${teamName(x.team)}: ${byId.get(x.outId)?.name} (${x.outPrice}) → ${byId.get(x.inId)?.name} (${x.inPrice}) · ${x.source==='yahoo'?'Yahoo':x.source==='sports.ru'?'Sports.ru':x.source==='league'?'журнал Лиги':'не отправлено'}`);
   if(isPending){li.classList.add('pending');li.append(link('Отправить в журнал ↗',issueUrl(`${teamName(x.team)}: ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`,{action:'transfer',...x}),'sp-send'));
    const del=el('button','Удалить');del.onclick=()=>{pending=pending.filter(p=>!same(p,x));writeStored('fbl-transfers',JSON.stringify(pending));renderSeason();};li.append(del);}
   else if(x.source==='league'&&same(x,league.transfers.at(-1)||{})&&!pending.length)li.append(link('Отменить в журнале ↗',issueUrl('отменить последний трансфер',{action:'undo'}),'sp-send'));
   list.append(li);});
  if(!ctx.transfers.length)list.append(el('li','Пока пусто. Записывай одобренные Лигой трансферы любой команды — составы, банк и свободные агенты пересчитаются.','muted'));
  const connected=[...ctx.connected].sort();
- box.append(el('p',connected.length?`Автоматически с Sports.ru: ${connected.map(teamName).join(', ')}. Их трансферы, баланс и остаток трансферов подтягиваются сами каждые 2 часа.`:'Команды Sports.ru не подключены: трансферы берутся из журнала Лиги.','muted'));
- for(const w of ctx.warnings||[])box.append(el('p',`⚠️ ${teamName(w.team)}: ${w.message}`,'muted'));
+ box.append(el('p',connected.length?`Подключены автоматически (${connected.length}/8): ${connected.map(teamName).join(', ')}. Трансферы подтягиваются сами каждые 2 часа${live?.yahoo?' из лиги Yahoo, цены и бюджет проверяются по Sports.ru':' с Sports.ru'}.`:'Автоматический источник не подключён: трансферы берутся из журнала Лиги.','muted'));
+ for(const w of ctx.warnings||[])box.append(el('p',`⚠️ ${w.team>=0?teamName(w.team):'Лига'}: ${w.message}`,'muted'));
  box.append(list,el('small','Записи с жёлтой меткой есть только на этом устройстве. «Отправить в журнал» открывает GitHub с готовой заявкой: после «Submit new issue» бот проверяет правила и добавляет её в общий журнал примерно за минуту. Уведомления в Telegram видят только общий журнал.','muted'));
  return box;
 }
