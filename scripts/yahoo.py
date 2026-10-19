@@ -92,17 +92,26 @@ def redirect_candidates(pasted):
 
 def exchange(path):
     pasted = pasted_code()
-    code, tokens = clean_code(pasted), None
-    for redirect in redirect_candidates(pasted):
+    code, candidates = clean_code(pasted), redirect_candidates(pasted)
+    # A failed exchange can void the real code, so the registered address is found with a dummy code first:
+    # Yahoo checks the redirect before the code and answers invalid_grant only once the address matches.
+    redirect = None
+    for i, candidate in enumerate(candidates):
         try:
-            tokens = token_request(redirect=redirect, grant_type='authorization_code', code=code)
-            break
+            token_request(redirect=candidate, grant_type='authorization_code', code='probe-not-a-real-code')
         except TokenError as e:
-            print(e)
-            if 'REDIRECT' not in str(e).upper():
-                raise SystemExit(1)
-    if tokens is None:
-        raise SystemExit('No redirect address matched the one registered in the Yahoo app (see the errors above).')
+            if 'REDIRECT' in str(e).upper():
+                print(f'Redirect candidate {i + 1}/{len(candidates)}: not registered')
+                continue
+        redirect = candidate
+        print(f'Redirect candidate {i + 1}/{len(candidates)} matches the Yahoo app')
+        break
+    if redirect is None:
+        raise SystemExit('No redirect address matched the one registered in the Yahoo app.')
+    try:
+        tokens = token_request(redirect=redirect, grant_type='authorization_code', code=code)
+    except TokenError as e:
+        raise SystemExit(f'{e}\nGet a fresh code (Agree again) and run the workflow within a few minutes.')
     Path(path).write_bytes(crypt(tokens['refresh_token'].encode()))
     print('Yahoo connected: refresh token stored encrypted.')
 
