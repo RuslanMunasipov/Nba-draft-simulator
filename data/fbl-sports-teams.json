@@ -1,5 +1,6 @@
 {
-  "note": "FBL team index (0-7, draft order) -> Sports.ru fantasy team id from https://www.sports.ru/fantasy/basketball/team/<id>.html",
+  "note": "Sports.ru fantasy team id per FBL team index (0-7, draft order) and the Yahoo league id; used by the 2-hour season collector.",
+  "yahooLeague": 246081,
   "teams": {
     "0": "5930241"
   }

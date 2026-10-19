@@ -20,17 +20,19 @@ const sports=live.teams?.[team];
 const money=Number.isFinite(sports?.balance)?sports.balance:Number.isFinite(league.banks?.[team])?league.banks[team]:bank(team,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);
 const left=Number.isFinite(sports?.transfersLeft)?sports.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,team,today));
 for(const w of warnings)console.log('warning:',w.team+1,w.message);
+const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
 const alerts=marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20});
 const pack=left>1?bestPackage(ctx,{team,bankMoney:money,k:left,sort}):null;
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
  .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${i.returnDate?' до '+i.returnDate.slice(8,10)+'.'+i.returnDate.slice(5,7):''}`};});
 const r=n=>Math.round(n),s=n=>(n>=0?'+':'−')+Math.abs(r(n));
-const keys=[...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?.pairs.length>1?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
+const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?.pairs.length>1?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
 const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=hurt.filter(h=>!previous.injuries?.includes(h.key));
 const lines=[`🏀 FBL · ${teamLabel(team)}`,`Банк ${money} · трансферов осталось на неделе ${left}/${WEEKLY_TRANSFERS}`];
 if(alerts.length){lines.push('','📈 На рынке есть усиление (ФО за 4 недели / сезон):');
  for(const a of alerts.slice(0,5)){const out=current(byId.get(a.outId),ctx);lines.push(`• ${out.name} (${out.price}) → ${a.player.name} (${a.player.price}): ${s(a.gain.month)} / ${s(a.gain.season)}`);}}
 if(pack?.pairs.length>1&&pack.gain>0){lines.push('',`🧩 Лучший пакет из ${pack.pairs.length}: ${s(pack.gains.month)} ФО за 4 недели (сезон ${s(pack.gains.season)}), банк после ${pack.bankAfter}`);for(const x of pack.pairs)lines.push(`• ${x.out.name} → ${x.in.name}`);}
+if(budget.length){lines.push('','⚠️ Нарушения бюджета по ценам Sports.ru:');for(const w of budget)lines.push(`• ${teamLabel(w.team)}: ${w.message}`);}
 if(hurt.length){lines.push('','🩹 Травмы в составе:');for(const h of hurt)lines.push('• '+h.text);}
 lines.push('',SITE);
 const message=lines.join('\n');

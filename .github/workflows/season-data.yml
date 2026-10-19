@@ -18,6 +18,31 @@ jobs:
           python-version: '3.11'
       - name: Collect Sports.ru prices, calendar, official points and ESPN injuries
         run: python scripts/collect_sports_current.py out/sports-current.json
+      - name: Read the Yahoo league (teams, rosters, transactions) when connected
+        id: yahoo
+        continue-on-error: true
+        env:
+          YAHOO_CLIENT_ID: ${{ secrets.YAHOO_CLIENT_ID }}
+          YAHOO_CLIENT_SECRET: ${{ secrets.YAHOO_CLIENT_SECRET }}
+          YAHOO_REDIRECT_URI: ${{ secrets.YAHOO_REDIRECT_URI }}
+        run: |
+          if [ -z "$YAHOO_CLIENT_ID" ] || ! git fetch -q origin data/yahoo-auth; then echo 'Yahoo not connected'; exit 0; fi
+          git show origin/data/yahoo-auth:yahoo-token.enc > yahoo-token.enc
+          cp yahoo-token.enc yahoo-token.before
+          python scripts/yahoo.py collect out/sports-current.json yahoo-token.enc
+      - name: Keep a rotated Yahoo refresh token
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f yahoo-token.enc ] && ! cmp -s yahoo-token.enc yahoo-token.before; then
+            mkdir -p auth && cp yahoo-token.enc auth/ && cd auth
+            git init -q -b data/yahoo-auth
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add yahoo-token.enc && git commit -qm 'Rotated Yahoo refresh token'
+            git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" data/yahoo-auth
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
