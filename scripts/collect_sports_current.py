@@ -30,6 +30,9 @@ BASE_URL = 'https://www.sports.ru/fantasy/basketball/player/info/{t}/{pid}.html'
 SEASON_URL = BASE_URL + '?s={sid}'
 SEASON_LABEL = '2026/2027'
 INJURY_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries'
+TEAMS = ROOT / 'data' / 'fbl-sports-teams.json'
+TEAM_URL = 'https://www.sports.ru/fantasy/basketball/team/{id}.html'
+JOURNAL_URL = 'https://www.sports.ru/fantasy/basketball/team/journal/{id}.html'
 UA = 'Mozilla/5.0 (compatible; fbl-draft-simulator/1.0; season tracker)'
 WORKERS = 10
 ROLES = {'Разыгрывающий защитник': 'PG', 'Разыгрывающий': 'PG', 'Атакующий защитник': 'SG', 'Лёгкий форвард': 'SF', 'Легкий форвард': 'SF',
@@ -195,6 +198,62 @@ def espn_injuries():
     return {'source': INJURY_URL, 'fetchedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'injuries': teams}
 
 
+def parse_team(page):
+    """Public Sports.ru team profile: name, place, team value, money left and transfers left."""
+    out = {}
+    m = re.search(r'<h1[^>]*>\s*(?:<b>)?([^<]+)', page)
+    if m:
+        out['name'] = html.unescape(m.group(1)).strip()
+    for key, label in (('value', 'Стоимость команды'), ('balance', 'Баланс'), ('transfersLeft', 'Трансферы')):
+        m = re.search(r'<th>' + label + r'</th>\s*<td>\s*(-?\d+)', page)
+        if m:
+            out[key] = int(m.group(1))
+    m = re.search(r'<th>Место</th>\s*<td>\s*(\d+) из (\d+)', page)
+    if m:
+        out['place'], out['of'] = int(m.group(1)), int(m.group(2))
+    m = re.search(r'<th>Текущая неделя</th>\s*<td>([^<]+)', page)
+    if m:
+        out['week'] = html.unescape(m.group(1)).strip()
+    return out
+
+
+def parse_journal(page):
+    """Transfer journal rows, oldest first: {date, buy:{name,price}, sell:{name,price}|None}."""
+    m = re.search(r'<td>Покупки</td>.*?<tbody>(.*?)</tbody>', page, re.S)
+    if not m:
+        return []
+    def side(c):
+        mm = re.search(r'(?:куплен|продан)\s+(.+?)\s+за\s+(\d+)', cell(c))
+        return {'name': mm.group(1), 'price': int(mm.group(2))} if mm else None
+    rows = []
+    for row in re.findall(r'<tr>(.*?)</tr>', m.group(1), re.S):
+        cs = re.findall(r'<td[^>]*>(.*?)</td>', row, re.S)
+        if len(cs) < 2 or not re.fullmatch(r'\d\d\.\d\d\.\d\d', cell(cs[0])):
+            continue
+        d, mth, y = cell(cs[0]).split('.')
+        rows.append({'date': f'20{y}-{mth}-{d}', 'buy': side(cs[1]), 'sell': side(cs[2]) if len(cs) > 2 else None})
+    # The page lists newest first.
+    return rows[::-1]
+
+
+def collect_teams():
+    try:
+        config = json.loads(TEAMS.read_text(encoding='utf-8')).get('teams', {})
+    except FileNotFoundError:
+        return {}
+    teams = {}
+    for team, sid in config.items():
+        try:
+            profile, journal = fetch(TEAM_URL.format(id=sid)), fetch(JOURNAL_URL.format(id=sid))
+        except Exception as e:  # noqa: BLE001
+            print(f'Sports.ru team {sid}: {e}')
+            continue
+        if profile is None or journal is None:
+            continue
+        teams[team] = {'sportsTeamId': sid, **parse_team(profile), 'journal': parse_journal(journal)}
+    return teams
+
+
 def week_ranges(calendars):
     weeks = {}
     for games in calendars:
@@ -233,9 +292,10 @@ def main():
     if len(players) < len(pool) * 0.9:
         raise SystemExit(f'Only {len(players)} of {len(pool)} Sports.ru players collected; refusing to publish.')
     out_injuries = espn_injuries()
+    teams = collect_teams()
     out = {'source': BASE_URL.format(t=TOURNAMENT, pid='<sportsId>'), 'season': SEASON_LABEL,
            'collectedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-           'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'errors': errors}
+           'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'teams': teams, 'errors': errors}
     if out_injuries:
         out['espnInjuries'] = out_injuries
     OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,6 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
-import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,parseInjuries} from './season.js';
+import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,parseInjuries,allTransfers} from './season.js';
 import {fetchLiveGames,moscowDate} from './live.js';
 
 const $=id=>document.getElementById(id);
@@ -26,15 +26,22 @@ const readJson=(key,fallback)=>{try{return JSON.parse(readStored(key)||'null')??
 // Transfers recorded on this device but not yet confirmed in the shared league log.
 let pending=readJson('fbl-transfers',[]);
 const same=(a,b)=>a.team===b.team&&a.outId===b.outId&&a.inId===b.inId;
-function transfers(){
- const all=[...league.transfers],keep=[];
- for(const x of pending){if(league.transfers.some(s=>same(s,x)))continue;try{seasonRosters([...all,x]);all.push(x);keep.push(x);}catch{}}
+// Sports.ru journals for connected teams, the shared league log for the rest, then this device's unsent records.
+let mergedKey=null,mergedValue=null;
+function merged(){
+ if(mergedKey&&mergedKey[0]===live&&mergedKey[1]===league&&mergedKey[2]===pending&&mergedKey[3]===players)return mergedValue;
+ const base=allTransfers(players,live,league),all=[...base.transfers],keep=[];
+ for(const x of pending){if(base.connected.has(x.team)||all.some(s=>same(s,x)))continue;try{seasonRosters([...all,x]);all.push(x);keep.push(x);}catch{}}
  if(keep.length!==pending.length){pending=keep;writeStored('fbl-transfers',JSON.stringify(pending));}
- return all;
+ mergedKey=[live,league,pending,players];mergedValue={...base,transfers:all};return mergedValue;
 }
+const transfers=()=>merged().transfers;
+const sportsTeam=t=>live?.teams?.[t]||null;
+// Transfers left this week: Sports.ru's own counter for connected teams, the league limit minus recorded ones otherwise.
+function transfersLeft(ctx,t){const x=sportsTeam(t)?.transfersLeft;return Number.isFinite(x)?x:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(ctx.transfers,t,ctx.today));}
 const draftPrice=id=>{const p=byId.get(id);return live?.players?.[p?.sportsId]?.initialPrice??p?.price??0;};
-function teamBank(t,list=transfers()){const local=readJson('fbl-bank',{})[t];if(Number.isFinite(local))return local;const shared=league.banks?.[t];if(Number.isFinite(shared))return shared;return bank(t,list,draftPrice);}
-function context(){const list=transfers();return {players,live,injuries,today:moscowToday(),rosters:seasonRosters(list),transfers:list};}
+function teamBank(t,list=transfers()){const local=readJson('fbl-bank',{})[t];if(Number.isFinite(local))return local;const sports=sportsTeam(t)?.balance;if(Number.isFinite(sports))return sports;const shared=league.banks?.[t];if(Number.isFinite(shared))return shared;return bank(t,list,draftPrice);}
+function context(){const m=merged(),list=m.transfers;return {players,live,injuries,today:moscowToday(),rosters:seasonRosters(list),transfers:list,warnings:m.warnings,connected:m.connected};}
 function owners(ctx){const m=new Map();ctx.rosters.forEach((ids,t)=>ids.forEach(id=>m.set(id,t)));return m;}
 const clubOf=p=>live?.players?.[p.sportsId]?.club||p.sportsClub;
 function issueUrl(title,payload){
@@ -53,7 +60,8 @@ export async function refreshSeason(){
   if(inj){injuries=parseInjuries(inj);notes.injuries=`травмы ESPN ${stamp(Date.now())}`;}
   else if(live?.espnInjuries){injuries=parseInjuries(live.espnInjuries);notes.injuries=`травмы ESPN ${stamp(live.espnInjuries.fetchedAt)}`;}
   else notes.injuries='травмы недоступны';
-  if(lg?.transfers){league=lg;notes.league=`журнал Лиги: ${lg.transfers.length}`;}else notes.league='журнал Лиги недоступен';
+  if(lg?.transfers)league=lg;
+  const connected=Object.keys(live?.teams||{}).length;notes.league=`команд с Sports.ru: ${connected}/8`+(connected<8?(lg?.transfers?` · журнал Лиги: ${lg.transfers.length}`:' · журнал Лиги недоступен'):'');
   await refreshGames();
  }).finally(()=>{loading=null;renderSeason();});
  return loading;
@@ -176,7 +184,7 @@ function optionRow(o,outId,ctx,title){
 }
 function replacementPanel(p,ctx){
  const box=el('div',null,'sp-replace'),money=teamBank(team,ctx.transfers);
- box.append(el('p',`Банк ${money} + продажа ${current(p,ctx).price} = до ${money+current(p,ctx).price} на нового игрока · трансферов на неделе ${transfersThisWeek(ctx.transfers,team,ctx.today)}/${WEEKLY_TRANSFERS}. Выигрыш — ожидаемые ФО новичка минус ФО ${p.name} за период.`,'muted'));
+ box.append(el('p',`Банк ${money} + продажа ${current(p,ctx).price} = до ${money+current(p,ctx).price} на нового игрока · трансферов осталось ${transfersLeft(ctx,team)}/${WEEKLY_TRANSFERS}. Выигрыш — ожидаемые ФО новичка минус ФО ${p.name} за период.`,'muted'));
  const search=el('input');search.placeholder='Найти любого свободного игрока на эту позицию…';search.value=query;
  const list=el('ol',null,'sp-options');
  const fill=()=>{const all=transferOptions(ctx,{team,outId:p.id,bankMoney:money,limit:query?1000:12,sort:horizon});
@@ -199,7 +207,8 @@ function controls(ctx){
 }
 function teams(ctx){
  const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),spent=roster.reduce((s,p)=>s+(current(p,ctx).price||0),0),h=horizons(ctx);
- const info=el('p',`Состав по текущим ценам ${spent} · банк ${teamBank(team,ctx.transfers)} · трансферов на неделе ${transfersThisWeek(ctx.transfers,team,ctx.today)}/${WEEKLY_TRANSFERS}`,'muted');
+ const st=sportsTeam(team),info=el('p',`Состав по текущим ценам ${spent} · банк ${teamBank(team,ctx.transfers)}${st?' (Sports.ru)':''} · трансферов осталось ${transfersLeft(ctx,team)}/${WEEKLY_TRANSFERS}${st?` · место на Sports.ru ${st.place??'—'} из ${st.of??'—'}`:''}`,'muted');
+ if(st)info.append(document.createTextNode(' '),link('Команда на Sports.ru ↗',`https://www.sports.ru/fantasy/basketball/team/${st.sportsTeamId}.html`));
  const list=el('div',null,'sp-roster'),header=el('div',null,'sp-header');
  for(const t of ['Игрок','Цена','ФО ср. · последние','Неделя · '+h[horizon].label.toLowerCase()])header.append(el('span',t));
  const running=livePoints();list.append(header,...roster.map(p=>playerRow(p,ctx,running)));
@@ -208,8 +217,8 @@ function teams(ctx){
 
 // ---------- Transfers assistant ----------
 function packageBlock(ctx){
- const money=teamBank(team,ctx.transfers),left=Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(ctx.transfers,team,ctx.today));
- const box=el('div',null,'sp-packages');box.append(el('h3','Лучшие пакеты трансферов'),el('p',`Точный перебор: кого продать и кого купить, чтобы набрать больше всего ФО за период «${horizons(ctx)[horizon].label.toLowerCase()}». Учтены банк ${money}, по 2 на позицию Sports.ru, минимум один rookie. На этой неделе осталось ${left} из ${WEEKLY_TRANSFERS}.`,'muted'));
+ const money=teamBank(team,ctx.transfers),left=transfersLeft(ctx,team);
+ const box=el('div',null,'sp-packages');box.append(el('h3','Лучшие пакеты трансферов'),el('p',`Точный перебор: кого продать и кого купить, чтобы набрать больше всего ФО за период «${horizons(ctx)[horizon].label.toLowerCase()}». Учтены банк ${money}, по 2 на позицию Sports.ru, минимум один rookie. На этой неделе осталось ${left} из ${WEEKLY_TRANSFERS}${sportsTeam(team)?' (по Sports.ru)':''}.`,'muted'));
  let previous=0;
  for(const k of [1,2,3]){
   const p=bestPackage(ctx,{team,bankMoney:money,k,sort:horizon});
@@ -242,6 +251,7 @@ function transfersView(ctx){
  return [controls(ctx),packageBlock(ctx),alertBox,singles,pick,transferLog(ctx)];
 }
 function record(moves,ctx){
+ if(sportsTeam(team)){alert(`${teamLabel(team)} подключена к Sports.ru: сделай трансфер на Sports.ru после одобрения Лиги — здесь он появится сам при следующем обновлении (до 2 часов).`);return;}
  const used=transfersThisWeek(ctx.transfers,team,ctx.today);
  if(used+moves.length>WEEKLY_TRANSFERS&&!confirm(`У ${teamLabel(team)} будет ${used+moves.length} трансфера на этой неделе при лимите ${WEEKLY_TRANSFERS}. Всё равно записать?`))return;
  const list=moves.map(m=>{const out=current(byId.get(m.outId),ctx);return {team,outId:m.outId,inId:m.player.id,date:ctx.today,outPrice:out.price,inPrice:m.player.price};});
@@ -253,12 +263,15 @@ function transferLog(ctx){
  const box=el('div',null,'sp-log');box.append(el('h3',`Журнал трансферов Лиги (${ctx.transfers.length})`));
  const list=el('ol');
  ctx.transfers.forEach((x,i)=>{
-  const isPending=!league.transfers.some(s=>same(s,x)),li=el('li',`${ddmm(x.date)} · ${teamName(x.team)}: ${byId.get(x.outId)?.name} (${x.outPrice}) → ${byId.get(x.inId)?.name} (${x.inPrice})`);
+  const isPending=!x.source,li=el('li',`${ddmm(x.date)} · ${teamName(x.team)}: ${byId.get(x.outId)?.name} (${x.outPrice}) → ${byId.get(x.inId)?.name} (${x.inPrice}) · ${x.source==='sports.ru'?'Sports.ru':x.source==='league'?'журнал Лиги':'не отправлено'}`);
   if(isPending){li.classList.add('pending');li.append(link('Отправить в журнал ↗',issueUrl(`${teamName(x.team)}: ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`,{action:'transfer',...x}),'sp-send'));
    const del=el('button','Удалить');del.onclick=()=>{pending=pending.filter(p=>!same(p,x));writeStored('fbl-transfers',JSON.stringify(pending));renderSeason();};li.append(del);}
-  else if(i===league.transfers.length-1&&!pending.length)li.append(link('Отменить в журнале ↗',issueUrl('отменить последний трансфер',{action:'undo'}),'sp-send'));
+  else if(x.source==='league'&&same(x,league.transfers.at(-1)||{})&&!pending.length)li.append(link('Отменить в журнале ↗',issueUrl('отменить последний трансфер',{action:'undo'}),'sp-send'));
   list.append(li);});
  if(!ctx.transfers.length)list.append(el('li','Пока пусто. Записывай одобренные Лигой трансферы любой команды — составы, банк и свободные агенты пересчитаются.','muted'));
+ const connected=[...ctx.connected].sort();
+ box.append(el('p',connected.length?`Автоматически с Sports.ru: ${connected.map(teamName).join(', ')}. Их трансферы, баланс и остаток трансферов подтягиваются сами каждые 2 часа.`:'Команды Sports.ru не подключены: трансферы берутся из журнала Лиги.','muted'));
+ for(const w of ctx.warnings||[])box.append(el('p',`⚠️ ${teamName(w.team)}: ${w.message}`,'muted'));
  box.append(list,el('small','Записи с жёлтой меткой есть только на этом устройстве. «Отправить в журнал» открывает GitHub с готовой заявкой: после «Submit new issue» бот проверяет правила и добавляет её в общий журнал примерно за минуту. Уведомления в Telegram видят только общий журнал.','muted'));
  return box;
 }

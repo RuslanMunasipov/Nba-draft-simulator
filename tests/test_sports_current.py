@@ -37,6 +37,18 @@ class SportsCurrentTest(unittest.TestCase):
         self.assertEqual([(g['date'], g['played'], g['points'], g['price']) for g in games],
                          [('2026-10-23', False, 0, 3500), ('2026-10-25', True, 48, 3600)])
 
+    def test_team_profile_and_journal(self):
+        profile = """<h1><b>The Balkan Murderers</b></h1><table class="profile-table"><tr><th>Место</th><td>586 из 1280 </tr></table>
+<table class="profile-table"><tr><th>Стоимость команды</th><td>19800</td></tr><tr><th>Баланс</th><td>200</td></tr><tr><th>Трансферы</th><td>2</td></tr></table>"""
+        self.assertEqual(collector.parse_team(profile), {'name': 'The Balkan Murderers', 'value': 19800, 'balance': 200,
+                                                          'transfersLeft': 2, 'place': 586, 'of': 1280})
+        journal = """<thead><tr><td>Дата</td><td>Покупки</td><td>Продажи</td></tr></thead><tbody>
+<tr><td class="bordR">25.10.26</td><td class="bordR">куплен Зайон за <span class="text-minus">2000</span></td><td class="">продан Рэндл за <span>1800</span></td></tr>
+<tr><td class="bordR">18.10.26</td><td class="bordR">куплен Дж. Мюррэй за <span class="text-minus">2200</span></td><td class=""></td></tr></tbody>"""
+        self.assertEqual(collector.parse_journal(journal), [
+            {'date': '2026-10-18', 'buy': {'name': 'Дж. Мюррэй', 'price': 2200}, 'sell': None},
+            {'date': '2026-10-25', 'buy': {'name': 'Зайон', 'price': 2000}, 'sell': {'name': 'Рэндл', 'price': 1800}}])
+
 
 if __name__ == '__main__':
     unittest.main()

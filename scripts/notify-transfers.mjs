@@ -2,7 +2,7 @@
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,WEEKLY_TRANSFERS} from '../src/season.js';
 import {teamLabel} from '../src/teams.js';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
@@ -14,9 +14,12 @@ const db=process.env.DB_PATH?JSON.parse(fs.readFileSync(process.env.DB_PATH,'utf
 const league=JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import.meta.url),'utf8'));
 const previous=await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
 const byId=new Map(db.players.map(p=>[p.id,p])),today=moscowToday();
-const ctx={players:db.players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(league.transfers)};
-const money=Number.isFinite(league.banks?.[team])?league.banks[team]:bank(team,league.transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);
-const left=Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(league.transfers,team,today));
+const {transfers,warnings}=allTransfers(db.players,live,league);
+const ctx={players:db.players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers)};
+const sports=live.teams?.[team];
+const money=Number.isFinite(sports?.balance)?sports.balance:Number.isFinite(league.banks?.[team])?league.banks[team]:bank(team,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);
+const left=Number.isFinite(sports?.transfersLeft)?sports.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,team,today));
+for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const alerts=marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20});
 const pack=left>1?bestPackage(ctx,{team,bankMoney:money,k:left,sort}):null;
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
