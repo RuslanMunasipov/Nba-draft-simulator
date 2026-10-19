@@ -38,9 +38,9 @@ def crypt(data, decrypt=False):
     return subprocess.run(args, input=data, capture_output=True, check=True).stdout
 
 
-def token_request(**fields):
+def token_request(redirect=None, **fields):
     auth = base64.b64encode(f"{secret('YAHOO_CLIENT_ID')}:{secret('YAHOO_CLIENT_SECRET')}".encode()).decode()
-    redirect = os.environ.get('YAHOO_REDIRECT_URI', '').strip() or 'oob'
+    redirect = redirect or os.environ.get('YAHOO_REDIRECT_URI', '').strip() or 'oob'
     body = urllib.parse.urlencode({'redirect_uri': redirect, **fields}).encode()
     req = urllib.request.Request(TOKEN_URL, data=body, headers={'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded'})
     try:
@@ -48,7 +48,11 @@ def token_request(**fields):
             return json.loads(r.read())
     except urllib.error.HTTPError as e:
         # Yahoo's explanation (invalid_grant, redirect mismatch, bad client) carries no secrets.
-        raise SystemExit(f'Yahoo token request failed ({e.code}, redirect_uri={redirect}): {e.read().decode(errors="replace")[:500]}')
+        raise TokenError(f'Yahoo token request failed ({e.code}): {e.read().decode(errors="replace")[:500]}') from None
+
+
+class TokenError(Exception):
+    pass
 
 
 def clean_code(value):
@@ -59,8 +63,46 @@ def clean_code(value):
     return urllib.parse.unquote(value).strip()
 
 
+def pasted_code():
+    """The workflow input, read from the event payload so it never appears in the step's printed environment."""
+    value = os.environ.get('YAHOO_CODE', '')
+    event = os.environ.get('GITHUB_EVENT_PATH')
+    if not value and event and Path(event).exists():
+        value = json.loads(Path(event).read_text()).get('inputs', {}).get('code', '')
+    if not value.strip():
+        raise SystemExit('No Yahoo code given')
+    print(f'::add-mask::{value.strip()}')
+    return value.strip()
+
+
+def redirect_candidates(pasted):
+    """Yahoo needs the exact registered address: try the configured one, the pasted address and slash/oob variants."""
+    seeds = [os.environ.get('YAHOO_REDIRECT_URI', '').strip()]
+    if pasted.startswith('http'):
+        seeds.append(pasted.split('?', 1)[0])
+    out = []
+    for seed in seeds:
+        if not seed:
+            continue
+        for v in (seed, seed.rstrip('/'), seed.rstrip('/') + '/'):
+            if v not in out:
+                out.append(v)
+    return out + (['oob'] if 'oob' not in out else [])
+
+
 def exchange(path):
-    tokens = token_request(grant_type='authorization_code', code=clean_code(secret('YAHOO_CODE')))
+    pasted = pasted_code()
+    code, tokens = clean_code(pasted), None
+    for redirect in redirect_candidates(pasted):
+        try:
+            tokens = token_request(redirect=redirect, grant_type='authorization_code', code=code)
+            break
+        except TokenError as e:
+            print(e)
+            if 'REDIRECT' not in str(e).upper():
+                raise SystemExit(1)
+    if tokens is None:
+        raise SystemExit('No redirect address matched the one registered in the Yahoo app (see the errors above).')
     Path(path).write_bytes(crypt(tokens['refresh_token'].encode()))
     print('Yahoo connected: refresh token stored encrypted.')
 
@@ -106,7 +148,10 @@ def parse_transactions(xml):
 
 def collect(live_path, token_path):
     refresh = crypt(Path(token_path).read_bytes(), decrypt=True).decode()
-    tokens = token_request(grant_type='refresh_token', refresh_token=refresh)
+    try:
+        tokens = token_request(grant_type='refresh_token', refresh_token=refresh)
+    except TokenError as e:
+        raise SystemExit(str(e))
     if tokens.get('refresh_token') and tokens['refresh_token'] != refresh:
         Path(token_path).write_bytes(crypt(tokens['refresh_token'].encode()))
 
