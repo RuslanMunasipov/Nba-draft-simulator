@@ -68,7 +68,7 @@ export function transfersThisWeek(transfers,team,today,weeks){
 export const PRIOR_GAMES=10;
 export {CALIBRATION};
 export const clockMinutes=v=>{const m=String(v??'').match(/^(\d+):(\d{2})$/);return m?Number(m[1])+Number(m[2])/60:Math.max(0,Number(v)||0);};
-const newcomer=p=>p.isRookie===true||p.forecast?.origin==='EMPIRICAL_ROLE_PRIOR';
+const newcomer=p=>p.isRookie===true||['EMPIRICAL_ROLE_PRIOR','DRAFT_PICK_MODEL','UNDRAFTED_ROOKIE_MODEL','SPORTS_PRICE_PRIOR'].includes(p.forecast?.origin);
 export function perGame(player,live){
  const prior=Number.isFinite(player.forecast?.meanPerGame)?player.forecast.meanPerGame:Number.isFinite(player.projectedFP)?player.projectedFP:0;
  const played=(live?.games||[]).filter(g=>g.played),sum=played.reduce((s,g)=>s+g.points,0);

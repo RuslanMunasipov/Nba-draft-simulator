@@ -46,15 +46,33 @@ def roster(team):
             'source':f"{BASE}/teams/{team['id']}/roster"})
     return result
 
-def make_database(history,baseline,current,now):
+def identity_map():
+    """ESPN athlete id -> NBA person id from the reviewed crosswalks (corroborated identities, Sports.ru map)."""
+    out={}
+    for path,key in [(Path('data/verified-identities.json'),'mappings'),(Path('data/sports-player-map.json'),'players')]:
+        if not path.exists():continue
+        for row in json.loads(path.read_text())[key]:
+            if row.get('espnId') and row.get('nbaId'):
+                previous=out.setdefault(str(row['espnId']),int(row['nbaId']))
+                if previous!=int(row['nbaId']):raise ValueError(f"Conflicting NBA ids for ESPN {row['espnId']}")
+    return out
+
+def make_database(history,baseline,current,now,identities=None):
     history_by_name={}
     for p in history['players']:history_by_name.setdefault(normalize(p['name']),[]).append(p)
+    history_by_nba={p['id']:p for p in history['players']}
+    identities=identities or {}
+    # Reviewed ids first; a unique normalized name only when no id is known ("Yang Hansen" vs "Hansen Yang" never meet).
+    def match(athlete):
+        nba=identities.get(athlete['espnId'])
+        if nba is not None:return [history_by_nba[nba]] if nba in history_by_nba else []
+        return history_by_name.get(normalize(athlete['name']),[])
     estimates={p['id']:p for p in baseline['players']}
     # A transparent reference cohort: new-to-2025/26 NBA histories, with 20+ games,
     # and <=2 years of experience reported in the current roster. Not an individual rookie forecast.
     cohort=[]
     for athlete in current:
-        matches=history_by_name.get(normalize(athlete['name']),[])
+        matches=match(athlete)
         if len(matches)!=1:continue
         p=matches[0]
         if set(p['seasons'])=={'2025-26'} and p['seasons']['2025-26']['games']>=20 and athlete.get('experience') in (1,2):
@@ -66,7 +84,7 @@ def make_database(history,baseline,current,now):
     for athlete in current:
         if athlete['espnId'] in used_espn:raise ValueError('Duplicate ESPN player across rosters')
         used_espn.add(athlete['espnId'])
-        matches=history_by_name.get(normalize(athlete['name']),[])
+        matches=match(athlete)
         historical=matches[0] if len(matches)==1 else None
         estimate=estimates.get(historical['id']) if historical else None
         identifier=historical['id'] if historical else 'espn:'+athlete['espnId']
@@ -134,7 +152,7 @@ if __name__=='__main__':
         for result in pool.map(roster,teams):current.extend(result)
     history=json.loads(Path('public/data/nba-history.json').read_text())
     baseline=json.loads(Path('public/data/experimental-baseline.json').read_text())
-    data=make_database(history,baseline,current,now)
+    data=make_database(history,baseline,current,now,identity_map())
     context=fetch_context(now)
     for p in data['players']:p['espnContext']=context.get(p.get('espnId',''))
     data['espnCoverage']={'sourcePlayers':len(context),'matchedPlayers':sum(p.get('espnContext') is not None for p in data['players']),'projectedGamesPlayers':sum((p.get('espnContext') or {}).get('projectedGames') is not None for p in data['players'])}

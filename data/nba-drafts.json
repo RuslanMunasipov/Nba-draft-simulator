@@ -1,0 +1,8633 @@
+{
+"source": "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/{year}/draft/rounds?limit=100",
+"drafts": {
+"2003": [
+{
+"overall": 1,
+"round": 1,
+"name": "LeBron James",
+"draftAthleteId": "78425"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Darko Milicic",
+"draftAthleteId": "78423"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Carmelo Anthony",
+"draftAthleteId": "78433"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Chris Bosh",
+"draftAthleteId": "78511"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Dwyane Wade",
+"draftAthleteId": "78440"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Chris Kaman",
+"draftAthleteId": "78447"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Kirk Hinrich",
+"draftAthleteId": "78442"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "T.J. Ford",
+"draftAthleteId": "78444"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Michael Sweetney",
+"draftAthleteId": "78448"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Jarvis Hayes",
+"draftAthleteId": "78435"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Mickael Pietrus",
+"draftAthleteId": "78464"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Nick Collison",
+"draftAthleteId": "78443"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Marcus Banks",
+"draftAthleteId": "78487"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Luke Ridnour",
+"draftAthleteId": "78434"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Reece Gaines",
+"draftAthleteId": "78451"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Troy Bell",
+"draftAthleteId": "78459"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Zarko Cabarkapa",
+"draftAthleteId": "78463"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "David West",
+"draftAthleteId": "78446"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Aleksandar Pavlovic",
+"draftAthleteId": "78481"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Dahntay Jones",
+"draftAthleteId": "78455"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Boris Diaw",
+"draftAthleteId": "78465"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Zoran Planinic",
+"draftAthleteId": "78564"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Travis Outlaw",
+"draftAthleteId": "78427"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Brian Cook",
+"draftAthleteId": "78450"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Carlos Delfino",
+"draftAthleteId": "78547"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Ndudi Ebi",
+"draftAthleteId": "78424"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Kendrick Perkins",
+"draftAthleteId": "78430"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Leandrinho Barbosa",
+"draftAthleteId": "78545"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Josh Howard",
+"draftAthleteId": "78449"
+},
+{
+"overall": 30,
+"round": 2,
+"name": "Maciej Lampe",
+"draftAthleteId": "78461"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Jason Kapono",
+"draftAthleteId": "78479"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Luke Walton",
+"draftAthleteId": "78426"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Jerome  Beasley",
+"draftAthleteId": "78475"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Sofoklis Schortsanitis",
+"draftAthleteId": "78546"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Szymon Szewczyk",
+"draftAthleteId": "78567"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Mario Austin",
+"draftAthleteId": "78452"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Travis Hansen",
+"draftAthleteId": "78517"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Steve Blake",
+"draftAthleteId": "78506"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Slavko Vranes",
+"draftAthleteId": "78483"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Derrick Zimmerman",
+"draftAthleteId": "78486"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Willie Green",
+"draftAthleteId": "78543"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Zaur Pachulia",
+"draftAthleteId": "78549"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Keith Bogans",
+"draftAthleteId": "78504"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Malick Badiane",
+"draftAthleteId": "78565"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Matt Bonner",
+"draftAthleteId": "78491"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Sani Becirovic ",
+"draftAthleteId": "78576"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Maurice  Williams",
+"draftAthleteId": "78456"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "James Lang",
+"draftAthleteId": "78428"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "James Jones",
+"draftAthleteId": "78526"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Paccelis Morlende",
+"draftAthleteId": "78571"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Kyle Korver",
+"draftAthleteId": "78460"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Remon Van de Hare",
+"draftAthleteId": "78589"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Tommy Smith",
+"draftAthleteId": "78490"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Nedzad Sinanovic",
+"draftAthleteId": "78590"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Rick Rickert",
+"draftAthleteId": "78454"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Brandon Hunter",
+"draftAthleteId": "78550"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Xue Yuyang ",
+"draftAthleteId": "78588"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Andreas Gliniadakis",
+"draftAthleteId": "78591"
+}
+],
+"2004": [
+{
+"overall": 1,
+"round": 1,
+"name": "Dwight Howard",
+"draftAthleteId": "78627"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Emeka Okafor",
+"draftAthleteId": "78626"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Ben Gordon",
+"draftAthleteId": "78608"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Shaun Livingston",
+"draftAthleteId": "78607"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Devin Harris",
+"draftAthleteId": "78642"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Josh Childress",
+"draftAthleteId": "78618"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Luol Deng",
+"draftAthleteId": "78617"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Rafael Araujo",
+"draftAthleteId": "78606"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Andre  Iguodala",
+"draftAthleteId": "78609"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Luke Jackson",
+"draftAthleteId": "78613"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Andris Biedrins",
+"draftAthleteId": "78628"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Robert Swift",
+"draftAthleteId": "78660"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Sebastian Telfair",
+"draftAthleteId": "78644"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Kris Humphries",
+"draftAthleteId": "78630"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Al Jefferson",
+"draftAthleteId": "78631"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Kirk Snyder",
+"draftAthleteId": "78612"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Josh Smith",
+"draftAthleteId": "78619"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "J.R. Smith",
+"draftAthleteId": "78610"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Dorell Wright",
+"draftAthleteId": "78614"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Jameer Nelson",
+"draftAthleteId": "78643"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Pavel Podkolzin",
+"draftAthleteId": "78654"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Viktor Khryapa",
+"draftAthleteId": "78625"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Sergei Monia",
+"draftAthleteId": "78611"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Delonte West",
+"draftAthleteId": "78615"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Tony Allen",
+"draftAthleteId": "78665"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Kevin Martin",
+"draftAthleteId": "78616"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Sasha Vujacic",
+"draftAthleteId": "78645"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Beno Udrih",
+"draftAthleteId": "78667"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "David Harrison",
+"draftAthleteId": "78657"
+},
+{
+"overall": 30,
+"round": 2,
+"name": "Anderson Varejao",
+"draftAthleteId": "78632"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Jackson Vroman",
+"draftAthleteId": "78679"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Peter John Ramos",
+"draftAthleteId": "78659"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Lionel Chalmers",
+"draftAthleteId": "78652"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Donta Smith",
+"draftAthleteId": "78635"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Andre Emmett",
+"draftAthleteId": "78664"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Antonio Burks",
+"draftAthleteId": "78648"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Royal Ivey",
+"draftAthleteId": "78703"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Chris  Duhon",
+"draftAthleteId": "78647"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Albert  Miralles",
+"draftAthleteId": "78675"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Justin Reed",
+"draftAthleteId": "78704"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "David Young",
+"draftAthleteId": "78705"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Viktor Sanikidze",
+"draftAthleteId": "78691"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Trevor Ariza",
+"draftAthleteId": "78620"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Tim Pickett",
+"draftAthleteId": "78668"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Bernard Robinson",
+"draftAthleteId": "78701"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Ha Seung-Jin",
+"draftAthleteId": "78661"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Pape Sow",
+"draftAthleteId": "78702"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Ricky  Minard",
+"draftAthleteId": "78670"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Sergei Lishouk",
+"draftAthleteId": "78640"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Vassilis Spanoulis",
+"draftAthleteId": "78686"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Christian Drejer",
+"draftAthleteId": "78624"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Romain Sato",
+"draftAthleteId": "78633"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Matt  Freije",
+"draftAthleteId": "78699"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Rickey Paulding",
+"draftAthleteId": "78634"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Luis Flores",
+"draftAthleteId": "78698"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Marcus Douthit",
+"draftAthleteId": "78696"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Sergei Karaulov",
+"draftAthleteId": "78706"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Blake Stepp",
+"draftAthleteId": "78650"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Rashad Wright",
+"draftAthleteId": "78707"
+}
+],
+"2005": [
+{
+"overall": 1,
+"round": 1,
+"name": "Andrew Bogut",
+"draftAthleteId": "78715"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Marvin Williams",
+"draftAthleteId": "78751"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Deron Williams",
+"draftAthleteId": "78717"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Chris Paul",
+"draftAthleteId": "78716"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Raymond Felton",
+"draftAthleteId": "78784"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Martell Webster",
+"draftAthleteId": "78733"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Charlie Villanueva",
+"draftAthleteId": "78753"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Channing  Frye",
+"draftAthleteId": "78730"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Ike Diogu",
+"draftAthleteId": "78776"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Andrew Bynum",
+"draftAthleteId": "78773"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Fran Vazquez",
+"draftAthleteId": "78759"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Yaroslav Korolev",
+"draftAthleteId": "78770"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Sean  May",
+"draftAthleteId": "78750"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Rashad McCants",
+"draftAthleteId": "78756"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Antoine Wright",
+"draftAthleteId": "78755"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Joey Graham",
+"draftAthleteId": "78718"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Danny  Granger",
+"draftAthleteId": "78721"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Gerald Green",
+"draftAthleteId": "78711"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Hakim Warrick",
+"draftAthleteId": "78725"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Julius Hodge",
+"draftAthleteId": "78757"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Nate  Robinson",
+"draftAthleteId": "78782"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Jarrett Jack",
+"draftAthleteId": "78723"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Francisco  Garcia",
+"draftAthleteId": "78722"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Luther Head",
+"draftAthleteId": "78731"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Johan Petro",
+"draftAthleteId": "78744"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Jason Maxiell",
+"draftAthleteId": "78791"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Linas  Kleiza",
+"draftAthleteId": "78779"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Ian Mahinmi",
+"draftAthleteId": "78819"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Wayne Simien",
+"draftAthleteId": "78728"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "David  Lee",
+"draftAthleteId": "78729"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Salim  Stoudamire",
+"draftAthleteId": "78780"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Daniel Ewing",
+"draftAthleteId": "78804"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Brandon Bass",
+"draftAthleteId": "78793"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "C. J. Miles",
+"draftAthleteId": "78787"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Ricky Sanchez",
+"draftAthleteId": "78825"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Ersan Ilyasova",
+"draftAthleteId": "78739"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Ronny Turiaf",
+"draftAthleteId": "78727"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Travis Diener",
+"draftAthleteId": "78820"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Von Wafer",
+"draftAthleteId": "78821"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Monta Ellis",
+"draftAthleteId": "78735"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Roko Ukic",
+"draftAthleteId": "78742"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Chris Taft",
+"draftAthleteId": "78720"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Mile Ilic",
+"draftAthleteId": "78775"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Martynas Andriuskevicius",
+"draftAthleteId": "78746"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Louis Williams",
+"draftAthleteId": "78734"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Erazem  Lorbek",
+"draftAthleteId": "78764"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Bracey Wright",
+"draftAthleteId": "78813"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Mickaël Gelabale",
+"draftAthleteId": "78748"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Andray Blatche",
+"draftAthleteId": "78736"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Ryan Gomes",
+"draftAthleteId": "78726"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Robert Whaley",
+"draftAthleteId": "78827"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Axel Hervelle",
+"draftAthleteId": "78792"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Orien Greene",
+"draftAthleteId": "78824"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Dijon  Thompson",
+"draftAthleteId": "78805"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Lawrence  Roberts",
+"draftAthleteId": "78789"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Amir Johnson",
+"draftAthleteId": "78786"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Marcin Gortat",
+"draftAthleteId": "78798"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Uros Slokar",
+"draftAthleteId": "78794"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Cenk Akyol",
+"draftAthleteId": "78828"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Alex Acker",
+"draftAthleteId": "78812"
+}
+],
+"2006": [
+{
+"overall": 1,
+"round": 1,
+"name": "Andrea Bargnani",
+"draftAthleteId": "78837"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "LaMarcus  Aldridge",
+"draftAthleteId": "78836"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Adam Morrison",
+"draftAthleteId": "78840"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Tyrus Thomas",
+"draftAthleteId": "78951"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Shelden Williams",
+"draftAthleteId": "78847"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Brandon  Roy",
+"draftAthleteId": "78898"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Randy Foye",
+"draftAthleteId": "78945"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Rudy Gay",
+"draftAthleteId": "79058"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Patrick  O'Bryant",
+"draftAthleteId": "78950"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Mouhamed Sene",
+"draftAthleteId": "78983"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "J.J. Redick",
+"draftAthleteId": "78853"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Hilton Armstrong",
+"draftAthleteId": "78940"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Thabo  Sefolosha",
+"draftAthleteId": "78969"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Ronnie Brewer",
+"draftAthleteId": "78839"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Cedric Simmons",
+"draftAthleteId": "78956"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Rodney Carney",
+"draftAthleteId": "78849"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Shawne  Williams",
+"draftAthleteId": "78939"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Oleksiy Pecherov",
+"draftAthleteId": "78910"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Quincy Douby",
+"draftAthleteId": "78971"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Renaldo  Balkman",
+"draftAthleteId": "78992"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Rajon Rondo",
+"draftAthleteId": "78834"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Marcus Williams",
+"draftAthleteId": "78846"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Josh Boone",
+"draftAthleteId": "78848"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Kyle  Lowry",
+"draftAthleteId": "78888"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Shannon Brown",
+"draftAthleteId": "78893"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Jordan Farmar",
+"draftAthleteId": "78858"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Sergio Rodriguez",
+"draftAthleteId": "78861"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Maurice Ager",
+"draftAthleteId": "78897"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Mardy Collins",
+"draftAthleteId": "78850"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Joel Freeland",
+"draftAthleteId": "79010"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "James White",
+"draftAthleteId": "78947"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Steve Novak",
+"draftAthleteId": "78965"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Solomon  Jones",
+"draftAthleteId": "78987"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Paul Davis",
+"draftAthleteId": "78873"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "P.J. Tucker",
+"draftAthleteId": "78975"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Craig Smith",
+"draftAthleteId": "78904"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Bobby Jones",
+"draftAthleteId": "78985"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Kosta  Perovic",
+"draftAthleteId": "78915"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "David Noel",
+"draftAthleteId": "79005"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Denham  Brown",
+"draftAthleteId": "78919"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "James Augustine",
+"draftAthleteId": "78932"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Daniel Gibson",
+"draftAthleteId": "78835"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Marcus Vinicius",
+"draftAthleteId": "78948"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Lior  Eliyahu ",
+"draftAthleteId": "78936"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Alexander Johnson",
+"draftAthleteId": "78973"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Dee Brown",
+"draftAthleteId": "78864"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Paul Millsap",
+"draftAthleteId": "78870"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Vladimir  Veremeenko",
+"draftAthleteId": "78912"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Leon Powe",
+"draftAthleteId": "78871"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Ryan Hollins",
+"draftAthleteId": "78982"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Cheick Samb",
+"draftAthleteId": "79015"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Guillermo Diaz",
+"draftAthleteId": "78851"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Yotam Halperin ",
+"draftAthleteId": "78938"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Hassan Adams",
+"draftAthleteId": "78867"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Ejike Ugboaja",
+"draftAthleteId": "79059"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Edin Bavcic",
+"draftAthleteId": "79060"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Loukas Mavrokefalidis",
+"draftAthleteId": "79019"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Danilo Pinnock",
+"draftAthleteId": "79002"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Damir Markota",
+"draftAthleteId": "78906"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Will Blalock",
+"draftAthleteId": "78964"
+}
+],
+"2007": [
+{
+"overall": 1,
+"round": 1,
+"name": "Greg Oden",
+"draftAthleteId": "79020"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Kevin Durant",
+"draftAthleteId": "79021"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Al Horford",
+"draftAthleteId": "78841"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Mike  Conley",
+"draftAthleteId": "79055"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Jeff Green",
+"draftAthleteId": "78886"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Yi Jianlian",
+"draftAthleteId": "78866"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Corey Brewer",
+"draftAthleteId": "78857"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Brandan Wright",
+"draftAthleteId": "79023"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Joakim Noah",
+"draftAthleteId": "78958"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Spencer Hawes",
+"draftAthleteId": "79025"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Acie Law",
+"draftAthleteId": "79049"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Thaddeus  Young",
+"draftAthleteId": "79022"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Julian Wright",
+"draftAthleteId": "78855"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Al Thornton",
+"draftAthleteId": "78959"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Rodney  Stuckey",
+"draftAthleteId": "79074"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Nick Young",
+"draftAthleteId": "78955"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Sean Williams",
+"draftAthleteId": "78917"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Marco Belinelli",
+"draftAthleteId": "78914"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Javaris  Crittenton",
+"draftAthleteId": "79027"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Jason Smith",
+"draftAthleteId": "78889"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Daequan Cook",
+"draftAthleteId": "79036"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Jared  Dudley",
+"draftAthleteId": "78883"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Wilson Chandler",
+"draftAthleteId": "79098"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Rudy Fernandez",
+"draftAthleteId": "78844"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Morris Almond",
+"draftAthleteId": "78999"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Aaron Brooks",
+"draftAthleteId": "79102"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Arron Afflalo",
+"draftAthleteId": "78954"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Tiago Splitter",
+"draftAthleteId": "78838"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Alando Tucker",
+"draftAthleteId": "78903"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Petteri Koponen",
+"draftAthleteId": "79143"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Carl Landry",
+"draftAthleteId": "79123"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Gabe Pruitt",
+"draftAthleteId": "78856"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Marcus Williams",
+"draftAthleteId": "78941"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Nick Fazekas",
+"draftAthleteId": "78882"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Glen Davis",
+"draftAthleteId": "78952"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Jermareo  Davidson",
+"draftAthleteId": "78909"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Josh McRoberts",
+"draftAthleteId": "78854"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Kyrylo Fesenko",
+"draftAthleteId": "79003"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Stanko Barac",
+"draftAthleteId": "79115"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Sun Yue",
+"draftAthleteId": "79179"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Chris Richard",
+"draftAthleteId": "79138"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Derrick Byars",
+"draftAthleteId": "79120"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Adam Haluska",
+"draftAthleteId": "79111"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Reyshawn Terry",
+"draftAthleteId": "79072"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Jared Jordan",
+"draftAthleteId": "79107"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Stephane Lasme",
+"draftAthleteId": "79127"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Dominic McGuire",
+"draftAthleteId": "79103"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Marc Gasol",
+"draftAthleteId": "79101"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Aaron Gray",
+"draftAthleteId": "78961"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Renaldas  Seibutis",
+"draftAthleteId": "79008"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "JamesOn Curry",
+"draftAthleteId": "79095"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Taurean  Green",
+"draftAthleteId": "79046"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Demetris Nichols",
+"draftAthleteId": "78962"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Brad Newley",
+"draftAthleteId": "78977"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Herbert Hill",
+"draftAthleteId": "79105"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Ramon Sessions",
+"draftAthleteId": "79148"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Sammy Mejia",
+"draftAthleteId": "79181"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Giorgos Printezis",
+"draftAthleteId": "79187"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "D. J. Strawberry",
+"draftAthleteId": "78991"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Milovan  Rakovic",
+"draftAthleteId": "78994"
+}
+],
+"2008": [
+{
+"overall": 1,
+"round": 1,
+"name": "Derrick Rose",
+"draftAthleteId": "79132"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Michael Beasley",
+"draftAthleteId": "79133"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "O.J. Mayo",
+"draftAthleteId": "79129"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Russell Westbrook",
+"draftAthleteId": "79241"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Kevin Love",
+"draftAthleteId": "79130"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Danilo Gallinari",
+"draftAthleteId": "79078"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Eric Gordon",
+"draftAthleteId": "79131"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Joe Alexander",
+"draftAthleteId": "79096"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "D.J. Augustin",
+"draftAthleteId": "79083"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Brook  Lopez",
+"draftAthleteId": "79042"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Jerryd Bayless",
+"draftAthleteId": "79137"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Jason Thompson",
+"draftAthleteId": "79222"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Brandon  Rush",
+"draftAthleteId": "78881"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Anthony Randolph",
+"draftAthleteId": "79157"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Robin  Lopez",
+"draftAthleteId": "79045"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Marreese Speights ",
+"draftAthleteId": "79161"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Roy Hibbert",
+"draftAthleteId": "78974"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "JaVale McGee",
+"draftAthleteId": "79227"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "J. J.  Hickson",
+"draftAthleteId": "79215"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Alexis Ajinca ",
+"draftAthleteId": "78885"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Ryan Anderson",
+"draftAthleteId": "79084"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Courtney Lee",
+"draftAthleteId": "79224"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Kosta Koufos",
+"draftAthleteId": "79155"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Serge Ibaka",
+"draftAthleteId": "79206"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Nicolas Batum",
+"draftAthleteId": "79038"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "George Hill",
+"draftAthleteId": "79291"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Darrell Arthur",
+"draftAthleteId": "79062"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Donte Greene",
+"draftAthleteId": "79135"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "D.J. White",
+"draftAthleteId": "78916"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "J. R. Giddens",
+"draftAthleteId": "79067"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Nikola Pekovic",
+"draftAthleteId": "79209"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Walter  Sharpe",
+"draftAthleteId": "79314"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Joey Dorsey",
+"draftAthleteId": "79167"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Mario  Chalmers",
+"draftAthleteId": "78877"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "DeAndre Jordan",
+"draftAthleteId": "79136"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Omer Asik",
+"draftAthleteId": "79238"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Luc Richard Mbah a Moute",
+"draftAthleteId": "78978"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Kyle Weaver",
+"draftAthleteId": "79168"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Sonny Weems",
+"draftAthleteId": "79288"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Chris Douglas-Roberts",
+"draftAthleteId": "79166"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Nathan Jawai",
+"draftAthleteId": "79225"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Sean Singletary",
+"draftAthleteId": "79071"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Patrick Ewing Jr.",
+"draftAthleteId": "79298"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Ante  Tomic ",
+"draftAthleteId": "78884"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Goran Dragic",
+"draftAthleteId": "78990"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Trent  Plaisted",
+"draftAthleteId": "79029"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Bill Walker",
+"draftAthleteId": "79077"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Malik Hairston",
+"draftAthleteId": "78842"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Richard Hendrix",
+"draftAthleteId": "78890"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "DeVon Hardin",
+"draftAthleteId": "78960"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Shan Foster",
+"draftAthleteId": "79236"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Darnell Jackson",
+"draftAthleteId": "79235"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Tadija Dragicevic",
+"draftAthleteId": "79317"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Maarty Leunen",
+"draftAthleteId": "79318"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Mike Taylor",
+"draftAthleteId": "79295"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Sasha Kaun",
+"draftAthleteId": "78943"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "James Gist",
+"draftAthleteId": "79255"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Joe  Crawford",
+"draftAthleteId": "79312"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Deron Washington",
+"draftAthleteId": "79319"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Semih Erden",
+"draftAthleteId": "79210"
+}
+],
+"2009": [
+{
+"overall": 1,
+"round": 1,
+"name": "Blake Griffin",
+"draftAthleteId": "79213"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Hasheem Thabeet",
+"draftAthleteId": "79024"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "James Harden",
+"draftAthleteId": "79221"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Tyreke Evans",
+"draftAthleteId": "79259"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Ricky Rubio",
+"draftAthleteId": "79272"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Jonny Flynn",
+"draftAthleteId": "79160"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Stephen  Curry",
+"draftAthleteId": "79087"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Jordan Hill",
+"draftAthleteId": "79174"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "DeMar DeRozan",
+"draftAthleteId": "79262"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Brandon  Jennings",
+"draftAthleteId": "79261"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Terrence Williams",
+"draftAthleteId": "79220"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Gerald Henderson",
+"draftAthleteId": "79028"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Tyler Hansbrough",
+"draftAthleteId": "78875"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Earl Clark",
+"draftAthleteId": "79050"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Austin Daye",
+"draftAthleteId": "79214"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "James Johnson",
+"draftAthleteId": "79309"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Jrue Holiday",
+"draftAthleteId": "79263"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Ty Lawson",
+"draftAthleteId": "79034"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Jeff Teague",
+"draftAthleteId": "79334"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Eric Maynor",
+"draftAthleteId": "79124"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Darren  Collison",
+"draftAthleteId": "79079"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Victor Claver",
+"draftAthleteId": "79183"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Omri Casspi",
+"draftAthleteId": "79144"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "B.J. Mullens",
+"draftAthleteId": "79269"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Rodrigue Beaubois",
+"draftAthleteId": "79186"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Taj Gibson",
+"draftAthleteId": "79121"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "DeMarre Carroll",
+"draftAthleteId": "79277"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Wayne Ellington",
+"draftAthleteId": "79032"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Toney Douglas",
+"draftAthleteId": "79358"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Christian Eyenga",
+"draftAthleteId": "79429"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Jeff Pendergraph",
+"draftAthleteId": "79164"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Jermaine Taylor",
+"draftAthleteId": "79353"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Dante Cunningham",
+"draftAthleteId": "79347"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Sergio Llull",
+"draftAthleteId": "79364"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "DaJuan Summers",
+"draftAthleteId": "79172"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Sam Young",
+"draftAthleteId": "79234"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "DeJuan Blair",
+"draftAthleteId": "79230"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Jon Brockman",
+"draftAthleteId": "79328"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Jonas Jerebko",
+"draftAthleteId": "79303"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Derrick Brown",
+"draftAthleteId": "79254"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Jodie Meeks",
+"draftAthleteId": "79339"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Patrick Beverley",
+"draftAthleteId": "79204"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Marcus Thornton",
+"draftAthleteId": "79351"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Chase  Budinger",
+"draftAthleteId": "79026"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Nick Calathes",
+"draftAthleteId": "79153"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Danny Green",
+"draftAthleteId": "79232"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Henk Norel",
+"draftAthleteId": "79304"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Taylor Griffin",
+"draftAthleteId": "79433"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Sergiy Gladyr",
+"draftAthleteId": "79419"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Goran Suton",
+"draftAthleteId": "79376"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Jack McClinton",
+"draftAthleteId": "79333"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "A.J.  Price",
+"draftAthleteId": "79039"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Nando De Colo",
+"draftAthleteId": "79286"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Robert Vaden",
+"draftAthleteId": "78967"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Patrick Mills",
+"draftAthleteId": "79321"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Ahmad Nivins",
+"draftAthleteId": "79383"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Emir Preldzic",
+"draftAthleteId": "79366"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Lester Hudson",
+"draftAthleteId": "79245"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Chinemelu Elonu",
+"draftAthleteId": "79416"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Robert Dozier",
+"draftAthleteId": "79165"
+}
+],
+"2010": [
+{
+"overall": 1,
+"round": 1,
+"name": "John Wall",
+"draftAthleteId": "79378"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Evan Turner",
+"draftAthleteId": "79201"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Derrick Favors",
+"draftAthleteId": "79377"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Wesley Johnson",
+"draftAthleteId": "79444"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "DeMarcus Cousins",
+"draftAthleteId": "79380"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Ekpe Udoh",
+"draftAthleteId": "79448"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Greg Monroe",
+"draftAthleteId": "79265"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Al-Farouq Aminu",
+"draftAthleteId": "79268"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Gordon Hayward",
+"draftAthleteId": "79368"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Paul George",
+"draftAthleteId": "79361"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Cole Aldrich",
+"draftAthleteId": "79156"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Xavier Henry",
+"draftAthleteId": "79379"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Ed Davis",
+"draftAthleteId": "79271"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Patrick Patterson",
+"draftAthleteId": "79151"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Larry Sanders",
+"draftAthleteId": "79359"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Luke Babbitt",
+"draftAthleteId": "79424"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Kevin Seraphin",
+"draftAthleteId": "79388"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Eric Bledsoe",
+"draftAthleteId": "79462"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Avery Bradley",
+"draftAthleteId": "79390"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "James Anderson",
+"draftAthleteId": "79226"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Craig Brackins",
+"draftAthleteId": "79331"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Elliot Williams",
+"draftAthleteId": "79479"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Trevor Booker",
+"draftAthleteId": "79345"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Damion James",
+"draftAthleteId": "79251"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Dominique Jones",
+"draftAthleteId": "79520"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Quincy Pondexter",
+"draftAthleteId": "79064"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Jordan Crawford",
+"draftAthleteId": "79452"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Greivis  Vasquez",
+"draftAthleteId": "79085"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Daniel Orton",
+"draftAthleteId": "79401"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Lazar Hayward",
+"draftAthleteId": "79588"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Tibor Pleiss",
+"draftAthleteId": "79526"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Dexter Pittman",
+"draftAthleteId": "79425"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Hassan Whiteside",
+"draftAthleteId": "79497"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Armon Johnson",
+"draftAthleteId": "79443"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Nemanja Bjelica",
+"draftAthleteId": "79430"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Terrico White",
+"draftAthleteId": "79357"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Darington Hobson",
+"draftAthleteId": "79489"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Andy Rautins",
+"draftAthleteId": "79508"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Landry Fields",
+"draftAthleteId": "79502"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Lance Stephenson",
+"draftAthleteId": "79382"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Jarvis Varnado",
+"draftAthleteId": "79327"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Da'Sean Butler",
+"draftAthleteId": "79352"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Devin Ebanks",
+"draftAthleteId": "79273"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Jerome Jordan",
+"draftAthleteId": "79289"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Paulao Prestes",
+"draftAthleteId": "79423"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Gani Lawal",
+"draftAthleteId": "79171"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Keith Gallon",
+"draftAthleteId": "79402"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Latavious Williams",
+"draftAthleteId": "79507"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Ryan Richards",
+"draftAthleteId": "79557"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Solomon Alabi",
+"draftAthleteId": "79370"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Magnum Rolle",
+"draftAthleteId": "79589"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Luke Harangody",
+"draftAthleteId": "79249"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Pape Sy",
+"draftAthleteId": "79594"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Willie Warren",
+"draftAthleteId": "79322"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Jeremy  Evans",
+"draftAthleteId": "79595"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Hamady N'diaye",
+"draftAthleteId": "79593"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Ryan Reid",
+"draftAthleteId": "79596"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Derrick  Caracter",
+"draftAthleteId": "79035"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Stanley Robinson",
+"draftAthleteId": "79065"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Dwayne Collins",
+"draftAthleteId": "79385"
+}
+],
+"2011": [
+{
+"overall": 1,
+"round": 1,
+"name": "Kyrie Irving",
+"draftAthleteId": "79542"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Derrick Williams",
+"draftAthleteId": "79490"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Enes Kanter",
+"draftAthleteId": "79524"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Tristan Thompson",
+"draftAthleteId": "79554"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Jonas Valanciunas",
+"draftAthleteId": "79523"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Jan Vesely",
+"draftAthleteId": "79415"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Bismack Biyombo",
+"draftAthleteId": "79642"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Brandon  Knight",
+"draftAthleteId": "79546"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Kemba Walker",
+"draftAthleteId": "79270"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Jimmer Fredette",
+"draftAthleteId": "79505"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Klay Thompson",
+"draftAthleteId": "79450"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Alec Burks",
+"draftAthleteId": "79510"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Markieff Morris",
+"draftAthleteId": "79601"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Marcus Morris",
+"draftAthleteId": "79449"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Kawhi Leonard",
+"draftAthleteId": "79534"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Nikola Vucevic",
+"draftAthleteId": "79626"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Iman Shumpert",
+"draftAthleteId": "79346"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Chris Singleton",
+"draftAthleteId": "79324"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Tobias Harris",
+"draftAthleteId": "79564"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Donatas Motiejunas",
+"draftAthleteId": "79306"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Nolan Smith",
+"draftAthleteId": "79149"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Kenneth Faried",
+"draftAthleteId": "79371"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Nikola Mirotic",
+"draftAthleteId": "79552"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Reggie Jackson",
+"draftAthleteId": "79632"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Marshon Brooks",
+"draftAthleteId": "79628"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Jordan Hamilton",
+"draftAthleteId": "79396"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "JaJuan Johnson",
+"draftAthleteId": "79369"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Norris Cole",
+"draftAthleteId": "79597"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Cory Joseph",
+"draftAthleteId": "79548"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Jimmy Butler",
+"draftAthleteId": "79646"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Bojan Bogdanovic",
+"draftAthleteId": "79560"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Justin Harper",
+"draftAthleteId": "79635"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Kyle Singler",
+"draftAthleteId": "79134"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Shelvin Mack",
+"draftAthleteId": "79599"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Tyler  Honeycutt",
+"draftAthleteId": "79496"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Jordan Williams",
+"draftAthleteId": "79607"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Trey Thompkins",
+"draftAthleteId": "79446"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Chandler Parsons",
+"draftAthleteId": "79602"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Jeremy Tyler",
+"draftAthleteId": "79575"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Jon Leuer",
+"draftAthleteId": "79614"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Darius Morris",
+"draftAthleteId": "79620"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Davis Bertans",
+"draftAthleteId": "79673"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Malcolm Lee",
+"draftAthleteId": "79274"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Charles Jenkins",
+"draftAthleteId": "79625"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Josh Harrellson",
+"draftAthleteId": "79665"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Andrew Goudelock",
+"draftAthleteId": "79671"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Travis Leslie",
+"draftAthleteId": "79531"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Keith Benson",
+"draftAthleteId": "79465"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Josh Selby",
+"draftAthleteId": "79545"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Lavoy Allen",
+"draftAthleteId": "79573"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Jon Diebler",
+"draftAthleteId": "79661"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Vernon Macklin",
+"draftAthleteId": "79052"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "DeAndre Liggins",
+"draftAthleteId": "79666"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Milan Macvan",
+"draftAthleteId": "79387"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "E'Twaun Moore",
+"draftAthleteId": "79582"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Chukwudiebere Maduabum",
+"draftAthleteId": "79711"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Targuy Ngombo",
+"draftAthleteId": "79719"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Ater Majok",
+"draftAthleteId": "79414"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Adam Hanga",
+"draftAthleteId": "79683"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Isaiah Thomas",
+"draftAthleteId": "79492"
+}
+],
+"2012": [
+{
+"overall": 1,
+"round": 1,
+"name": "Anthony Davis",
+"draftAthleteId": "79650"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Michael Kidd-Gilchrist",
+"draftAthleteId": "79651"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Bradley Beal",
+"draftAthleteId": "79658"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Dion Waiters",
+"draftAthleteId": "79577"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Thomas Robinson",
+"draftAthleteId": "79459"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Damian Lillard",
+"draftAthleteId": "79747"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Harrison Barnes",
+"draftAthleteId": "79461"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Terrence Ross",
+"draftAthleteId": "79640"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Andre Drummond",
+"draftAthleteId": "79721"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Austin Rivers",
+"draftAthleteId": "79653"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Meyers Leonard",
+"draftAthleteId": "79727"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Jeremy Lamb",
+"draftAthleteId": "79660"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Kendall Marshall",
+"draftAthleteId": "79572"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "John Henson",
+"draftAthleteId": "79381"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Maurice Harkless",
+"draftAthleteId": "79780"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Royce White",
+"draftAthleteId": "79456"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Tyler Zeller",
+"draftAthleteId": "79474"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Terrence Jones",
+"draftAthleteId": "79555"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Andrew Nicholson",
+"draftAthleteId": "79486"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Evan Fournier",
+"draftAthleteId": "79672"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Jared Sullinger",
+"draftAthleteId": "79544"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Fab Melo",
+"draftAthleteId": "79563"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "John Jenkins",
+"draftAthleteId": "79629"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Jared Cunningham",
+"draftAthleteId": "79743"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Tony Wroten Jr.",
+"draftAthleteId": "79694"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Miles Plumlee",
+"draftAthleteId": "79698"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Arnett Moultrie",
+"draftAthleteId": "79464"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Perry Jones",
+"draftAthleteId": "79543"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Marquis Teague",
+"draftAthleteId": "79655"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Festus Ezeli",
+"draftAthleteId": "79447"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Jeff Taylor",
+"draftAthleteId": "79445"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Tomas Satoransky",
+"draftAthleteId": "79434"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Bernard James",
+"draftAthleteId": "79740"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Jae Crowder",
+"draftAthleteId": "79742"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Draymond Green",
+"draftAthleteId": "79611"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Orlando Johnson",
+"draftAthleteId": "79670"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Quincy Acy",
+"draftAthleteId": "79533"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Quincy Miller",
+"draftAthleteId": "79652"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Khris Middleton",
+"draftAthleteId": "79622"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Will Barton",
+"draftAthleteId": "79570"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Tyshawn Taylor",
+"draftAthleteId": "79337"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Doron Lamb",
+"draftAthleteId": "79608"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Mike Scott",
+"draftAthleteId": "79782"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Kim English",
+"draftAthleteId": "79669"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Justin Hamilton",
+"draftAthleteId": "79810"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Darius Miller",
+"draftAthleteId": "79791"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Kevin Murphy",
+"draftAthleteId": "79784"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Kostas Papanikolaou",
+"draftAthleteId": "79836"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Kyle O'Quinn",
+"draftAthleteId": "79794"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Izzet Turkyilmaz",
+"draftAthleteId": "79843"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Kris Joseph",
+"draftAthleteId": "79532"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Ognjen Kuzmic",
+"draftAthleteId": "79844"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Furkan Aldemir",
+"draftAthleteId": "79688"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Tornike Shengelia",
+"draftAthleteId": "79744"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Darius Johnson-Odom",
+"draftAthleteId": "79649"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Tomislav Zubcic",
+"draftAthleteId": "79386"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Ilkan Karaman",
+"draftAthleteId": "79845"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Robbie Hummel",
+"draftAthleteId": "79243"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Marcus Denmon",
+"draftAthleteId": "79768"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Robert Sacre",
+"draftAthleteId": "79516"
+}
+],
+"2013": [
+{
+"overall": 1,
+"round": 1,
+"name": "Anthony Bennett",
+"draftAthleteId": "79804"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Victor Oladipo",
+"draftAthleteId": "79802"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Otto Porter",
+"draftAthleteId": "79761"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Cody Zeller",
+"draftAthleteId": "79696"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Alex Len",
+"draftAthleteId": "79814"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Nerlens Noel",
+"draftAthleteId": "79795"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Ben McLemore",
+"draftAthleteId": "79847"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Kentavious Caldwell-Pope",
+"draftAthleteId": "79705"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Trey Burke",
+"draftAthleteId": "79759"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "C.J. McCollum",
+"draftAthleteId": "79788"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Michael Carter-Williams",
+"draftAthleteId": "79702"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Steven Adams",
+"draftAthleteId": "79728"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Kelly Olynyk",
+"draftAthleteId": "79918"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Shabazz Muhammad",
+"draftAthleteId": "79735"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Giannis Antetokounmpo",
+"draftAthleteId": "79946"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Lucas Nogueira",
+"draftAthleteId": "79598"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Dennis Schroeder",
+"draftAthleteId": "79895"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Shane Larkin",
+"draftAthleteId": "79936"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Sergey Karasev",
+"draftAthleteId": "79785"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Tony Snell",
+"draftAthleteId": "79950"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Gorgui Dieng",
+"draftAthleteId": "79775"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Mason Plumlee",
+"draftAthleteId": "79400"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Solomon Hill",
+"draftAthleteId": "79927"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Tim Hardaway Jr.",
+"draftAthleteId": "79621"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Reggie Bullock",
+"draftAthleteId": "79571"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Andre Roberson",
+"draftAthleteId": "79733"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Rudy Gobert",
+"draftAthleteId": "79730"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Livio Jean-Charles",
+"draftAthleteId": "79998"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Archie Goodwin",
+"draftAthleteId": "79820"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Nemanja Nedovic",
+"draftAthleteId": "79691"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Allen Crabbe",
+"draftAthleteId": "79724"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Alex Abrines",
+"draftAthleteId": "79778"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Carrick Felix",
+"draftAthleteId": "79982"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Isaiah Canaan",
+"draftAthleteId": "79777"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Glen Rice Jr.",
+"draftAthleteId": "79947"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Ray McCallum",
+"draftAthleteId": "79603"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Tony Mitchell",
+"draftAthleteId": "79633"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Nate Wolters",
+"draftAthleteId": "79773"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Jeff Withey",
+"draftAthleteId": "79763"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Grant Jerrett",
+"draftAthleteId": "79800"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Jamaal Franklin",
+"draftAthleteId": "79848"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Pierre Jackson",
+"draftAthleteId": "79852"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Ricky Ledo",
+"draftAthleteId": "79846"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Mike Muscala",
+"draftAthleteId": "79889"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Marko Todorovic",
+"draftAthleteId": "79869"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Erick Green",
+"draftAthleteId": "79885"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Raul Neto",
+"draftAthleteId": "80006"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Ryan Kelly",
+"draftAthleteId": "79760"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Erik Murphy",
+"draftAthleteId": "79879"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "James Ennis",
+"draftAthleteId": "79995"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Romero Osby",
+"draftAthleteId": "79958"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Lorenzo Brown",
+"draftAthleteId": "79746"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Colton Iverson",
+"draftAthleteId": "79938"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Arsalan Kazemi",
+"draftAthleteId": "79714"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Joffrey Lauvergne",
+"draftAthleteId": "79624"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Peyton Siva",
+"draftAthleteId": "79409"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Alex Oriakhi",
+"draftAthleteId": "79408"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Deshaun Thomas",
+"draftAthleteId": "79576"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Bojan Dubljevic",
+"draftAthleteId": "80004"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Janis Timma",
+"draftAthleteId": "80038"
+}
+],
+"2014": [
+{
+"overall": 1,
+"round": 1,
+"name": "Andrew Wiggins",
+"draftAthleteId": "79900"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Jabari Parker",
+"draftAthleteId": "79899"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Joel Embiid",
+"draftAthleteId": "79997"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Aaron Gordon",
+"draftAthleteId": "79905"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Dante Exum",
+"draftAthleteId": "79974"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Marcus Smart",
+"draftAthleteId": "79805"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Julius Randle",
+"draftAthleteId": "79902"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Nik Stauskas",
+"draftAthleteId": "79888"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Noah Vonleh",
+"draftAthleteId": "79904"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Elfrid Payton",
+"draftAthleteId": "80030"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Doug McDermott",
+"draftAthleteId": "79767"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Dario Saric",
+"draftAthleteId": "79811"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Zach LaVine",
+"draftAthleteId": "80082"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "T.J. Warren",
+"draftAthleteId": "79876"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Adreian Payne",
+"draftAthleteId": "79580"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Jusuf Nurkic",
+"draftAthleteId": "80089"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "James Young",
+"draftAthleteId": "79903"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Tyler Ennis",
+"draftAthleteId": "80014"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Gary Harris",
+"draftAthleteId": "79801"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Bruno Caboclo",
+"draftAthleteId": "80151"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Mitch McGary",
+"draftAthleteId": "79722"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Jordan Adams",
+"draftAthleteId": "79881"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Rodney Hood",
+"draftAthleteId": "79754"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Shabazz Napier",
+"draftAthleteId": "79764"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Clint Capela",
+"draftAthleteId": "80016"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "P.J. Hairston",
+"draftAthleteId": "79695"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Bogdan Bogdanovic",
+"draftAthleteId": "80096"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "C.J. Wilcox",
+"draftAthleteId": "79612"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Josh Huestis",
+"draftAthleteId": "80142"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Kyle Anderson",
+"draftAthleteId": "79797"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Damien Inglis",
+"draftAthleteId": "80141"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "K.J. McDaniels",
+"draftAthleteId": "80094"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Joe Harris",
+"draftAthleteId": "79940"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Cleanthony Early",
+"draftAthleteId": "79984"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Jarnell Stokes",
+"draftAthleteId": "79850"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Johnny O'Bryant",
+"draftAthleteId": "79751"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "DeAndre Daniels",
+"draftAthleteId": "79701"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Spencer Dinwiddie",
+"draftAthleteId": "79933"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Jerami Grant",
+"draftAthleteId": "80008"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Glenn Robinson III",
+"draftAthleteId": "79863"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Nikola Jokic",
+"draftAthleteId": "80136"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Nick Johnson",
+"draftAthleteId": "79911"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Walter Tavares",
+"draftAthleteId": "80002"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Markel Brown",
+"draftAthleteId": "79919"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Dwight Powell",
+"draftAthleteId": "79630"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Jordan Clarkson",
+"draftAthleteId": "80034"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Russ Smith",
+"draftAthleteId": "79891"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Lamar Patterson",
+"draftAthleteId": "80091"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Cameron Bairstow",
+"draftAthleteId": "80105"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Alec Brown",
+"draftAthleteId": "79816"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Thanasis Antetokounmpo",
+"draftAthleteId": "80093"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Vasilije Micic",
+"draftAthleteId": "80015"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Alessandro Gentile",
+"draftAthleteId": "79825"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Nemanja Dangubic",
+"draftAthleteId": "80144"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Semaj Christon",
+"draftAthleteId": "79914"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Roy Devyn Marble",
+"draftAthleteId": "80100"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Louis Labeyrie",
+"draftAthleteId": "80003"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Jordan McRae",
+"draftAthleteId": "80011"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Xavier Thames",
+"draftAthleteId": "80121"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Cory Jefferson",
+"draftAthleteId": "79870"
+}
+],
+"2015": [
+{
+"overall": 1,
+"round": 1,
+"name": "Karl-Anthony Towns",
+"draftAthleteId": "80129"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "D'Angelo Russell",
+"draftAthleteId": "80178"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Jahlil Okafor",
+"draftAthleteId": "80123"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Kristaps Porzingis",
+"draftAthleteId": "80069"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Mario Hezonja",
+"draftAthleteId": "79973"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Willie Cauley-Stein",
+"draftAthleteId": "79853"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Emmanuel Mudiay",
+"draftAthleteId": "80127"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Stanley Johnson",
+"draftAthleteId": "80131"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Frank Kaminsky",
+"draftAthleteId": "80080"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Justise Winslow",
+"draftAthleteId": "80134"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Myles Turner",
+"draftAthleteId": "80124"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Trey Lyles",
+"draftAthleteId": "80128"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Devin Booker",
+"draftAthleteId": "80159"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Cameron Payne",
+"draftAthleteId": "80229"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Kelly Oubre",
+"draftAthleteId": "80130"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Terry Rozier",
+"draftAthleteId": "80027"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Rashad Vaughn",
+"draftAthleteId": "80157"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Sam Dekker",
+"draftAthleteId": "79857"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Jerian Grant",
+"draftAthleteId": "79856"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Delon Wright",
+"draftAthleteId": "80133"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Justin Anderson",
+"draftAthleteId": "80203"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Bobby Portis",
+"draftAthleteId": "79987"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Rondae Hollis-Jefferson",
+"draftAthleteId": "79989"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Tyus Jones",
+"draftAthleteId": "80132"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Jarell Martin",
+"draftAthleteId": "79985"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Nikola Milutinov",
+"draftAthleteId": "80039"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Larry Nance Jr.",
+"draftAthleteId": "80247"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "R.J. Hunter",
+"draftAthleteId": "80152"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Chris McCullough",
+"draftAthleteId": "80163"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Kevon Looney",
+"draftAthleteId": "80153"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Cedi Osman",
+"draftAthleteId": "80208"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Montrezl Harrell",
+"draftAthleteId": "79917"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Jordan Mickey",
+"draftAthleteId": "80075"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Anthony Brown",
+"draftAthleteId": "80173"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Guillermo Hernangomez",
+"draftAthleteId": "80032"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Rakeem Christmas",
+"draftAthleteId": "79697"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Richaun Holmes",
+"draftAthleteId": "80277"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Darrun Hilliard II",
+"draftAthleteId": "80239"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Juan Vaulet",
+"draftAthleteId": "80302"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Josh Richardson",
+"draftAthleteId": "80280"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Pat Connaughton",
+"draftAthleteId": "80294"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Olivier Hanlan",
+"draftAthleteId": "80043"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Joseph Young",
+"draftAthleteId": "80077"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Andrew Harrison",
+"draftAthleteId": "79901"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Marcus Thornton",
+"draftAthleteId": "80296"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Norman Powell",
+"draftAthleteId": "80154"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Arturas Gudaitis",
+"draftAthleteId": "80274"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Dakari Johnson",
+"draftAthleteId": "79970"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Aaron White",
+"draftAthleteId": "80244"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Marcus Eriksson",
+"draftAthleteId": "80303"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Tyler Harvey",
+"draftAthleteId": "80217"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Satnam Singh Bhamara",
+"draftAthleteId": "80289"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Sir'Dominic Pointer",
+"draftAthleteId": "80249"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Daniel Diez",
+"draftAthleteId": "80275"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Cady Lalanne",
+"draftAthleteId": "80072"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Branden Dawson",
+"draftAthleteId": "79736"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Nikola Radicevic",
+"draftAthleteId": "80287"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "J.P. Tokoto",
+"draftAthleteId": "80166"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Dimitrios Agravanis",
+"draftAthleteId": "80290"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Luka Mitrovic",
+"draftAthleteId": "80300"
+}
+],
+"2016": [
+{
+"overall": 1,
+"round": 1,
+"name": "Ben Simmons",
+"draftAthleteId": "80224"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Brandon Ingram",
+"draftAthleteId": "80256"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Jaylen Brown",
+"draftAthleteId": "80223"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Dragan Bender",
+"draftAthleteId": "80219"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Kris Dunn",
+"draftAthleteId": "80060"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Buddy Hield",
+"draftAthleteId": "80148"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Jamal Murray",
+"draftAthleteId": "80269"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Marquese Chriss",
+"draftAthleteId": "80328"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Jakob Poeltl",
+"draftAthleteId": "80201"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Thon Maker",
+"draftAthleteId": "80252"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Domantas Sabonis",
+"draftAthleteId": "80160"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Taurean Prince",
+"draftAthleteId": "80240"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Georgios Papagiannis",
+"draftAthleteId": "80424"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Denzel Valentine",
+"draftAthleteId": "80263"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Juan Hernangomez",
+"draftAthleteId": "80349"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Guerschon Yabusele",
+"draftAthleteId": "80310"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Wade Baldwin IV",
+"draftAthleteId": "80234"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Henry Ellenson",
+"draftAthleteId": "80254"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Malik Beasley",
+"draftAthleteId": "80279"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Caris LeVert",
+"draftAthleteId": "80108"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "DeAndre Bembry",
+"draftAthleteId": "80236"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Malachi Richardson",
+"draftAthleteId": "80357"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Ante Zizic",
+"draftAthleteId": "80350"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Timothe Luwawu-Cabarrot",
+"draftAthleteId": "80181"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Brice Johnson",
+"draftAthleteId": "79921"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Furkan Korkmaz",
+"draftAthleteId": "80221"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Pascal Siakam",
+"draftAthleteId": "80345"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Skal Labissiere",
+"draftAthleteId": "80225"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Dejounte Murray",
+"draftAthleteId": "80330"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Damian Jones",
+"draftAthleteId": "80180"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Deyonta Davis",
+"draftAthleteId": "80337"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Ivica Zubac",
+"draftAthleteId": "80304"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Cheick Diallo",
+"draftAthleteId": "80255"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Tyler Ulis",
+"draftAthleteId": "80172"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Rade Zagorac",
+"draftAthleteId": "80394"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Malcolm Brogdon",
+"draftAthleteId": "80353"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Chinanu Onuaku",
+"draftAthleteId": "80199"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Patrick McCaw",
+"draftAthleteId": "80333"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "David Michineau",
+"draftAthleteId": "80446"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Diamond Stone",
+"draftAthleteId": "80226"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Stephen Zimmerman Jr.",
+"draftAthleteId": "80257"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Isaiah Whitehead",
+"draftAthleteId": "80170"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Zhou Qi",
+"draftAthleteId": "80218"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Isaia Cordinier",
+"draftAthleteId": "80311"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Demetrius Jackson",
+"draftAthleteId": "79991"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "A.J. Hammons",
+"draftAthleteId": "80018"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Jake Layman",
+"draftAthleteId": "80211"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Paul Zipser",
+"draftAthleteId": "80282"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Michael Gbinije",
+"draftAthleteId": "80318"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Georges Niang",
+"draftAthleteId": "79957"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Ben Bentil",
+"draftAthleteId": "80352"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Joel Bolomboy",
+"draftAthleteId": "80313"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Petr Cornelie",
+"draftAthleteId": "80268"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Kay Felder",
+"draftAthleteId": "80342"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Marcus Paige",
+"draftAthleteId": "79862"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Daniel Hamilton",
+"draftAthleteId": "80186"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Wang Zhelin",
+"draftAthleteId": "80017"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Abdel Nader",
+"draftAthleteId": "80447"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Isaiah Cousins",
+"draftAthleteId": "80215"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Tyrone Wallace",
+"draftAthleteId": "80191"
+}
+],
+"2017": [
+{
+"overall": 1,
+"round": 1,
+"name": "Markelle Fultz",
+"draftAthleteId": "80369"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Lonzo Ball",
+"draftAthleteId": "80368"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Jayson Tatum",
+"draftAthleteId": "80364"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Josh Jackson",
+"draftAthleteId": "80363"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "De'Aaron Fox",
+"draftAthleteId": "80365"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Jonathan Isaac",
+"draftAthleteId": "80374"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Lauri Markkanen",
+"draftAthleteId": "80320"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Frank Ntilikina",
+"draftAthleteId": "80367"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Dennis Smith",
+"draftAthleteId": "80366"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Zach Collins",
+"draftAthleteId": "80472"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Malik Monk",
+"draftAthleteId": "80380"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Luke Kennard",
+"draftAthleteId": "80270"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Donovan Mitchell",
+"draftAthleteId": "80478"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Edrice Adebayo",
+"draftAthleteId": "80370"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Justin Jackson",
+"draftAthleteId": "80135"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Justin Patton",
+"draftAthleteId": "80469"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "D.J. Wilson",
+"draftAthleteId": "80466"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "TJ Leaf",
+"draftAthleteId": "80405"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "John Collins",
+"draftAthleteId": "80335"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Harry Giles",
+"draftAthleteId": "80362"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Terrance Ferguson",
+"draftAthleteId": "80371"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Jarrett Allen",
+"draftAthleteId": "80375"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "OG Anunoby",
+"draftAthleteId": "80355"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Tyler Lydon",
+"draftAthleteId": "80344"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Anzejs Pasecniks ",
+"draftAthleteId": "80175"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Caleb Swanigan",
+"draftAthleteId": "80262"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Kyle Kuzma",
+"draftAthleteId": "80413"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Tony Bradley",
+"draftAthleteId": "80431"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Derrick White",
+"draftAthleteId": "80495"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Josh Hart",
+"draftAthleteId": "80314"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Frank Jackson",
+"draftAthleteId": "80377"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Davon Reed",
+"draftAthleteId": "80557"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Wesley Iwundu",
+"draftAthleteId": "80198"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Frank Mason",
+"draftAthleteId": "80462"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Ivan Rabb",
+"draftAthleteId": "80253"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Jonah Bolden",
+"draftAthleteId": "80324"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Semi Ojeleye",
+"draftAthleteId": "80481"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Jordan Bell",
+"draftAthleteId": "80235"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Jawun Evans",
+"draftAthleteId": "80467"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Dwayne Bacon",
+"draftAthleteId": "80265"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Tyler Dorsey",
+"draftAthleteId": "80308"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Thomas Bryant",
+"draftAthleteId": "80271"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Isaiah Hartenstein",
+"draftAthleteId": "80382"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Damyean Dotson",
+"draftAthleteId": "80561"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Dillon Brooks",
+"draftAthleteId": "80307"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Sterling Brown",
+"draftAthleteId": "80565"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Ike Anigbogu",
+"draftAthleteId": "80471"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Sindarius Thornwell",
+"draftAthleteId": "80078"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Vlatko Cancar",
+"draftAthleteId": "80546"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Mathias  Lessort",
+"draftAthleteId": "80404"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Monte Morris",
+"draftAthleteId": "80202"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Edmond Sumner",
+"draftAthleteId": "80393"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Kadeem Allen",
+"draftAthleteId": "80498"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Alec Peters",
+"draftAthleteId": "80390"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Nigel Williams-Goss",
+"draftAthleteId": "80001"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Jabari Bird",
+"draftAthleteId": "79993"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Aleksandar Vezenkov ",
+"draftAthleteId": "80214"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Ognjen Jaramaz",
+"draftAthleteId": "80399"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Jaron Blossomgame",
+"draftAthleteId": "80385"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Alpha Kaba",
+"draftAthleteId": "80284"
+}
+],
+"2018": [
+{
+"overall": 1,
+"round": 1,
+"name": "Deandre Ayton",
+"draftAthleteId": "80506"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Marvin Bagley III",
+"draftAthleteId": "102747"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Luka Doncic",
+"draftAthleteId": "80505"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Jaren Jackson Jr.",
+"draftAthleteId": "80524"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Trae Young",
+"draftAthleteId": "102600"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Mohamed Bamba",
+"draftAthleteId": "80509"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Wendell Carter Jr.",
+"draftAthleteId": "80507"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Collin Sexton",
+"draftAthleteId": "80510"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Kevin Knox",
+"draftAthleteId": "80512"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Mikal Bridges",
+"draftAthleteId": "80360"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Shai Gilgeous-Alexander",
+"draftAthleteId": "80558"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Miles Bridges",
+"draftAthleteId": "80379"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Jerome Robinson",
+"draftAthleteId": "102749"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Michael Porter Jr.",
+"draftAthleteId": "80504"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Troy Brown",
+"draftAthleteId": "80525"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Zhaire Smith",
+"draftAthleteId": "102748"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Donte DiVincenzo",
+"draftAthleteId": "102781"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Lonnie Walker",
+"draftAthleteId": "80531"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Kevin Huerter",
+"draftAthleteId": "102750"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Josh Okogie",
+"draftAthleteId": "102751"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Grayson Allen",
+"draftAthleteId": "80233"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Chandler Hutchison",
+"draftAthleteId": "102782"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Aaron Holiday",
+"draftAthleteId": "80470"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Anfernee Simons",
+"draftAthleteId": "102753"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Moritz Wagner",
+"draftAthleteId": "80496"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Landry Shamet",
+"draftAthleteId": "80503"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Robert Williams",
+"draftAthleteId": "80468"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Jacob Evans",
+"draftAthleteId": "80479"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Dzanan Musa",
+"draftAthleteId": "80532"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Omari Spellman",
+"draftAthleteId": "80407"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Elie Okobo",
+"draftAthleteId": "80553"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Jevon Carter",
+"draftAthleteId": "80542"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Jalen Brunson",
+"draftAthleteId": "80301"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Devonte' Graham",
+"draftAthleteId": "80189"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Melvin Frazier",
+"draftAthleteId": "102783"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Mitchell Robinson",
+"draftAthleteId": "80527"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Gary Trent Jr.",
+"draftAthleteId": "80514"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Khyri Thomas",
+"draftAthleteId": "102752"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Isaac Bonga",
+"draftAthleteId": "80511"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Rodions Kurucs",
+"draftAthleteId": "80410"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Jarred Vanderbilt",
+"draftAthleteId": "80526"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Bruce Brown",
+"draftAthleteId": "80491"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Justin Jackson",
+"draftAthleteId": "80442"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Issuf Sanon",
+"draftAthleteId": "102761"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Hamidou Diallo",
+"draftAthleteId": "80463"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "De'Anthony Melton",
+"draftAthleteId": "80474"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Sviatoslav Mykhailiuk",
+"draftAthleteId": "80190"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Keita Bates-Diop",
+"draftAthleteId": "80322"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Chimezie Metu",
+"draftAthleteId": "80411"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Alize Johnson",
+"draftAthleteId": "80489"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Tony Carr",
+"draftAthleteId": "102757"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Vince Edwards",
+"draftAthleteId": "80197"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Devon Hall",
+"draftAthleteId": "102755"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Shake Milton",
+"draftAthleteId": "80347"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Arnoldas Kulboka",
+"draftAthleteId": "80458"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Ray Spalding",
+"draftAthleteId": "102756"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Kevin Hervey",
+"draftAthleteId": "102754"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Thomas Welsh",
+"draftAthleteId": "102792"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "George King",
+"draftAthleteId": "102766"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Kostas Antetokounmpo",
+"draftAthleteId": "102759"
+}
+],
+"2019": [
+{
+"overall": 1,
+"round": 1,
+"name": "Zion Williamson",
+"draftAthleteId": "102976"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Ja Morant",
+"draftAthleteId": "102990"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "RJ Barrett",
+"draftAthleteId": "102975"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "De'Andre Hunter",
+"draftAthleteId": "102985"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Darius Garland",
+"draftAthleteId": "102983"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Jarrett Culver",
+"draftAthleteId": "102992"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Coby White",
+"draftAthleteId": "103008"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Jaxson Hayes",
+"draftAthleteId": "103076"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Rui Hachimura",
+"draftAthleteId": "102986"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Cam Reddish",
+"draftAthleteId": "102978"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Cameron Johnson",
+"draftAthleteId": "103047"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "PJ Washington",
+"draftAthleteId": "102991"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Tyler Herro",
+"draftAthleteId": "103005"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Romeo Langford",
+"draftAthleteId": "102979"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Sekou Doumbouya",
+"draftAthleteId": "102982"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Chuma Okeke",
+"draftAthleteId": "103826"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Nickeil Alexander-Walker",
+"draftAthleteId": "102999"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Goga Bitadze",
+"draftAthleteId": "103010"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Luka Samanic",
+"draftAthleteId": "102993"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Matisse Thybulle",
+"draftAthleteId": "103020"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Brandon Clarke",
+"draftAthleteId": "103080"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Grant Williams",
+"draftAthleteId": "103085"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Darius Bazley",
+"draftAthleteId": "103002"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Ty Jerome",
+"draftAthleteId": "103004"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Nassir Little",
+"draftAthleteId": "102977"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Dylan Windler",
+"draftAthleteId": "103082"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Mfiondu Kabengele",
+"draftAthleteId": "103979"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Jordan Poole",
+"draftAthleteId": "103720"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Keldon Johnson",
+"draftAthleteId": "102981"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Kevin Porter Jr.",
+"draftAthleteId": "102995"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Nic Claxton",
+"draftAthleteId": "103980"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "KZ Okpala",
+"draftAthleteId": "103079"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Carsen Edwards",
+"draftAthleteId": "103027"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Bruno Fernando",
+"draftAthleteId": "103051"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Marcos Louzada Silva",
+"draftAthleteId": "103828"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Cody Martin",
+"draftAthleteId": "103065"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Deividas Sirvydis",
+"draftAthleteId": "103718"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Daniel Gafford",
+"draftAthleteId": "102988"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Alen Smailagic",
+"draftAthleteId": "103719"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Justin James",
+"draftAthleteId": "103723"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Eric Paschall",
+"draftAthleteId": "102987"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Admiral Schofield",
+"draftAthleteId": "103032"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Jaylen Nowell",
+"draftAthleteId": "103983"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Bol Bol",
+"draftAthleteId": "102984"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Isaiah Roby",
+"draftAthleteId": "103007"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Talen Horton-Tucker",
+"draftAthleteId": "103077"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Ignas Brazdeikis",
+"draftAthleteId": "103910"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Terance Mann",
+"draftAthleteId": "104074"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Quinndary Weatherspoon",
+"draftAthleteId": "103912"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Jarrell Brantley",
+"draftAthleteId": "104089"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Tremont Waters",
+"draftAthleteId": "103830"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Jalen McDaniels",
+"draftAthleteId": "103000"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Justin Wright-Foreman",
+"draftAthleteId": "103838"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Marial Shayok",
+"draftAthleteId": "104091"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Kyle Guy",
+"draftAthleteId": "104083"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Jaylen Hands",
+"draftAthleteId": "104023"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Jordan Bone",
+"draftAthleteId": "104072"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Miye Oni",
+"draftAthleteId": "103050"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Dewan Hernandez",
+"draftAthleteId": "104077"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Vanja Marinkovic",
+"draftAthleteId": "104092"
+}
+],
+"2020": [
+{
+"overall": 1,
+"round": 1,
+"name": "Anthony Edwards",
+"draftAthleteId": "104250"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "James Wiseman",
+"draftAthleteId": "104249"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "LaMelo Ball",
+"draftAthleteId": "104251"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Patrick Williams",
+"draftAthleteId": "104269"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Isaac Okoro",
+"draftAthleteId": "104298"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Onyeka Okongwu",
+"draftAthleteId": "104352"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Killian Hayes",
+"draftAthleteId": "104266"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Obi Toppin",
+"draftAthleteId": "104350"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Deni Avdija",
+"draftAthleteId": "104253"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Jalen Smith",
+"draftAthleteId": "104279"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Devin Vassell",
+"draftAthleteId": "104327"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Tyrese Haliburton",
+"draftAthleteId": "104263"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Kira Lewis Jr",
+"draftAthleteId": "104288"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Aaron Nesmith",
+"draftAthleteId": "104284"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Cole Anthony",
+"draftAthleteId": "104252"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Isaiah Stewart",
+"draftAthleteId": "104260"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Aleksej Pokusevski",
+"draftAthleteId": "104305"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Josh Green",
+"draftAthleteId": "104270"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Saddiq Bey",
+"draftAthleteId": "104414"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Precious Achiuwa",
+"draftAthleteId": "104262"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Tyrese Maxey",
+"draftAthleteId": "104261"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Zeke Nnaji",
+"draftAthleteId": "104351"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Leandro Bolmaro",
+"draftAthleteId": "104306"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "RJ Hampton",
+"draftAthleteId": "104254"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Immanuel Quickley",
+"draftAthleteId": "104563"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Payton Pritchard",
+"draftAthleteId": "104322"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Udoka Azubuike",
+"draftAthleteId": "104420"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Jaden McDaniels",
+"draftAthleteId": "104257"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Malachi Flynn",
+"draftAthleteId": "104466"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Desmond Bane",
+"draftAthleteId": "104472"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Tyrell Terry",
+"draftAthleteId": "104631"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Vernon Carey Jr",
+"draftAthleteId": "104276"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Daniel Oturu",
+"draftAthleteId": "104424"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Theo Maledon",
+"draftAthleteId": "104255"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Xavier Tillman",
+"draftAthleteId": "104331"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Tyler Bey",
+"draftAthleteId": "104342"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Vit Krejci",
+"draftAthleteId": "104721"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Saben Lee",
+"draftAthleteId": "104620"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Elijah Hughes",
+"draftAthleteId": "104421"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Robert Woodard II",
+"draftAthleteId": "104364"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Tre Jones",
+"draftAthleteId": "104267"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Nick Richards",
+"draftAthleteId": "104630"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Jahmi'us Ramsey",
+"draftAthleteId": "104302"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Marko Simonovic",
+"draftAthleteId": "104719"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Jordan Nwora",
+"draftAthleteId": "104282"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "CJ Elleby",
+"draftAthleteId": "104723"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Yam Madar",
+"draftAthleteId": "104366"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Nico Mannion",
+"draftAthleteId": "104256"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Isaiah Joe",
+"draftAthleteId": "104733"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Skylar Mays",
+"draftAthleteId": "104357"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Justinian Jessup",
+"draftAthleteId": "104717"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Kenyon Martin Jr.",
+"draftAthleteId": "104362"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Cassius Winston",
+"draftAthleteId": "104283"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Cassius Stanley",
+"draftAthleteId": "104356"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Jay Scrubb",
+"draftAthleteId": "104633"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Grant Riller",
+"draftAthleteId": "104348"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Reggie Perry",
+"draftAthleteId": "104291"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Paul Reed",
+"draftAthleteId": "104317"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Jalen Harris",
+"draftAthleteId": "104565"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Sam Merrill",
+"draftAthleteId": "104716"
+}
+],
+"2021": [
+{
+"overall": 1,
+"round": 1,
+"name": "Cade Cunningham",
+"draftAthleteId": "105027"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Jalen Green",
+"draftAthleteId": "105029"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Evan Mobley",
+"draftAthleteId": "105028"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Scottie Barnes",
+"draftAthleteId": "105035"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Jalen Suggs",
+"draftAthleteId": "105030"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Josh Giddey",
+"draftAthleteId": "105077"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Jonathan Kuminga",
+"draftAthleteId": "105041"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Franz Wagner",
+"draftAthleteId": "105071"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Davion Mitchell",
+"draftAthleteId": "105066"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Ziaire Williams",
+"draftAthleteId": "105033"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "James Bouknight",
+"draftAthleteId": "105036"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Joshua Primo",
+"draftAthleteId": "105474"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Chris Duarte",
+"draftAthleteId": "105233"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Moses Moody",
+"draftAthleteId": "105050"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Corey Kispert",
+"draftAthleteId": "105046"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Alperen Sengun",
+"draftAthleteId": "105058"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Trey Murphy III",
+"draftAthleteId": "105239"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Tre Mann",
+"draftAthleteId": "105047"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Kai Jones",
+"draftAthleteId": "105062"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Jalen Johnson",
+"draftAthleteId": "105031"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Keon Johnson",
+"draftAthleteId": "105034"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Isaiah Jackson",
+"draftAthleteId": "105038"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Usman Garuba",
+"draftAthleteId": "105039"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Josh Christopher",
+"draftAthleteId": "105043"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Quentin Grimes",
+"draftAthleteId": "105261"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Nah'Shon Hyland",
+"draftAthleteId": "105135"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Cameron Thomas",
+"draftAthleteId": "105056"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Jaden Springer",
+"draftAthleteId": "105061"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Day'Ron Sharpe",
+"draftAthleteId": "105045"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Santi Aldama",
+"draftAthleteId": "105251"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Isaiah Todd",
+"draftAthleteId": "105089"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Jeremiah Robinson-Earl",
+"draftAthleteId": "105055"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Jason Preston",
+"draftAthleteId": "105505"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Rokas Jokubaitis",
+"draftAthleteId": "105069"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Herbert Jones",
+"draftAthleteId": "105114"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Miles McBride",
+"draftAthleteId": "105236"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "JT Thor",
+"draftAthleteId": "105475"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Ayo Dosunmu",
+"draftAthleteId": "105080"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Neemias Queta",
+"draftAthleteId": "105253"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Jared Butler",
+"draftAthleteId": "105065"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Joe Wieskamp",
+"draftAthleteId": "105248"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Isaiah Livers",
+"draftAthleteId": "105112"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Greg Brown",
+"draftAthleteId": "105053"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Kessler Edwards",
+"draftAthleteId": "105237"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Juhann Begarin",
+"draftAthleteId": "105049"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Dalano Banton",
+"draftAthleteId": "105512"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "David Johnson",
+"draftAthleteId": "105037"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Sharife Cooper",
+"draftAthleteId": "105072"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Marcus Zegarowski",
+"draftAthleteId": "105506"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Filip Petrusev",
+"draftAthleteId": "105079"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Brandon Boston Jr",
+"draftAthleteId": "105032"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Luka Garza",
+"draftAthleteId": "105078"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Charles Bassey",
+"draftAthleteId": "105051"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Sandro Mamukelashvili",
+"draftAthleteId": "105102"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Aaron Wiggins",
+"draftAthleteId": "105264"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Scottie Lewis",
+"draftAthleteId": "105402"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Balsa Koprivica",
+"draftAthleteId": "105530"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Jericho Sims",
+"draftAthleteId": "105504"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "RaiQuan Gray",
+"draftAthleteId": "105245"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Georgios Kalaitzakis",
+"draftAthleteId": "105532"
+}
+],
+"2022": [
+{
+"overall": 1,
+"round": 1,
+"name": "Paolo Banchero",
+"draftAthleteId": "105779"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Chet Holmgren",
+"draftAthleteId": "105778"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Jabari Smith Jr.",
+"draftAthleteId": "105782"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Keegan Murray",
+"draftAthleteId": "105805"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Jaden Ivey",
+"draftAthleteId": "105786"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Bennedict Mathurin",
+"draftAthleteId": "105794"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Shaedon Sharpe",
+"draftAthleteId": "106023"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Dyson Daniels",
+"draftAthleteId": "105792"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Jeremy Sochan",
+"draftAthleteId": "105810"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Johnny Davis",
+"draftAthleteId": "105964"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Ousmane Dieng",
+"draftAthleteId": "105789"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Jalen Williams",
+"draftAthleteId": "105967"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Jalen Duren",
+"draftAthleteId": "105781"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Ochai Agbaji",
+"draftAthleteId": "105801"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Mark Williams",
+"draftAthleteId": "105800"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "AJ Griffin",
+"draftAthleteId": "105803"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Tari Eason",
+"draftAthleteId": "105973"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Dalen Terry",
+"draftAthleteId": "106062"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Jake LaRavia",
+"draftAthleteId": "106055"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Malaki Branham",
+"draftAthleteId": "106060"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Christian Braun",
+"draftAthleteId": "105842"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Walker Kessler",
+"draftAthleteId": "105814"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "David Roddy",
+"draftAthleteId": "105976"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "MarJon Beauchamp",
+"draftAthleteId": "105802"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Blake Wesley",
+"draftAthleteId": "106014"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Wendell Moore Jr",
+"draftAthleteId": "105856"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Nikola  Jovic",
+"draftAthleteId": "105806"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Patrick Baldwin Jr",
+"draftAthleteId": "105784"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "TyTy Washington Jr",
+"draftAthleteId": "105788"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Peyton Watson",
+"draftAthleteId": "105785"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Andrew Nembhard",
+"draftAthleteId": "105833"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Caleb Houstan",
+"draftAthleteId": "105783"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Christian Koloko",
+"draftAthleteId": "105963"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Jaylin Williams",
+"draftAthleteId": "106142"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Max Christie",
+"draftAthleteId": "105796"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Gabriele Procida",
+"draftAthleteId": "105826"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Jaden Hardy",
+"draftAthleteId": "105780"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Kennedy Chandler",
+"draftAthleteId": "105795"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Khalifa Diop",
+"draftAthleteId": "105799"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Bryce McGowens",
+"draftAthleteId": "105797"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "E.J. Liddell",
+"draftAthleteId": "105874"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Trevor Keels",
+"draftAthleteId": "105791"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Moussa Diabate",
+"draftAthleteId": "105965"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Ryan Rollins",
+"draftAthleteId": "106065"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Josh Minott",
+"draftAthleteId": "106141"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Ismael  Kamagate",
+"draftAthleteId": "105819"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Vince Williams Jr",
+"draftAthleteId": "106156"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Kendall Brown",
+"draftAthleteId": "105962"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Isaiah Mobley",
+"draftAthleteId": "106277"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Matteo  Spagnolo",
+"draftAthleteId": "105828"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Tyrese Martin",
+"draftAthleteId": "106221"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Karlo Matkovic",
+"draftAthleteId": "106019"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "JD Davison",
+"draftAthleteId": "105793"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Yannick Nzosa",
+"draftAthleteId": "105790"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Gui  Santos",
+"draftAthleteId": "105830"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Luke Travers",
+"draftAthleteId": "106302"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Jabari Walker",
+"draftAthleteId": "105854"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Hugo Besson",
+"draftAthleteId": "105812"
+}
+],
+"2023": [
+{
+"overall": 1,
+"round": 1,
+"name": "Victor Wembanyama",
+"draftAthleteId": "106535"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Brandon Miller",
+"draftAthleteId": "106554"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Scoot Henderson",
+"draftAthleteId": "106536"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Amen Thompson",
+"draftAthleteId": "106537"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Ausar Thompson",
+"draftAthleteId": "106543"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Anthony Black",
+"draftAthleteId": "106550"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Bilal Coulibaly",
+"draftAthleteId": "106638"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Jarace Walker",
+"draftAthleteId": "106549"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Taylor Hendricks",
+"draftAthleteId": "106778"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Cason Wallace",
+"draftAthleteId": "106548"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Jett Howard",
+"draftAthleteId": "106596"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Dereck Lively II",
+"draftAthleteId": "106540"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Gradey Dick",
+"draftAthleteId": "106553"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Jordan Hawkins",
+"draftAthleteId": "106569"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Kobe Bufkin",
+"draftAthleteId": "106829"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Keyonte George",
+"draftAthleteId": "106542"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Jalen Hood-Schifino",
+"draftAthleteId": "106783"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Jaime Jaquez Jr",
+"draftAthleteId": "106571"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Brandin Podziemski",
+"draftAthleteId": "106785"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Cam Whitmore",
+"draftAthleteId": "106541"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Noah Clowney",
+"draftAthleteId": "106779"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Dariq Whitehead",
+"draftAthleteId": "106546"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Kris Murray",
+"draftAthleteId": "106576"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Olivier-Maxence Prosper",
+"draftAthleteId": "106604"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Marcus Sasser",
+"draftAthleteId": "106564"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Ben Sheppard",
+"draftAthleteId": "108041"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Nick Smith Jr",
+"draftAthleteId": "106538"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Brice Sensabaugh",
+"draftAthleteId": "106710"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Julian Strawther",
+"draftAthleteId": "106570"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Kobe Brown",
+"draftAthleteId": "106830"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "James Nnaji",
+"draftAthleteId": "106566"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Jalen Pickett",
+"draftAthleteId": "106854"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Leonard Miller",
+"draftAthleteId": "106556"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Colby Jones",
+"draftAthleteId": "106586"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Julian Phillips",
+"draftAthleteId": "106552"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Andre Jackson Jr",
+"draftAthleteId": "106851"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Hunter Tyson",
+"draftAthleteId": "107019"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Jordan Walsh",
+"draftAthleteId": "106850"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Mouhamed Gueye",
+"draftAthleteId": "106580"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Maxwell Lewis",
+"draftAthleteId": "106630"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Amari Bailey",
+"draftAthleteId": "106565"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Tristan Vukcevic",
+"draftAthleteId": "106608"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Rayan Rupert",
+"draftAthleteId": "106551"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Sidy Cissoko",
+"draftAthleteId": "106559"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Gregory Jackson II",
+"draftAthleteId": "106555"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Seth Lundy",
+"draftAthleteId": "108039"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Mojave King",
+"draftAthleteId": "106626"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Jordan Miller",
+"draftAthleteId": "106833"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Emoni Bates",
+"draftAthleteId": "106595"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Keyontae Johnson",
+"draftAthleteId": "106707"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Jalen Wilson",
+"draftAthleteId": "106621"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Toumani Camara",
+"draftAthleteId": "107021"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Jaylen Clark",
+"draftAthleteId": "106780"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Jalen Slawson",
+"draftAthleteId": "108042"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Isaiah Wong",
+"draftAthleteId": "106853"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Tarik Biberovic",
+"draftAthleteId": "108100"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Trayce Jackson-Davis",
+"draftAthleteId": "106594"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Chris Livingston",
+"draftAthleteId": "106562"
+}
+],
+"2024": [
+{
+"overall": 1,
+"round": 1,
+"name": "Zaccharie Risacher",
+"draftAthleteId": "108206"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Alex Sarr",
+"draftAthleteId": "108204"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Reed  Sheppard",
+"draftAthleteId": "108231"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Stephon Castle",
+"draftAthleteId": "108107"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Ron Holland II",
+"draftAthleteId": "108202"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Tidjane Salaün",
+"draftAthleteId": "108207"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Donovan Clingan",
+"draftAthleteId": "108106"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Rob Dillingham",
+"draftAthleteId": "108142"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Zach Edey",
+"draftAthleteId": "108147"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Cody Williams",
+"draftAthleteId": "108119"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Matas Buzelis",
+"draftAthleteId": "108203"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Nikola Topi&#263;",
+"draftAthleteId": "108210"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Devin Carter",
+"draftAthleteId": "108327"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Bub Carrington",
+"draftAthleteId": "108385"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Kel'el Ware",
+"draftAthleteId": "108113"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Jared McCain",
+"draftAthleteId": "108339"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Dalton Knecht",
+"draftAthleteId": "108228"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Tristan da Silva",
+"draftAthleteId": "108143"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Ja'Kobe Walter",
+"draftAthleteId": "109153"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Jaylon Tyson",
+"draftAthleteId": "108386"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Yves Missi",
+"draftAthleteId": "108225"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "DaRon Holmes II",
+"draftAthleteId": "108166"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "AJ Johnson",
+"draftAthleteId": "108212"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Kyshawn George",
+"draftAthleteId": "108388"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Pacôme Dadiet",
+"draftAthleteId": "108140"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Dillon Jones",
+"draftAthleteId": "108174"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Terrence Shannon Jr.",
+"draftAthleteId": "108387"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Ryan Dunn",
+"draftAthleteId": "108121"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Isaiah Collier",
+"draftAthleteId": "108102"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Baylor Scheierman",
+"draftAthleteId": "108152"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Jonathan Mogbo",
+"draftAthleteId": "108389"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Kyle Filipowski",
+"draftAthleteId": "108109"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Tyler Smith",
+"draftAthleteId": "108213"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Tyler Kolek",
+"draftAthleteId": "108165"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Johnny  Furphy",
+"draftAthleteId": "108384"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Juan Núñez",
+"draftAthleteId": "108209"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Bobi Klintman",
+"draftAthleteId": "108208"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Ajay Mitchell",
+"draftAthleteId": "108153"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Jaylen Wells",
+"draftAthleteId": "109076"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Osasere Ighodaro",
+"draftAthleteId": "108169"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Adem Bona",
+"draftAthleteId": "108132"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "KJ Simpson",
+"draftAthleteId": "108328"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Nikola Djurisi&#263;",
+"draftAthleteId": "109077"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Pelle Larsson",
+"draftAthleteId": "108241"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Jamal Shead",
+"draftAthleteId": "108186"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Cameron  Christie",
+"draftAthleteId": "109075"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Antonio  Reeves",
+"draftAthleteId": "108432"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Harrison Ingram",
+"draftAthleteId": "108191"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Tristen Newton",
+"draftAthleteId": "108476"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Enrique Freeman",
+"draftAthleteId": "109098"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Melvin Ajinça",
+"draftAthleteId": "108211"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Quinten Post",
+"draftAthleteId": "108473"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Cam  Spencer",
+"draftAthleteId": "108390"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Anton Watson",
+"draftAthleteId": "108475"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Bronny James",
+"draftAthleteId": "109096"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Kevin McCullar Jr.",
+"draftAthleteId": "108195"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Ulrich Chomche",
+"draftAthleteId": "108340"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Ariel Hukporti",
+"draftAthleteId": "108156"
+}
+],
+"2025": [
+{
+"overall": 1,
+"round": 1,
+"name": "Cooper Flagg",
+"draftAthleteId": "110358"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Dylan Harper",
+"draftAthleteId": "110359"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "VJ Edgecombe",
+"draftAthleteId": "110361"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Kon Knueppel",
+"draftAthleteId": "110366"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Ace Bailey",
+"draftAthleteId": "110360"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Tre Johnson",
+"draftAthleteId": "110362"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Jeremiah Fears",
+"draftAthleteId": "110364"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Egor Demin",
+"draftAthleteId": "110369"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Collin Murray-Boyles",
+"draftAthleteId": "110368"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Khaman Maluach",
+"draftAthleteId": "110365"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Cedric Coward",
+"draftAthleteId": "110412"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Noa Essengue",
+"draftAthleteId": "110375"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Derik Queen",
+"draftAthleteId": "110367"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Carter Bryant",
+"draftAthleteId": "110377"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Thomas Sorber",
+"draftAthleteId": "110381"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Yang Hansen",
+"draftAthleteId": "110436"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Joan Beringer",
+"draftAthleteId": "110374"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Walter Clayton Jr.",
+"draftAthleteId": "110420"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Nolan Traoré",
+"draftAthleteId": "110373"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Kasparas Jakucionis",
+"draftAthleteId": "110363"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Will Riley",
+"draftAthleteId": "110372"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Drake Powell",
+"draftAthleteId": "110388"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Asa Newell",
+"draftAthleteId": "110378"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Nique Clifford",
+"draftAthleteId": "110382"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Jase Richardson",
+"draftAthleteId": "110370"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Ben Saraf",
+"draftAthleteId": "110380"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Danny Wolf",
+"draftAthleteId": "110376"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Hugo González",
+"draftAthleteId": "110379"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Liam McNeeley",
+"draftAthleteId": "110371"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Yanic Konan Niederhauser",
+"draftAthleteId": "110507"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Rasheer Fleming",
+"draftAthleteId": "110386"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Noah Penda",
+"draftAthleteId": "110387"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Sion James",
+"draftAthleteId": "110410"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Ryan Kalkbrenner",
+"draftAthleteId": "110389"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Johni Broome",
+"draftAthleteId": "110394"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Adou Thiero",
+"draftAthleteId": "110384"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Chaz Lanier",
+"draftAthleteId": "110397"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Kam Jones",
+"draftAthleteId": "110401"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Alijah Martin",
+"draftAthleteId": "110506"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Micah Peavy",
+"draftAthleteId": "110433"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Koby Brea",
+"draftAthleteId": "110411"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Maxime Raynaud",
+"draftAthleteId": "110391"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Jamir Watkins",
+"draftAthleteId": "110432"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Brooks Barnhizer",
+"draftAthleteId": "110615"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Rocco Zikarsky",
+"draftAthleteId": "110417"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Amari Williams",
+"draftAthleteId": "110425"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Bogoljub Markovic",
+"draftAthleteId": "110413"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Javon Small",
+"draftAthleteId": "110427"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Tyrese Proctor",
+"draftAthleteId": "110404"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Kobe Sanders",
+"draftAthleteId": "110501"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Mohamed Diawara",
+"draftAthleteId": "110616"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Alex Toohey",
+"draftAthleteId": "110395"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "John Tonje",
+"draftAthleteId": "110403"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Taelon Peter",
+"draftAthleteId": "110715"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Lachlan Olbrich",
+"draftAthleteId": "110450"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Will Richard",
+"draftAthleteId": "110508"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Max Shulga",
+"draftAthleteId": "110447"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Saliou Niang",
+"draftAthleteId": "110512"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Jahmai Mashack",
+"draftAthleteId": "110708"
+}
+],
+"2026": [
+{
+"overall": 1,
+"round": 1,
+"name": "AJ Dybantsa",
+"draftAthleteId": "110904"
+},
+{
+"overall": 2,
+"round": 1,
+"name": "Darryn Peterson",
+"draftAthleteId": "110903"
+},
+{
+"overall": 3,
+"round": 1,
+"name": "Cameron Boozer",
+"draftAthleteId": "110905"
+},
+{
+"overall": 4,
+"round": 1,
+"name": "Caleb Wilson",
+"draftAthleteId": "110906"
+},
+{
+"overall": 5,
+"round": 1,
+"name": "Keaton Wagler",
+"draftAthleteId": "110908"
+},
+{
+"overall": 6,
+"round": 1,
+"name": "Mikel Brown Jr.",
+"draftAthleteId": "110911"
+},
+{
+"overall": 7,
+"round": 1,
+"name": "Darius Acuff Jr.",
+"draftAthleteId": "110910"
+},
+{
+"overall": 8,
+"round": 1,
+"name": "Kingston Flemings",
+"draftAthleteId": "110907"
+},
+{
+"overall": 9,
+"round": 1,
+"name": "Morez Johnson Jr.",
+"draftAthleteId": "110943"
+},
+{
+"overall": 10,
+"round": 1,
+"name": "Brayden Burries",
+"draftAthleteId": "110919"
+},
+{
+"overall": 11,
+"round": 1,
+"name": "Yaxel Lendeborg",
+"draftAthleteId": "110914"
+},
+{
+"overall": 12,
+"round": 1,
+"name": "Aday Mara",
+"draftAthleteId": "110934"
+},
+{
+"overall": 13,
+"round": 1,
+"name": "Nate Ament",
+"draftAthleteId": "110909"
+},
+{
+"overall": 14,
+"round": 1,
+"name": "Hannes Steinbach",
+"draftAthleteId": "110915"
+},
+{
+"overall": 15,
+"round": 1,
+"name": "Dailyn Swain",
+"draftAthleteId": "110931"
+},
+{
+"overall": 16,
+"round": 1,
+"name": "Bennett Stirtz",
+"draftAthleteId": "110924"
+},
+{
+"overall": 17,
+"round": 1,
+"name": "Ebuka Okorie",
+"draftAthleteId": "110947"
+},
+{
+"overall": 18,
+"round": 1,
+"name": "Christian Anderson Jr.",
+"draftAthleteId": "110921"
+},
+{
+"overall": 19,
+"round": 1,
+"name": "Allen Graves",
+"draftAthleteId": "4582714"
+},
+{
+"overall": 20,
+"round": 1,
+"name": "Jayden Quaintance",
+"draftAthleteId": "110920"
+},
+{
+"overall": 21,
+"round": 1,
+"name": "Karim Lopez",
+"draftAthleteId": "110912"
+},
+{
+"overall": 22,
+"round": 1,
+"name": "Labaron Philon Jr.",
+"draftAthleteId": "110923"
+},
+{
+"overall": 23,
+"round": 1,
+"name": "Zuby Ejiofor",
+"draftAthleteId": "110938"
+},
+{
+"overall": 24,
+"round": 1,
+"name": "Cameron Carr",
+"draftAthleteId": "110925"
+},
+{
+"overall": 25,
+"round": 1,
+"name": "Sergio De Larrea",
+"draftAthleteId": "111782"
+},
+{
+"overall": 26,
+"round": 1,
+"name": "Tarris Reed Jr.",
+"draftAthleteId": "110965"
+},
+{
+"overall": 27,
+"round": 1,
+"name": "Chris Cenac Jr.",
+"draftAthleteId": "110917"
+},
+{
+"overall": 28,
+"round": 1,
+"name": "Joshua Jefferson",
+"draftAthleteId": "110933"
+},
+{
+"overall": 29,
+"round": 1,
+"name": "Alex Karaban",
+"draftAthleteId": "110932"
+},
+{
+"overall": 30,
+"round": 1,
+"name": "Koa Peat",
+"draftAthleteId": "110918"
+},
+{
+"overall": 31,
+"round": 2,
+"name": "Bruce Thornton",
+"draftAthleteId": "110984"
+},
+{
+"overall": 32,
+"round": 2,
+"name": "Richie Saunders",
+"draftAthleteId": "110942"
+},
+{
+"overall": 33,
+"round": 2,
+"name": "Isaiah Evans",
+"draftAthleteId": "110927"
+},
+{
+"overall": 34,
+"round": 2,
+"name": "Meleek Thomas",
+"draftAthleteId": "110937"
+},
+{
+"overall": 35,
+"round": 2,
+"name": "Trevon Brazile",
+"draftAthleteId": "110983"
+},
+{
+"overall": 36,
+"round": 2,
+"name": "Baba Miller",
+"draftAthleteId": "110966"
+},
+{
+"overall": 37,
+"round": 2,
+"name": "Ryan Conwell",
+"draftAthleteId": "110941"
+},
+{
+"overall": 38,
+"round": 2,
+"name": "Braden Smith",
+"draftAthleteId": "110936"
+},
+{
+"overall": 39,
+"round": 2,
+"name": "Jack Kayil",
+"draftAthleteId": "111760"
+},
+{
+"overall": 40,
+"round": 2,
+"name": "Dillon Mitchell",
+"draftAthleteId": "110974"
+},
+{
+"overall": 41,
+"round": 2,
+"name": "Otega Oweh",
+"draftAthleteId": "110995"
+},
+{
+"overall": 42,
+"round": 2,
+"name": "Ja'Kobi Gillespie",
+"draftAthleteId": "111000"
+},
+{
+"overall": 43,
+"round": 2,
+"name": "Tyler Bilodeau",
+"draftAthleteId": "110992"
+},
+{
+"overall": 44,
+"round": 2,
+"name": "Maliq Brown",
+"draftAthleteId": "111537"
+},
+{
+"overall": 45,
+"round": 2,
+"name": "Emanuel Sharp",
+"draftAthleteId": "110985"
+},
+{
+"overall": 46,
+"round": 2,
+"name": "Felix Okpara",
+"draftAthleteId": "111001"
+},
+{
+"overall": 47,
+"round": 2,
+"name": "Tyler Nickel",
+"draftAthleteId": "110990"
+},
+{
+"overall": 48,
+"round": 2,
+"name": "Tobi Lawal",
+"draftAthleteId": "111765"
+},
+{
+"overall": 49,
+"round": 2,
+"name": "Bryce Hopkins",
+"draftAthleteId": "111770"
+},
+{
+"overall": 50,
+"round": 2,
+"name": "Jaden Bradley",
+"draftAthleteId": "110957"
+},
+{
+"overall": 51,
+"round": 2,
+"name": "Izaiyah Nelson",
+"draftAthleteId": "111762"
+},
+{
+"overall": 52,
+"round": 2,
+"name": "Henri Veesaar",
+"draftAthleteId": "110935"
+},
+{
+"overall": 53,
+"round": 2,
+"name": "Ugonna Onyenso",
+"draftAthleteId": "111536"
+},
+{
+"overall": 54,
+"round": 2,
+"name": "Lajae Jones",
+"draftAthleteId": "111776"
+},
+{
+"overall": 55,
+"round": 2,
+"name": "Nick Martinelli",
+"draftAthleteId": "110986"
+},
+{
+"overall": 56,
+"round": 2,
+"name": "Vsevolod Ishchenko",
+"draftAthleteId": "4582726"
+},
+{
+"overall": 57,
+"round": 2,
+"name": "Narcisse Ngoy",
+"draftAthleteId": "4582817"
+},
+{
+"overall": 58,
+"round": 2,
+"name": "Jaron Pierre Jr.",
+"draftAthleteId": "110998"
+},
+{
+"overall": 59,
+"round": 2,
+"name": "Trey Kaufman-Renn",
+"draftAthleteId": "110988"
+},
+{
+"overall": 60,
+"round": 2,
+"name": "Malique Lewis",
+"draftAthleteId": "4582727"
+}
+]
+}
+}

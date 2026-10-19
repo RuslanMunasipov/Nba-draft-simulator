@@ -6,6 +6,6 @@ Mobile browser draft tracker and simulation prototype for FBL 2026/27, 18 Octobe
 
 Draft rules: 8 teams, 10 straight rounds, two slots per PG/SG/SF/PF/C with multi-position matching, one rookie minimum. Official-price/cap checks are optional until prices are available. Saves are device-local; JSON export/import provides backups.
 
-Historical source: three user-supplied Parquet game logs, marked `kaggle_v515`. CI validates structure and arithmetic consistency, not external source authenticity. Historical base FP excludes result bonuses. No historical value is published as a 2026/27 forecast. Yahoo positions, current teams, injuries and prices are still unverified.
+Historical sources: three complete league seasons of Parquet game logs (`kaggle_v515`, 2023/24–2025/26) and the collected career game logs 2002–2026 (`data/raw/career_games.parquet`). Forecasts come from a projection model trained on the career logs and checked on the untouched 2025/26 season (`scripts/projection_model.py`, report in the app). Sports.ru owns positions, prices and transfers; the dated price snapshot is from 17 October 2026 and the season tab reads live Sports.ru data.
 
 See [acceptance status](docs/ACCEPTANCE.md). **LIMITED utility; not approved as a primary analytical draft advisor.**

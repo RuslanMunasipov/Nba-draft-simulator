@@ -1,9 +1,35 @@
 {
-  "checkedAt": "2026-10-16",
-  "datasetCard": "https://huggingface.co/datasets/cbratkovics/nba-game-logs",
-  "parserSource": "https://github.com/cbratkovics/nba-ai-ml/blob/main/nba/ingest/kaggle_dump.py",
-  "sourceLabel": "kaggle_v515",
-  "minuteFormat": "DECIMAL_MINUTES_UPSTREAM_DOCUMENTED",
-  "independentRowVerification": false,
-  "knownMissing2024_25": ["0022400524", "0022400532", "0022400537", "0022400538", "0022400617", "0022400627", "0022400988"]
+ "checkedAt": "2026-10-16",
+ "datasetCard": "https://huggingface.co/datasets/cbratkovics/nba-game-logs",
+ "parserSource": "https://github.com/cbratkovics/nba-ai-ml/blob/main/nba/ingest/kaggle_dump.py",
+ "sourceLabel": "kaggle_v515",
+ "minuteFormat": "PER_SEASON_DETECTED",
+ "independentRowVerification": false,
+ "knownMissing2024_25": [
+  "0022400524",
+  "0022400532",
+  "0022400537",
+  "0022400538",
+  "0022400617",
+  "0022400627",
+  "0022400988"
+ ],
+ "minuteFormatBySeason": {
+  "2023-24": "TRUNCATED_INTEGER_MINUTES (seconds missing)",
+  "2024-25": "MM_SS_NUMERIC",
+  "2025-26": "MM_SS_NUMERIC"
+ },
+ "minuteFormatNote": "Detected by scripts/minute_encoding.py from team-minute conservation; the upstream card does not document a single format.",
+ "careerGames": {
+  "file": "data/raw/career_games.parquet",
+  "source": "history-checkpoint artifact 12130913145 (ESPN athlete game logs, collected 2026-10-18)",
+  "seasons": "2002-2026",
+  "scope": "players in the 2026-27 catalog; survivor-selected for older seasons",
+  "check": "Sports.ru formula on these logs vs official Sports.ru season totals 2018-19..2025-26: median absolute gap 1-2 FP per season"
+ },
+ "drafts": {
+  "file": "data/nba-drafts.json",
+  "source": "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/{year}/draft/rounds",
+  "years": "2003-2026"
+ }
 }

@@ -17,7 +17,7 @@
 - PF and participation bonuses are modeled, not supplied individual ESPN forecast categories.
 - Zero-appearance target players are now included as zero season output. Injury, retirement and departures are not distinguished by these logs.
 - Source data are user-supplied and the 2024/25 schedule is incomplete.
-- League rules were recovered from explicit user confirmations dated 2026-10-16: 8x10, two slots each, Yahoo eligibility, straight order, adjustable 20000 cap, Sports.ru prices, required rookie. Actual Yahoo player eligibility and Sports.ru prices in feeds remain unverified. No unconfirmed NBA club limit is enforced. See data/league-rules.json.
+- League rules were recovered from explicit user confirmations dated 2026-10-16/17: 8x10, two slots each, Sports.ru positions (Yahoo is a mirror only), straight order, 20000 cap, Sports.ru prices, required rookie. The Sports.ru rule of at most two players per NBA club is enforced in season advice since 2026-10-19. See data/league-rules.json.
 - Rookie timing and simulation now use the same full-formula season metric as recommendations. Imported datasets without full forecasts remain in a separate legacy metric. Missing recorded forecasts block scoring, never become zero. GM policies remain assumptions, not calibrated behavior.
 ## Decision
 LIMITED. This change makes scores comparable and exposes a testable complete-formula estimate. It does not establish an ideal or proven season-winning prediction system.
@@ -46,3 +46,8 @@ LIMITED. This change makes scores comparable and exposes a testable complete-for
 - Actions fetches Dan Titus / Yahoo Sports' 2026/27 position table published on NBA.com. Exact, unique normalized-name mapping only; no editorial rank, team or forecast data is copied into the valuation.
 - This corrects known ESPN mapping errors, including Wembanyama SF/PF -> C. Published analyst positions are labelled separately from an authenticated live Yahoo-league eligibility response; unmatched players retain ESPN estimates.
 - The source season, table size, mapping coverage and Wembanyama regression are build gates. No silent replacement with old or incomplete position data.
+
+## Superseded — 2026-10-19
+- The ad hoc value penalties (group prior −18%, limited history −10%, chronic −8%, OUT −4%) are removed: the projection model now shrinks short records and widens their ranges, so a second penalty would count the same risk twice. A bot or user style only states a downside preference.
+- The 80% season range is now built from out-of-sample errors and calibrated per tail (see docs/ACCEPTANCE.md); its lower bound is no longer pinned near zero by players who missed a whole season.
+- The rookie component audit (one player) is no longer shown; rookies are checked by the draft-pick model on the complete 2025 class.

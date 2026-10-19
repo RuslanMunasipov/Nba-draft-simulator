@@ -104,14 +104,19 @@ function quantile(sorted,q) {
   const at=(sorted.length-1)*q,low=Math.floor(at),high=Math.ceil(at);
   return sorted[low]+(sorted[high]-sorted[low])*(at-low);
 }
-function scenarioSeasonScore(player,z) {
+// A season drawn from the player's forecast range: a two-sided normal through the weak season (10th percentile),
+// the expectation and, where the two allow it, the strong season (90th percentile); otherwise the upside narrows so
+// the expectation is never inflated. Ranges are forward-calibrated on past seasons. No season goes below zero.
+const Z90=1.2815515655,HALF=Math.sqrt(2/Math.PI)/2;
+export function scenarioSeasonScore(player,z) {
   const {seasonFloor:floor,meanSeason:mean,seasonCeiling:ceiling}=player.forecast;
-  // Symmetric bounded sensitivity around the stated expectation. Asymmetric
-  // bounds must not silently change the mean or reward wide upside intervals.
-  const radius=Math.max(0,Math.min(mean-floor,ceiling-mean));
-  return mean+radius*Math.tanh(z);
-
+  // Median m with P10=floor and P90=ceiling has mean m+(ceiling+floor-2m)*HALF/Z90; solve for the given mean.
+  const k=HALF/Z90,median=Math.min(ceiling,Math.max(floor,(mean-k*(ceiling+floor))/(1-2*k)));
+  const low=(median-floor)/Z90,high=Math.max(0,(mean-median)/HALF+low);
+  return Math.max(0,median+z*(z<0?low:high));
 }
+// Season errors of players of one NBA club move together by this measured correlation (projection model audit).
+const clubCorrelation=player=>Number.isFinite(player.forecast?.clubCorrelation)?player.forecast.clubCorrelation:0;
 function validateCompletedRoster(state) {
   if(!isComplete(state))throw Error('Сценарии сезона доступны после 80-го пика');
   if(scoringMetric(state)!==FULL_SEASON)throw Error('Для сценариев сезона нужны прогнозы полной формулы Sports.ru');
@@ -135,14 +140,14 @@ export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
   const totals=Array.from({length:TEAM_COUNT},()=>[]),wins=Array(TEAM_COUNT).fill(0);
   const places=Array.from({length:TEAM_COUNT},()=>Array(TEAM_COUNT).fill(0));
   for(let run=0;run<runs;run++){
-    const leagueShock=normalDraw(random),nbaTeamShocks=new Map(),scores=[];
+    // A league-wide swing moves every FBL team alike and cannot change the places, so only clubs and players vary.
+    const nbaTeamShocks=new Map(),scores=[];
     for(let team=0;team<TEAM_COUNT;team++){
       let total=0;
       for(const player of rosters[team]){
         const key=player.team||`player:${player.id}`;
         if(!nbaTeamShocks.has(key))nbaTeamShocks.set(key,normalDraw(random));
-        // Marginal variance stays one: 15% league, 20% real NBA team, 65% player.
-        const z=Math.sqrt(.15)*leagueShock+Math.sqrt(.20)*nbaTeamShocks.get(key)+Math.sqrt(.65)*normalDraw(random);
+        const rho=Math.max(0,clubCorrelation(player)),z=Math.sqrt(rho)*nbaTeamShocks.get(key)+Math.sqrt(1-rho)*normalDraw(random);
         total+=scenarioSeasonScore(player,z);
       }
       scores.push(total);totals[team].push(total);
@@ -157,7 +162,7 @@ export function seasonSensitivitySimulations(state,{runs=5000,seed=1}={}) {
     return {team:i+1,base:base[i].score,mean:values.reduce((sum,x)=>sum+x,0)/runs,p10:quantile(sorted,.1),p50:quantile(sorted,.5),p90:quantile(sorted,.9),firstPlaceShare:wins[i]/runs*100,firstPlaceCI:wilsonInterval(wins[i],runs),places:places[i].map(c=>c/runs*100)};
   });
   return {kind:'SEASON_SENSITIVITY',metric:FULL_SEASON,runs,teams,
-    assumptions:{range:'P10–P90 — квантили только сгенерированных сценариев; входные слабый/сильный ориентиры не являются откалиброванными P10/P90. Симметричный ограниченный разброс сохраняет базовое ожидание',correlation:'15% общий фон лиги, 20% реальная NBA-команда, 65% игрок'}};
+    assumptions:{range:'Сезон каждого игрока — из его диапазона прогноза: слабый и сильный сезон — 10-й и 90-й процентили, откалиброванные на прошлых сезонах',correlation:`связь ошибок игроков одного клуба NBA измерена по прошлым сезонам: ${(Math.max(0,clubCorrelation(rosters[0][0]))*100).toFixed(0)}%; общий фон лиги не меняет мест и не моделируется`}};
 }
 export function scenarioAnalysis(state,{seed=1,draftRuns=100,seasonRuns=5000}={}) {
   if(isComplete(state))return seasonSensitivitySimulations(state,{runs:seasonRuns,seed});
