@@ -80,7 +80,8 @@ test('injury report removes games until the return date',()=>{
  assert.equal(injuryFactor({status:'Out'},'2026-10-25','2026-10-20'),0);assert.equal(injuryFactor({status:'Out'},'2026-11-25','2026-10-20'),1);
  const c=ctx({injuries:new Map([['5001',{status:'Out',returnDate:'2026-10-26'}]])});
  assert.equal(expectedPoints(players[0],c,'2026-10-20','2026-10-25').games,0);
- assert.equal(expectedPoints(players[0],c,'2026-10-20','2026-11-30').games,2);
+ // Without absence hazards each available game counts with the season share.
+ assert.ok(Math.abs(expectedPoints(players[0],c,'2026-10-20','2026-11-30').games-2*playRate(players[0],undefined,c))<1e-9);
 });
 test('replacements keep the Sports.ru slot, the budget and the rookie rule',()=>{
  const c=ctx(),opts=transferOptions(c,{team:0,outId:1,bankMoney:5000,limit:50,sort:'season'});
@@ -226,8 +227,9 @@ test('an injured player bought for the season is a season investment, not a weak
 test('a running or already listed game is not expected again',()=>{
  const p=players[0],cal=[{date:'2026-10-21'},{date:'2026-10-22'},{date:'2026-10-23'},{date:'2026-10-19'}];
  const base={...ctx({today:'2026-10-21'}),live:{clubs:{[p.sportsClub]:cal},players:{[p.sportsId]:{games:[{date:'2026-10-22',played:true,points:30,minutes:'30:00'}]}}}};
- assert.equal(expectedPoints(p,base,'2026-10-19','2026-10-30').games,2);
- assert.equal(expectedPoints(p,{...base,running:new Map([[p.id,{day:'2026-10-21'}]])},'2026-10-19','2026-10-30').games,1);
+ const share=playRate(p,base.live.players[p.sportsId],base);
+ assert.ok(Math.abs(expectedPoints(p,base,'2026-10-19','2026-10-30').games-2*share)<1e-9);
+ assert.ok(Math.abs(expectedPoints(p,{...base,running:new Map([[p.id,{day:'2026-10-21'}]])},'2026-10-19','2026-10-30').games-share)<1e-9);
 });
 test('market players missing from the database get a price-based prior and are matched by the roster json',()=>{
  const live2={players:{'777':{name:'Новичок',fullName:'Новый Игрок',position:'C',price:1500,club:'Q'}}};
@@ -255,4 +257,17 @@ test('a swap explanation splits the gain exactly and grows surer with a bigger g
  assert.ok(big.parts.availability>0&&big.parts.perGame>0);
  assert.equal(big.sides[0].out.player.id,1);assert.equal(big.sides[0].in.player.id,81);
  const pack=explainSwap(c,null,null,'season',[[1,81],[2,82]]);assert.equal(pack.sides.length,2);
+});
+
+test('a healthy player is expected in the next games more often than his season share; an injured one from his return',()=>{
+ const p={...players[0],forecast:{...players[0].forecast,games:62,availability:{hazards:[.09,.03]}}};
+ const cal=Array.from({length:60},(_,i)=>({date:new Date(Date.UTC(2026,9,21+2*i)).toISOString().slice(0,10)}));
+ const base={...ctx({today:'2026-10-21'}),live:{clubs:{[p.sportsClub]:cal},players:{}}},share=playRate(p,undefined,base);
+ const week=expectedPoints(p,base,'2026-10-21','2026-10-27'),all=expectedPoints(p,base,'2026-10-21','2027-12-31');
+ assert.ok(week.games/4>share+.05,`next games ${week.games/4} vs share ${share}`);
+ assert.ok(all.games/60<week.games/4&&Math.abs(all.games/60-share)<.08);
+ const hurt={...base,injuries:new Map([[String(p.espnId),{status:'Out',returnDate:'2026-10-29'}]])};
+ assert.equal(expectedPoints(p,hurt,'2026-10-21','2026-10-27').games,0);
+ // After the return he starts healthy again: the first week back is worth the same as a healthy week now.
+ assert.ok(Math.abs(expectedPoints(p,hurt,'2026-10-29','2026-11-04').games-expectedPoints(p,base,'2026-10-21','2026-10-27').games)<1e-9);
 });

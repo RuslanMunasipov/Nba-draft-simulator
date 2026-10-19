@@ -25,6 +25,12 @@ LATE=10  # ending the previous season out for this many games marks a carried in
 # far more than short ones; the shape barely moves with the priors (-2.653 to -2.661 over the grid).
 FRAILTY=2.5
 QUADRATURE=7
+# A player known to be healthy at the start (no injury on the preseason report): the forecast moves from the
+# unconditional mean towards the chain's mean started in the healthy state, by a weight per last-season ending fitted
+# on 2021-2025 with "played the club's first game" as the healthy start. Ending the last season out still predicts
+# fewer games when healthy now (208 cases: 56.4 played, 52.8 unconditional, 62.1 healthy-start chain).
+# Held out 2025/26 (296 healthy starters): games MAE 13.36 vs 14.14, bias -0.7 vs -4.2.
+HEALTHY_SHIFT={'healthy':1.0,'endedOut':.3,'noGames':.2}
 
 try:import numpy as np
 except ImportError:np=None
@@ -125,9 +131,17 @@ class Availability:
         for _ in range(L):
             a=p[:,0].copy();g+=a*stay;q=np.zeros_like(p);q[:,:-1]=p[:,1:];q[:,0]+=a*stay;q[:,:L]+=w*a[:,None];p=q
         return g.mean()
-    def distribution(self,pid,t,mean=None,L=None):
-        """pmf of games played over a season of L team games; with `mean`, hazards are scaled to that expectation."""
-        L=L or season_games(t);hs,hl,info=self.hazards(pid,t);p0=self._init(pid,t,L);c=1.0
+    def healthy_mean(self,pid,t,mean,L=None):
+        """Expected games of a player healthy at the start, from the unconditional `mean` (see HEALTHY_SHIFT)."""
+        L=L or season_games(t);_,info=self.distribution(pid,t,mean=mean,L=L,pmf=False);hs,hl,_=self.hazards(pid,t)
+        p0=np.zeros(L+1);p0[0]=1;healthy=self._mean(hs*info['scale'],hl*info['scale'],p0,L)
+        return mean+HEALTHY_SHIFT[info['start']]*(healthy-mean)
+    def distribution(self,pid,t,mean=None,L=None,healthy=False,pmf=True):
+        """pmf of games played over a season of L team games; with `mean`, hazards are scaled to that expectation.
+        `healthy`: the season starts in the available state (known healthy now)."""
+        L=L or season_games(t);hs,hl,info=self.hazards(pid,t);c=1.0
+        if healthy:p0=np.zeros(L+1);p0[0]=1
+        else:p0=self._init(pid,t,L)
         if mean is not None:
             mean=min(max(mean,0.0),L)
             lo,hi=-6.0,6.0
@@ -139,6 +153,8 @@ class Availability:
                     if self._mean(hs*math.exp(m),hl*math.exp(m),p0,L)>mean:lo=m
                     else:hi=m
                 c=math.exp((lo+hi)/2)
+        info=dict(info,shortHazard=c*hs,longHazard=c*hl,start=self.state(pid,t),scale=c)
+        if not pmf:return None,info
         f=self.frailty[:,None,None];a_s=np.minimum(.45,c*hs*f);a_l=np.minimum(.45,c*hl*f)
         w=(a_s*self.fs[None,1:L+1,None]+a_l*self.fl[None,1:L+1,None])
         P=np.zeros((len(self.frailty),L+1,L+2));P[:,:,0]=p0[None]
@@ -147,8 +163,8 @@ class Availability:
             Q=np.zeros_like(P);Q[:,:-1]=P[:,1:];a=P[:,0].copy()
             Q[:,0,1:]+=a[:,:-1]*stay;Q[:,:L]+=w*a[:,None,:]
             P=Q
-        pmf=P.sum(1).mean(0)[:L+1]
-        return pmf/pmf.sum(),dict(info,shortHazard=c*hs,longHazard=c*hl,start=self.state(pid,t),scale=c)
+        out=P.sum(1).mean(0)[:L+1]
+        return out/out.sum(),info
     def report(self):
         return dict(model='semi-Markov absence chain with Gamma frailty, anchored to the regression mean',shortSpellGames=[1,SHORT],
                     leagueShortSpellsPer82=self.short*82,leagueLongSpellsPer82=self.long*82,frailtyShape=FRAILTY,

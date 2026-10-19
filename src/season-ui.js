@@ -213,7 +213,7 @@ function sideBlock(label,x){
  const p=x.player,f=p.forecast||{},box=el('div',null,'sp-side'),hist=Object.entries(p.sportsHistory||{}).slice(-2);
  box.append(el('small',label),el('strong',`${p.name} · ${x.price??'—'}${x.priceChange?` (${signed(x.priceChange)})`:''}`));
  const lines=[`${x.perGame.toFixed(1)} ФО/матч сейчас (прогноз до сезона ${x.prior.toFixed(1)}${x.played?`, в сезоне ${x.average.toFixed(1)} за ${x.played} м.`:''})`,
-  `в периоде ${x.expectedGames.toFixed(1)} из ${x.clubGames} матчей клуба · играет ${Math.round(x.playRate*100)}% матчей`,
+  `в периоде ${x.expectedGames.toFixed(1)} из ${x.clubGames} матчей клуба${x.clubGames?` (шанс сыграть ${Math.round(x.expectedGames/x.clubGames*100)}%)`:''} · за сезон играет ${Math.round(x.playRate*100)}% матчей`,
   p.depth?`состав ESPN: ${p.depth.rank===1?'стартер':'№'+p.depth.rank} на ${p.depth.position}`:'',
   x.injury?`🩹 ${x.injury.status}${x.injury.returnDate?' до '+ddmm(x.injury.returnDate):''}${x.injury.comment?' — '+x.injury.comment:''}`:'травм в отчёте ESPN нет',
   sourcesLine(f),f.availability?`история пропусков: ${f.availability.shortSpellsPer82.toFixed(1)} коротких и ${f.availability.longSpellsPer82.toFixed(1)} длинных за 82 матча (у ровесников ${f.availability.leagueShortSpellsPer82.toFixed(1)} и ${f.availability.leagueLongSpellsPer82.toFixed(1)}) · до сезона 80%: ${f.availability.gamesRange[0]}–${f.availability.gamesRange[1]} матчей`:'',hist.length?'Sports.ru: '+hist.map(([k,v])=>`${k} ${v.perGame} × ${v.games} м.`).join(' · '):''];

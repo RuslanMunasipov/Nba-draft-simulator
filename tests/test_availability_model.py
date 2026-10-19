@@ -63,6 +63,12 @@ class ChainTests(unittest.TestCase):
         mean = lambda pid: float((lambda pmf: (pmf * np.arange(len(pmf))).sum())(self.chain.distribution(pid, 2026)[0]))
         self.assertGreater(mean('2'), mean('38') + 2)
 
+    def test_a_known_healthy_start_never_lowers_the_forecast(self):
+        for pid in ('5', '38'):
+            self.assertGreaterEqual(self.chain.healthy_mean(pid, 2026, 60.0), 60.0 - 1e-6)
+        pmf, _ = self.chain.distribution('38', 2026, mean=60.0, healthy=True)
+        self.assertAlmostEqual(float((pmf * np.arange(len(pmf))).sum()), 60.0, delta=.3)
+
     def test_exact_chain_matches_simulation(self):
         c = av.Availability(self.table, self.history, set(range(2020, 2026)))
         c.frailty = np.array([1.0]); hs, hl, _ = c.hazards('20', 2026)

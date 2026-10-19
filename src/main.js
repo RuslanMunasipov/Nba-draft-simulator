@@ -159,11 +159,11 @@ function forecastSources(f){
  if(e)parts.push(`ESPN: ${e.perGame.toFixed(1)} × ${Math.round(e.games)}`);
  return `Основа: ${parts.join('; ')}${e?' — итог их среднее':''}.${Number.isFinite(f.shortSeasonRisk)?` Риск короткого сезона (меньше четверти матчей): ${Math.round(f.shortSeasonRisk*100)}%.`:''}`;
 }
-const SEASON_START={healthy:'прошлый сезон закончил в строю',endedOut:'прошлый сезон закончил с пропуском 10+ матчей',noGames:'прошлый сезон пропустил целиком'};
+const SEASON_END={healthy:'прошлый сезон закончил в строю',endedOut:'прошлый сезон закончил с пропуском 10+ матчей',noGames:'прошлый сезон пропустил целиком'};
 // Health in numbers: the absence chain's personal spell rates against the league and the games range they imply.
 function healthLine(a){
  const per=(x)=>x.toFixed(1);
- return `Здоровье (цепь пропусков по логам 2002–2026): коротких пропусков (1–3 матча) ${per(a.shortSpellsPer82)} за 82 матча при ${per(a.leagueShortSpellsPer82)} у ровесников, длинных (4+) ${per(a.longSpellsPer82)} при ${per(a.leagueLongSpellsPer82)}; ${SEASON_START[a.seasonStart]??'старт сезона неизвестен'}. Матчей с вероятностью 80%: ${a.gamesRange[0]}–${a.gamesRange[1]}, медиана ${a.gamesMedian}.`;
+ return `Здоровье (цепь пропусков по логам 2002–2026): коротких пропусков (1–3 матча) ${per(a.shortSpellsPer82)} за 82 матча при ${per(a.leagueShortSpellsPer82)} у ровесников, длинных (4+) ${per(a.longSpellsPer82)} при ${per(a.leagueLongSpellsPer82)}; ${SEASON_END[a.lastSeasonEnd]??'конец прошлого сезона неизвестен'}. ${a.healthyNow?`Сейчас травм в отчёте ESPN нет: сезон начинается в строю (без этого было бы ${Math.round(a.unconditionalGames)} матчей по модели). `:''}Это вероятности, а не обещанные пропуски: матчей с вероятностью 80% ${a.gamesRange[0]}–${a.gamesRange[1]}, медиана ${a.gamesMedian}.`;
 }
 function forecastCard(p){
  const f=p.forecast,box=document.createElement('div');box.className='forecast-panel';
