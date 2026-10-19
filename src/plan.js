@@ -1,5 +1,5 @@
 import solver from 'javascript-lp-solver';
-import {POSITIONS,TEAM_COUNT,ROUNDS,rosterFits,pick} from './engine.js';
+import {POSITIONS,TEAM_COUNT,ROUNDS,rosterFits,clubsFit,clubOf,CLUB_LIMIT,pick} from './engine.js';
 import {pickCompletion} from './completion.js';
 import {simulateDraft,teamRoster,randomFromSeed} from './simulation.js';
 import {riskAdjustedValue,draftValue} from './valuation.js';
@@ -26,18 +26,41 @@ export function adpDraft(state,seed){
  }
  return next;
 }
+// Survival to each of our picks counts only opponents' picks. When our own simulated pick takes a player, he is known
+// to be there at that pick and his fate afterwards is unknown (censored): a Kaplan-Meier product over the gaps between
+// our picks uses exactly that, instead of counting our own choice as a loss.
 export function availabilityProfile(state,{runs=50,team=0}={}){
  const picks=ownPicks(state,team),used=new Set(state.picks.map(p=>p.playerId));
- const counts=new Map(state.players.filter(p=>!used.has(p.id)).map(p=>[p.id,picks.map(()=>0)]));
+ const ids=state.players.filter(p=>!used.has(p.id)).map(p=>p.id);
+ const atRisk=new Map(ids.map(id=>[id,picks.map(()=>0)])),lost=new Map(ids.map(id=>[id,picks.map(()=>0)]));
  let done=0;
  // Half the futures use the app's forecast-driven bots, half ADP-driven humans: the plan must survive both.
  for(let seed=1;seed<=runs;seed++){
   let draft;try{draft=seed%2?simulateDraft(state,{seed:7919*seed}):adpDraft(state,7919*seed);}catch{continue;}
-  done++;const takenAt=new Map(draft.picks.slice(state.picks.length).map(x=>[x.playerId,x.number]));
-  for(const [id,row] of counts){const at=takenAt.get(id)??Infinity;picks.forEach((k,r)=>{if(at>=k)row[r]++;});}
+  done++;const taken=new Map(draft.picks.slice(state.picks.length).map(x=>[x.playerId,x]));
+  for(const id of ids){
+   const x=taken.get(id),risk=atRisk.get(id),loss=lost.get(id);
+   // Interval r: from our pick r-1 (or now) up to our pick r.
+   for(let r=0;r<picks.length;r++){
+    const from=r?picks[r-1]:state.picks.length+1;
+    if(x&&x.number<from)break;
+    risk[r]++;
+    if(x&&x.number<picks[r]){if(x.team!==team)loss[r]++;break;}
+    if(x&&x.number===picks[r])break;
+   }
+  }
  }
  if(!done)throw Error('Не удалось смоделировать ни одного продолжения драфта');
- return {picks,runs:done,availability:new Map([...counts].map(([id,row])=>[id,row.map(c=>c/done)]))};
+ // A player our own bot always takes leaves no evidence for later gaps: his hazard is then pooled from the ten players
+ // ranked next to him by value, who face the same opponents.
+ const worth=new Map(state.players.map(p=>[p.id,riskAdjustedValue(p)])),ranked=[...ids].sort((a,b)=>(worth.get(b)||0)-(worth.get(a)||0));
+ const MIN_RISK=5,hazard=(i,r)=>{
+  const id=ranked[i];if(atRisk.get(id)[r]>=MIN_RISK)return lost.get(id)[r]/atRisk.get(id)[r];
+  let n=0,k=0;for(let j=Math.max(0,i-5);j<=Math.min(ranked.length-1,i+5);j++){n+=atRisk.get(ranked[j])[r];k+=lost.get(ranked[j])[r];}
+  return n?k/n:0;
+ };
+ const availability=new Map(ranked.map((id,i)=>{let s=1;return [id,picks.map((_,r)=>{s*=1-hazard(i,r);return s;})];}));
+ return {picks,runs:done,availability};
 }
 // The GM's own percentage adjustments (expert opinion, role changes) scale our objective only; opponents keep their own view.
 export function planValue(p,adjust={}){return riskAdjustedValue(p)*82*(1+(Number(adjust[p.id])||0)/100);}
@@ -62,6 +85,8 @@ export function planRoster(state,profile,{threshold=0.8,team=0,force=null,adjust
   if(deadline<0)continue;
   const v={value:planValue(p,adjust),count:1};if(priced)v.budget=p.price;if(p.isRookie===true)v.rookie=1;
   subsets.forEach((T,i)=>{if(p.positions.every(x=>T.includes(x)))v['pos'+i]=1;});
+  const club=clubOf(p);
+  if(club!==null&&CLUB_LIMIT!==Infinity){const key='club:'+club;v[key]=1;model.constraints[key]??={max:CLUB_LIMIT-mine.filter(q=>clubOf(q)===club).length};}
   for(let r=deadline+1;r<R;r++)v['round'+r]=1;
   if(force!==null&&p.id===force){v.forced=1;model.constraints.forced={equal:1};}
   // Integer variables are unbounded in this solver: cap each player at one.
@@ -73,7 +98,7 @@ export function planRoster(state,profile,{threshold=0.8,team=0,force=null,adjust
  const chosen=candidates.filter(c=>result[c.key]>0.5).sort((a,b)=>a.deadline-b.deadline||planValue(b.player,adjust)-planValue(a.player,adjust));
  // Never present a solver answer that breaks a draft rule.
  const roster=[...mine,...chosen.map(c=>c.player)];
- if(chosen.length!==R||candidates.some(c=>Math.abs(result[c.key]??0)>1e-6&&Math.abs((result[c.key]??0)-1)>1e-6)||!rosterFits(roster)||
+ if(chosen.length!==R||candidates.some(c=>Math.abs(result[c.key]??0)>1e-6&&Math.abs((result[c.key]??0)-1)>1e-6)||!rosterFits(roster)||!clubsFit(roster)||
   (priced&&roster.reduce((s,p)=>s+p.price,0)>state.cap)||!roster.some(p=>p.isRookie===true)||chosen.some((c,r)=>c.deadline<r))return null;
  return {value:result.result,spent:mine.reduce((s,p)=>s+(p.price||0),0)+chosen.reduce((s,c)=>s+(c.player.price||0),0),
   plan:chosen.map((c,r)=>({pick:picks[r],player:c.player,survival:c.odds[r],nextSurvival:c.odds[r+1]??null})),now:chosen[0]?.player??null};

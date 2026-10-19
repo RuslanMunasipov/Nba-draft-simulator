@@ -11,7 +11,7 @@ import './theme.js';
 import {reportElement} from './rookie-reports.js';
 import './baseline.js';
 import './history.js';
-import {newDraft,pick,undo,replacePick,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
+import {newDraft,pick,undo,replacePick,exportDraft,importDraft,recommendations,riskPriority,DEFAULT_CAP,safeUrl} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
 import {setSeasonPlayers,initSeasonTabs} from './season-ui.js';
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
@@ -19,9 +19,10 @@ import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
 import {rookieRecommendations} from './rookies.js';
 import {pickCompletion,completionPlan} from './completion.js';
-import {installDatabase,restartDraft} from './database.js';
+import {installDatabase,restartDraft,compactDraft} from './database.js';
 const $=id=>document.getElementById(id);
-let state;try{state=restoreBudgetDraft(readStored('fbl-draft')||'');}catch{state=newDraft();}
+// A compact save holds only the picked players: the catalog is reinstalled from the cached or fetched database.
+let state,needsCatalog=false;try{const saved=readStored('fbl-draft')||'';needsCatalog=Boolean(JSON.parse(saved||'null')?.compact);state=restoreBudgetDraft(saved);}catch{state=newDraft();}
 let database;
 let adviceWorker,adviceWorkerState;
 let adviceRequest=0;
@@ -31,7 +32,7 @@ let replacing=null,replaceBase=null,replaceNote='';
 function target(){return replaceBase||state;}
 function startReplace(index){replacing=index;replaceBase={...state,picks:state.picks.slice(0,index)};replaceNote='';render();$('turn').scrollIntoView({block:'start'});}
 function stopReplace(){replacing=null;replaceBase=null;}
-function save(){stopReplace();writeStored('fbl-draft',JSON.stringify(state));render();updateSaveStatus();}
+function save(){stopReplace();writeStored('fbl-draft',JSON.stringify(compactDraft(state)));render();updateSaveStatus();}
 function updateSaveStatus(){
  const message=storageFailed()?'Хранилище недоступно: пики только до закрытия страницы. Сохрани резервную копию в настройках.':'Сохранение на устройстве';
  $('save-state').textContent=message;$('storage-status').textContent=storageFailed()?message:'';
@@ -73,7 +74,11 @@ function chooseReplacement(p){
   replaceNote=`Пик #${old.number} заменён: ${name(old.playerId)} → ${p.name}. `+(result.dropped.length?`Удалены пики с #${result.dropped[0].number}: внеси их заново.`:'Остальные пики сохранены.');render();
  }catch(e){showError(e);}
 }
-function choose(p){$('draft-message').hidden=true;replaceNote='';if(replacing!==null)return chooseReplacement(p);try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id);if(!plan.possible)throw Error(plan.reason);state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
+function choose(p){$('draft-message').hidden=true;replaceNote='';if(replacing!==null)return chooseReplacement(p);try{if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');const plan=pickCompletion(state,p.id),mine=state.picks.length%8===0;
+ // A pick that leaves no legal completion is refused for my team; a rival's real pick on Sports.ru is a fact to record,
+ // so in live mode it only needs confirming (the hard rules — positions, clubs, budget — still apply in pick()).
+ if(!plan.possible&&(mine||mode!=='LIVE'||!confirm(`${p.name}: ${plan.reason}\n\nПо расчёту приложения эта команда после такого пика не доберёт состав. Если пик уже сделан на Sports.ru, всё равно записать?`)))throw Error(plan.reason);
+ state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});save();$('simulation-status').textContent='Выбор сохранён.';}catch(e){save();showError(e);}}
 function card(p,analysis=null,readonly=false){
  const el=document.createElement('article');el.className='player-card';
  const individualRookie=p.isRookie&&p.espnContext?.individualProjection;
@@ -94,7 +99,7 @@ function card(p,analysis=null,readonly=false){
  if(p.forecast)el.append(forecastSummary(p));
  el.append(insightsPanel(p));
  el.append(adjustControl(p));
- if(p.roleContext){const link=document.createElement('a');link.href=p.roleContext.source;link.textContent=p.roleContext.note;el.append(link);}
+ if(p.roleContext){const href=safeUrl(p.roleContext.source),link=document.createElement(href?'a':'span');if(href)link.href=href;link.textContent=p.roleContext.note;el.append(link);}
  if(analysis&&!individualRookie)el.append(text('p',analysis.conclusion));
  const more=document.createElement('details');more.className='card-more';more.append(text('summary','Подробнее: формула, источники, карьера'));
  if(p.forecast)more.append(forecastCard(p));
@@ -371,16 +376,16 @@ async function loadDatabase(force=false){
  if(databaseLoading)return;databaseLoading=true;
  $('load-retry').hidden=true;$('startup-status').textContent='Загружаю базу игроков…';
  // Render a valid cached database before waiting for the network.
- if(!state.players.length){
-  try{const cached=JSON.parse(readStored('fbl-default-db')||'null');if(cached){state=installDatabase(state,cached);database=cached;save();$('startup-status').textContent='Сохранённая база готова. Проверяю обновление…';}}catch{}
+ if(!state.players.length||needsCatalog){
+  try{const cached=JSON.parse(readStored('fbl-default-db')||'null');if(cached){state=installDatabase(state,cached);database=cached;needsCatalog=false;save();$('startup-status').textContent='Сохранённая база готова. Проверяю обновление…';}}catch{}
  }
  $('database-status').textContent='Обновляю базу игроков…';
  try{
   const candidate=await fetchDatabase(import.meta.env.BASE_URL+'data/default-draft.json');
-  newDraft(candidate.players,20000,candidate.priceMode||'OFF');
-  if(force||!state.players.length||(state.databaseVersion&&state.databaseVersion!=='manual')||(!state.picks.length&&!state.databaseVersion)){
+  newDraft(candidate.players,DEFAULT_CAP,candidate.priceMode||'OFF');
+  if(force||!state.players.length||needsCatalog||(state.databaseVersion&&state.databaseVersion!=='manual')||(!state.picks.length&&!state.databaseVersion)){
    const installed=installDatabase(state,candidate);
-   state=installed;database=candidate;
+   state=installed;database=candidate;needsCatalog=false;
    // Applying the fetched database must not depend on storage capacity.
    save();
   }else database=candidate;
@@ -402,10 +407,14 @@ $('export-telegram').onclick=async()=>{const value=draftResultsText(),area=$('ex
  catch{area.hidden=false;area.focus();area.select();$('export-telegram').textContent='Выдели текст ниже и скопируй';}};
 $('export-txt').onclick=()=>{const url=URL.createObjectURL(new Blob([draftResultsText()],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='fbl-draft-2026-27.txt';a.click();URL.revokeObjectURL(url);};
 $('replace-cancel').onclick=()=>{stopReplace();render();};
-$('undo').onclick=()=>{state=undo(state);if(state.priceMode==='ON')state=enforceBudget(state);save();};
+// In training mode the bots answer at once, so undo goes back to before my own last pick, not just the last bot pick.
+$('undo').onclick=()=>{
+ if(mode==='INTERACTIVE'){const last=state.picks.map(p=>p.team).lastIndexOf(0);state=last<0?undo(state):{...state,picks:state.picks.slice(0,last)};}
+ else state=undo(state);
+ if(state.priceMode==='ON')state=enforceBudget(state);save();};
 $('reset').onclick=()=>{if(confirm('Начать новый драфт? Текущие пики будут удалены.')){state=restartDraft(state,database);save();}};
 $('refresh-database').onclick=()=>loadDatabase(true);
-$('load').onclick=()=>{try{const v=JSON.parse($('data').value);const priced=v.players.every(p=>p.priceStatus==='VERIFIED'&&Number.isFinite(p.price));state={...newDraft(v.players,20000,priced?'ON':'OFF'),databaseVersion:'manual'};save();$('settings').open=false;}catch(e){showError(e);}};
+$('load').onclick=()=>{try{const v=JSON.parse($('data').value);const priced=v.players.every(p=>p.priceStatus==='VERIFIED'&&Number.isFinite(p.price));state={...newDraft(v.players,DEFAULT_CAP,priced?'ON':'OFF'),databaseVersion:'manual'};save();$('settings').open=false;}catch(e){showError(e);}};
 $('download').onclick=()=>{const url=URL.createObjectURL(new Blob([exportDraft(state)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fbl-draft.json';a.click();URL.revokeObjectURL(url);};
 $('restore').onchange=async e=>{try{const restored=restoreBudgetDraft(await e.target.files[0].text());state=restored.databaseVersion!=='manual'&&database?.priceMode==='ON'?installDatabase(restored,database):restored;save();}catch(err){showError(err);}};
 function runAction(fn){try{state=fn();save();$('simulation-status').textContent=state.picks.length===80?(draftSummary(state)[0].metric==='FBL_FULL_FORMULA_ESTIMATE'?'Драфт завершён. Итоги ниже — суммы сезонных прогнозов ФО.':'Драфт завершён. Итоги ниже — суммы импортированных оценок.'):'Драфт обновлён.';}catch(e){showError(e);}}

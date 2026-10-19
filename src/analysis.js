@@ -37,10 +37,13 @@ export function selectionPressure(pool,player,seed){
 // One rollout of the remaining draft varies by ~440 risk-adjusted FP (measured on the 2026-10-18 database),
 // so a few paired seeds cannot separate close candidates; the floor keeps a lucky low spread from looking decisive.
 const ROLLOUT_SD_FLOOR=400;
+// Two-sided 95% Student t quantiles: a handful of paired runs needs the wider critical value, not 2.
+const T975=[12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,2.201,2.179,2.16,2.145,2.131,2.12,2.11,2.101,2.093,2.086];
+export const studentT975=df=>df<1?Infinity:T975[df-1]??(df<=30?2.042:1.96);
 export function rolloutTie(a,b){
  if(!a||!b||a.failed||b.failed||!a.adjustedRuns?.length||a.adjustedRuns.length!==b.adjustedRuns?.length)return null;
  const diffs=a.adjustedRuns.map((x,i)=>x-b.adjustedRuns[i]),n=diffs.length,gap=diffs.reduce((s,x)=>s+x,0)/n;
- const sd=n>1?Math.sqrt(diffs.reduce((s,x)=>s+(x-gap)**2,0)/(n-1)):0,margin=2*Math.max(sd,ROLLOUT_SD_FLOOR)/Math.sqrt(n);
+ const sd=n>1?Math.sqrt(diffs.reduce((s,x)=>s+(x-gap)**2,0)/(n-1)):0,margin=studentT975(n-1)*Math.max(sd,ROLLOUT_SD_FLOOR)/Math.sqrt(n);
  return Math.abs(gap)<margin?{other:b.player.name,gap,margin,runs:n}:null;
 }
 export function analyzeRecommendations(state,focus=null,riskyOnly=false){

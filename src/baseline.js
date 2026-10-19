@@ -1,3 +1,4 @@
+import {safeUrl} from './engine.js';
 const search=document.getElementById('baseline-search'),output=document.getElementById('baseline-data');
 let baseline;
 let limit=10;
@@ -8,7 +9,7 @@ function render(){
   const li=document.createElement('li');
   const labels={RECENT_SEASON:'последний сезон',EARLIER_SEASON:'использован более ранний сезон',LOW_SAMPLE:'малая выборка'};
   li.textContent=`${p.name}: ${p.estimatedCoreFPPerGame} базовых ФО/матч, минутная основа ${p.expectedMinutes}. Матчи: ${p.expectedObservedGames??'не оценены'}; сезонные ФО: ${p.estimatedCoreSeasonTotal??'не оценены'}. ${labels[p.coverageStatus]}; база ${p.baseSeason}, ${p.sampleGames} матчей. Основа: ${p.trainingSeasons.join(', ')}. Неопределённость ${p.uncertainty==='VERY_HIGH'?'очень высокая':'высокая'}. Текущая роль и нагрузка не подтверждены.`;
-  if(p.returnContext){li.append(document.createElement('br'));const link=document.createElement('a');link.href=p.returnContext.source;link.textContent=p.returnContext.note+` Источник ${p.returnContext.publishedAt}, проверено ${p.returnContext.checkedAt}.`;li.append(link);}
+  if(p.returnContext){li.append(document.createElement('br'));const href=safeUrl(p.returnContext.source),link=document.createElement(href?'a':'span');if(href)link.href=href;link.textContent=p.returnContext.note+` Источник ${p.returnContext.publishedAt}, проверено ${p.returnContext.checkedAt}.`;li.append(link);}
   output.append(li);
  }
  document.getElementById('baseline-more').hidden=baseline.players.filter(p=>p.name.toLowerCase().includes(q)).length<=limit;

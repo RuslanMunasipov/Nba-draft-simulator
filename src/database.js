@@ -17,3 +17,11 @@ export function restartDraft(state,database){
  }
  return {...newDraft(state.players,state.cap,state.priceMode),...(state.databaseVersion?{databaseVersion:state.databaseVersion}:{})};
 }
+
+// What the device keeps for a draft built on the automatic database: the picks and the snapshot of each picked player.
+// The catalog itself (several MB) is the cached or fetched database, so the draft fits any storage quota.
+export function compactDraft(state){
+ if(!state.databaseVersion||state.databaseVersion==='manual')return state;
+ const picked=new Set(state.picks.map(p=>p.playerId));
+ return {version:state.version,compact:true,cap:state.cap,priceMode:state.priceMode,databaseVersion:state.databaseVersion,picks:state.picks,players:state.players.filter(p=>picked.has(p.id))};
+}

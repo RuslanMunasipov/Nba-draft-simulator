@@ -36,3 +36,35 @@ test('minimum-cost solver agrees with exhaustive independent subset oracle',()=>
   const plan=completionPlan(state,0);assert.equal(plan.possible,Number.isFinite(minimum),'seed '+seed);if(plan.possible)assert.equal(plan.minimumCost,minimum,'seed '+seed);
  }
 });
+test('club-limited completion agrees with exhaustive enumeration',async()=>{
+ const {clubsFit}=await import('../src/engine.js');
+ for(let seed=1;seed<=400;seed++){
+  let n=seed;const random=()=>((n=Math.imul(n,1664525)+1013904223>>>0)/2**32);
+  const multi=seed%3===0;
+  const players=Array.from({length:13},(_,i)=>({id:i+1,name:'S'+i,positions:multi?positions.filter(()=>random()<.45):[positions[Math.floor(random()*5)]],isRookie:random()<.2,price:Math.round(random()*150),priceStatus:'VERIFIED',sportsClub:random()<.9?'C'+Math.floor(random()*5):undefined})).map(p=>({...p,positions:p.positions.length?p.positions:['C']}));
+  const fixed=seed%2?[players[0].id]:[];let minimum=Infinity;
+  for(let a=0;a<13;a++)for(let b=a+1;b<13;b++)for(let c=b+1;c<13;c++){
+   const roster=players.filter((_,i)=>i!==a&&i!==b&&i!==c);
+   if(fixed.every(id=>roster.some(p=>p.id===id))&&roster.some(p=>p.isRookie)&&rosterFits(roster)&&clubsFit(roster))minimum=Math.min(minimum,roster.reduce((s,p)=>s+p.price,0));
+  }
+  let state=newDraft(players,20000,'ON');if(fixed.length){try{state=pick(state,fixed[0]);}catch{continue;}}
+  const plan=completionPlan(state,0);
+  assert.equal(plan.possible,Number.isFinite(minimum),'seed '+seed);
+  if(plan.possible){assert.equal(plan.minimumCost,minimum,'seed '+seed);assert.ok(clubsFit(plan.playerIds.map(id=>players.find(p=>p.id===id))));}
+ }
+});
+test('interchangeable multi-position players and missing clubs do not fool the pruning',async()=>{
+ const {clubsFit}=await import('../src/engine.js');
+ for(let seed=1;seed<=300;seed++){
+  let n=seed;const random=()=>((n=Math.imul(n,1664525)+1013904223>>>0)/2**32);
+  const shared=random()<.5?positions:positions.filter(()=>random()<.6);
+  const players=Array.from({length:13},(_,i)=>({id:i+1,name:'S'+i,positions:random()<.6&&shared.length?shared:[positions[Math.floor(random()*5)]],isRookie:random()<.2,price:Math.round(random()*3)*50,priceStatus:'VERIFIED',sportsClub:random()<.5?'C'+Math.floor(random()*3):undefined}));
+  let minimum=Infinity;
+  for(let a=0;a<13;a++)for(let b=a+1;b<13;b++)for(let c=b+1;c<13;c++){
+   const roster=players.filter((_,i)=>i!==a&&i!==b&&i!==c);
+   if(roster.some(p=>p.isRookie)&&rosterFits(roster)&&clubsFit(roster))minimum=Math.min(minimum,roster.reduce((s,p)=>s+p.price,0));
+  }
+  const plan=completionPlan(newDraft(players,20000,'ON'),0);
+  assert.equal(plan.possible,Number.isFinite(minimum),'seed '+seed);if(plan.possible)assert.equal(plan.minimumCost,minimum,'seed '+seed);
+ }
+});
