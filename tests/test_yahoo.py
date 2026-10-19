@@ -41,6 +41,13 @@ class YahooTest(unittest.TestCase):
         self.assertEqual(yahoo.clean_code(' abc123 '), 'abc123')
         self.assertEqual(yahoo.clean_code('https://localhost:8080/?code=abc%2D123&state=x'), 'abc-123')
 
+    def test_redirect_candidates_cover_slash_and_pasted_address(self):
+        os.environ['YAHOO_REDIRECT_URI'] = 'https://localhost:8080'
+        self.assertEqual(yahoo.redirect_candidates('https://localhost:8080/?code=x'),
+                         ['https://localhost:8080', 'https://localhost:8080/', 'oob'])
+        os.environ['YAHOO_REDIRECT_URI'] = ''
+        self.assertEqual(yahoo.redirect_candidates('abc'), ['oob'])
+
     def test_token_is_stored_encrypted(self):
         os.environ['YAHOO_CLIENT_SECRET'] = 'test-secret'
         sealed = yahoo.crypt(b'refresh-token-value')

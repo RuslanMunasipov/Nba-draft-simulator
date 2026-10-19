@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       code:
-        description: 'Code shown by Yahoo after "Agree" (valid ~10 minutes, single use)'
+        description: 'Code from Yahoo after "Agree", or the whole address from the browser bar (valid ~10 minutes)'
         required: true
 permissions:
   contents: write
@@ -13,13 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Exchange the one-time code for an encrypted refresh token
+        # The code is read from the event payload by the script (masked there), never placed in env.
         env:
-          YAHOO_CODE: ${{ inputs.code }}
           YAHOO_CLIENT_ID: ${{ secrets.YAHOO_CLIENT_ID }}
           YAHOO_CLIENT_SECRET: ${{ secrets.YAHOO_CLIENT_SECRET }}
           YAHOO_REDIRECT_URI: ${{ secrets.YAHOO_REDIRECT_URI }}
         run: |
-          echo "::add-mask::$YAHOO_CODE"
           mkdir -p auth && python scripts/yahoo.py exchange auth/yahoo-token.enc
       - name: Store it on the data/yahoo-auth branch
         env:
