@@ -75,41 +75,21 @@ def pasted_code():
     return value.strip()
 
 
-def redirect_candidates(pasted):
-    """Yahoo needs the exact registered address: try the configured one, the pasted address and slash/oob variants."""
-    seeds = [os.environ.get('YAHOO_REDIRECT_URI', '').strip()]
+def redirect_used(pasted):
+    """The token request must repeat the redirect of the consent request. The app's helper sends it as `state`;
+    a bare code means Yahoo showed the code on its own page, i.e. the oob flow."""
+    if 'state=' in pasted:
+        return urllib.parse.unquote(pasted.split('state=', 1)[1].split('&', 1)[0]) or 'oob'
     if pasted.startswith('http'):
-        seeds.append(pasted.split('?', 1)[0])
-    out = []
-    for seed in seeds:
-        if not seed:
-            continue
-        for v in (seed, seed.rstrip('/'), seed.rstrip('/') + '/'):
-            if v not in out:
-                out.append(v)
-    return out + (['oob'] if 'oob' not in out else [])
+        return pasted.split('?', 1)[0]
+    return 'oob'
 
 
 def exchange(path):
     pasted = pasted_code()
-    code, candidates = clean_code(pasted), redirect_candidates(pasted)
-    # A failed exchange can void the real code, so the registered address is found with a dummy code first:
-    # Yahoo checks the redirect before the code and answers invalid_grant only once the address matches.
-    redirect = None
-    for i, candidate in enumerate(candidates):
-        try:
-            token_request(redirect=candidate, grant_type='authorization_code', code='probe-not-a-real-code')
-        except TokenError as e:
-            if 'REDIRECT' in str(e).upper():
-                print(f'Redirect candidate {i + 1}/{len(candidates)}: not registered')
-                continue
-        redirect = candidate
-        print(f'Redirect candidate {i + 1}/{len(candidates)} matches the Yahoo app')
-        break
-    if redirect is None:
-        raise SystemExit('No redirect address matched the one registered in the Yahoo app.')
+    # One exact attempt: a failed exchange voids the code at Yahoo.
     try:
-        tokens = token_request(redirect=redirect, grant_type='authorization_code', code=code)
+        tokens = token_request(redirect=redirect_used(pasted), grant_type='authorization_code', code=clean_code(pasted))
     except TokenError as e:
         raise SystemExit(f'{e}\nGet a fresh code (Agree again) and run the workflow within a few minutes.')
     Path(path).write_bytes(crypt(tokens['refresh_token'].encode()))
