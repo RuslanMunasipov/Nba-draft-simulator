@@ -61,7 +61,7 @@ export async function refreshSeason(){
   else if(live?.espnInjuries){injuries=parseInjuries(live.espnInjuries);notes.injuries=`травмы ESPN ${stamp(live.espnInjuries.fetchedAt)}`;}
   else notes.injuries='травмы недоступны';
   if(lg?.transfers)league=lg;
-  const connected=merged().connected.size;notes.league=(live?.yahoo?`Yahoo ${stamp(live.yahoo.fetchedAt)} · `:'')+`команд подключено: ${connected}/8`;
+  const connected=merged().connected.size;notes.league=(live?.yahoo?`Yahoo ${stamp(live.yahoo.fetchedAt)} · `:live?.yahooStatus?'Yahoo недоступен · ':'')+`команд подключено: ${connected}/8`;
   await refreshGames();
  }).finally(()=>{loading=null;renderSeason();});
  return loading;
@@ -253,6 +253,18 @@ function transfersView(ctx){
 // One-time Yahoo connection from a tablet: consent page for the app's Client ID, then the GitHub workflow that stores the token.
 function yahooHelper(){
  const box=el('details',null,'sp-log');box.append(el('summary','Подключить лигу Yahoo (все трансферы автоматически)'));
+ const status=live?.yahooStatus;
+ if(status?.error==='not_approved'){
+  // Since July 2026 Yahoo serves Fantasy data only to apps it approved; consent alone gets a token but every call answers 403.
+  const warn=el('div',null,'sp-alerts');warn.append(el('h3','Yahoo не одобрил приложение для Fantasy API'),
+   el('p',`Проверено ${stamp(status.checkedAt)}: вход и токен работают, но Yahoo отвечает 403 «not authorized» на любой запрос, даже публичный. С июля 2026 Yahoo даёт Fantasy API только одобренным приложениям. Повторное «Agree» не поможет.`));
+  const todo=el('ol');
+  const a=el('li');a.append(link('Подать заявку на доступ ↗','https://sports.yahoo.com/developer/access/'),document.createTextNode(' и подписать соглашение из письма (DocuSign).'));
+  const b=el('li','После одобрения создать НОВОЕ приложение на developer.yahoo.com (старые Yahoo не включает).');
+  const c=el('li');c.append(document.createTextNode('Отправить Client ID и App ID нового приложения через '),link('форму подтверждения ↗','https://sports.yahoo.com/developer/application-confirmation/'),document.createTextNode('.'));
+  const d=el('li','Заменить секреты YAHOO_CLIENT_ID и YAHOO_CLIENT_SECRET в GitHub и пройти шаги ниже с новым Client ID. Сбор данных проверяет доступ каждые 2 часа.');
+  todo.append(a,b,c,d);warn.append(todo);box.append(warn);box.open=true;
+ }else if(status)box.append(el('p',`Yahoo ${stamp(status.checkedAt)}: ${status.message}`,'warning'));
  const id=el('input');id.placeholder='Client ID приложения Yahoo';id.value=readStored('fbl-yahoo-client')||'';
  const redirect=el('input');redirect.placeholder='Redirect URI — оставь пустым: Yahoo сам покажет код';redirect.value=readStored('fbl-yahoo-redirect')||'';
  const go=link('2. Открыть Yahoo и нажать «Agree» ↗','#');

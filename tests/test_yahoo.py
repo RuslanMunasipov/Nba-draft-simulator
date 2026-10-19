@@ -53,6 +53,29 @@ class YahooTest(unittest.TestCase):
 </games></user></users></fantasy_content>'''
         self.assertEqual([k for k, i, _ in yahoo.parse_user_leagues(xml) if i == '246081'][-1], '466.l.246081')
 
+    def test_app_not_approved_by_yahoo_is_named(self):
+        body = ('<?xml version="1.0" encoding="UTF-8"?><error xmlns="http://www.yahooapis.com/v1/base.rng">'
+                '<description>This application is not authorized to perform this action.</description><detail/></error>')
+        self.assertEqual(yahoo.api_error('game/nba', 403, body), yahoo.NOT_APPROVED)
+        other = body.replace('This application is not authorized to perform this action.', 'League not found')
+        self.assertEqual(yahoo.api_error('league/x', 400, other), 'Yahoo API league/x: 400 League not found')
+
+    def test_collect_records_why_yahoo_is_missing(self):
+        import json, tempfile
+        with tempfile.TemporaryDirectory() as d:
+            live = Path(d) / 'live.json'
+            live.write_text('{"players":[]}')
+            original, yahoo.read_league = yahoo.read_league, lambda _: (_ for _ in ()).throw(SystemExit(yahoo.NOT_APPROVED))
+            try:
+                with self.assertRaises(SystemExit):
+                    yahoo.collect(live, Path(d) / 'token.enc')
+            finally:
+                yahoo.read_league = original
+            data = json.loads(live.read_text())
+            self.assertEqual(data['players'], [])
+            self.assertEqual(data['yahooStatus']['error'], 'not_approved')
+            self.assertNotIn('yahoo', data)
+
     def test_token_is_stored_encrypted(self):
         os.environ['YAHOO_CLIENT_SECRET'] = 'test-secret'
         sealed = yahoo.crypt(b'refresh-token-value')

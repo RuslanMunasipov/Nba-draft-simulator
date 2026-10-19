@@ -24,6 +24,12 @@ CONFIG = ROOT / 'data' / 'fbl-sports-teams.json'
 TOKEN_URL = 'https://api.login.yahoo.com/oauth2/get_token'
 API = 'https://fantasysports.yahooapis.com/fantasy/v2/'
 NS = {'y': 'http://fantasysports.yahooapis.com/fantasy/v2/base.rng'}
+# Since July 2026 Yahoo answers every Fantasy resource, public game/nba included, with this 403 unless it approved the app.
+# Consent and tokens still work, so pressing Agree again changes nothing.
+NOT_APPROVED = ('Yahoo has not approved this app for the Fantasy API: tokens work, but every Fantasy resource answers 403 '
+                '"This application is not authorized to perform this action". Apply at https://sports.yahoo.com/developer/access/, '
+                'sign the agreement, then create a NEW app and submit its Client ID at '
+                'https://sports.yahoo.com/developer/application-confirmation/. Re-consenting does not help.')
 
 
 def secret(name):
@@ -92,13 +98,14 @@ def exchange(path):
         tokens = token_request(redirect=redirect_used(pasted), grant_type='authorization_code', code=clean_code(pasted))
     except TokenError as e:
         raise SystemExit(f'{e}\nGet a fresh code (Agree again) and run the workflow within a few minutes.')
-    Path(path).write_bytes(crypt(tokens['refresh_token'].encode()))
-    print('Yahoo connected: refresh token stored encrypted. Granted scope:', tokens.get('scope', '(not reported)'))
-    # Fail here, not two hours later, when the consent did not include Fantasy Sports.
+    print('Yahoo sign-in OK, token received. Checking Fantasy API access…')
+    # Fail here, not two hours later, when Yahoo refuses the app or the account is not in the league.
     leagues = parse_user_leagues(api_get(tokens['access_token'], 'users;use_login=1/games;game_codes=nba/leagues'))
     print('NBA leagues visible to this account:', ', '.join(f'{i} ({n})' for _, i, n in leagues) or 'none')
     if league_id() not in [i for _, i, _ in leagues]:
         raise SystemExit(f'League {league_id()} is not among them: sign in to Yahoo with the account that plays in it.')
+    Path(path).write_bytes(crypt(tokens['refresh_token'].encode()))
+    print('Yahoo connected: refresh token stored encrypted.')
 
 
 def api_get(access_token, path):
@@ -107,9 +114,17 @@ def api_get(access_token, path):
         with urllib.request.urlopen(req, timeout=30) as r:
             return r.read()
     except urllib.error.HTTPError as e:
-        body = e.read().decode(errors='replace')
-        hint = ' The consent did not grant Fantasy Sports: press Agree again with the link from the app (it now asks for fspt-r).' if 'not authorized' in body else ''
-        raise SystemExit(f'Yahoo API {path}: {e.code} {body[:400]}{hint}') from None
+        raise SystemExit(api_error(path, e.code, e.read().decode(errors='replace'))) from None
+
+
+def api_error(path, code, body):
+    if code == 403 and 'not authorized' in body:
+        return NOT_APPROVED
+    try:
+        reason = text(ET.fromstring(body), '{http://www.yahooapis.com/v1/base.rng}description') or body[:300]
+    except ET.ParseError:
+        reason = body[:300]
+    return f'Yahoo API {path}: {code} {reason}'
 
 
 def league_id():
@@ -158,6 +173,25 @@ def parse_transactions(xml):
 
 
 def collect(live_path, token_path):
+    live = json.loads(Path(live_path).read_text(encoding='utf-8'))
+    try:
+        live['yahoo'] = read_league(token_path)
+    except SystemExit as e:
+        # The page shows why Yahoo is missing instead of offering the connect steps again.
+        message = str(e.code)
+        live['yahooStatus'] = {'checkedAt': now(), 'error': 'not_approved' if message == NOT_APPROVED else 'failed', 'message': message[:500]}
+        raise
+    finally:
+        Path(live_path).write_text(json.dumps(live, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+    y = live['yahoo']
+    print(f'Yahoo {y["league"]}: {len(y["teams"])} teams, {sum(len(t["roster"]) for t in y["teams"])} rostered players, {len(y["transactions"])} transactions')
+
+
+def now():
+    return datetime.now(timezone.utc).isoformat(timespec='seconds')
+
+
+def read_league(token_path):
     refresh = crypt(Path(token_path).read_bytes(), decrypt=True).decode()
     try:
         tokens = token_request(grant_type='refresh_token', refresh_token=refresh)
@@ -172,13 +206,6 @@ def collect(live_path, token_path):
     # The exact key (<season game id>.l.<league id>) comes from the account's own leagues: the bare 'nba' alias
     # can still point to last season, where this league id belongs to someone else.
     wanted = league_id()
-    # Diagnostics: is the app blocked as a whole, or only some resources?
-    for probe in ('game/nba', 'users;use_login=1/games;game_codes=nba', f'league/nba.l.{wanted}'):
-        try:
-            api_get(tokens['access_token'], probe)
-            print(f'check {probe}: OK')
-        except SystemExit as e:
-            print(f'check {probe}: {str(e)[:160]}')
     mine = [k for k, i, _ in parse_user_leagues(get('users;use_login=1/games;game_codes=nba/leagues')) if i == wanted]
     if not mine:
         raise SystemExit(f'League {wanted} is not among the leagues of the connected Yahoo account.')
@@ -194,16 +221,24 @@ def collect(live_path, token_path):
             break
         start += 25
     transactions = sorted({t['key']: t for t in transactions}.values(), key=lambda x: x['timestamp'])
-    live = json.loads(Path(live_path).read_text(encoding='utf-8'))
-    live['yahoo'] = {'league': key, 'fetchedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'teams': teams, 'transactions': transactions}
-    Path(live_path).write_text(json.dumps(live, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
-    print(f'Yahoo {key}: {len(teams)} teams, {sum(len(t["roster"]) for t in teams)} rostered players, {len(transactions)} transactions')
+    return {'league': key, 'fetchedAt': now(), 'teams': teams, 'transactions': transactions}
 
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) >= 3 and sys.argv[1] == 'exchange':
         exchange(sys.argv[2])
     elif len(sys.argv) >= 4 and sys.argv[1] == 'collect':
         collect(sys.argv[2], sys.argv[3])
     else:
         raise SystemExit(__doc__)
+
+
+if __name__ == '__main__':
+    sys.stdout.reconfigure(line_buffering=True)
+    try:
+        main()
+    except SystemExit as e:
+        # An annotation on the run page: the season collector continues on error and would otherwise look green.
+        if isinstance(e.code, str) and os.environ.get('GITHUB_ACTIONS'):
+            print('::error title=Yahoo Fantasy API::' + e.code.replace('%', '%25').replace('\n', '%0A'))
+        raise
