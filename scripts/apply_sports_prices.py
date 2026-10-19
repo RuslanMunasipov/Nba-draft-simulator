@@ -2,9 +2,17 @@
 import json, unicodedata
 from pathlib import Path
 
-def apply(data, catalog, crosswalk):
+def apply(data, catalog, crosswalk, additions=None):
     prices = {p['sportsId']: p for p in catalog['players']}
-    if len(prices) != catalog['count'] or any(not isinstance(p['price'], (int, float)) or p['price'] <= 0 for p in prices.values()):
+    if len(prices) != catalog['count']:
+        raise ValueError('Invalid Sports.ru price catalog')
+    # Players who reached the Sports.ru market after the catalog date, each dated by its own capture.
+    origin = {key: catalog for key in prices}
+    for p in (additions or {}).get('players', []):
+        if p['sportsId'] in prices:
+            raise ValueError('Market addition already in the catalog: ' + p['sportsId'])
+        prices[p['sportsId']], origin[p['sportsId']] = p, additions
+    if any(not isinstance(p['price'], (int, float)) or p['price'] <= 0 for p in prices.values()):
         raise ValueError('Invalid Sports.ru price catalog')
     positions={'1':'PG','2':'SG','3':'SF','4':'PF','5':'C'}
     if any(str(p.get('sportsPosition')) not in positions for p in prices.values()):
@@ -35,11 +43,12 @@ def apply(data, catalog, crosswalk):
             raise ValueError('Crosswalk references a missing Sports.ru ID')
         if identity_name(entry['name'])!=identity_name(player['name']):raise ValueError('Identity name mismatch: '+player['name'])
         if entry['sportsName']!=source['name'] or entry['sportsClub']!=source['club']:raise ValueError('Sports.ru identity mismatch')
+        dated = origin[entry['sportsId']]
         player.update(positions=[positions[str(source['sportsPosition'])]],positionStatus='SPORTS_RU_VERIFIED',
-                      positionSource=catalog['source'],positionCheckedAt=catalog['capturedAt'],positionProvider='Sports.ru',
+                      positionSource=dated['source'],positionCheckedAt=dated['capturedAt'],positionProvider='Sports.ru',
                       price=source['price'], priceStatus='VERIFIED', sportsId=source['sportsId'],
                       sportsName=source['name'], priceSource='Sports.ru',
-                      priceCheckedAt=catalog['capturedAt'], sportsClub=source['club'])
+                      priceCheckedAt=dated['capturedAt'], sportsClub=source['club'])
         matched.append(source['sportsId'])
     if len(set(matched)) != len(matched):
         raise ValueError('A Sports.ru price matched multiple NBA players')
@@ -56,7 +65,8 @@ def apply(data, catalog, crosswalk):
 if __name__ == '__main__':
     path = Path('public/data/default-draft.json')
     data = json.loads(path.read_text())
-    report = apply(data, json.loads(Path('data/sports-prices-2026-10-17.json').read_text()), json.loads(Path('data/sports-player-map.json').read_text()))
+    report = apply(data, json.loads(Path('data/sports-prices-2026-10-17.json').read_text()), json.loads(Path('data/sports-player-map.json').read_text()),
+                   json.loads(Path('data/sports-market-additions.json').read_text()))
     if report['eligiblePricedPlayers'] < 200:
         raise ValueError('Insufficient verified Sports.ru players')
     path.write_text(json.dumps(data, ensure_ascii=False))

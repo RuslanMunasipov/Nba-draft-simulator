@@ -148,6 +148,12 @@ test('a transfer that breaks the Sports.ru budget is flagged',()=>{
  const r=allTransfers(players,live,{transfers:t},picks);
  assert.ok(r.warnings.some(w=>w.team===0&&/превышен/.test(w.message)));
 });
+test('a day of transfers is one package: a dearer buy funded by a later sale the same day is no breach',()=>{
+ const t=[{team:0,outId:1,inId:81,date:'2026-10-26',outPrice:1500,inPrice:8000},{team:0,outId:9,inId:82,date:'2026-10-26',outPrice:5000,inPrice:1500}];// bank 5000 → −1500 → +2000
+ assert.ok(!allTransfers(players,live,{transfers:t},picks).warnings.some(w=>/превышен/.test(w.message)));
+ const split=[t[0],{...t[1],date:'2026-10-27'}];
+ assert.ok(allTransfers(players,live,{transfers:split},picks).warnings.some(w=>w.team===0&&/2026-10-26.*превышен/.test(w.message)));
+});
 test('a made transfer is judged by the forecast and compared with the best swap',()=>{
  // Team 0 sells #1 (PG, 30 a game) for #81 (PG, 20 a game); #92 (PG, 31 a game) was free.
  const t={team:0,outId:1,inId:81,date:'2026-10-20',outPrice:1500,inPrice:1500};
