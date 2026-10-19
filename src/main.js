@@ -5,7 +5,7 @@ import {restoreBudgetDraft,enforceBudget,budgetSummary} from './budget.js';
 import {draftValue,riskAdjustedValue} from './valuation.js';
 import {playerInsights} from './insights.js';
 import './model-audit.js';
-import {readStored,writeStored,storageFailed} from './storage.js';
+import {readStored,writeStored,storageFailed,readCache,writeCache} from './storage.js';
 import {fetchDatabase} from './database-loader.js';
 import './theme.js';
 import {reportElement} from './rookie-reports.js';
@@ -151,6 +151,14 @@ function forecastSummary(p){
  if(p.returnContext?.note)box.append(text('small',p.returnContext.note));
  return box;
 }
+// Where a forecast comes from, in one sentence: the career model, ESPN, the draft-pick model and their numbers.
+function forecastSources(f){
+ if(f.version!==4)return `Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}. Исторических матчей для разброса: ${f.sampleGames??0}.${f.rookieExtrapolation&&f.analogs?.length?' Аналоги для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'.':''}`;
+ const m=f.sources?.model,e=f.sources?.espn,parts=[];
+ if(m)parts.push(`${f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных новичков':'модель по карьере'}: ${m.perGame.toFixed(1)} ФО/матч × ${Math.round(m.games)} матчей`);
+ if(e)parts.push(`ESPN: ${e.perGame.toFixed(1)} × ${Math.round(e.games)}`);
+ return `Основа: ${parts.join('; ')}${e?' — итог их среднее':''}.${Number.isFinite(f.shortSeasonRisk)?` Риск короткого сезона (меньше четверти матчей): ${Math.round(f.shortSeasonRisk*100)}%.`:''}`;
+}
 function forecastCard(p){
  const f=p.forecast,box=document.createElement('div');box.className='forecast-panel';
  if(f.basis)box.append(text('p',f.basis));
@@ -161,20 +169,21 @@ function forecastCard(p){
  for(const [label,value] of [['ФО / матч',f.meanPerGame.toFixed(1)],['Матчей',Math.round(f.games)],['Минут / матч',f.minutes.toFixed(1)],[f.sampleGames?'Верхний ориентир матча':'Верхний ролевой ориентир',f.gameCeiling.toFixed(1)],['Базовый сезон',Math.round(f.meanSeason)],['Сильный сезон',Math.round(f.seasonCeiling)],['Слабый сезон',Math.round(f.seasonFloor)]]){
   const cell=document.createElement('div');cell.append(text('small',label),text('strong',String(value)));grid.append(cell);
  }
- box.append(grid,text('p',f.sampleGames?'Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.':'Ролевой ориентир сравнивает средние показатели исторических игроков. Это не индивидуальный P90 матча; сезонный диапазон для такой оценки не откалиброван.'));
+ if(f.version===4)box.append(grid,text('p','Потолок матча — 90-й процентиль собственных матчей игрока за два сезона (у новичков — игроков того же уровня). Слабый и сильный сезон — 10-й и 90-й процентили, откалиброванные на прошлых сезонах; они учитывают и ФО за матч, и число матчей.'));
+ else box.append(grid,text('p',f.sampleGames?'Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.':'Ролевой ориентир сравнивает средние показатели исторических игроков. Это не индивидуальный P90 матча; сезонный диапазон для такой оценки не откалиброван.'));
  const c=f.components,formula=document.createElement('details');
  if(f.scoringBreakdown){
   const table=document.createElement('table');table.className='scoring-breakdown';
   table.append(text('caption','Полная формула · вклад за матч'));
   const body=document.createElement('tbody');
-  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери × −2',personalFouls:'Фолы',participation:'Бонус минут',teamResult:'Результат команды',historicalAdjustment:'Историческая поправка'};
+  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери × −2',personalFouls:'Фолы',participation:'Бонус минут',teamResult:'Результат команды',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, оценка ESPN)'};
   for(const [key,value] of Object.entries(f.scoringBreakdown)){const row=document.createElement('tr');row.append(text('th',labels[key]),text('td',(value>=0?'+':'')+value.toFixed(2)));body.append(row);}
   const total=document.createElement('tr');total.append(text('th','Итого ФО / матч'),text('td',f.meanPerGame.toFixed(2)));body.append(total);table.append(body);box.append(table);
   box.append(text('p',`Потери уже учтены: ${(-f.scoringBreakdown.turnovers/2).toFixed(1)} за игру стоят ${f.scoringBreakdown.turnovers.toFixed(1)} ФО/матч и ${Math.round(f.scoringBreakdown.turnovers*f.games)} ФО за прогнозируемый сезон. Дополнительный штраф к рейтингу не применяется.`));
  }
  if(f.historicalDownside){const h=f.historicalDownside;box.append(text('p',`Минусовые матчи · ${h.season}: ${h.negativeGames} из ${h.games}; худшая игра ${h.worstGame.toFixed(1)} ФО; среднее худших 10% игр ${h.meanWorstTenPercent.toFixed(1)} ФО. Это фактическая история игрока, не прогноз частоты минусовых игр.`));}
- formula.append(text('summary','Из чего складываются ФО'),text('p',`Статистика и промахи ${c.countingAndMisses.toFixed(2)} · фолы ${c.personalFouls.toFixed(2)} · минуты +${c.participation.toFixed(2)} · результат команды ${c.teamResult>=0?'+':''}${c.teamResult.toFixed(2)}${c.historicalAdjustment?' · историческая поправка '+c.historicalAdjustment.toFixed(2):''} = ${f.meanPerGame.toFixed(2)} ФО/матч.`));
- formula.append(text('p',`Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}. Исторических матчей для разброса: ${f.sampleGames}. ${f.rookieExtrapolation?'Аналоги для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'. Это сравнение статистического профиля, не сравнение карьер.':''}`));
+ formula.append(text('summary','Из чего складываются ФО'),text('p',`Статистика и промахи ${c.countingAndMisses.toFixed(2)} · фолы ${c.personalFouls.toFixed(2)} · минуты +${c.participation.toFixed(2)} · результат команды ${c.teamResult>=0?'+':''}${c.teamResult.toFixed(2)}${c.historicalAdjustment?' · историческая поправка '+c.historicalAdjustment.toFixed(2):''}${c.adjustment?' · поправка '+(c.adjustment>=0?'+':'')+c.adjustment.toFixed(2):''} = ${f.meanPerGame.toFixed(2)} ФО/матч.`));
+ formula.append(text('p',forecastSources(f)));
  box.append(formula);return box;
 }
 
@@ -377,7 +386,7 @@ async function loadDatabase(force=false){
  $('load-retry').hidden=true;$('startup-status').textContent='Загружаю базу игроков…';
  // Render a valid cached database before waiting for the network.
  if(!state.players.length||needsCatalog){
-  try{const cached=JSON.parse(readStored('fbl-default-db')||'null');if(cached){state=installDatabase(state,cached);database=cached;needsCatalog=false;save();$('startup-status').textContent='Сохранённая база готова. Проверяю обновление…';}}catch{}
+  try{const cached=await readCache('fbl-default-db');if(cached){state=installDatabase(state,cached);database=cached;needsCatalog=false;save();$('startup-status').textContent='Сохранённая база готова. Проверяю обновление…';}}catch{}
  }
  $('database-status').textContent='Обновляю базу игроков…';
  try{
@@ -389,7 +398,7 @@ async function loadDatabase(force=false){
    // Applying the fetched database must not depend on storage capacity.
    save();
   }else database=candidate;
-  writeStored('fbl-default-db',JSON.stringify(candidate));updateSaveStatus();
+  await writeCache('fbl-default-db',candidate);updateSaveStatus();
   $('database-status').textContent=`База ${candidate.coverage.players} игроков · rookie ${candidate.coverage.rookies} · обновлена ${new Date(candidate.generatedAt).toLocaleString('ru-RU')}. Цены Sports.ru: ${candidate.priceAudit?.matchedPlayers??0} игроков, срез ${candidate.priceAudit?.capturedAt?new Date(candidate.priceAudit.capturedAt).toLocaleString('ru-RU'):'неизвестен'}. Допуск драфта: только позиции Sports.ru. Позиции Yahoo хранятся отдельно для переноса команды; неподтверждённый допуск Sports.ru блокирует выбор. Оценки экспериментальные; полный прогноз включает оценку фолов и бонусов.`;
   $('startup-status').textContent=`База готова · ${state.players.length} игроков`;
  }catch(e){

@@ -294,8 +294,69 @@ export function injuredTargets(ctx,{team,bankMoney,k=1,days=7,minGain=30}){
 }
 // Free agents who beat a current player of the same position over the horizon and over the rest of the season,
 // affordable in a one-for-one swap: real upgrades, not short-term streams.
-export function marketAlerts(ctx,{team,bankMoney,sort='month',minGain=15}){
- return bestTransfers(ctx,{team,bankMoney,sort,limit:10}).filter(x=>x.gain[sort]>=minGain&&x.gain.season>0);
+export function marketAlerts(ctx,{team,bankMoney,sort='month',minGain=15,minConfidence=CONFIDENT}){
+ return bestTransfers(ctx,{team,bankMoney,sort,limit:10}).map(x=>({...x,why:explainSwap(ctx,x.outId,x.player.id,sort)}))
+  .filter(x=>x.gain[sort]>=minGain&&x.gain.season>0&&x.why.confidence>=minConfidence);
+}
+
+// ---------- Why a transfer, and how sure ----------
+// A move is advised only when the model is this sure it gains over the chosen horizon; below DOUBTFUL it is not worth a transfer.
+export const CONFIDENT=.7,DOUBTFUL=.6;
+const Z90=1.2815515655;
+function normalCdf(z){const t=1/(1+.2316419*Math.abs(z)),d=.3989423*Math.exp(-z*z/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
+// Spread of a player's points over a horizon: the forecast's season range (10th-90th percentile, calibrated forward on past
+// seasons) narrowed as his own games of this season come in (the in-season prior weight), plus game-to-game noise, which
+// dominates a one-week horizon.
+export function pointsSpread(player,ctx,outlook){
+ const f=player.forecast,live=ctx.live?.players?.[player.sportsId],played=(live?.games||[]).filter(g=>g.played).length;
+ const k=CALIBRATION.points.established.rateGames;
+ const rel=f&&f.meanSeason>0&&Number.isFinite(f.seasonFloor)?(f.seasonCeiling-f.seasonFloor)/(2*Z90*f.meanSeason):.5;
+ const game=f&&Number.isFinite(f.gameFloor)?(f.gameCeiling-f.gameFloor)/(2*Z90):Math.max(4,(outlook.points/Math.max(1,outlook.games))*.4);
+ return Math.sqrt((rel*Math.sqrt(k/(k+played))*outlook.points)**2+game*game*Math.max(0,outlook.games));
+}
+// What one player brings over a horizon, split as points per game x share of the club's games he plays x club games.
+export function playerPicture(player,ctx,key){
+ const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,h=horizons(ctx)[key];
+ const outlook=expectedPoints(player,ctx,h.from,h.to),g=perGame(player,live),rate=playRate(player,live,ctx);
+ const clubGames=(ctx.live?.clubs?.[club]||[]).filter(x=>x.date>=h.from&&x.date<=h.to&&!x.score&&!(ctx.today&&x.date<ctx.today)).length;
+ const injury=ctx.injuries?.get(String(player.espnId))||null,played=(live?.games||[]).filter(x=>x.played);
+ return {player,points:outlook.points,perGame:g.value,prior:g.prior,average:g.average,played:played.length,playRate:rate,
+  expectedGames:outlook.games*rate,clubGames,injury,spread:pointsSpread(player,ctx,{points:outlook.points,games:outlook.games*rate}),
+  price:current(player,ctx).price,priceChange:Number.isFinite(live?.price)&&Number.isFinite(live?.initialPrice)?live.price-live.initialPrice:0};
+}
+// Logarithmic-mean split of a difference of products a1*b1*c1 - a0*b0*c0 into exact additive parts.
+function splitProduct(before,after){
+ const total=after.reduce((a,b)=>a*b,1)-before.reduce((a,b)=>a*b,1);
+ if(before.some(x=>!(x>0))||after.some(x=>!(x>0))){return before.map((_,i)=>i===0?total:0);}
+ const P0=before.reduce((a,b)=>a*b,1),P1=after.reduce((a,b)=>a*b,1),w=Math.abs(P1-P0)<1e-9?P0:(P1-P0)/Math.log(P1/P0);
+ return before.map((x,i)=>w*Math.log(after[i]/x));
+}
+// Why a swap gains (or not) over a horizon, how sure the model is, and what to check before doing it.
+export function explainSwap(ctx,outId,inId,key='month',pairs=null){
+ const byId=new Map(ctx.players.map(p=>[p.id,p]));
+ const moves=pairs||[[outId,inId]],flags=[];let gain=0,variance=0;const parts={perGame:0,availability:0,schedule:0},sides=[];
+ for(const [o,i] of moves){
+  const a=playerPicture(byId.get(o),ctx,key),b=playerPicture(byId.get(i),ctx,key);sides.push({out:a,in:b});
+  const split=splitProduct([a.perGame,a.expectedGames/Math.max(1e-9,a.clubGames),a.clubGames],[b.perGame,b.expectedGames/Math.max(1e-9,b.clubGames),b.clubGames]);
+  const d=b.points-a.points;gain+=d;variance+=a.spread**2+b.spread**2;
+  const sum=split.reduce((x,y)=>x+y,0)||1,scale=Math.abs(sum)>1e-9?d/sum:0;
+  parts.perGame+=split[0]*scale;parts.availability+=split[1]*scale;parts.schedule+=split[2]*scale;
+  const f=b.player.forecast||{},fo=a.player.forecast||{};
+  if(b.injury)flags.push(`${b.player.name}: ${b.injury.status}${b.injury.returnDate?' до '+b.injury.returnDate.slice(8,10)+'.'+b.injury.returnDate.slice(5,7):''} — проверь новости перед покупкой.`);
+  if(a.injury)flags.push(`${a.player.name}: ${a.injury.status} — это часть причины продажи.`);
+  if(['DRAFT_PRIOR','GROUP_PRIOR','LIMITED_PERSONAL'].includes(f.coverageTier)||f.origin==='SPORTS_PRICE_PRIOR')flags.push(`${b.player.name}: прогноз почти без личной истории в NBA — высокая неопределённость.`);
+  const e=fo.sources?.espn,m=fo.sources?.model;
+  if(e&&m&&Math.abs(e.games-m.games)>=12)flags.push(`${a.player.name}: модель ждёт ${Math.round(m.games)} матчей, ESPN — ${Math.round(e.games)}; итог ${Math.round(fo.games)}. Если он здоров, разница меньше.`);
+  const e2=f.sources?.espn,m2=f.sources?.model;
+  if(e2&&m2&&Math.abs(e2.games-m2.games)>=12)flags.push(`${b.player.name}: модель ждёт ${Math.round(m2.games)} матчей, ESPN — ${Math.round(e2.games)}; итог ${Math.round(f.games)}.`);
+  if(b.played<5&&a.played<5&&ctx.today)flags.push('Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.');
+ }
+ const sd=Math.sqrt(variance),confidence=sd>0?normalCdf(gain/sd):gain>0?1:0;
+ const total=Math.abs(parts.perGame)+Math.abs(parts.availability)+Math.abs(parts.schedule)||1;
+ if(gain>0&&parts.availability/total>.5)flags.unshift('Больше половины выигрыша — из прогноза числа сыгранных матчей, а не из игры за матч: это самая неточная часть прогноза.');
+ if(gain>0&&parts.schedule/total>.5)flags.unshift('Выигрыш в основном из календаря (у нового клуба больше матчей в периоде): после периода преимущество исчезнет.');
+ const level=confidence>=CONFIDENT?'CONFIDENT':confidence>=DOUBTFUL?'MODERATE':'DOUBTFUL';
+ return {gain,sd,confidence,level,parts,flags:[...new Set(flags)],sides};
 }
 // Official Sports.ru formula on an ESPN box-score line; the result bonus applies only to finished games.
 // A line with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of a DNP empty.

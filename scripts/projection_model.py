@@ -19,6 +19,7 @@ import json,math,random,statistics,sys,unicodedata
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
+import numpy as np
 import pyarrow.parquet as pq
 
 CAREER=Path('data/raw/career_games.parquet')
@@ -131,15 +132,28 @@ class Veteran:
         self.base_share={b:statistics.mean(e['y']['share'] for e in recent if age_bucket(e['x']['age'])==b) for b in {age_bucket(e['x']['age']) for e in recent if e['x']['age'] is not None}}
         self.mean_share=statistics.mean(e['y']['share'] for e in recent)
         best=None
-        for w2 in (0,.25,.5,.75):
+        # Squared error: a season total needs the mean share, and the median-seeking absolute error under-predicted the
+        # bounce-back of players whose last season was cut short (0.54 predicted, 0.67 played over 2019-2026).
+        for w2 in (0,.25,.5,.75,1):
             for w3 in (0,.25,.5):
                 if w3>w2:continue
-                for wc in (0,.5,1,2):
-                    for j in (0,.5,1,2,4):
-                        err=sum(abs(self._share(e['x'],(1,w2,w3),wc,j)-e['y']['share']) for e in examples)
+                for wc in (0,.5,1,2,4):
+                    for j in (0,.5,1,2,4,8):
+                        err=sum((self._share(e['x'],(1,w2,w3),wc,j)-e['y']['share'])**2 for e in examples)
                         if best is None or err<best[0]:best=(err,(1,w2,w3),wc,j)
         _,self.share_w,self.share_wc,self.share_j=best
+        # Availability itself: least squares on the last three seasons, the career share, career length and age (with the
+        # interaction of a short last season and a sound career). Forward-tested 2020-2026 it beats the shrinkage above
+        # (15.0 vs 15.2 games MAE) and halves the under-prediction of bounce-back seasons; the shrinkage stays reported.
+        last=max(e['t'] for e in examples);rows=[e for e in examples if e['t']>last-6]
+        X=np.array([self.share_features(e['x']) for e in rows]);y=np.array([e['y']['share'] for e in rows])
+        self.share_coef=np.linalg.lstsq(X,y,rcond=None)[0]
         self.short_k=10
+    @staticmethod
+    def share_features(x):
+        last=x['past'][0]['share'] if x['past'][0] else 0;prev=x['past'][1]['share'] if x['past'][1] else x['career']
+        a=(x['age'] or 27)-27
+        return [1,last,prev,x['career'],min(1,x['seasons']/5),a,a*a/10,last*x['career']]
     def _pm(self,x,w,k):
         # Shrinking towards a minutes-dependent rate instead of the league rate was tried and lost on the held-out season.
         prior=self.league_pm;num=k*prior;den=k
@@ -175,7 +189,7 @@ class Veteran:
         b=age_bucket(x['age'])
         pm=self._pm(x,self.pm_w,self.pm_k)+(self.age_pm.get(b,0) if b else 0)
         minutes=max(1.0,min(42.0,self._min(x,self.min_w,self.min_k)+(self.age_min.get(b,0) if b else 0)))
-        share=max(0.0,min(1.0,self._share(x,self.share_w,self.share_wc,self.share_j)))
+        share=float(max(0.0,min(1.0,np.dot(self.share_coef,self.share_features(x)))))
         short_games=sum(p['short'] for p in x['past'][:2] if p);games=sum(p['games'] for p in x['past'][:2] if p)
         prior_short=1/(1+math.exp((minutes-8)/2.5))  # league-wide link between average minutes and short games
         short=(short_games+self.short_k*prior_short)/(games+self.short_k)
@@ -190,6 +204,7 @@ class Veteran:
     def report(self):
         return dict(perMinuteWeights=self.pm_w,perMinuteShrinkMinutes=self.pm_k,minuteWeights=self.min_w,minuteShrinkGames=self.min_k,
                     shareWeights=self.share_w,careerShareWeight=self.share_wc,shareShrink=self.share_j,
+                    shareRegression=dict(zip(['intercept','last','previous','career','careerLength','age','age2','lastXcareer'],[round(float(c),4) for c in self.share_coef])),
                     leaguePerMinute=self.league_pm,leagueMinutes=self.league_min,
                     agePerMinute={k:round(v,4) for k,v in self.age_pm.items()},ageMinutes={k:round(v,2) for k,v in self.age_min.items()})
 

@@ -94,6 +94,10 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Test, build and verify
         run: npm run verify
+      - name: Browser smoke test on a phone viewport
+        run: |
+          npx playwright install --with-deps chromium
+          node scripts/e2e-smoke.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
