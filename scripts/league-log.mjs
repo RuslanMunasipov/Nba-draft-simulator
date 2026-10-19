@@ -11,16 +11,20 @@ if(!match)fail('В заявке нет блока ```json```.');
 let req;try{req=JSON.parse(match[1]);}catch{fail('JSON заявки не читается.');}
 const league=JSON.parse(fs.readFileSync(FILE,'utf8'));
 const int=v=>Number.isInteger(v)?v:fail('Неверное число: '+v);
+// Player ids are NBA numbers, or provider-prefixed strings for players without one ("espn:5041935", "sports:1796991").
+const pid=v=>Number.isInteger(v)||/^(espn|sports):\d+$/.test(v)?v:fail('Неверный id игрока: '+v);
 let note;
 if(req.action==='transfer'){
- const x={team:int(req.team),outId:int(req.outId),inId:int(req.inId),date:String(req.date),outPrice:int(req.outPrice),inPrice:int(req.inPrice)};
+ const x={team:int(req.team),outId:pid(req.outId),inId:pid(req.inId),date:String(req.date),outPrice:int(req.outPrice),inPrice:int(req.inPrice)};
  if(x.team<0||x.team>=TEAM_COUNT||!/^\d{4}-\d\d-\d\d$/.test(x.date))fail('Неверная команда или дата.');
  if(league.transfers.some(t=>t.team===x.team&&t.outId===x.outId&&t.inId===x.inId&&t.date===x.date))fail('Такой трансфер уже записан.');
  try{seasonRosters([...league.transfers,x]);}catch(e){fail(e.message);}
  league.transfers.push(x);note=`✅ Трансфер записан: команда ${x.team+1}, ${x.outId} → ${x.inId} (${x.date}).`;
 }else if(req.action==='undo'){
- if(!league.transfers.length)fail('Журнал пуст.');
- const x=league.transfers.pop();note=`↩️ Удалён последний трансфер: команда ${x.team+1}, ${x.outId} → ${x.inId}.`;
+ // With a team, its own latest transfer is undone, not whichever team moved last.
+ const team=req.team===undefined?null:int(req.team),i=league.transfers.findLastIndex(t=>team===null||t.team===team);
+ if(i<0)fail('Журнал пуст.');
+ const [x]=league.transfers.splice(i,1);note=`↩️ Удалён последний трансфер: команда ${x.team+1}, ${x.outId} → ${x.inId}.`;
 }else if(req.action==='bank'){
  const team=int(req.team);if(team<0||team>=TEAM_COUNT)fail('Неверная команда.');
  if(req.value===null)delete league.banks[team];else league.banks[team]=int(req.value);

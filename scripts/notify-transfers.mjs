@@ -4,7 +4,7 @@
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {esc,gains,moveLines,details,message,plainText} from './telegram-format.mjs';
@@ -18,11 +18,11 @@ const db=process.env.DB_PATH?JSON.parse(fs.readFileSync(process.env.DB_PATH,'utf
 const league=JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import.meta.url),'utf8'));
 // A watcher that runs for hours keeps the state locally: the published copy can lag behind the raw-file cache.
 const previous=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
-const byId=new Map(db.players.map(p=>[p.id,p])),today=moscowToday();
-const {transfers,warnings}=allTransfers(db.players,live,league);
-const ctx={players:db.players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers)};
+const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p])),today=moscowToday();
+const {transfers,warnings}=allTransfers(players,live,league);
+const ctx={players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers)};
 const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
-const leftOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today));};
+const leftOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));};
 const money=bankOf(team),left=leftOf(team);
 for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
@@ -41,7 +41,7 @@ const dealLines=d=>d.pack?[gains(d.pack.gains.season,d.pack.gains.month),...move
 // One pro and one risk from the player cards, with the current per-game estimate and injury.
 function brief(p){
  if(!p)return [];
- const {pros,cons}=playerInsights(p,db.players),injury=ctx.injuries.get(String(p.espnId));
+ const {pros,cons}=playerInsights(p,players),injury=ctx.injuries.get(String(p.espnId));
  return [`<b>${esc(p.name)}</b> · ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${esc(injury.status)}`:''}`,
   ...pros.slice(0,1).map(x=>'✅ '+esc(x)),...cons.slice(0,1).map(x=>'⚠️ '+esc(x))];
 }
@@ -56,25 +56,40 @@ if(hurt.length)mine.push('','🩹 <b>Травмы</b>',...hurt.map(h=>esc(h.text
 mine.push('',link);
 const changed=fresh.length>0||freshHurt.length>0;
 console.log(message(mine),'\n\nnew:',fresh,freshHurt.map(h=>h.key));
-async function send(text){
- console.log('\n'+text+'\n');
- if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID){console.log('Telegram secrets not set: message not sent.');return;}
- const res=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
-  body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text,parse_mode:'HTML',disable_web_page_preview:true})});
- // Rejected markup must not lose the alert: resend the same words as plain text.
- if(res.status===400){const plain=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
-  body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text:plainText(text),disable_web_page_preview:true})});
-  if(!plain.ok)throw Error('Telegram: '+plain.status+' '+await plain.text());console.log('sent to Telegram as plain text');return;}
- if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());
- console.log('sent to Telegram');
+const configured=Boolean(process.env.TELEGRAM_BOT_TOKEN&&process.env.TELEGRAM_CHAT_ID);
+// One Telegram call: waits out 429 rate limits (retry_after) and retries server errors a few times.
+async function post(body){
+ for(let attempt=0;;attempt++){
+  const res=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,disable_web_page_preview:true,...body})});
+  if(res.ok||res.status===400||attempt>=4||(res.status!==429&&res.status<500))return res;
+  const wait=res.status===429?((await res.json().catch(()=>({})))?.parameters?.retry_after||5):2**attempt;
+  await new Promise(r=>setTimeout(r,wait*1000));
+ }
 }
+// Telegram refuses messages over 4096 characters: a long one is cut at a line and says so.
+const fit=text=>text.length<=4000?text:text.slice(0,text.lastIndexOf('\n',3900))+'\n…';
+async function send(text){
+ text=fit(text);console.log('\n'+text+'\n');
+ if(!configured){console.log('Telegram secrets not set: message not sent.');return false;}
+ const res=await post({text,parse_mode:'HTML'});
+ // Rejected markup must not lose the alert: resend the same words as plain text.
+ if(res.status===400){const plain=await post({text:plainText(text)});
+  if(!plain.ok)throw Error('Telegram: '+plain.status+' '+await plain.text());console.log('sent to Telegram as plain text');return true;}
+ if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());
+ console.log('sent to Telegram');return true;
+}
+// What was reported is saved after every message, so a failure halfway never repeats the messages already sent.
+const state={...previous,sent:[...(previous.sent||[])],transfers:[...(previous.transfers||[])],returns:[...(previous.returns||[])],unknown:[...(previous.unknown||[])]};
+function save(){if(configured)fs.writeFileSync(statePath,JSON.stringify({...state,updatedAt:new Date().toISOString()}));}
+async function report(text,mark){if(await send(text)){mark();save();}}
 // What my team should do about a player a rival let go: the decision in bold, the deal under it.
 function decision(p){
  if(!p)return {head:null,why:[]};
  if(ctx.rosters.flat().includes(p.id))return {head:`🔒 <b>${esc(p.name)} уже в другой команде FBL</b>`,why:[]};
- const d=acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:left});
+ // With no transfers left this week nothing can be bought now: say so first, and what the deal would be next week.
+ const d=acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:Math.max(1,left)});
+ if(!left)return {head:'⛔ <b>Тебе: трансферы на неделе закончились</b>',why:d.worth?[`Если ${esc(p.name)} останется свободным, на новой неделе:`,...dealLines(d)]:[]};
  if(d.worth)return {head:message(`🎯 <b>Тебе: забирай ${esc(p.name)}</b>`,dealLines(d)),why:[]};
- if(!left)return {head:'⛔ <b>Тебе: трансферы на неделе закончились</b>',why:[]};
  if(d.swap)return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`Если всё же брать ${esc(p.name)}: ${esc(current(byId.get(d.swap.outId),ctx).name)} → ${esc(p.name)}, ${gains(d.swap.gain.season,d.swap.gain.month)}`]};
  return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`${esc(p.name)} не влезает по позиции, бюджету или правилу rookie.`]};
 }
@@ -83,29 +98,29 @@ const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,reported=new Set
 const rival=transfers.filter(x=>x.team!==team&&!reported.has(transferKey(x)));
 for(const x of rival){
  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)}),mineNow=decision(out);
- const effect=v?`${v.gain.season>=0?'📈':'📉'} Им: ${gains(v.gain.season,v.gain.month)}`:null;
- await send(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
+ const effect=v?`${v.gain.season>=0?'📈':'📉'} Им: ${gains(v.gain.season,v.gain.month)} · ${v.label}`:null;
+ await report(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
   details([...mineNow.why,...brief(joined),...brief(out),
    ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
-   `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])));
+   `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>state.transfers.push(transferKey(x)));
 }
 // Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
 for(const w of unknown.filter(w=>!(previous.unknown||[]).includes(unknownKey(w))))
- await send(message(`❓ <b>${esc(teamLabel(w.team))}</b>`,esc(w.message),'Игрока нет в нашей базе: оценки нет, проверь на Sports.ru.'));
-if(changed)await send(message(mine));else console.log('Nothing new for my team: no message.');
+ await report(message(`❓ <b>${esc(teamLabel(w.team))}</b>`,esc(w.message),'Игрока нет в нашей базе: оценки нет, проверь на Sports.ru.'),()=>state.unknown.push(unknownKey(w)));
+if(changed)await report(message(mine),()=>{state.sent=[...new Set([...state.sent,...keys])].slice(-200);state.injuries=hurt.map(h=>h.key);});
+else console.log('Nothing new for my team: no message.');
 // Injured free agents worth a season transfer: warn when one is about to return, and again the moment he is back.
-const targets=injuredTargets(ctx,{team,bankMoney:money,k:Math.max(1,left)}),injuryKey=x=>`${x.player.id}:${x.injury.status}:${x.injury.returnDate||''}`;
+const targets=left?injuredTargets(ctx,{team,bankMoney:money,k:left}):[],injuryKey=x=>`${x.player.id}:${x.injury.status}:${x.injury.returnDate||''}`;
 const warned=new Set(previous.returns||[]),soon=targets.filter(x=>x.soon&&!warned.has(injuryKey(x)));
 // Back on the injury-free list and still free: buy now if it pays over the next 4 weeks too.
-const back=(previous.watch||[]).map(id=>byId.get(id)).filter(p=>p&&!ctx.injuries.get(String(p.espnId))&&!ctx.rosters.flat().includes(p.id))
- .map(p=>({player:current(p,ctx),...acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:Math.max(1,left)})})).filter(x=>x.worth);
-for(const x of back)await send(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',`🎯 <b>Тебе: забирай</b>`,dealLines(x),details(brief(x.player).slice(1))));
-for(const x of soon)await send(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${x.injury.returnDate?' до '+day(x.injury.returnDate):''}`,'',
- `🎯 <b>Тебе: можно брать</b>`,dealLines(x),details(brief(x.player).slice(1))));
-// Remember what was already reported so the same advice is not sent every two hours.
-// Until Telegram is configured nothing counts as reported: the first messages arrive once the secrets are set.
-if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID)fs.writeFileSync(statePath,JSON.stringify({...previous,updatedAt:new Date().toISOString()}));
-else fs.writeFileSync(statePath,JSON.stringify({updatedAt:new Date().toISOString(),sent:[...new Set([...(previous.sent||[]),...keys])].slice(-200),injuries:hurt.map(h=>h.key),
- transfers:[...new Set([...(previous.transfers||[]),...transfers.map(transferKey)])],
- returns:[...new Set([...(previous.returns||[]),...soon.map(injuryKey)])].slice(-500),watch:targets.map(x=>x.player.id),unknown:[...new Set([...(previous.unknown||[]),...unknown.map(unknownKey)])].slice(-200)}));
+const back=!left?[]:(previous.watch||[]).map(id=>byId.get(id)).filter(p=>p&&!ctx.injuries.get(String(p.espnId))&&!ctx.rosters.flat().includes(p.id))
+ .map(p=>({player:current(p,ctx),...acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:left})})).filter(x=>x.worth);
+for(const x of back)await report(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',`🎯 <b>Тебе: забирай</b>`,dealLines(x),details(brief(x.player).slice(1))),()=>{});
+for(const x of soon)await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${x.injury.returnDate?' до '+day(x.injury.returnDate):''}`,'',
+ `🎯 <b>Тебе: можно брать</b>`,dealLines(x),details(brief(x.player).slice(1))),()=>state.returns.push(injuryKey(x)));
+// Remember what was already reported so the same advice is not sent again. Until Telegram is configured nothing
+// counts as reported: the first messages arrive once the secrets are set. Transfers already in the journal count as seen.
+state.transfers=[...new Set([...state.transfers,...transfers.map(transferKey)])];state.returns=state.returns.slice(-500);state.unknown=state.unknown.slice(-200);
+state.watch=targets.map(x=>x.player.id);
+if(configured)save();else fs.writeFileSync(statePath,JSON.stringify({...previous,updatedAt:new Date().toISOString()}));

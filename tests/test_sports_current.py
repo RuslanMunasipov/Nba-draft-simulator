@@ -30,7 +30,58 @@ class SportsCurrentTest(unittest.TestCase):
         cal = collector.parse_calendar(INFO)
         self.assertEqual([(g['date'], g['week'], g['home'], g['score']) for g in cal],
                          [('2026-10-23', 1, False, None), ('2026-10-25', 1, True, '120:110')])
-        self.assertEqual(collector.week_ranges([cal]), {'1': {'start': '2026-10-19', 'end': '2026-10-25'}})
+        self.assertEqual(collector.week_ranges([cal]), {'1': {'start': '2026-10-23', 'end': '2026-10-25'}})
+
+    def test_weeks_follow_the_calendar_numbers_and_breaks(self):
+        cal = [{'date': '2026-10-20', 'week': 1}, {'date': '2026-10-26', 'week': 1}, {'date': '2026-10-27', 'week': 2},
+               {'date': '2026-11-02', 'week': 2}, {'date': '2026-12-04', 'week': 7}, {'date': '2026-12-13', 'week': 8}]
+        self.assertEqual(collector.week_ranges([cal]), {'1': {'start': '2026-10-20', 'end': '2026-10-26'},
+                                                       '2': {'start': '2026-10-27', 'end': '2026-11-02'},
+                                                       '7': {'start': '2026-11-03', 'end': '2026-12-04'},
+                                                       '8': {'start': '2026-12-05', 'end': '2026-12-13'}})
+
+    def test_unreadable_score_is_not_zero(self):
+        page = GAMES.replace('<td>36:10</td><td>48</td>', '<td>36:10</td><td>?</td>')
+        self.assertEqual([g['date'] for g in collector.parse_games(page)], ['2026-10-23'])
+
+    def test_roster_json_gives_exact_ids(self):
+        raw = '{"players":[{"id":"1796991","club":"Торонто","amplua":"3","price":"2400","lock":"0","name":"Ленард"},{"id":"9","club":"Юта","amplua":"5","price":"1000","lock":"1","name":"Икс"}]}'
+        self.assertEqual(collector.parse_roster(raw), [
+            {'sportsId': '1796991', 'name': 'Ленард', 'club': 'Торонто', 'position': 'SF', 'price': 2400, 'locked': False},
+            {'sportsId': '9', 'name': 'Икс', 'club': 'Юта', 'position': 'C', 'price': 1000, 'locked': True}])
+
+    def test_layout_change_is_caught_by_quality(self):
+        pool = [{'sportsId': str(i)} for i in range(10)]
+        good = {str(i): {'price': 1000, 'position': 'C'} for i in range(10)}
+        bare = {str(i): {'name': 'x', 'clubId': '1'} for i in range(10)}
+        self.assertEqual(collector.quality(pool, good), (1.0, 1.0))
+        self.assertEqual(collector.quality(pool, bare), (1.0, 0.0))
+
+    def test_failed_or_shrunk_team_pages_keep_the_previous_entry(self):
+        old = {'0': {'sportsTeamId': '1', 'balance': 200, 'transfersLeft': 3, 'journal': [{'date': '2026-10-18'}, {'date': '2026-10-19'}]},
+               '1': {'sportsTeamId': '2', 'balance': 100, 'transfersLeft': 2, 'journal': []}}
+        real_fetch, real_teams = collector.fetch, collector.TEAMS
+        import json, tempfile
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            json.dump({'teams': {'0': '1', '1': '2'}}, f)
+        def fake(url):
+            if '/2.html' in url or '/2/' in url:
+                raise RuntimeError('boom')
+            if 'journal' in url:
+                return '<td>Покупки</td><tbody></tbody>'
+            if url.endswith('.json'):
+                return '{"players":[]}'
+            return '<table><tr><th>Баланс</th><td>150</td></tr><tr><th>Трансферы</th><td>3</td></tr></table>'
+        collector.fetch, collector.TEAMS = fake, Path(f.name)
+        try:
+            errors = []
+            teams = collector.collect_teams(old, errors)
+        finally:
+            collector.fetch, collector.TEAMS = real_fetch, real_teams
+        self.assertEqual(len(teams['0']['journal']), 2)
+        self.assertEqual(teams['0']['balance'], 150)
+        self.assertTrue(teams['1']['stale'])
+        self.assertEqual(len(errors), 2)
 
     def test_games_only_current_season(self):
         games = collector.parse_games(GAMES)

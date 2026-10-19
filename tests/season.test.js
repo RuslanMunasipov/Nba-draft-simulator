@@ -1,12 +1,13 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition,playRate,clockMinutes,CALIBRATION} from '../src/season.js';
+import {gameWeeks,weekOf,horizons,withMarket,seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition,playRate,clockMinutes,CALIBRATION} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
-const players=Array.from({length:100},(_,i)=>({id:i+1,name:'P'+(i+1),sportsId:String(1000+i+1),espnId:String(5000+i+1),sportsClub:'A',
+const players=Array.from({length:100},(_,i)=>({id:i+1,name:'P'+(i+1),sportsId:String(1000+i+1),espnId:String(5000+i+1),sportsClub:i<80?'C'+(i%40):'F'+i,
  positions:[POS[i<80?Math.floor(i/8):(i-80)%10]],price:1500,priceStatus:'VERIFIED',isRookie:i<80?Math.floor(i/8)===9:false,forecast:{meanPerGame:i<80?30:20+i-80,games:82}}));
 const calendar=[{date:'2026-10-23',week:1},{date:'2026-10-25',week:1},{date:'2026-10-28',week:2},{date:'2026-11-20',week:5}];
-const live={weeks:{1:{start:'2026-10-19',end:'2026-10-25'},5:{start:'2026-11-16',end:'2026-11-22'}},clubs:{A:calendar},players:{}};
+// Every drafted club appears twice per team (the Sports.ru limit); free agents each have their own club.
+const live={clubs:Object.fromEntries(players.map(p=>[p.sportsClub,calendar])),players:{}};
 const ctx=(extra={})=>({players,live,injuries:new Map(),today:'2026-10-20',rosters:seasonRosters([],picks),...extra});
 
 test('transfers move players between the draft roster and the free agent pool',()=>{
@@ -17,10 +18,32 @@ test('transfers move players between the draft roster and the free agent pool',(
  const s=stints(t,picks);assert.deepEqual(s.find(x=>x.playerId===1),{team:0,playerId:1,from:'2026-10-18',to:'2026-10-22'});
  assert.equal(bank(0,t,()=>1500,picks),20000-15000+100);
 });
-test('weekly transfer count resets on Monday',()=>{
- assert.equal(weekStart('2026-10-25'),'2026-10-19');assert.equal(weekStart('2026-10-26'),'2026-10-26');
- const t=[{team:0,date:'2026-10-24'},{team:0,date:'2026-10-26'},{team:1,date:'2026-10-27'}];
- assert.equal(transfersThisWeek(t,0,'2026-10-25'),1);assert.equal(transfersThisWeek(t,0,'2026-10-27'),1);
+test('without a calendar the week runs Tuesday to Monday in Moscow dates',()=>{
+ assert.equal(weekStart('2026-10-26'),'2026-10-20');assert.equal(weekStart('2026-10-27'),'2026-10-27');
+ const t=[{team:0,date:'2026-10-24'},{team:0,date:'2026-10-27'},{team:1,date:'2026-10-28'}];
+ assert.equal(transfersThisWeek(t,0,'2026-10-26'),1);assert.equal(transfersThisWeek(t,0,'2026-10-28'),1);
+});
+test('game weeks follow the Sports.ru calendar, breaks included',()=>{
+ const cal={X:[{date:'2026-10-20',week:1},{date:'2026-10-26',week:1},{date:'2026-10-27',week:2},{date:'2026-11-02',week:2},{date:'2026-12-04',week:7},{date:'2026-12-13',week:8}]};
+ const w=gameWeeks({clubs:cal});
+ assert.deepEqual(w,{1:{start:'2026-10-20',end:'2026-10-26'},2:{start:'2026-10-27',end:'2026-11-02'},7:{start:'2026-11-03',end:'2026-12-04'},8:{start:'2026-12-05',end:'2026-12-13'}});
+ assert.equal(weekOf('2026-12-08',w).n,'8');assert.ok(weekOf('2026-10-19',w).preseason);
+ // Pre-season moves are free; a move on a week's last (Monday) date comes after its games and counts for the next week.
+ const t=[{team:0,date:'2026-10-19'},{team:0,date:'2026-10-19'},{team:0,date:'2026-10-26'},{team:0,date:'2026-10-27'},{team:0,date:'2026-10-23'}];
+ assert.equal(transfersThisWeek(t,0,'2026-10-19',w),0);assert.equal(transfersThisWeek(t,0,'2026-10-24',w),1);assert.equal(transfersThisWeek(t,0,'2026-10-27',w),2);
+ assert.equal(horizons({live:{clubs:cal},today:'2026-10-22'}).week.to,'2026-10-26');
+});
+test('a third player of one NBA club is never offered',()=>{
+ const c=ctx(),club=players[0].sportsClub;
+ const crowded=players.map(p=>p.id===85?{...p,sportsClub:club,positions:players[0].positions}:p);
+ const options=transferOptions({...c,players:crowded,live:{...live,clubs:{...live.clubs}}},{team:0,outId:9,bankMoney:5000,limit:50});
+ assert.ok(options.length>0);assert.ok(!options.some(o=>o.player.id===85));
+ // Selling one of the two from that club frees the place.
+ const freed=transferOptions({...c,players:crowded},{team:0,outId:1,bankMoney:5000,limit:50});
+ assert.ok(freed.some(o=>o.player.id===85));
+ const pack=bestPackage({...c,players:crowded},{team:0,bankMoney:5000,k:3,sort:'month',protectSeason:false});
+ const next=c.rosters[0].filter(id=>!pack.pairs.some(x=>x.out.id===id)).concat(pack.pairs.map(x=>x.in.id));
+ assert.ok(next.filter(id=>crowded.find(p=>p.id===id).sportsClub===club).length<=2);
 });
 test('per-game estimate moves from forecast to official points as games arrive',()=>{
  const p={forecast:{meanPerGame:30}};
@@ -111,6 +134,8 @@ test('box score uses the Sports.ru formula with the result bonus only for finish
  assert.equal(boxScorePoints(line,{home:true,won:null}),30+10+8+2+1-9-2-6-2+2);
  assert.equal(boxScorePoints(line,{home:false,won:true}),34+3);
  assert.equal(boxScorePoints({...line,MIN:'8'},{home:true,won:false}),34-1-3);
+ // A few seconds on court with nothing else still earn the participation point.
+ assert.equal(boxScorePoints({MIN:'0',FG:'0-0',FT:'0-0',PTS:'0',REB:'0'},{home:true,won:null}),1);
  const event={status:{type:{completed:true}},competitions:[{competitors:[{team:{id:'1'},homeAway:'home',winner:false},{team:{id:'2'},homeAway:'away',winner:true}]}]};
  const summary={boxscore:{players:[{team:{id:'2'},statistics:[{labels:Object.keys(line),athletes:[{athlete:{id:'77'},stats:Object.values(line)},{athlete:{id:'78'},stats:[]}]}]}]}};
  assert.deepEqual(liveGamePoints(summary,event),{77:{points:37,minutes:36,final:true}});
@@ -186,4 +211,35 @@ test('a player too expensive for one swap is bought within a package that funds 
  const one=acquisition(c,{team:0,playerId:100,bankMoney:0,k:1,minGain:0});assert.equal(one.worth,false);
  const two=acquisition(c,{team:0,playerId:100,bankMoney:0,k:2,minGain:0,monthFloor:-Infinity});
  assert.equal(two.worth,true);assert.ok(two.pack.pairs.some(x=>x.in.id===100));assert.ok(two.pack.bankAfter>=0);
+});
+
+test('an injured player bought for the season is a season investment, not a weakening',()=>{
+ const c=ctx({today:'2026-10-21'}),star={...players[80],id:81,forecast:{meanPerGame:60,games:82}};
+ const list=players.map(p=>p.id===81?star:p);
+ const injuries=new Map([[star.espnId,{status:'Out',returnDate:'2026-11-25',fantasyStatus:''}]]);
+ const cal=Array.from({length:60},(_,i)=>({date:new Date(Date.parse('2026-10-22')+i*3*864e5).toISOString().slice(0,10),week:1+Math.floor(i/3)}));
+ const liveCal={...live,clubs:Object.fromEntries(list.map(p=>[p.sportsClub,cal]))};
+ const t={team:0,outId:1,inId:81,date:'2026-10-21',outPrice:1500,inPrice:1500};
+ const v=transferVerdict({...c,players:list,live:liveCal,injuries,rosters:seasonRosters([t],picks)},t,{bankMoney:5000});
+ assert.ok(v.gain.month<-15&&v.gain.season>15);assert.equal(v.verdict,'long');
+});
+test('a running or already listed game is not expected again',()=>{
+ const p=players[0],cal=[{date:'2026-10-21'},{date:'2026-10-22'},{date:'2026-10-23'},{date:'2026-10-19'}];
+ const base={...ctx({today:'2026-10-21'}),live:{clubs:{[p.sportsClub]:cal},players:{[p.sportsId]:{games:[{date:'2026-10-22',played:true,points:30,minutes:'30:00'}]}}}};
+ assert.equal(expectedPoints(p,base,'2026-10-19','2026-10-30').games,2);
+ assert.equal(expectedPoints(p,{...base,running:new Map([[p.id,{day:'2026-10-21'}]])},'2026-10-19','2026-10-30').games,1);
+});
+test('market players missing from the database get a price-based prior and are matched by the roster json',()=>{
+ const live2={players:{'777':{name:'Новичок',fullName:'Новый Игрок',position:'C',price:1500,club:'Q'}}};
+ const all=withMarket(players,live2),x=all.find(p=>p.sportsId==='777');
+ assert.equal(x.id,'sports:777');assert.equal(x.isRookie,false);assert.equal(x.forecast.origin,'SPORTS_PRICE_PRIOR');
+ assert.equal(x.forecast.meanPerGame,30);
+ assert.equal(withMarket(players,{players:{}}),players);
+});
+
+test('the derived roster is checked against the roster Sports.ru shows',()=>{
+ const roster=picks.filter((_,i)=>i%8===0).map(id=>({sportsId:String(1000+id)}));
+ assert.deepEqual(allTransfers(players,{teams:{0:{journal:[],roster}}},{transfers:[]},picks).warnings.filter(w=>/расходится/.test(w.message)),[]);
+ const off=[...roster.slice(1),{sportsId:'1081'}],w=allTransfers(players,{teams:{0:{journal:[],roster:off}}},{transfers:[]},picks).warnings;
+ assert.ok(w.some(x=>/расходится.*P1\b/.test(x.message)));
 });

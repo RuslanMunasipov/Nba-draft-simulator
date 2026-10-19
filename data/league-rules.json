@@ -34,7 +34,7 @@
     "adjustable": true
   },
   "priceAuthority": "Sports.ru",
-  "nbaClubLimit": null,
+  "nbaClubLimit": 2,
   "provenance": {
     "kind": "USER_CONFIRMED",
     "confirmedAt": "2026-10-16T04:47:00Z",
@@ -45,12 +45,18 @@
     "yahooEligibility": "UNVERIFIED",
     "sportsRuPrices": "DATED_AUTHENTICATED_SNAPSHOT"
   },
-  "note": "Commissioner-confirmed: draft and all transfers are performed on Sports.ru using Sports.ru positions, prices and accounting; rosters and transfers are then mirrored on Yahoo. Yahoo eligibility cannot expand Sports.ru roster slots. Cap 20000. NBA club limit remains separately unconfirmed.",
+  "note": "Commissioner-confirmed: draft and all transfers are performed on Sports.ru using Sports.ru positions, prices and accounting; rosters and transfers are then mirrored on Yahoo. Yahoo eligibility cannot expand Sports.ru roster slots. Cap 20000. At most two players of one NBA club (Sports.ru rules page, checked 2026-10-19).",
   "priceSnapshot": "2026-10-17",
   "transferPositionAuthority": "Sports.ru",
   "draftPlatform": "Sports.ru",
   "transferPlatform": "Sports.ru",
   "accountingAuthority": "Sports.ru",
   "mirrorPlatform": "Yahoo Fantasy",
-  "yahooEligibilityUse": "MIRROR_REFERENCE_ONLY"
+  "yahooEligibilityUse": "MIRROR_REFERENCE_ONLY",
+  "nbaClubLimitSource": "https://www.sports.ru/fantasy/basketball/tournament/rules/150.html",
+  "nbaClubLimitCheckedAt": "2026-10-19",
+  "weeks": {
+    "authority": "Sports.ru calendar week numbers",
+    "note": "Monday-Sunday by US game day per the rules page; Moscow-dated calendar shows Tuesday-Monday. Pre-season transfers are not counted."
+  }
 }

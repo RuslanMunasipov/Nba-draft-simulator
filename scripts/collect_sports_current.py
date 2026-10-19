@@ -34,6 +34,10 @@ INJURY_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injur
 TEAMS = ROOT / 'data' / 'fbl-sports-teams.json'
 TEAM_URL = 'https://www.sports.ru/fantasy/basketball/team/{id}.html'
 JOURNAL_URL = 'https://www.sports.ru/fantasy/basketball/team/journal/{id}.html'
+ROSTER_URL = 'https://www.sports.ru/fantasy/basketball/team/points/{id}/0.json'
+AMPLUA = {'1': 'PG', '2': 'SG', '3': 'SF', '4': 'PF', '5': 'C'}
+# Below these shares of the pool a collection is a broken page layout, not data: nothing is published.
+MIN_COLLECTED, MIN_PRICED = 0.9, 0.9
 UA = 'Mozilla/5.0 (compatible; fbl-draft-simulator/1.0; season tracker)'
 WORKERS = 10
 ROLES = {'Разыгрывающий защитник': 'PG', 'Разыгрывающий': 'PG', 'Атакующий защитник': 'SG', 'Лёгкий форвард': 'SF', 'Легкий форвард': 'SF',
@@ -148,8 +152,11 @@ def parse_games(page, season_start='2026-10-01'):
             continue
         minutes = cs[col['МИН']]
         played = minutes not in ('', '00:00', '–', '-')
+        points = number(cs[col['ФО']])
+        if points is None and played:
+            continue  # an unreadable score is left out, never counted as zero
         game = {'date': day, 'opponent': cs[1], 'home': cs[2].startswith('Д'), 'minutes': minutes if played else '00:00',
-                'points': number(cs[col['ФО']]) or 0, 'played': played}
+                'points': points or 0, 'played': played}
         if 'С' in col and len(cs) > col['С']:
             price = number(cs[col['С']])
             if price is not None:
@@ -237,40 +244,89 @@ def parse_journal(page):
     return rows[::-1]
 
 
-def collect_teams():
+def parse_roster(raw):
+    """Sports.ru team roster JSON: the exact player ids, so names never have to be guessed."""
+    out = []
+    for p in json.loads(raw).get('players', []):
+        out.append({'sportsId': str(p['id']), 'name': p.get('name'), 'club': p.get('club'), 'position': AMPLUA.get(str(p.get('amplua'))),
+                    'price': int(p['price']) if str(p.get('price', '')).isdigit() else None, 'locked': str(p.get('lock')) not in ('0', '', 'None')})
+    return out
+
+
+def collect_teams(previous=None, errors=None):
+    """Profile, journal and roster of every FBL team. A team whose pages fail keeps its previous entry, and a journal
+    shorter than the published one is a failed parse, never a reversal of transfers."""
+    previous, errors = previous or {}, errors if errors is not None else []
     try:
         config = json.loads(TEAMS.read_text(encoding='utf-8')).get('teams', {})
     except FileNotFoundError:
         return {}
     teams = {}
     for team, sid in config.items():
+        old = previous.get(team)
         try:
-            profile, journal = fetch(TEAM_URL.format(id=sid)), fetch(JOURNAL_URL.format(id=sid))
+            profile, journal, roster = fetch(TEAM_URL.format(id=sid)), fetch(JOURNAL_URL.format(id=sid)), fetch(ROSTER_URL.format(id=sid))
+            if profile is None or journal is None:
+                raise RuntimeError('page not found')
+            entry = {'sportsTeamId': sid, **parse_team(profile), 'journal': parse_journal(journal)}
+            if roster:
+                entry['roster'] = parse_roster(roster)
         except Exception as e:  # noqa: BLE001
+            errors.append({'team': team, 'error': str(e)[:200]})
             print(f'Sports.ru team {sid}: {e}')
+            if old:
+                teams[team] = {**old, 'stale': True}
             continue
-        if profile is None or journal is None:
-            continue
-        teams[team] = {'sportsTeamId': sid, **parse_team(profile), 'journal': parse_journal(journal)}
+        if old and len(entry['journal']) < len(old.get('journal') or []):
+            errors.append({'team': team, 'error': f"journal shrank from {len(old['journal'])} to {len(entry['journal'])} rows; kept the previous one"})
+            entry['journal'] = old['journal']
+        if 'balance' not in entry or 'transfersLeft' not in entry:
+            errors.append({'team': team, 'error': 'team profile without balance or transfers; layout changed?'})
+            for key in ('balance', 'transfersLeft', 'value'):
+                if key not in entry and old and key in old:
+                    entry[key] = old[key]
+        teams[team] = entry
     return teams
 
 
 def week_ranges(calendars):
+    """Sports.ru game weeks by the week number of each calendar game (Moscow dates, so a US Monday-Sunday week shows as
+    Tuesday-Monday). Each week runs from the day after the previous week's last game to its own last game."""
     weeks = {}
     for games in calendars:
         for g in games:
             weeks.setdefault(g['week'], []).append(g['date'])
-    out = {}
+    out, previous_end = {}, None
     for week, days in sorted(weeks.items()):
-        first = date.fromisoformat(min(days))
-        monday = first - timedelta(days=first.weekday())
-        out[str(week)] = {'start': monday.isoformat(), 'end': (monday + timedelta(days=6)).isoformat()}
+        start = (date.fromisoformat(previous_end) + timedelta(days=1)).isoformat() if previous_end else min(days)
+        out[str(week)] = {'start': start, 'end': max(days)}
+        previous_end = max(days)
     return out
+
+
+def quality(pool, players):
+    """Shares of the pool collected and carrying a price and a position: a page redesign shows up here, not as empty data."""
+    collected = len(players) / max(1, len(pool))
+    priced = sum(1 for p in players.values() if isinstance(p.get('price'), int) and p.get('position')) / max(1, len(pool))
+    return collected, priced
 
 
 def main():
     pool = json.loads(PRICES.read_text(encoding='utf-8'))['players'] + json.loads(ADDITIONS.read_text(encoding='utf-8'))['players']
-    players, calendars, errors = {}, {}, []
+    try:
+        previous = json.loads(OUT.read_text(encoding='utf-8'))
+    except (FileNotFoundError, ValueError):
+        previous = {}
+    errors = []
+    teams = collect_teams(previous.get('teams'), errors)
+    # Players new to the Sports.ru market reach the pool through FBL rosters: their exact ids come with the roster JSON.
+    known = {p['sportsId'] for p in pool}
+    for entry in teams.values():
+        for r in entry.get('roster', []):
+            if r['sportsId'] not in known:
+                known.add(r['sportsId'])
+                pool.append({'sportsId': r['sportsId'], 'name': r['name'], 'club': r['club'], 'marketAddition': 'FBL_ROSTER'})
+    players, calendars = {}, {}
     with ThreadPoolExecutor(WORKERS) as ex:
         futures = [ex.submit(collect, p) for p in pool]
         for p, f in zip(pool, futures):
@@ -282,6 +338,8 @@ def main():
             if info is None:
                 errors.append({'sportsId': pid, 'error': 'page not found'})
                 continue
+            if p.get('marketAddition'):
+                info['marketAddition'] = p['marketAddition']
             players[pid] = info
             club = info.get('club') or p.get('club')
             if calendar and club:
@@ -290,10 +348,11 @@ def main():
                 votes[key] = votes.get(key, 0) + 1
     # A traded player's page can carry another club's calendar: each club keeps the one most of its players show.
     clubs = {club: json.loads(max(votes, key=votes.get)) for club, votes in calendars.items()}
-    if len(players) < len(pool) * 0.9:
-        raise SystemExit(f'Only {len(players)} of {len(pool)} Sports.ru players collected; refusing to publish.')
+    collected, priced = quality(pool, players)
+    if collected < MIN_COLLECTED or priced < MIN_PRICED:
+        raise SystemExit(f'Only {collected:.0%} of {len(pool)} Sports.ru players collected and {priced:.0%} with a price and position; '
+                         'refusing to publish.')
     out_injuries = espn_injuries()
-    teams = collect_teams()
     out = {'source': BASE_URL.format(t=TOURNAMENT, pid='<sportsId>'), 'season': SEASON_LABEL,
            'collectedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
            'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'teams': teams, 'errors': errors}
