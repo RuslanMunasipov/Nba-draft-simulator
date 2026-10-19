@@ -93,7 +93,23 @@ def exchange(path):
     except TokenError as e:
         raise SystemExit(f'{e}\nGet a fresh code (Agree again) and run the workflow within a few minutes.')
     Path(path).write_bytes(crypt(tokens['refresh_token'].encode()))
-    print('Yahoo connected: refresh token stored encrypted.')
+    print('Yahoo connected: refresh token stored encrypted. Granted scope:', tokens.get('scope', '(not reported)'))
+    # Fail here, not two hours later, when the consent did not include Fantasy Sports.
+    leagues = parse_user_leagues(api_get(tokens['access_token'], 'users;use_login=1/games;game_codes=nba/leagues'))
+    print('NBA leagues visible to this account:', ', '.join(f'{i} ({n})' for _, i, n in leagues) or 'none')
+    if league_id() not in [i for _, i, _ in leagues]:
+        raise SystemExit(f'League {league_id()} is not among them: sign in to Yahoo with the account that plays in it.')
+
+
+def api_get(access_token, path):
+    req = urllib.request.Request(API + path, headers={'Authorization': 'Bearer ' + access_token})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.read()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors='replace')
+        hint = ' The consent did not grant Fantasy Sports: press Agree again with the link from the app (it now asks for fspt-r).' if 'not authorized' in body else ''
+        raise SystemExit(f'Yahoo API {path}: {e.code} {body[:400]}{hint}') from None
 
 
 def league_id():
@@ -151,12 +167,7 @@ def collect(live_path, token_path):
         Path(token_path).write_bytes(crypt(tokens['refresh_token'].encode()))
 
     def get(path):
-        req = urllib.request.Request(API + path, headers={'Authorization': 'Bearer ' + tokens['access_token']})
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                return r.read()
-        except urllib.error.HTTPError as e:
-            raise SystemExit(f'Yahoo API {path}: {e.code} {e.read().decode(errors="replace")[:400]}') from None
+        return api_get(tokens['access_token'], path)
 
     # The exact key (<season game id>.l.<league id>) comes from the account's own leagues: the bare 'nba' alias
     # can still point to last season, where this league id belongs to someone else.
