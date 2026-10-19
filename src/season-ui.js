@@ -257,7 +257,7 @@ function yahooHelper(){
  const redirect=el('input');redirect.placeholder='Redirect URI — оставь пустым: Yahoo сам покажет код';redirect.value=readStored('fbl-yahoo-redirect')||'';
  const go=link('2. Открыть Yahoo и нажать «Agree» ↗','#');
  const update=()=>{writeStored('fbl-yahoo-client',id.value.trim());writeStored('fbl-yahoo-redirect',redirect.value.trim());
-  go.href=`https://api.login.yahoo.com/oauth2/request_auth?client_id=${encodeURIComponent(id.value.trim())}&redirect_uri=${encodeURIComponent(redirect.value.trim()||'oob')}&response_type=code&language=en-us&state=${encodeURIComponent(redirect.value.trim()||'oob')}`;};
+  go.href=`https://api.login.yahoo.com/oauth2/request_auth?client_id=${encodeURIComponent(id.value.trim())}&redirect_uri=${encodeURIComponent(redirect.value.trim()||'oob')}&response_type=code&scope=fspt-r&language=en-us&state=${encodeURIComponent(redirect.value.trim()||'oob')}`;};
  id.oninput=update;redirect.oninput=update;update();
  const steps=el('ul');
  const s1=el('li','1. Вставь Client ID (он не секретный; Client Secret сюда не вводи):');s1.append(id,redirect);
