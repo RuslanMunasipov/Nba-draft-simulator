@@ -1,0 +1,6200 @@
+{
+"source": "history-checkpoint (ESPN athlete records)",
+"players": [
+{
+"playerId": "101108",
+"name": "Chris Paul",
+"espnId": "2779",
+"nbaId": 101108,
+"birthDate": null
+},
+{
+"playerId": "1626143",
+"name": "Jahlil Okafor",
+"espnId": "3135048",
+"nbaId": 1626143,
+"birthDate": null
+},
+{
+"playerId": "1626145",
+"name": "Tyus Jones",
+"espnId": "3135046",
+"nbaId": 1626145,
+"birthDate": "1996-05-10"
+},
+{
+"playerId": "1626153",
+"name": "Delon Wright",
+"espnId": "3064447",
+"nbaId": 1626153,
+"birthDate": null
+},
+{
+"playerId": "1626156",
+"name": "D'Angelo Russell",
+"espnId": "3136776",
+"nbaId": 1626156,
+"birthDate": "1996-02-23"
+},
+{
+"playerId": "1626157",
+"name": "Karl-Anthony Towns",
+"espnId": "3136195",
+"nbaId": 1626157,
+"birthDate": "1995-11-15"
+},
+{
+"playerId": "1626158",
+"name": "Richaun Holmes",
+"espnId": "2993370",
+"nbaId": 1626158,
+"birthDate": null
+},
+{
+"playerId": "1626162",
+"name": "Kelly Oubre Jr.",
+"espnId": "3133603",
+"nbaId": 1626162,
+"birthDate": "1995-12-09"
+},
+{
+"playerId": "1626164",
+"name": "Devin Booker",
+"espnId": "3136193",
+"nbaId": 1626164,
+"birthDate": "1996-10-30"
+},
+{
+"playerId": "1626166",
+"name": "Cameron Payne",
+"espnId": "3064230",
+"nbaId": 1626166,
+"birthDate": null
+},
+{
+"playerId": "1626167",
+"name": "Myles Turner",
+"espnId": "3133628",
+"nbaId": 1626167,
+"birthDate": "1996-03-24"
+},
+{
+"playerId": "1626168",
+"name": "Trey Lyles",
+"espnId": "3136196",
+"nbaId": 1626168,
+"birthDate": "1995-11-05"
+},
+{
+"playerId": "1626171",
+"name": "Bobby Portis",
+"espnId": "3064482",
+"nbaId": 1626171,
+"birthDate": "1995-02-10"
+},
+{
+"playerId": "1626172",
+"name": "Kevon Looney",
+"espnId": "3155535",
+"nbaId": 1626172,
+"birthDate": "1996-02-06"
+},
+{
+"playerId": "1626174",
+"name": "Christian Wood",
+"espnId": "3058254",
+"nbaId": 1626174,
+"birthDate": null
+},
+{
+"playerId": "1626179",
+"name": "Terry Rozier",
+"espnId": "3074752",
+"nbaId": 1626179,
+"birthDate": null
+},
+{
+"playerId": "1626181",
+"name": "Norman Powell",
+"espnId": "2595516",
+"nbaId": 1626181,
+"birthDate": "1993-05-25"
+},
+{
+"playerId": "1626192",
+"name": "Pat Connaughton",
+"espnId": "2578239",
+"nbaId": 1626192,
+"birthDate": "1993-01-06"
+},
+{
+"playerId": "1626196",
+"name": "Josh Richardson",
+"espnId": "2581190",
+"nbaId": 1626196,
+"birthDate": null
+},
+{
+"playerId": "1626204",
+"name": "Larry Nance Jr.",
+"espnId": "2580365",
+"nbaId": 1626204,
+"birthDate": "1993-01-01"
+},
+{
+"playerId": "1626220",
+"name": "Royce O'Neale",
+"espnId": "2583632",
+"nbaId": 1626220,
+"birthDate": "1993-06-05"
+},
+{
+"playerId": "1626224",
+"name": "Cedi Osman",
+"espnId": null,
+"nbaId": 1626224,
+"birthDate": null
+},
+{
+"playerId": "1626246",
+"name": "Boban Marjanovic",
+"espnId": "4376",
+"nbaId": 1626246,
+"birthDate": null
+},
+{
+"playerId": "1627732",
+"name": "Ben Simmons",
+"espnId": "3907387",
+"nbaId": 1627732,
+"birthDate": "1996-07-20"
+},
+{
+"playerId": "1627734",
+"name": "Domantas Sabonis",
+"espnId": "3155942",
+"nbaId": 1627734,
+"birthDate": "1996-05-03"
+},
+{
+"playerId": "1627736",
+"name": "Malik Beasley",
+"espnId": "3907822",
+"nbaId": 1627736,
+"birthDate": null
+},
+{
+"playerId": "1627739",
+"name": "Kris Dunn",
+"espnId": "2991139",
+"nbaId": 1627739,
+"birthDate": "1994-03-18"
+},
+{
+"playerId": "1627741",
+"name": "Buddy Hield",
+"espnId": "2990984",
+"nbaId": 1627741,
+"birthDate": "1992-12-17"
+},
+{
+"playerId": "1627742",
+"name": "Brandon Ingram",
+"espnId": "3913176",
+"nbaId": 1627742,
+"birthDate": "1997-09-02"
+},
+{
+"playerId": "1627745",
+"name": "Damian Jones",
+"espnId": "3064559",
+"nbaId": 1627745,
+"birthDate": null
+},
+{
+"playerId": "1627746",
+"name": "Skal Labissiere",
+"espnId": "3936296",
+"nbaId": 1627746,
+"birthDate": "1996-03-18"
+},
+{
+"playerId": "1627747",
+"name": "Caris LeVert",
+"espnId": "2991043",
+"nbaId": 1627747,
+"birthDate": "1994-08-25"
+},
+{
+"playerId": "1627749",
+"name": "Dejounte Murray",
+"espnId": "3907497",
+"nbaId": 1627749,
+"birthDate": "1996-09-19"
+},
+{
+"playerId": "1627750",
+"name": "Jamal Murray",
+"espnId": "3936299",
+"nbaId": 1627750,
+"birthDate": "1997-02-23"
+},
+{
+"playerId": "1627751",
+"name": "Jakob Poeltl",
+"espnId": "3134908",
+"nbaId": 1627751,
+"birthDate": "1995-10-15"
+},
+{
+"playerId": "1627752",
+"name": "Taurean Prince",
+"espnId": "2990962",
+"nbaId": 1627752,
+"birthDate": "1994-03-22"
+},
+{
+"playerId": "1627759",
+"name": "Jaylen Brown",
+"espnId": "3917376",
+"nbaId": 1627759,
+"birthDate": "1996-10-24"
+},
+{
+"playerId": "1627763",
+"name": "Malcolm Brogdon",
+"espnId": "2566769",
+"nbaId": 1627763,
+"birthDate": null
+},
+{
+"playerId": "1627777",
+"name": "Georges Niang",
+"espnId": "2990969",
+"nbaId": 1627777,
+"birthDate": "1993-06-17"
+},
+{
+"playerId": "1627780",
+"name": "Gary Payton II",
+"espnId": "3134903",
+"nbaId": 1627780,
+"birthDate": "1992-12-01"
+},
+{
+"playerId": "1627783",
+"name": "Pascal Siakam",
+"espnId": "3149673",
+"nbaId": 1627783,
+"birthDate": "1994-04-02"
+},
+{
+"playerId": "1627788",
+"name": "Furkan Korkmaz",
+"espnId": "3929325",
+"nbaId": 1627788,
+"birthDate": null
+},
+{
+"playerId": "1627814",
+"name": "Damion Lee",
+"espnId": "2595209",
+"nbaId": 1627814,
+"birthDate": null
+},
+{
+"playerId": "1627824",
+"name": "Guerschon Yabusele",
+"espnId": "4017844",
+"nbaId": 1627824,
+"birthDate": "1995-12-17"
+},
+{
+"playerId": "1627826",
+"name": "Ivica Zubac",
+"espnId": "4017837",
+"nbaId": 1627826,
+"birthDate": "1997-03-18"
+},
+{
+"playerId": "1627827",
+"name": "Dorian Finney-Smith",
+"espnId": "2578185",
+"nbaId": 1627827,
+"birthDate": "1993-05-04"
+},
+{
+"playerId": "1627832",
+"name": "Fred VanVleet",
+"espnId": "2991230",
+"nbaId": 1627832,
+"birthDate": null
+},
+{
+"playerId": "1627853",
+"name": "Ryan Arcidiacono",
+"espnId": "2991047",
+"nbaId": 1627853,
+"birthDate": null
+},
+{
+"playerId": "1627863",
+"name": "Danuel House Jr.",
+"espnId": "2991155",
+"nbaId": 1627863,
+"birthDate": null
+},
+{
+"playerId": "1627884",
+"name": "Derrick Jones Jr.",
+"espnId": "3936099",
+"nbaId": 1627884,
+"birthDate": "1997-02-15"
+},
+{
+"playerId": "1627885",
+"name": "Shaquille Harrison",
+"espnId": "2991274",
+"nbaId": 1627885,
+"birthDate": null
+},
+{
+"playerId": "1627936",
+"name": "Alex Caruso",
+"espnId": "2991350",
+"nbaId": 1627936,
+"birthDate": "1994-02-28"
+},
+{
+"playerId": "1628365",
+"name": "Markelle Fultz",
+"espnId": "4066636",
+"nbaId": 1628365,
+"birthDate": null
+},
+{
+"playerId": "1628366",
+"name": "Lonzo Ball",
+"espnId": "4066421",
+"nbaId": 1628366,
+"birthDate": null
+},
+{
+"playerId": "1628368",
+"name": "De'Aaron Fox",
+"espnId": "4066259",
+"nbaId": 1628368,
+"birthDate": "1997-12-20"
+},
+{
+"playerId": "1628369",
+"name": "Jayson Tatum",
+"espnId": "4065648",
+"nbaId": 1628369,
+"birthDate": "1998-03-03"
+},
+{
+"playerId": "1628370",
+"name": "Malik Monk",
+"espnId": "4066262",
+"nbaId": 1628370,
+"birthDate": "1998-02-04"
+},
+{
+"playerId": "1628371",
+"name": "Jonathan Isaac",
+"espnId": "4065654",
+"nbaId": 1628371,
+"birthDate": "1997-10-03"
+},
+{
+"playerId": "1628372",
+"name": "Dennis Smith Jr.",
+"espnId": "4065697",
+"nbaId": 1628372,
+"birthDate": "1997-11-25"
+},
+{
+"playerId": "1628373",
+"name": "Frank Ntilikina",
+"espnId": "4230547",
+"nbaId": 1628373,
+"birthDate": null
+},
+{
+"playerId": "1628374",
+"name": "Lauri Markkanen",
+"espnId": "4066336",
+"nbaId": 1628374,
+"birthDate": "1997-05-22"
+},
+{
+"playerId": "1628378",
+"name": "Donovan Mitchell",
+"espnId": "3908809",
+"nbaId": 1628378,
+"birthDate": "1996-09-07"
+},
+{
+"playerId": "1628379",
+"name": "Luke Kennard",
+"espnId": "3913174",
+"nbaId": 1628379,
+"birthDate": "1996-06-24"
+},
+{
+"playerId": "1628380",
+"name": "Zach Collins",
+"espnId": "4066650",
+"nbaId": 1628380,
+"birthDate": "1997-11-19"
+},
+{
+"playerId": "1628381",
+"name": "John Collins",
+"espnId": "3908845",
+"nbaId": 1628381,
+"birthDate": "1997-09-23"
+},
+{
+"playerId": "1628384",
+"name": "OG Anunoby",
+"espnId": "3934719",
+"nbaId": 1628384,
+"birthDate": "1997-07-17"
+},
+{
+"playerId": "1628385",
+"name": "Harry Giles III",
+"espnId": "4065649",
+"nbaId": 1628385,
+"birthDate": null
+},
+{
+"playerId": "1628386",
+"name": "Jarrett Allen",
+"espnId": "4066328",
+"nbaId": 1628386,
+"birthDate": "1998-04-21"
+},
+{
+"playerId": "1628389",
+"name": "Bam Adebayo",
+"espnId": "4066261",
+"nbaId": 1628389,
+"birthDate": "1997-07-18"
+},
+{
+"playerId": "1628391",
+"name": "D.J. Wilson",
+"espnId": "3136491",
+"nbaId": 1628391,
+"birthDate": null
+},
+{
+"playerId": "1628392",
+"name": "Isaiah Hartenstein",
+"espnId": "4222252",
+"nbaId": 1628392,
+"birthDate": "1998-05-05"
+},
+{
+"playerId": "1628396",
+"name": "Tony Bradley",
+"espnId": "4065673",
+"nbaId": 1628396,
+"birthDate": "1998-01-08"
+},
+{
+"playerId": "1628398",
+"name": "Kyle Kuzma",
+"espnId": "3134907",
+"nbaId": 1628398,
+"birthDate": "1995-07-24"
+},
+{
+"playerId": "1628401",
+"name": "Derrick White",
+"espnId": "3078576",
+"nbaId": 1628401,
+"birthDate": "1994-07-02"
+},
+{
+"playerId": "1628404",
+"name": "Josh Hart",
+"espnId": "3062679",
+"nbaId": 1628404,
+"birthDate": "1995-03-06"
+},
+{
+"playerId": "1628408",
+"name": "PJ Dozier",
+"espnId": "3923250",
+"nbaId": 1628408,
+"birthDate": null
+},
+{
+"playerId": "1628415",
+"name": "Dillon Brooks",
+"espnId": "3155526",
+"nbaId": 1628415,
+"birthDate": "1996-01-22"
+},
+{
+"playerId": "1628418",
+"name": "Thomas Bryant",
+"espnId": "3934723",
+"nbaId": 1628418,
+"birthDate": "1997-07-31"
+},
+{
+"playerId": "1628420",
+"name": "Monte Morris",
+"espnId": "3059310",
+"nbaId": 1628420,
+"birthDate": null
+},
+{
+"playerId": "1628424",
+"name": "Kobi Simmons",
+"espnId": "4066335",
+"nbaId": 1628424,
+"birthDate": null
+},
+{
+"playerId": "1628426",
+"name": "Sasha Vezenkov",
+"espnId": "3893014",
+"nbaId": 1628426,
+"birthDate": null
+},
+{
+"playerId": "1628427",
+"name": "Vlatko Cancar",
+"espnId": "4230557",
+"nbaId": 1628427,
+"birthDate": null
+},
+{
+"playerId": "1628436",
+"name": "Luke Kornet",
+"espnId": "3064560",
+"nbaId": 1628436,
+"birthDate": "1995-07-15"
+},
+{
+"playerId": "1628449",
+"name": "Chris Boucher",
+"espnId": "3948153",
+"nbaId": 1628449,
+"birthDate": null
+},
+{
+"playerId": "1628464",
+"name": "Daniel Theis",
+"espnId": "2451037",
+"nbaId": 1628464,
+"birthDate": null
+},
+{
+"playerId": "1628467",
+"name": "Maxi Kleber",
+"espnId": "2960236",
+"nbaId": 1628467,
+"birthDate": "1992-01-29"
+},
+{
+"playerId": "1628470",
+"name": "Torrey Craig",
+"espnId": "2528693",
+"nbaId": 1628470,
+"birthDate": null
+},
+{
+"playerId": "1628502",
+"name": "Nigel Hayes-Davis",
+"espnId": null,
+"nbaId": 1628502,
+"birthDate": null
+},
+{
+"playerId": "1628960",
+"name": "Grayson Allen",
+"espnId": "3135045",
+"nbaId": 1628960,
+"birthDate": "1995-10-08"
+},
+{
+"playerId": "1628962",
+"name": "Udoka Azubuike",
+"espnId": "4066299",
+"nbaId": 1628962,
+"birthDate": null
+},
+{
+"playerId": "1628963",
+"name": "Marvin Bagley III",
+"espnId": "4277848",
+"nbaId": 1628963,
+"birthDate": "1999-03-14"
+},
+{
+"playerId": "1628964",
+"name": "Mo Bamba",
+"espnId": "4277919",
+"nbaId": 1628964,
+"birthDate": "1998-05-12"
+},
+{
+"playerId": "1628966",
+"name": "Keita Bates-Diop",
+"espnId": "3136779",
+"nbaId": 1628966,
+"birthDate": null
+},
+{
+"playerId": "1628969",
+"name": "Mikal Bridges",
+"espnId": "3147657",
+"nbaId": 1628969,
+"birthDate": "1996-08-30"
+},
+{
+"playerId": "1628970",
+"name": "Miles Bridges",
+"espnId": "4066383",
+"nbaId": 1628970,
+"birthDate": "1998-03-21"
+},
+{
+"playerId": "1628971",
+"name": "Bruce Brown",
+"espnId": "4065670",
+"nbaId": 1628971,
+"birthDate": "1996-08-15"
+},
+{
+"playerId": "1628972",
+"name": "Troy Brown Jr.",
+"espnId": "4278508",
+"nbaId": 1628972,
+"birthDate": null
+},
+{
+"playerId": "1628973",
+"name": "Jalen Brunson",
+"espnId": "3934672",
+"nbaId": 1628973,
+"birthDate": "1996-08-31"
+},
+{
+"playerId": "1628975",
+"name": "Jevon Carter",
+"espnId": "3133635",
+"nbaId": 1628975,
+"birthDate": "1995-09-14"
+},
+{
+"playerId": "1628976",
+"name": "Wendell Carter Jr.",
+"espnId": "4277847",
+"nbaId": 1628976,
+"birthDate": "1999-04-16"
+},
+{
+"playerId": "1628977",
+"name": "Hamidou Diallo",
+"espnId": "4080610",
+"nbaId": 1628977,
+"birthDate": null
+},
+{
+"playerId": "1628978",
+"name": "Donte DiVincenzo",
+"espnId": "3934673",
+"nbaId": 1628978,
+"birthDate": "1997-01-31"
+},
+{
+"playerId": "1628981",
+"name": "Bruno Fernando",
+"espnId": "4277952",
+"nbaId": 1628981,
+"birthDate": null
+},
+{
+"playerId": "1628983",
+"name": "Shai Gilgeous-Alexander",
+"espnId": "4278073",
+"nbaId": 1628983,
+"birthDate": "1998-07-12"
+},
+{
+"playerId": "1628984",
+"name": "Devonte' Graham",
+"espnId": "3133601",
+"nbaId": 1628984,
+"birthDate": null
+},
+{
+"playerId": "1628988",
+"name": "Aaron Holiday",
+"espnId": "3922230",
+"nbaId": 1628988,
+"birthDate": "1996-09-30"
+},
+{
+"playerId": "1628989",
+"name": "Kevin Huerter",
+"espnId": "4066372",
+"nbaId": 1628989,
+"birthDate": "1998-08-27"
+},
+{
+"playerId": "1628991",
+"name": "Jaren Jackson Jr.",
+"espnId": "4277961",
+"nbaId": 1628991,
+"birthDate": "1999-09-15"
+},
+{
+"playerId": "1628995",
+"name": "Kevin Knox II",
+"espnId": "4278075",
+"nbaId": 1628995,
+"birthDate": "1999-08-11"
+},
+{
+"playerId": "1628997",
+"name": "Caleb Martin",
+"espnId": "3138160",
+"nbaId": 1628997,
+"birthDate": "1995-09-28"
+},
+{
+"playerId": "1628998",
+"name": "Cody Martin",
+"espnId": "3138161",
+"nbaId": 1628998,
+"birthDate": null
+},
+{
+"playerId": "1629001",
+"name": "De'Anthony Melton",
+"espnId": "4066436",
+"nbaId": 1629001,
+"birthDate": "1998-05-28"
+},
+{
+"playerId": "1629002",
+"name": "Chimezie Metu",
+"espnId": "3914283",
+"nbaId": 1629002,
+"birthDate": null
+},
+{
+"playerId": "1629003",
+"name": "Shake Milton",
+"espnId": "3915195",
+"nbaId": 1629003,
+"birthDate": null
+},
+{
+"playerId": "1629004",
+"name": "Svi Mykhailiuk",
+"espnId": "3133602",
+"nbaId": 1629004,
+"birthDate": "1997-06-10"
+},
+{
+"playerId": "1629006",
+"name": "Josh Okogie",
+"espnId": "4065663",
+"nbaId": 1629006,
+"birthDate": "1998-09-01"
+},
+{
+"playerId": "1629007",
+"name": "Jontay Porter",
+"espnId": "4278103",
+"nbaId": 1629007,
+"birthDate": null
+},
+{
+"playerId": "1629008",
+"name": "Michael Porter Jr.",
+"espnId": "4278104",
+"nbaId": 1629008,
+"birthDate": "1998-06-29"
+},
+{
+"playerId": "1629010",
+"name": "Jerome Robinson",
+"espnId": "3943606",
+"nbaId": 1629010,
+"birthDate": null
+},
+{
+"playerId": "1629011",
+"name": "Mitchell Robinson",
+"espnId": "4351852",
+"nbaId": 1629011,
+"birthDate": "1998-04-01"
+},
+{
+"playerId": "1629012",
+"name": "Collin Sexton",
+"espnId": "4277811",
+"nbaId": 1629012,
+"birthDate": "1999-01-04"
+},
+{
+"playerId": "1629013",
+"name": "Landry Shamet",
+"espnId": "3914044",
+"nbaId": 1629013,
+"birthDate": "1997-03-13"
+},
+{
+"playerId": "1629014",
+"name": "Anfernee Simons",
+"espnId": "4351851",
+"nbaId": 1629014,
+"birthDate": "1999-06-08"
+},
+{
+"playerId": "1629018",
+"name": "Gary Trent Jr.",
+"espnId": "4277843",
+"nbaId": 1629018,
+"birthDate": "1999-01-18"
+},
+{
+"playerId": "1629020",
+"name": "Jarred Vanderbilt",
+"espnId": "4278077",
+"nbaId": 1629020,
+"birthDate": "1999-04-03"
+},
+{
+"playerId": "1629021",
+"name": "Moritz Wagner",
+"espnId": "3150844",
+"nbaId": 1629021,
+"birthDate": "1997-04-26"
+},
+{
+"playerId": "1629022",
+"name": "Lonnie Walker IV",
+"espnId": "4277890",
+"nbaId": 1629022,
+"birthDate": "1998-12-14"
+},
+{
+"playerId": "1629023",
+"name": "P.J. Washington",
+"espnId": "4278078",
+"nbaId": 1629023,
+"birthDate": "1998-08-23"
+},
+{
+"playerId": "1629026",
+"name": "Kenrich Williams",
+"espnId": "3133626",
+"nbaId": 1629026,
+"birthDate": "1994-12-02"
+},
+{
+"playerId": "1629027",
+"name": "Trae Young",
+"espnId": "4277905",
+"nbaId": 1629027,
+"birthDate": "1998-09-19"
+},
+{
+"playerId": "1629028",
+"name": "Deandre Ayton",
+"espnId": "4278129",
+"nbaId": 1629028,
+"birthDate": "1998-07-23"
+},
+{
+"playerId": "1629029",
+"name": "Luka Doncic",
+"espnId": "3945274",
+"nbaId": 1629029,
+"birthDate": "1999-02-28"
+},
+{
+"playerId": "1629048",
+"name": "Goga Bitadze",
+"espnId": "4348700",
+"nbaId": 1629048,
+"birthDate": "1999-07-20"
+},
+{
+"playerId": "1629052",
+"name": "Oshae Brissett",
+"espnId": "4278031",
+"nbaId": 1629052,
+"birthDate": null
+},
+{
+"playerId": "1629056",
+"name": "Terence Davis",
+"espnId": "3919454",
+"nbaId": 1629056,
+"birthDate": null
+},
+{
+"playerId": "1629057",
+"name": "Robert Williams III",
+"espnId": "4066211",
+"nbaId": 1629057,
+"birthDate": "1997-10-17"
+},
+{
+"playerId": "1629060",
+"name": "Rui Hachimura",
+"espnId": "4066648",
+"nbaId": 1629060,
+"birthDate": "1998-02-08"
+},
+{
+"playerId": "1629098",
+"name": "Jack McVeigh",
+"espnId": "3911893",
+"nbaId": 1629098,
+"birthDate": null
+},
+{
+"playerId": "1629111",
+"name": "Jock Landale",
+"espnId": "3146557",
+"nbaId": 1629111,
+"birthDate": "1995-10-25"
+},
+{
+"playerId": "1629117",
+"name": "Wenyen Gabriel",
+"espnId": "4066264",
+"nbaId": 1629117,
+"birthDate": null
+},
+{
+"playerId": "1629130",
+"name": "Duncan Robinson",
+"espnId": "3157465",
+"nbaId": 1629130,
+"birthDate": "1994-04-22"
+},
+{
+"playerId": "1629139",
+"name": "Yuta Watanabe",
+"espnId": "3133838",
+"nbaId": 1629139,
+"birthDate": null
+},
+{
+"playerId": "1629162",
+"name": "Jordan McLaughlin",
+"espnId": "3134916",
+"nbaId": 1629162,
+"birthDate": "1996-04-09"
+},
+{
+"playerId": "1629216",
+"name": "Gabe Vincent",
+"espnId": "3137259",
+"nbaId": 1629216,
+"birthDate": "1996-06-14"
+},
+{
+"playerId": "1629232",
+"name": "Kaiser Gates",
+"espnId": "3912339",
+"nbaId": 1629232,
+"birthDate": null
+},
+{
+"playerId": "1629234",
+"name": "Drew Eubanks",
+"espnId": "3914285",
+"nbaId": 1629234,
+"birthDate": "1997-02-01"
+},
+{
+"playerId": "1629308",
+"name": "Juan Toscano-Anderson",
+"espnId": "4401416",
+"nbaId": 1629308,
+"birthDate": null
+},
+{
+"playerId": "1629312",
+"name": "Haywood Highsmith",
+"espnId": "4291678",
+"nbaId": 1629312,
+"birthDate": "1996-12-09"
+},
+{
+"playerId": "1629599",
+"name": "Amir Coffey",
+"espnId": "4066387",
+"nbaId": 1629599,
+"birthDate": "1997-06-17"
+},
+{
+"playerId": "1629603",
+"name": "Mamadi Diakite",
+"espnId": "3947156",
+"nbaId": 1629603,
+"birthDate": null
+},
+{
+"playerId": "1629610",
+"name": "DaQuan Jeffries",
+"espnId": "3913220",
+"nbaId": 1629610,
+"birthDate": null
+},
+{
+"playerId": "1629611",
+"name": "Terance Mann",
+"espnId": "3907823",
+"nbaId": 1629611,
+"birthDate": "1996-10-18"
+},
+{
+"playerId": "1629614",
+"name": "Andrew Nembhard",
+"espnId": "4395712",
+"nbaId": 1629614,
+"birthDate": "2000-01-16"
+},
+{
+"playerId": "1629618",
+"name": "Jalen Pickett",
+"espnId": "4398390",
+"nbaId": 1629618,
+"birthDate": "1999-10-22"
+},
+{
+"playerId": "1629622",
+"name": "Max Strus",
+"espnId": "4065778",
+"nbaId": 1629622,
+"birthDate": "1996-03-28"
+},
+{
+"playerId": "1629623",
+"name": "Lindell Wigginton",
+"espnId": "4277887",
+"nbaId": 1629623,
+"birthDate": null
+},
+{
+"playerId": "1629626",
+"name": "Bol Bol",
+"espnId": "4397102",
+"nbaId": 1629626,
+"birthDate": null
+},
+{
+"playerId": "1629627",
+"name": "Zion Williamson",
+"espnId": "4395628",
+"nbaId": 1629627,
+"birthDate": "2000-07-06"
+},
+{
+"playerId": "1629628",
+"name": "RJ Barrett",
+"espnId": "4395625",
+"nbaId": 1629628,
+"birthDate": "2000-06-14"
+},
+{
+"playerId": "1629629",
+"name": "Cam Reddish",
+"espnId": "4395627",
+"nbaId": 1629629,
+"birthDate": null
+},
+{
+"playerId": "1629630",
+"name": "Ja Morant",
+"espnId": "4279888",
+"nbaId": 1629630,
+"birthDate": "1999-08-10"
+},
+{
+"playerId": "1629631",
+"name": "De'Andre Hunter",
+"espnId": "4065732",
+"nbaId": 1629631,
+"birthDate": "1997-12-02"
+},
+{
+"playerId": "1629632",
+"name": "Coby White",
+"espnId": "4395651",
+"nbaId": 1629632,
+"birthDate": "2000-02-16"
+},
+{
+"playerId": "1629634",
+"name": "Brandon Clarke",
+"espnId": "3906665",
+"nbaId": 1629634,
+"birthDate": null
+},
+{
+"playerId": "1629636",
+"name": "Darius Garland",
+"espnId": "4396907",
+"nbaId": 1629636,
+"birthDate": "2000-01-26"
+},
+{
+"playerId": "1629637",
+"name": "Jaxson Hayes",
+"espnId": "4397077",
+"nbaId": 1629637,
+"birthDate": "2000-05-23"
+},
+{
+"playerId": "1629638",
+"name": "Nickeil Alexander-Walker",
+"espnId": "4278039",
+"nbaId": 1629638,
+"birthDate": "1998-09-02"
+},
+{
+"playerId": "1629639",
+"name": "Tyler Herro",
+"espnId": "4395725",
+"nbaId": 1629639,
+"birthDate": "2000-01-20"
+},
+{
+"playerId": "1629640",
+"name": "Keldon Johnson",
+"espnId": "4395723",
+"nbaId": 1629640,
+"birthDate": "1999-10-11"
+},
+{
+"playerId": "1629642",
+"name": "Nassir Little",
+"espnId": "4395652",
+"nbaId": 1629642,
+"birthDate": null
+},
+{
+"playerId": "1629643",
+"name": "Chuma Okeke",
+"espnId": "4278052",
+"nbaId": 1629643,
+"birthDate": null
+},
+{
+"playerId": "1629645",
+"name": "Kevin Porter Jr.",
+"espnId": "4397140",
+"nbaId": 1629645,
+"birthDate": "2000-05-04"
+},
+{
+"playerId": "1629646",
+"name": "Charles Bassey",
+"espnId": "4397886",
+"nbaId": 1629646,
+"birthDate": "2000-10-28"
+},
+{
+"playerId": "1629647",
+"name": "Darius Bazley",
+"espnId": "4423545",
+"nbaId": 1629647,
+"birthDate": null
+},
+{
+"playerId": "1629650",
+"name": "Moses Brown",
+"espnId": "4397126",
+"nbaId": 1629650,
+"birthDate": null
+},
+{
+"playerId": "1629651",
+"name": "Nic Claxton",
+"espnId": "4278067",
+"nbaId": 1629651,
+"birthDate": "1999-04-17"
+},
+{
+"playerId": "1629652",
+"name": "Luguentz Dort",
+"espnId": "4397020",
+"nbaId": 1629652,
+"birthDate": "1999-04-19"
+},
+{
+"playerId": "1629655",
+"name": "Daniel Gafford",
+"espnId": "4278049",
+"nbaId": 1629655,
+"birthDate": "1998-10-01"
+},
+{
+"playerId": "1629656",
+"name": "Quentin Grimes",
+"espnId": "4397014",
+"nbaId": 1629656,
+"birthDate": "2000-05-08"
+},
+{
+"playerId": "1629659",
+"name": "Talen Horton-Tucker",
+"espnId": "4396991",
+"nbaId": 1629659,
+"birthDate": null
+},
+{
+"playerId": "1629660",
+"name": "Ty Jerome",
+"espnId": "4065733",
+"nbaId": 1629660,
+"birthDate": "1997-07-08"
+},
+{
+"playerId": "1629661",
+"name": "Cameron Johnson",
+"espnId": "3138196",
+"nbaId": 1629661,
+"birthDate": "1996-03-03"
+},
+{
+"playerId": "1629667",
+"name": "Jalen McDaniels",
+"espnId": "4066731",
+"nbaId": 1629667,
+"birthDate": null
+},
+{
+"playerId": "1629669",
+"name": "Jaylen Nowell",
+"espnId": "4278541",
+"nbaId": 1629669,
+"birthDate": null
+},
+{
+"playerId": "1629670",
+"name": "Jordan Nwora",
+"espnId": "4277883",
+"nbaId": 1629670,
+"birthDate": null
+},
+{
+"playerId": "1629673",
+"name": "Jordan Poole",
+"espnId": "4277956",
+"nbaId": 1629673,
+"birthDate": "1999-06-19"
+},
+{
+"playerId": "1629674",
+"name": "Neemias Queta",
+"espnId": "4397424",
+"nbaId": 1629674,
+"birthDate": "1999-07-13"
+},
+{
+"playerId": "1629675",
+"name": "Naz Reid",
+"espnId": "4396971",
+"nbaId": 1629675,
+"birthDate": "1999-08-26"
+},
+{
+"playerId": "1629677",
+"name": "Luka Samanic",
+"espnId": "4423309",
+"nbaId": 1629677,
+"birthDate": null
+},
+{
+"playerId": "1629678",
+"name": "Admiral Schofield",
+"espnId": "3918423",
+"nbaId": 1629678,
+"birthDate": null
+},
+{
+"playerId": "1629680",
+"name": "Matisse Thybulle",
+"espnId": "3907498",
+"nbaId": 1629680,
+"birthDate": "1997-03-04"
+},
+{
+"playerId": "1629684",
+"name": "Grant Williams",
+"espnId": "4066218",
+"nbaId": 1629684,
+"birthDate": "1998-11-30"
+},
+{
+"playerId": "1629685",
+"name": "Dylan Windler",
+"espnId": "3906786",
+"nbaId": 1629685,
+"birthDate": null
+},
+{
+"playerId": "1629716",
+"name": "Marques Bolden",
+"espnId": "4065652",
+"nbaId": 1629716,
+"birthDate": null
+},
+{
+"playerId": "1629717",
+"name": "Armoni Brooks",
+"espnId": "4066450",
+"nbaId": 1629717,
+"birthDate": null
+},
+{
+"playerId": "1629718",
+"name": "Charlie Brown Jr.",
+"espnId": "4066508",
+"nbaId": 1629718,
+"birthDate": null
+},
+{
+"playerId": "1629723",
+"name": "John Konchar",
+"espnId": "3134932",
+"nbaId": 1629723,
+"birthDate": "1996-03-22"
+},
+{
+"playerId": "1629726",
+"name": "Garrison Mathews",
+"espnId": "3913180",
+"nbaId": 1629726,
+"birthDate": null
+},
+{
+"playerId": "1629731",
+"name": "Dean Wade",
+"espnId": "3912848",
+"nbaId": 1629731,
+"birthDate": "1996-11-20"
+},
+{
+"playerId": "1629750",
+"name": "Javonte Green",
+"espnId": "2596112",
+"nbaId": 1629750,
+"birthDate": "1993-07-23"
+},
+{
+"playerId": "1629875",
+"name": "Xavier Moon",
+"espnId": "3914075",
+"nbaId": 1629875,
+"birthDate": null
+},
+{
+"playerId": "1630162",
+"name": "Anthony Edwards",
+"espnId": "4594268",
+"nbaId": 1630162,
+"birthDate": "2001-08-05"
+},
+{
+"playerId": "1630163",
+"name": "LaMelo Ball",
+"espnId": "4432816",
+"nbaId": 1630163,
+"birthDate": "2001-08-22"
+},
+{
+"playerId": "1630164",
+"name": "James Wiseman",
+"espnId": "4432808",
+"nbaId": 1630164,
+"birthDate": "2001-03-31"
+},
+{
+"playerId": "1630165",
+"name": "Killian Hayes",
+"espnId": "4683024",
+"nbaId": 1630165,
+"birthDate": "2001-07-27"
+},
+{
+"playerId": "1630166",
+"name": "Deni Avdija",
+"espnId": "4683021",
+"nbaId": 1630166,
+"birthDate": "2001-01-03"
+},
+{
+"playerId": "1630167",
+"name": "Obi Toppin",
+"espnId": "4278355",
+"nbaId": 1630167,
+"birthDate": "1998-03-04"
+},
+{
+"playerId": "1630168",
+"name": "Onyeka Okongwu",
+"espnId": "4431680",
+"nbaId": 1630168,
+"birthDate": "2000-12-11"
+},
+{
+"playerId": "1630169",
+"name": "Tyrese Haliburton",
+"espnId": "4396993",
+"nbaId": 1630169,
+"birthDate": "2000-02-29"
+},
+{
+"playerId": "1630170",
+"name": "Devin Vassell",
+"espnId": "4395630",
+"nbaId": 1630170,
+"birthDate": "2000-08-23"
+},
+{
+"playerId": "1630171",
+"name": "Isaac Okoro",
+"espnId": "4432822",
+"nbaId": 1630171,
+"birthDate": "2001-01-26"
+},
+{
+"playerId": "1630172",
+"name": "Patrick Williams",
+"espnId": "4431687",
+"nbaId": 1630172,
+"birthDate": "2001-08-26"
+},
+{
+"playerId": "1630173",
+"name": "Precious Achiuwa",
+"espnId": "4431679",
+"nbaId": 1630173,
+"birthDate": "1999-09-19"
+},
+{
+"playerId": "1630174",
+"name": "Aaron Nesmith",
+"espnId": "4396909",
+"nbaId": 1630174,
+"birthDate": "1999-10-16"
+},
+{
+"playerId": "1630175",
+"name": "Cole Anthony",
+"espnId": "4432809",
+"nbaId": 1630175,
+"birthDate": null
+},
+{
+"playerId": "1630177",
+"name": "Theo Maledon",
+"espnId": "4683027",
+"nbaId": 1630177,
+"birthDate": null
+},
+{
+"playerId": "1630178",
+"name": "Tyrese Maxey",
+"espnId": "4431678",
+"nbaId": 1630178,
+"birthDate": "2000-11-04"
+},
+{
+"playerId": "1630180",
+"name": "Saddiq Bey",
+"espnId": "4397136",
+"nbaId": 1630180,
+"birthDate": "1999-04-09"
+},
+{
+"playerId": "1630181",
+"name": "R.J. Hampton",
+"espnId": "4590530",
+"nbaId": 1630181,
+"birthDate": null
+},
+{
+"playerId": "1630182",
+"name": "Josh Green",
+"espnId": "4432811",
+"nbaId": 1630182,
+"birthDate": "2000-11-16"
+},
+{
+"playerId": "1630183",
+"name": "Jaden McDaniels",
+"espnId": "4431671",
+"nbaId": 1630183,
+"birthDate": "2000-09-29"
+},
+{
+"playerId": "1630184",
+"name": "Kira Lewis Jr.",
+"espnId": "4395698",
+"nbaId": 1630184,
+"birthDate": null
+},
+{
+"playerId": "1630186",
+"name": "Jahmi'us Ramsey",
+"espnId": "4431688",
+"nbaId": 1630186,
+"birthDate": null
+},
+{
+"playerId": "1630188",
+"name": "Jalen Smith",
+"espnId": "4397189",
+"nbaId": 1630188,
+"birthDate": "2000-03-16"
+},
+{
+"playerId": "1630191",
+"name": "Isaiah Stewart",
+"espnId": "4432810",
+"nbaId": 1630191,
+"birthDate": "2001-05-22"
+},
+{
+"playerId": "1630192",
+"name": "Zeke Nnaji",
+"espnId": "4431690",
+"nbaId": 1630192,
+"birthDate": "2001-01-09"
+},
+{
+"playerId": "1630193",
+"name": "Immanuel Quickley",
+"espnId": "4395724",
+"nbaId": 1630193,
+"birthDate": "1999-06-17"
+},
+{
+"playerId": "1630194",
+"name": "Paul Reed",
+"espnId": "4278562",
+"nbaId": 1630194,
+"birthDate": "1999-06-14"
+},
+{
+"playerId": "1630196",
+"name": "Filip Petrusev",
+"espnId": "4397667",
+"nbaId": 1630196,
+"birthDate": null
+},
+{
+"playerId": "1630197",
+"name": "Aleksej Pokusevski",
+"espnId": "4683018",
+"nbaId": 1630197,
+"birthDate": null
+},
+{
+"playerId": "1630198",
+"name": "Isaiah Joe",
+"espnId": "4395702",
+"nbaId": 1630198,
+"birthDate": "1999-07-02"
+},
+{
+"playerId": "1630200",
+"name": "Tre Jones",
+"espnId": "4395626",
+"nbaId": 1630200,
+"birthDate": "2000-01-08"
+},
+{
+"playerId": "1630201",
+"name": "Malachi Flynn",
+"espnId": "4066668",
+"nbaId": 1630201,
+"birthDate": null
+},
+{
+"playerId": "1630202",
+"name": "Payton Pritchard",
+"espnId": "4066354",
+"nbaId": 1630202,
+"birthDate": "1998-01-28"
+},
+{
+"playerId": "1630204",
+"name": "Ashton Hagans",
+"espnId": "4395722",
+"nbaId": 1630204,
+"birthDate": null
+},
+{
+"playerId": "1630205",
+"name": "Lamar Stevens",
+"espnId": "4066405",
+"nbaId": 1630205,
+"birthDate": null
+},
+{
+"playerId": "1630207",
+"name": "Nate Hinton",
+"espnId": "4396629",
+"nbaId": 1630207,
+"birthDate": null
+},
+{
+"playerId": "1630208",
+"name": "Nick Richards",
+"espnId": "4278076",
+"nbaId": 1630208,
+"birthDate": "1997-11-29"
+},
+{
+"playerId": "1630209",
+"name": "Omer Yurtseven",
+"espnId": "3074213",
+"nbaId": 1630209,
+"birthDate": "1998-06-19"
+},
+{
+"playerId": "1630214",
+"name": "Xavier Tillman",
+"espnId": "4277964",
+"nbaId": 1630214,
+"birthDate": "1999-01-12"
+},
+{
+"playerId": "1630215",
+"name": "Jared Butler",
+"espnId": "4395695",
+"nbaId": 1630215,
+"birthDate": null
+},
+{
+"playerId": "1630217",
+"name": "Desmond Bane",
+"espnId": "4066320",
+"nbaId": 1630217,
+"birthDate": "1998-06-25"
+},
+{
+"playerId": "1630219",
+"name": "Skylar Mays",
+"espnId": "4066269",
+"nbaId": 1630219,
+"birthDate": null
+},
+{
+"playerId": "1630222",
+"name": "Mason Jones",
+"espnId": "4395704",
+"nbaId": 1630222,
+"birthDate": null
+},
+{
+"playerId": "1630224",
+"name": "Jalen Green",
+"espnId": "4437244",
+"nbaId": 1630224,
+"birthDate": "2002-02-09"
+},
+{
+"playerId": "1630227",
+"name": "Daishen Nix",
+"espnId": "4432176",
+"nbaId": 1630227,
+"birthDate": null
+},
+{
+"playerId": "1630228",
+"name": "Jonathan Kuminga",
+"espnId": "4433247",
+"nbaId": 1630228,
+"birthDate": "2002-10-06"
+},
+{
+"playerId": "1630230",
+"name": "Naji Marshall",
+"espnId": "4278594",
+"nbaId": 1630230,
+"birthDate": "1998-01-24"
+},
+{
+"playerId": "1630231",
+"name": "Kenyon Martin Jr.",
+"espnId": null,
+"nbaId": 1630231,
+"birthDate": null
+},
+{
+"playerId": "1630235",
+"name": "Trent Forrest",
+"espnId": "4065656",
+"nbaId": 1630235,
+"birthDate": null
+},
+{
+"playerId": "1630240",
+"name": "Saben Lee",
+"espnId": "4278124",
+"nbaId": 1630240,
+"birthDate": null
+},
+{
+"playerId": "1630241",
+"name": "Sam Merrill",
+"espnId": "4066757",
+"nbaId": 1630241,
+"birthDate": "1996-05-15"
+},
+{
+"playerId": "1630243",
+"name": "Trevelin Queen",
+"espnId": "4409222",
+"nbaId": 1630243,
+"birthDate": null
+},
+{
+"playerId": "1630245",
+"name": "Ayo Dosunmu",
+"espnId": "4397002",
+"nbaId": 1630245,
+"birthDate": "2000-01-17"
+},
+{
+"playerId": "1630249",
+"name": "Vit Krejci",
+"espnId": "4578893",
+"nbaId": 1630249,
+"birthDate": "2000-06-19"
+},
+{
+"playerId": "1630256",
+"name": "Jae'Sean Tate",
+"espnId": "3136777",
+"nbaId": 1630256,
+"birthDate": "1995-10-28"
+},
+{
+"playerId": "1630259",
+"name": "Jordan Ford",
+"espnId": "4066736",
+"nbaId": 1630259,
+"birthDate": null
+},
+{
+"playerId": "1630264",
+"name": "Anthony Gill",
+"espnId": "2581184",
+"nbaId": 1630264,
+"birthDate": "1992-10-17"
+},
+{
+"playerId": "1630283",
+"name": "Kylor Kelley",
+"espnId": "3950760",
+"nbaId": 1630283,
+"birthDate": "1997-08-26"
+},
+{
+"playerId": "1630284",
+"name": "Kevon Harris",
+"espnId": "4067858",
+"nbaId": 1630284,
+"birthDate": null
+},
+{
+"playerId": "1630285",
+"name": "Zavier Simpson",
+"espnId": "4066377",
+"nbaId": 1630285,
+"birthDate": null
+},
+{
+"playerId": "1630286",
+"name": "Trevon Scott",
+"espnId": "3934620",
+"nbaId": 1630286,
+"birthDate": "1996-11-25"
+},
+{
+"playerId": "1630288",
+"name": "Jeff Dowtin Jr.",
+"espnId": "4066786",
+"nbaId": 1630288,
+"birthDate": null
+},
+{
+"playerId": "1630296",
+"name": "Braxton Key",
+"espnId": "4066240",
+"nbaId": 1630296,
+"birthDate": null
+},
+{
+"playerId": "1630311",
+"name": "Pat Spencer",
+"espnId": "4592714",
+"nbaId": 1630311,
+"birthDate": "1996-07-04"
+},
+{
+"playerId": "1630314",
+"name": "Brandon Williams",
+"espnId": "4397040",
+"nbaId": 1630314,
+"birthDate": "1999-11-22"
+},
+{
+"playerId": "1630322",
+"name": "Lindy Waters III",
+"espnId": "4066317",
+"nbaId": 1630322,
+"birthDate": "1997-07-28"
+},
+{
+"playerId": "1630346",
+"name": "Matt Ryan",
+"espnId": "3908336",
+"nbaId": 1630346,
+"birthDate": null
+},
+{
+"playerId": "1630526",
+"name": "Jeremiah Robinson-Earl",
+"espnId": "4432813",
+"nbaId": 1630526,
+"birthDate": null
+},
+{
+"playerId": "1630527",
+"name": "Brandon Boston Jr.",
+"espnId": "4432162",
+"nbaId": 1630527,
+"birthDate": "2001-11-28"
+},
+{
+"playerId": "1630528",
+"name": "Josh Christopher",
+"espnId": "4432168",
+"nbaId": 1630528,
+"birthDate": null
+},
+{
+"playerId": "1630529",
+"name": "Herbert Jones",
+"espnId": "4277813",
+"nbaId": 1630529,
+"birthDate": "1998-10-06"
+},
+{
+"playerId": "1630530",
+"name": "Trey Murphy III",
+"espnId": "4397688",
+"nbaId": 1630530,
+"birthDate": "2000-06-18"
+},
+{
+"playerId": "1630531",
+"name": "Jaden Springer",
+"espnId": "4432164",
+"nbaId": 1630531,
+"birthDate": null
+},
+{
+"playerId": "1630532",
+"name": "Franz Wagner",
+"espnId": "4566434",
+"nbaId": 1630532,
+"birthDate": "2001-08-27"
+},
+{
+"playerId": "1630533",
+"name": "Ziaire Williams",
+"espnId": "4433137",
+"nbaId": 1630533,
+"birthDate": "2001-09-12"
+},
+{
+"playerId": "1630534",
+"name": "Ochai Agbaji",
+"espnId": "4397018",
+"nbaId": 1630534,
+"birthDate": "2000-04-20"
+},
+{
+"playerId": "1630535",
+"name": "Greg Brown III",
+"espnId": "4432161",
+"nbaId": 1630535,
+"birthDate": null
+},
+{
+"playerId": "1630536",
+"name": "Sharife Cooper",
+"espnId": "4432173",
+"nbaId": 1630536,
+"birthDate": "2001-06-11"
+},
+{
+"playerId": "1630537",
+"name": "Chris Duarte",
+"espnId": "4592402",
+"nbaId": 1630537,
+"birthDate": null
+},
+{
+"playerId": "1630538",
+"name": "Bones Hyland",
+"espnId": "4592492",
+"nbaId": 1630538,
+"birthDate": "2000-09-14"
+},
+{
+"playerId": "1630539",
+"name": "Kai Jones",
+"espnId": "4431699",
+"nbaId": 1630539,
+"birthDate": null
+},
+{
+"playerId": "1630540",
+"name": "Miles McBride",
+"espnId": "4431823",
+"nbaId": 1630540,
+"birthDate": "2000-09-08"
+},
+{
+"playerId": "1630541",
+"name": "Moses Moody",
+"espnId": "4432171",
+"nbaId": 1630541,
+"birthDate": "2002-05-31"
+},
+{
+"playerId": "1630542",
+"name": "Marcus Bagley",
+"espnId": "4433147",
+"nbaId": 1630542,
+"birthDate": null
+},
+{
+"playerId": "1630543",
+"name": "Isaiah Jackson",
+"espnId": "4432170",
+"nbaId": 1630543,
+"birthDate": "2002-01-10"
+},
+{
+"playerId": "1630544",
+"name": "Tre Mann",
+"espnId": "4432819",
+"nbaId": 1630544,
+"birthDate": "2001-02-03"
+},
+{
+"playerId": "1630545",
+"name": "Terrence Shannon Jr.",
+"espnId": "4432847",
+"nbaId": 1630545,
+"birthDate": "2000-07-30"
+},
+{
+"playerId": "1630547",
+"name": "James Bouknight",
+"espnId": "4431712",
+"nbaId": 1630547,
+"birthDate": null
+},
+{
+"playerId": "1630548",
+"name": "Johnny Juzang",
+"espnId": "4432817",
+"nbaId": 1630548,
+"birthDate": null
+},
+{
+"playerId": "1630549",
+"name": "Day'Ron Sharpe",
+"espnId": "4432194",
+"nbaId": 1630549,
+"birthDate": "2001-11-06"
+},
+{
+"playerId": "1630550",
+"name": "JT Thor",
+"espnId": "4702233",
+"nbaId": 1630550,
+"birthDate": null
+},
+{
+"playerId": "1630551",
+"name": "Justin Champagnie",
+"espnId": "4432907",
+"nbaId": 1630551,
+"birthDate": "2001-06-29"
+},
+{
+"playerId": "1630552",
+"name": "Jalen Johnson",
+"espnId": "4701230",
+"nbaId": 1630552,
+"birthDate": "2001-12-18"
+},
+{
+"playerId": "1630553",
+"name": "Keon Johnson",
+"espnId": "4432192",
+"nbaId": 1630553,
+"birthDate": "2002-03-10"
+},
+{
+"playerId": "1630554",
+"name": "Jason Preston",
+"espnId": "4397916",
+"nbaId": 1630554,
+"birthDate": null
+},
+{
+"playerId": "1630556",
+"name": "Kessler Edwards",
+"espnId": "4397693",
+"nbaId": 1630556,
+"birthDate": null
+},
+{
+"playerId": "1630557",
+"name": "Corey Kispert",
+"espnId": "4280151",
+"nbaId": 1630557,
+"birthDate": "1999-03-03"
+},
+{
+"playerId": "1630558",
+"name": "Davion Mitchell",
+"espnId": "4278053",
+"nbaId": 1630558,
+"birthDate": "1998-09-05"
+},
+{
+"playerId": "1630559",
+"name": "Austin Reaves",
+"espnId": "4066457",
+"nbaId": 1630559,
+"birthDate": "1998-05-29"
+},
+{
+"playerId": "1630560",
+"name": "Cam Thomas",
+"espnId": "4432174",
+"nbaId": 1630560,
+"birthDate": null
+},
+{
+"playerId": "1630561",
+"name": "David Duke Jr.",
+"espnId": "4397107",
+"nbaId": 1630561,
+"birthDate": null
+},
+{
+"playerId": "1630562",
+"name": "Matthew Hurt",
+"espnId": null,
+"nbaId": 1630562,
+"birthDate": null
+},
+{
+"playerId": "1630563",
+"name": "Joshua Primo",
+"espnId": "4702176",
+"nbaId": 1630563,
+"birthDate": null
+},
+{
+"playerId": "1630564",
+"name": "RaiQuan Gray",
+"espnId": "4277850",
+"nbaId": 1630564,
+"birthDate": null
+},
+{
+"playerId": "1630567",
+"name": "Scottie Barnes",
+"espnId": "4433134",
+"nbaId": 1630567,
+"birthDate": "2001-08-01"
+},
+{
+"playerId": "1630568",
+"name": "Luka Garza",
+"espnId": "4277951",
+"nbaId": 1630568,
+"birthDate": "1998-12-27"
+},
+{
+"playerId": "1630570",
+"name": "Trendon Watford",
+"espnId": "4431675",
+"nbaId": 1630570,
+"birthDate": "2000-11-09"
+},
+{
+"playerId": "1630572",
+"name": "Sandro Mamukelashvili",
+"espnId": "4278580",
+"nbaId": 1630572,
+"birthDate": "1999-05-23"
+},
+{
+"playerId": "1630573",
+"name": "Sam Hauser",
+"espnId": "4065804",
+"nbaId": 1630573,
+"birthDate": "1997-12-08"
+},
+{
+"playerId": "1630574",
+"name": "Ariel Hukporti",
+"espnId": "4871141",
+"nbaId": 1630574,
+"birthDate": "2002-04-12"
+},
+{
+"playerId": "1630577",
+"name": "Julian Champagnie",
+"espnId": "4592479",
+"nbaId": 1630577,
+"birthDate": "2001-06-29"
+},
+{
+"playerId": "1630578",
+"name": "Alperen Sengun",
+"espnId": "4871144",
+"nbaId": 1630578,
+"birthDate": "2002-07-25"
+},
+{
+"playerId": "1630579",
+"name": "Jericho Sims",
+"espnId": "4277922",
+"nbaId": 1630579,
+"birthDate": "1998-10-20"
+},
+{
+"playerId": "1630581",
+"name": "Josh Giddey",
+"espnId": "4871145",
+"nbaId": 1630581,
+"birthDate": "2002-10-10"
+},
+{
+"playerId": "1630583",
+"name": "Santi Aldama",
+"espnId": "4593125",
+"nbaId": 1630583,
+"birthDate": "2001-01-10"
+},
+{
+"playerId": "1630585",
+"name": "Marcus Garrett",
+"espnId": "4277892",
+"nbaId": 1630585,
+"birthDate": null
+},
+{
+"playerId": "1630586",
+"name": "Usman Garuba",
+"espnId": "4871143",
+"nbaId": 1630586,
+"birthDate": null
+},
+{
+"playerId": "1630587",
+"name": "Isaiah Livers",
+"espnId": "4277957",
+"nbaId": 1630587,
+"birthDate": "1998-07-28"
+},
+{
+"playerId": "1630590",
+"name": "Scotty Pippen Jr.",
+"espnId": "4431785",
+"nbaId": 1630590,
+"birthDate": "2000-11-10"
+},
+{
+"playerId": "1630591",
+"name": "Jalen Suggs",
+"espnId": "4432165",
+"nbaId": 1630591,
+"birthDate": "2001-06-03"
+},
+{
+"playerId": "1630592",
+"name": "Jalen Wilson",
+"espnId": "4431714",
+"nbaId": 1630592,
+"birthDate": "2000-11-04"
+},
+{
+"playerId": "1630595",
+"name": "Cade Cunningham",
+"espnId": "4432166",
+"nbaId": 1630595,
+"birthDate": "2001-09-25"
+},
+{
+"playerId": "1630596",
+"name": "Evan Mobley",
+"espnId": "4432158",
+"nbaId": 1630596,
+"birthDate": "2001-06-18"
+},
+{
+"playerId": "1630598",
+"name": "Aaron Wiggins",
+"espnId": "4397183",
+"nbaId": 1630598,
+"birthDate": "1999-01-02"
+},
+{
+"playerId": "1630600",
+"name": "Isaiah Mobley",
+"espnId": "4432815",
+"nbaId": 1630600,
+"birthDate": null
+},
+{
+"playerId": "1630604",
+"name": "E.J. Liddell",
+"espnId": "4432821",
+"nbaId": 1630604,
+"birthDate": "2000-12-18"
+},
+{
+"playerId": "1630608",
+"name": "Malcolm Cazalon",
+"espnId": "4871137",
+"nbaId": 1630608,
+"birthDate": null
+},
+{
+"playerId": "1630610",
+"name": "DeJon Jarreau",
+"espnId": "4066796",
+"nbaId": 1630610,
+"birthDate": null
+},
+{
+"playerId": "1630611",
+"name": "Gui Santos",
+"espnId": "4997536",
+"nbaId": 1630611,
+"birthDate": "2002-06-22"
+},
+{
+"playerId": "1630618",
+"name": "D.J. Carton",
+"espnId": "4432820",
+"nbaId": 1630618,
+"birthDate": null
+},
+{
+"playerId": "1630619",
+"name": "Moussa Cisse",
+"espnId": "4701208",
+"nbaId": 1630619,
+"birthDate": "2002-09-10"
+},
+{
+"playerId": "1630621",
+"name": "Hunter Dickinson",
+"espnId": "4432180",
+"nbaId": 1630621,
+"birthDate": "2000-11-25"
+},
+{
+"playerId": "1630622",
+"name": "Jalen Crutcher",
+"espnId": "4278352",
+"nbaId": 1630622,
+"birthDate": null
+},
+{
+"playerId": "1630623",
+"name": "Tyson Etienne",
+"espnId": "4432887",
+"nbaId": 1630623,
+"birthDate": "1999-09-17"
+},
+{
+"playerId": "1630625",
+"name": "Dalano Banton",
+"espnId": "4397885",
+"nbaId": 1630625,
+"birthDate": "1999-11-07"
+},
+{
+"playerId": "1630631",
+"name": "Jose Alvarado",
+"espnId": "4277869",
+"nbaId": 1630631,
+"birthDate": "1998-04-12"
+},
+{
+"playerId": "1630639",
+"name": "A.J. Lawson",
+"espnId": "4067017",
+"nbaId": 1630639,
+"birthDate": "2000-07-15"
+},
+{
+"playerId": "1630641",
+"name": "Ibou Badji",
+"espnId": "4871140",
+"nbaId": 1630641,
+"birthDate": null
+},
+{
+"playerId": "1630643",
+"name": "Jay Huff",
+"espnId": "4065731",
+"nbaId": 1630643,
+"birthDate": "1997-08-25"
+},
+{
+"playerId": "1630644",
+"name": "Mac McClung",
+"espnId": "4397071",
+"nbaId": 1630644,
+"birthDate": "1999-01-06"
+},
+{
+"playerId": "1630647",
+"name": "Eugene Omoruyi",
+"espnId": "4066410",
+"nbaId": 1630647,
+"birthDate": null
+},
+{
+"playerId": "1630649",
+"name": "Stanley Umude",
+"espnId": "4279532",
+"nbaId": 1630649,
+"birthDate": null
+},
+{
+"playerId": "1630658",
+"name": "Colin Castleton",
+"espnId": "4397204",
+"nbaId": 1630658,
+"birthDate": "2000-05-25"
+},
+{
+"playerId": "1630678",
+"name": "Terry Taylor",
+"espnId": "4279815",
+"nbaId": 1630678,
+"birthDate": "1999-09-23"
+},
+{
+"playerId": "1630679",
+"name": "Ethan Thompson",
+"espnId": "4278516",
+"nbaId": 1630679,
+"birthDate": "1999-05-04"
+},
+{
+"playerId": "1630688",
+"name": "Ish Wainright",
+"espnId": "3059307",
+"nbaId": 1630688,
+"birthDate": null
+},
+{
+"playerId": "1630692",
+"name": "Jordan Goodwin",
+"espnId": "4278402",
+"nbaId": 1630692,
+"birthDate": "1998-10-23"
+},
+{
+"playerId": "1630695",
+"name": "Micah Potter",
+"espnId": "4066399",
+"nbaId": 1630695,
+"birthDate": "1998-04-06"
+},
+{
+"playerId": "1630696",
+"name": "Dru Smith",
+"espnId": "4066993",
+"nbaId": 1630696,
+"birthDate": "1997-12-30"
+},
+{
+"playerId": "1630699",
+"name": "MarJon Beauchamp",
+"espnId": "4432179",
+"nbaId": 1630699,
+"birthDate": "2000-10-12"
+},
+{
+"playerId": "1630700",
+"name": "Dyson Daniels",
+"espnId": "4869342",
+"nbaId": 1630700,
+"birthDate": "2003-03-17"
+},
+{
+"playerId": "1630702",
+"name": "Jaden Hardy",
+"espnId": "4868423",
+"nbaId": 1630702,
+"birthDate": "2002-07-05"
+},
+{
+"playerId": "1630703",
+"name": "Scoot Henderson",
+"espnId": "4683678",
+"nbaId": 1630703,
+"birthDate": "2004-02-03"
+},
+{
+"playerId": "1630762",
+"name": "Phillip Wheeler",
+"espnId": "4909710",
+"nbaId": 1630762,
+"birthDate": "2002-04-23"
+},
+{
+"playerId": "1630811",
+"name": "Keaton Wallace",
+"espnId": "4279118",
+"nbaId": 1630811,
+"birthDate": "1999-02-26"
+},
+{
+"playerId": "1630828",
+"name": "Alex Antetokounmpo",
+"espnId": "4432452",
+"nbaId": 1630828,
+"birthDate": "2001-08-27"
+},
+{
+"playerId": "1630846",
+"name": "Olivier Sarr",
+"espnId": "4278046",
+"nbaId": 1630846,
+"birthDate": "1999-02-20"
+},
+{
+"playerId": "1630929",
+"name": "Henri Drell",
+"espnId": "4423884",
+"nbaId": 1630929,
+"birthDate": null
+},
+{
+"playerId": "1631093",
+"name": "Jaden Ivey",
+"espnId": "4433218",
+"nbaId": 1631093,
+"birthDate": null
+},
+{
+"playerId": "1631094",
+"name": "Paolo Banchero",
+"espnId": "4432573",
+"nbaId": 1631094,
+"birthDate": "2002-11-12"
+},
+{
+"playerId": "1631095",
+"name": "Jabari Smith Jr.",
+"espnId": "4432639",
+"nbaId": 1631095,
+"birthDate": "2003-05-13"
+},
+{
+"playerId": "1631096",
+"name": "Chet Holmgren",
+"espnId": "4433255",
+"nbaId": 1631096,
+"birthDate": "2002-05-01"
+},
+{
+"playerId": "1631097",
+"name": "Bennedict Mathurin",
+"espnId": "4683634",
+"nbaId": 1631097,
+"birthDate": "2002-06-19"
+},
+{
+"playerId": "1631098",
+"name": "Johnny Davis",
+"espnId": "4432356",
+"nbaId": 1631098,
+"birthDate": null
+},
+{
+"playerId": "1631099",
+"name": "Keegan Murray",
+"espnId": "4594327",
+"nbaId": 1631099,
+"birthDate": "2000-08-19"
+},
+{
+"playerId": "1631100",
+"name": "AJ Griffin",
+"espnId": "4432585",
+"nbaId": 1631100,
+"birthDate": null
+},
+{
+"playerId": "1631101",
+"name": "Shaedon Sharpe",
+"espnId": "4914336",
+"nbaId": 1631101,
+"birthDate": "2003-05-30"
+},
+{
+"playerId": "1631102",
+"name": "TyTy Washington Jr.",
+"espnId": "4683749",
+"nbaId": 1631102,
+"birthDate": "2001-11-15"
+},
+{
+"playerId": "1631103",
+"name": "Malaki Branham",
+"espnId": "4565201",
+"nbaId": 1631103,
+"birthDate": "2003-05-12"
+},
+{
+"playerId": "1631104",
+"name": "Blake Wesley",
+"espnId": "4683935",
+"nbaId": 1631104,
+"birthDate": "2003-03-16"
+},
+{
+"playerId": "1631105",
+"name": "Jalen Duren",
+"espnId": "4433621",
+"nbaId": 1631105,
+"birthDate": "2003-11-18"
+},
+{
+"playerId": "1631106",
+"name": "Tari Eason",
+"espnId": "4433192",
+"nbaId": 1631106,
+"birthDate": "2001-05-10"
+},
+{
+"playerId": "1631107",
+"name": "Nikola Jovic",
+"espnId": "4997528",
+"nbaId": 1631107,
+"birthDate": "2003-06-09"
+},
+{
+"playerId": "1631108",
+"name": "Max Christie",
+"espnId": "4432582",
+"nbaId": 1631108,
+"birthDate": "2003-02-10"
+},
+{
+"playerId": "1631109",
+"name": "Mark Williams",
+"espnId": "4701232",
+"nbaId": 1631109,
+"birthDate": "2001-12-16"
+},
+{
+"playerId": "1631110",
+"name": "Jeremy Sochan",
+"espnId": "4610139",
+"nbaId": 1631110,
+"birthDate": "2003-05-20"
+},
+{
+"playerId": "1631111",
+"name": "Wendell Moore Jr.",
+"espnId": "4592187",
+"nbaId": 1631111,
+"birthDate": "2001-09-18"
+},
+{
+"playerId": "1631112",
+"name": "Kendall Brown",
+"espnId": "4433254",
+"nbaId": 1631112,
+"birthDate": "2003-05-11"
+},
+{
+"playerId": "1631113",
+"name": "Kennedy Chandler",
+"espnId": "4432646",
+"nbaId": 1631113,
+"birthDate": "2002-09-16"
+},
+{
+"playerId": "1631114",
+"name": "Jalen Williams",
+"espnId": "4593803",
+"nbaId": 1631114,
+"birthDate": "2001-04-14"
+},
+{
+"playerId": "1631115",
+"name": "Orlando Robinson",
+"espnId": "4593049",
+"nbaId": 1631115,
+"birthDate": "2000-07-10"
+},
+{
+"playerId": "1631116",
+"name": "Patrick Baldwin Jr.",
+"espnId": "4433246",
+"nbaId": 1631116,
+"birthDate": "2002-11-18"
+},
+{
+"playerId": "1631117",
+"name": "Walker Kessler",
+"espnId": "4433136",
+"nbaId": 1631117,
+"birthDate": "2001-07-26"
+},
+{
+"playerId": "1631119",
+"name": "Jaylin Williams",
+"espnId": "4432823",
+"nbaId": 1631119,
+"birthDate": "2002-06-29"
+},
+{
+"playerId": "1631120",
+"name": "JD Davison",
+"espnId": "4576085",
+"nbaId": 1631120,
+"birthDate": "2002-10-03"
+},
+{
+"playerId": "1631121",
+"name": "Bryce McGowens",
+"espnId": "4576086",
+"nbaId": 1631121,
+"birthDate": "2002-11-08"
+},
+{
+"playerId": "1631123",
+"name": "Jamaree Bouyea",
+"espnId": "4280245",
+"nbaId": 1631123,
+"birthDate": "1999-06-27"
+},
+{
+"playerId": "1631124",
+"name": "Julian Strawther",
+"espnId": "4432181",
+"nbaId": 1631124,
+"birthDate": "2002-04-18"
+},
+{
+"playerId": "1631126",
+"name": "Caleb Love",
+"espnId": "4433144",
+"nbaId": 1631126,
+"birthDate": "2001-09-27"
+},
+{
+"playerId": "1631127",
+"name": "Harrison Ingram",
+"espnId": "4433618",
+"nbaId": 1631127,
+"birthDate": "2002-11-27"
+},
+{
+"playerId": "1631128",
+"name": "Christian Braun",
+"espnId": "4431767",
+"nbaId": 1631128,
+"birthDate": "2001-04-17"
+},
+{
+"playerId": "1631131",
+"name": "Oscar Tshiebwe",
+"espnId": "4432827",
+"nbaId": 1631131,
+"birthDate": "1999-11-27"
+},
+{
+"playerId": "1631132",
+"name": "Christian Koloko",
+"espnId": "4431778",
+"nbaId": 1631132,
+"birthDate": "2000-06-20"
+},
+{
+"playerId": "1631133",
+"name": "Jabari Walker",
+"espnId": "4432446",
+"nbaId": 1631133,
+"birthDate": "2002-07-30"
+},
+{
+"playerId": "1631157",
+"name": "Ryan Rollins",
+"espnId": "4591725",
+"nbaId": 1631157,
+"birthDate": "2002-07-03"
+},
+{
+"playerId": "1631159",
+"name": "Leonard Miller",
+"espnId": "5044385",
+"nbaId": 1631159,
+"birthDate": "2003-11-26"
+},
+{
+"playerId": "1631165",
+"name": "Keon Ellis",
+"espnId": "4702177",
+"nbaId": 1631165,
+"birthDate": "2000-01-08"
+},
+{
+"playerId": "1631166",
+"name": "Drew Timme",
+"espnId": "4431695",
+"nbaId": 1631166,
+"birthDate": "2000-09-09"
+},
+{
+"playerId": "1631167",
+"name": "Izaiah Brockington",
+"espnId": "4278412",
+"nbaId": 1631167,
+"birthDate": null
+},
+{
+"playerId": "1631169",
+"name": "Josh Minott",
+"espnId": "4687718",
+"nbaId": 1631169,
+"birthDate": "2002-11-25"
+},
+{
+"playerId": "1631170",
+"name": "Jaime Jaquez Jr.",
+"espnId": "4432848",
+"nbaId": 1631170,
+"birthDate": "2001-02-18"
+},
+{
+"playerId": "1631172",
+"name": "Ousmane Dieng",
+"espnId": "4997526",
+"nbaId": 1631172,
+"birthDate": "2003-05-21"
+},
+{
+"playerId": "1631173",
+"name": "Terquavion Smith",
+"espnId": "4683940",
+"nbaId": 1631173,
+"birthDate": null
+},
+{
+"playerId": "1631174",
+"name": "Tyler Burton",
+"espnId": "4431914",
+"nbaId": 1631174,
+"birthDate": "2000-02-11"
+},
+{
+"playerId": "1631197",
+"name": "Jared Rhoden",
+"espnId": "4397119",
+"nbaId": 1631197,
+"birthDate": null
+},
+{
+"playerId": "1631199",
+"name": "Ron Harper Jr.",
+"espnId": "4397251",
+"nbaId": 1631199,
+"birthDate": "2000-04-12"
+},
+{
+"playerId": "1631200",
+"name": "Kris Murray",
+"espnId": "4594326",
+"nbaId": 1631200,
+"birthDate": "2000-08-19"
+},
+{
+"playerId": "1631204",
+"name": "Marcus Sasser",
+"espnId": "4432107",
+"nbaId": 1631204,
+"birthDate": "2000-09-21"
+},
+{
+"playerId": "1631205",
+"name": "Buddy Boeheim",
+"espnId": "4395676",
+"nbaId": 1631205,
+"birthDate": "1999-11-11"
+},
+{
+"playerId": "1631207",
+"name": "Dalen Terry",
+"espnId": "4433159",
+"nbaId": 1631207,
+"birthDate": "2002-07-12"
+},
+{
+"playerId": "1631209",
+"name": "Isaiah Wong",
+"espnId": "4431727",
+"nbaId": 1631209,
+"birthDate": "2001-01-28"
+},
+{
+"playerId": "1631210",
+"name": "Jacob Toppin",
+"espnId": "4592461",
+"nbaId": 1631210,
+"birthDate": null
+},
+{
+"playerId": "1631211",
+"name": "Trevor Keels",
+"espnId": "4432645",
+"nbaId": 1631211,
+"birthDate": "2003-08-26"
+},
+{
+"playerId": "1631212",
+"name": "Peyton Watson",
+"espnId": "4576087",
+"nbaId": 1631212,
+"birthDate": "2002-09-11"
+},
+{
+"playerId": "1631213",
+"name": "Tyrese Martin",
+"espnId": "4397179",
+"nbaId": 1631213,
+"birthDate": "1999-03-07"
+},
+{
+"playerId": "1631214",
+"name": "Alondes Williams",
+"espnId": "4592216",
+"nbaId": 1631214,
+"birthDate": "1999-06-19"
+},
+{
+"playerId": "1631216",
+"name": "Caleb Houstan",
+"espnId": "4433623",
+"nbaId": 1631216,
+"birthDate": "2003-01-09"
+},
+{
+"playerId": "1631217",
+"name": "Moussa Diabate",
+"espnId": "4433249",
+"nbaId": 1631217,
+"birthDate": "2002-01-21"
+},
+{
+"playerId": "1631218",
+"name": "Trayce Jackson-Davis",
+"espnId": "4431684",
+"nbaId": 1631218,
+"birthDate": "2000-02-22"
+},
+{
+"playerId": "1631220",
+"name": "Dereon Seabron",
+"espnId": "4431811",
+"nbaId": 1631220,
+"birthDate": null
+},
+{
+"playerId": "1631221",
+"name": "Collin Gillespie",
+"espnId": "4278585",
+"nbaId": 1631221,
+"birthDate": "1999-06-25"
+},
+{
+"playerId": "1631222",
+"name": "Jake LaRavia",
+"espnId": "4592691",
+"nbaId": 1631222,
+"birthDate": "2001-11-03"
+},
+{
+"playerId": "1631223",
+"name": "David Roddy",
+"espnId": "4593041",
+"nbaId": 1631223,
+"birthDate": "2001-03-27"
+},
+{
+"playerId": "1631230",
+"name": "Dominick Barlow",
+"espnId": "4870562",
+"nbaId": 1631230,
+"birthDate": "2003-05-26"
+},
+{
+"playerId": "1631232",
+"name": "Keion Brooks Jr.",
+"espnId": "4431689",
+"nbaId": 1631232,
+"birthDate": null
+},
+{
+"playerId": "1631241",
+"name": "Javon Freeman-Liberty",
+"espnId": "4397511",
+"nbaId": 1631241,
+"birthDate": null
+},
+{
+"playerId": "1631243",
+"name": "Mouhamed Gueye",
+"espnId": "4712863",
+"nbaId": 1631243,
+"birthDate": "2002-11-09"
+},
+{
+"playerId": "1631245",
+"name": "Quenton Jackson",
+"espnId": "4592829",
+"nbaId": 1631245,
+"birthDate": "1998-09-15"
+},
+{
+"playerId": "1631246",
+"name": "Vince Williams Jr.",
+"espnId": "4397227",
+"nbaId": 1631246,
+"birthDate": null
+},
+{
+"playerId": "1631247",
+"name": "Luke Travers",
+"espnId": "4997539",
+"nbaId": 1631247,
+"birthDate": "2001-09-03"
+},
+{
+"playerId": "1631248",
+"name": "Baylor Scheierman",
+"espnId": "4593841",
+"nbaId": 1631248,
+"birthDate": "2000-09-26"
+},
+{
+"playerId": "1631250",
+"name": "Pete Nance",
+"espnId": "4397233",
+"nbaId": 1631250,
+"birthDate": "2000-02-19"
+},
+{
+"playerId": "1631254",
+"name": "Kenneth Lofton Jr.",
+"espnId": "4585610",
+"nbaId": 1631254,
+"birthDate": null
+},
+{
+"playerId": "1631255",
+"name": "Karlo Matkovic",
+"espnId": "4997538",
+"nbaId": 1631255,
+"birthDate": "2001-03-30"
+},
+{
+"playerId": "1631257",
+"name": "Jermaine Samuels Jr.",
+"espnId": "4278588",
+"nbaId": 1631257,
+"birthDate": null
+},
+{
+"playerId": "1631260",
+"name": "AJ Green",
+"espnId": "4397475",
+"nbaId": 1631260,
+"birthDate": "1999-09-27"
+},
+{
+"playerId": "1631262",
+"name": "Jules Bernard",
+"espnId": "4397127",
+"nbaId": 1631262,
+"birthDate": null
+},
+{
+"playerId": "1631288",
+"name": "Jamal Cain",
+"espnId": "4278572",
+"nbaId": 1631288,
+"birthDate": "1999-03-20"
+},
+{
+"playerId": "1631298",
+"name": "Jack White",
+"espnId": "4065653",
+"nbaId": 1631298,
+"birthDate": null
+},
+{
+"playerId": "1631301",
+"name": "Jaylen Sims",
+"espnId": "4397570",
+"nbaId": 1631301,
+"birthDate": null
+},
+{
+"playerId": "1631303",
+"name": "Justin Minaya",
+"espnId": "4278111",
+"nbaId": 1631303,
+"birthDate": null
+},
+{
+"playerId": "1631306",
+"name": "Cole Swider",
+"espnId": "4397134",
+"nbaId": 1631306,
+"birthDate": "1999-05-08"
+},
+{
+"playerId": "1631311",
+"name": "Lester Quinones",
+"espnId": "4431720",
+"nbaId": 1631311,
+"birthDate": "2000-11-16"
+},
+{
+"playerId": "1631321",
+"name": "Sidy Cissoko",
+"espnId": "5081727",
+"nbaId": 1631321,
+"birthDate": "2004-04-02"
+},
+{
+"playerId": "1631323",
+"name": "Simone Fontecchio",
+"espnId": "3899664",
+"nbaId": 1631323,
+"birthDate": "1995-12-09"
+},
+{
+"playerId": "1631338",
+"name": "Mouhamadou Gueye",
+"espnId": "4592933",
+"nbaId": 1631338,
+"birthDate": "1998-07-06"
+},
+{
+"playerId": "1631342",
+"name": "Daeqwon Plowden",
+"espnId": "4279318",
+"nbaId": 1631342,
+"birthDate": "1998-08-29"
+},
+{
+"playerId": "1631351",
+"name": "Lucas Williamson",
+"espnId": "4279147",
+"nbaId": 1631351,
+"birthDate": "1999-01-28"
+},
+{
+"playerId": "1631367",
+"name": "Jacob Gilyard",
+"espnId": "4278378",
+"nbaId": 1631367,
+"birthDate": null
+},
+{
+"playerId": "1631376",
+"name": "Dmytro Skapintsev",
+"espnId": "4598307",
+"nbaId": 1631376,
+"birthDate": null
+},
+{
+"playerId": "1631386",
+"name": "Taze Moore",
+"espnId": "4066808",
+"nbaId": 1631386,
+"birthDate": null
+},
+{
+"playerId": "1631451",
+"name": "Javonte Cooke",
+"espnId": "4597259",
+"nbaId": 1631451,
+"birthDate": null
+},
+{
+"playerId": "1631457",
+"name": "Alex Morales",
+"espnId": "4593034",
+"nbaId": 1631457,
+"birthDate": "1997-11-21"
+},
+{
+"playerId": "1631466",
+"name": "Nate Williams",
+"espnId": "4397821",
+"nbaId": 1631466,
+"birthDate": "1999-02-12"
+},
+{
+"playerId": "1641705",
+"name": "Victor Wembanyama",
+"espnId": "5104157",
+"nbaId": 1641705,
+"birthDate": "2004-01-04"
+},
+{
+"playerId": "1641706",
+"name": "Brandon Miller",
+"espnId": "4433287",
+"nbaId": 1641706,
+"birthDate": "2002-11-22"
+},
+{
+"playerId": "1641707",
+"name": "Taylor Hendricks",
+"espnId": "4684806",
+"nbaId": 1641707,
+"birthDate": "2003-11-22"
+},
+{
+"playerId": "1641708",
+"name": "Amen Thompson",
+"espnId": "4684740",
+"nbaId": 1641708,
+"birthDate": "2003-01-30"
+},
+{
+"playerId": "1641709",
+"name": "Ausar Thompson",
+"espnId": "4684742",
+"nbaId": 1641709,
+"birthDate": "2003-01-30"
+},
+{
+"playerId": "1641710",
+"name": "Anthony Black",
+"espnId": "4712849",
+"nbaId": 1641710,
+"birthDate": "2004-01-20"
+},
+{
+"playerId": "1641711",
+"name": "Gradey Dick",
+"espnId": "5106258",
+"nbaId": 1641711,
+"birthDate": "2003-11-20"
+},
+{
+"playerId": "1641712",
+"name": "Rayan Rupert",
+"espnId": "5099752",
+"nbaId": 1641712,
+"birthDate": "2004-05-31"
+},
+{
+"playerId": "1641713",
+"name": "GG Jackson",
+"espnId": "5105550",
+"nbaId": 1641713,
+"birthDate": "2004-12-17"
+},
+{
+"playerId": "1641715",
+"name": "Cam Whitmore",
+"espnId": "5105592",
+"nbaId": 1641715,
+"birthDate": "2004-07-08"
+},
+{
+"playerId": "1641716",
+"name": "Jarace Walker",
+"espnId": "5106060",
+"nbaId": 1641716,
+"birthDate": "2003-09-04"
+},
+{
+"playerId": "1641717",
+"name": "Cason Wallace",
+"espnId": "4683692",
+"nbaId": 1641717,
+"birthDate": "2003-11-07"
+},
+{
+"playerId": "1641718",
+"name": "Keyonte George",
+"espnId": "4433627",
+"nbaId": 1641718,
+"birthDate": "2003-11-08"
+},
+{
+"playerId": "1641720",
+"name": "Jalen Hood-Schifino",
+"espnId": "4433626",
+"nbaId": 1641720,
+"birthDate": null
+},
+{
+"playerId": "1641721",
+"name": "Maxwell Lewis",
+"espnId": "4684286",
+"nbaId": 1641721,
+"birthDate": null
+},
+{
+"playerId": "1641722",
+"name": "Jordan Hawkins",
+"espnId": "4683750",
+"nbaId": 1641722,
+"birthDate": "2002-04-29"
+},
+{
+"playerId": "1641723",
+"name": "Kobe Bufkin",
+"espnId": "4683736",
+"nbaId": 1641723,
+"birthDate": "2003-09-21"
+},
+{
+"playerId": "1641724",
+"name": "Jett Howard",
+"espnId": "5105806",
+"nbaId": 1641724,
+"birthDate": "2003-09-14"
+},
+{
+"playerId": "1641725",
+"name": "Trey Alexander",
+"espnId": "4433268",
+"nbaId": 1641725,
+"birthDate": "2003-05-02"
+},
+{
+"playerId": "1641726",
+"name": "Dereck Lively II",
+"espnId": "4683688",
+"nbaId": 1641726,
+"birthDate": "2004-02-12"
+},
+{
+"playerId": "1641727",
+"name": "Dariq Whitehead",
+"espnId": "4432735",
+"nbaId": 1641727,
+"birthDate": "2004-08-01"
+},
+{
+"playerId": "1641729",
+"name": "Brice Sensabaugh",
+"espnId": "5105839",
+"nbaId": 1641729,
+"birthDate": "2003-10-30"
+},
+{
+"playerId": "1641730",
+"name": "Noah Clowney",
+"espnId": "4712896",
+"nbaId": 1641730,
+"birthDate": "2004-07-14"
+},
+{
+"playerId": "1641731",
+"name": "Bilal Coulibaly",
+"espnId": "5104155",
+"nbaId": 1641731,
+"birthDate": "2004-07-26"
+},
+{
+"playerId": "1641732",
+"name": "Colby Jones",
+"espnId": "4433378",
+"nbaId": 1641732,
+"birthDate": null
+},
+{
+"playerId": "1641733",
+"name": "Nick Smith Jr.",
+"espnId": "4683686",
+"nbaId": 1641733,
+"birthDate": "2004-04-18"
+},
+{
+"playerId": "1641734",
+"name": "Emoni Bates",
+"espnId": "4433620",
+"nbaId": 1641734,
+"birthDate": null
+},
+{
+"playerId": "1641735",
+"name": "Amari Bailey",
+"espnId": "5105638",
+"nbaId": 1641735,
+"birthDate": null
+},
+{
+"playerId": "1641736",
+"name": "Reece Beekman",
+"espnId": "4432187",
+"nbaId": 1641736,
+"birthDate": "2001-10-08"
+},
+{
+"playerId": "1641737",
+"name": "Adem Bona",
+"espnId": "5105637",
+"nbaId": 1641737,
+"birthDate": "2003-03-28"
+},
+{
+"playerId": "1641738",
+"name": "Kobe Brown",
+"espnId": "4431752",
+"nbaId": 1641738,
+"birthDate": "2000-01-01"
+},
+{
+"playerId": "1641739",
+"name": "Toumani Camara",
+"espnId": "4431736",
+"nbaId": 1641739,
+"birthDate": "2000-05-08"
+},
+{
+"playerId": "1641740",
+"name": "Jaylen Clark",
+"espnId": "4432247",
+"nbaId": 1641740,
+"birthDate": "2001-10-13"
+},
+{
+"playerId": "1641741",
+"name": "Ricky Council IV",
+"espnId": "4701234",
+"nbaId": 1641741,
+"birthDate": null
+},
+{
+"playerId": "1641744",
+"name": "Zach Edey",
+"espnId": "4600663",
+"nbaId": 1641744,
+"birthDate": "2002-03-14"
+},
+{
+"playerId": "1641745",
+"name": "Adam Flagler",
+"espnId": "4397654",
+"nbaId": 1641745,
+"birthDate": "1999-12-01"
+},
+{
+"playerId": "1641747",
+"name": "DaRon Holmes II",
+"espnId": "4433607",
+"nbaId": 1641747,
+"birthDate": "2002-08-15"
+},
+{
+"playerId": "1641748",
+"name": "Andre Jackson Jr.",
+"espnId": "4432190",
+"nbaId": 1641748,
+"birthDate": "2001-11-13"
+},
+{
+"playerId": "1641749",
+"name": "Keyontae Johnson",
+"espnId": "4395714",
+"nbaId": 1641749,
+"birthDate": null
+},
+{
+"playerId": "1641750",
+"name": "Ryan Kalkbrenner",
+"espnId": "4576060",
+"nbaId": 1641750,
+"birthDate": "2002-01-17"
+},
+{
+"playerId": "1641752",
+"name": "Bobi Klintman",
+"espnId": null,
+"nbaId": 1641752,
+"birthDate": null
+},
+{
+"playerId": "1641753",
+"name": "Chris Livingston",
+"espnId": "4433622",
+"nbaId": 1641753,
+"birthDate": "2003-10-15"
+},
+{
+"playerId": "1641754",
+"name": "Seth Lundy",
+"espnId": "4431775",
+"nbaId": 1641754,
+"birthDate": "2000-04-02"
+},
+{
+"playerId": "1641755",
+"name": "Kevin McCullar Jr.",
+"espnId": "4411057",
+"nbaId": 1641755,
+"birthDate": "2001-03-15"
+},
+{
+"playerId": "1641757",
+"name": "Jordan Miller",
+"espnId": "4396818",
+"nbaId": 1641757,
+"birthDate": "2000-01-23"
+},
+{
+"playerId": "1641761",
+"name": "Grant Nelson",
+"espnId": "4702670",
+"nbaId": 1641761,
+"birthDate": "2002-03-18"
+},
+{
+"playerId": "1641763",
+"name": "Julian Phillips",
+"espnId": "5105553",
+"nbaId": 1641763,
+"birthDate": "2003-11-05"
+},
+{
+"playerId": "1641764",
+"name": "Brandin Podziemski",
+"espnId": "4709138",
+"nbaId": 1641764,
+"birthDate": "2003-02-25"
+},
+{
+"playerId": "1641765",
+"name": "Olivier-Maxence Prosper",
+"espnId": "4595400",
+"nbaId": 1641765,
+"birthDate": "2002-07-03"
+},
+{
+"playerId": "1641766",
+"name": "Adama Sanogo",
+"espnId": "4702023",
+"nbaId": 1641766,
+"birthDate": null
+},
+{
+"playerId": "1641767",
+"name": "Ben Sheppard",
+"espnId": "4433076",
+"nbaId": 1641767,
+"birthDate": "2001-07-16"
+},
+{
+"playerId": "1641771",
+"name": "Jalen Slawson",
+"espnId": "4398207",
+"nbaId": 1641771,
+"birthDate": "1999-10-22"
+},
+{
+"playerId": "1641772",
+"name": "Nae'Qwan Tomlin",
+"espnId": "5106268",
+"nbaId": 1641772,
+"birthDate": "2000-12-19"
+},
+{
+"playerId": "1641774",
+"name": "Tristan Vukcevic",
+"espnId": "4997537",
+"nbaId": 1641774,
+"birthDate": "2003-03-11"
+},
+{
+"playerId": "1641775",
+"name": "Jordan Walsh",
+"espnId": "4683689",
+"nbaId": 1641775,
+"birthDate": "2004-03-03"
+},
+{
+"playerId": "1641778",
+"name": "Leaky Black",
+"espnId": "4395650",
+"nbaId": 1641778,
+"birthDate": "1999-06-14"
+},
+{
+"playerId": "1641779",
+"name": "Jalen Bridges",
+"espnId": "4432946",
+"nbaId": 1641779,
+"birthDate": "2001-05-14"
+},
+{
+"playerId": "1641780",
+"name": "Johni Broome",
+"espnId": "4433569",
+"nbaId": 1641780,
+"birthDate": "2002-07-19"
+},
+{
+"playerId": "1641783",
+"name": "Tristan da Silva",
+"espnId": "4702382",
+"nbaId": 1641783,
+"birthDate": "2001-05-15"
+},
+{
+"playerId": "1641787",
+"name": "Tosan Evbuomwan",
+"espnId": "4597865",
+"nbaId": 1641787,
+"birthDate": "2001-02-16"
+},
+{
+"playerId": "1641788",
+"name": "Alex Fudge",
+"espnId": "4896481",
+"nbaId": 1641788,
+"birthDate": null
+},
+{
+"playerId": "1641789",
+"name": "Jazian Gortman",
+"espnId": "4708972",
+"nbaId": 1641789,
+"birthDate": "2003-03-14"
+},
+{
+"playerId": "1641790",
+"name": "PJ Hall",
+"espnId": "4701225",
+"nbaId": 1641790,
+"birthDate": "2002-02-21"
+},
+{
+"playerId": "1641793",
+"name": "D'Moi Hodge",
+"espnId": "4702702",
+"nbaId": 1641793,
+"birthDate": null
+},
+{
+"playerId": "1641794",
+"name": "Dillon Jones",
+"espnId": "4702159",
+"nbaId": 1641794,
+"birthDate": "2001-10-29"
+},
+{
+"playerId": "1641796",
+"name": "Pelle Larsson",
+"espnId": "4601025",
+"nbaId": 1641796,
+"birthDate": "2001-02-23"
+},
+{
+"playerId": "1641798",
+"name": "Jaylen Martin",
+"espnId": "4684737",
+"nbaId": 1641798,
+"birthDate": "2004-01-28"
+},
+{
+"playerId": "1641801",
+"name": "Emanuel Miller",
+"espnId": "4432872",
+"nbaId": 1641801,
+"birthDate": "2000-06-19"
+},
+{
+"playerId": "1641803",
+"name": "Tristen Newton",
+"espnId": "4592965",
+"nbaId": 1641803,
+"birthDate": "2001-04-26"
+},
+{
+"playerId": "1641806",
+"name": "Markquis Nowell",
+"espnId": "4397554",
+"nbaId": 1641806,
+"birthDate": null
+},
+{
+"playerId": "1641807",
+"name": "Norchad Omier",
+"espnId": "4702134",
+"nbaId": 1641807,
+"birthDate": "2001-08-28"
+},
+{
+"playerId": "1641809",
+"name": "Drew Peterson",
+"espnId": "4397689",
+"nbaId": 1641809,
+"birthDate": "1999-11-09"
+},
+{
+"playerId": "1641810",
+"name": "Antonio Reeves",
+"espnId": "4592686",
+"nbaId": 1641810,
+"birthDate": "2000-11-20"
+},
+{
+"playerId": "1641813",
+"name": "Mark Sears",
+"espnId": "4703530",
+"nbaId": 1641813,
+"birthDate": null
+},
+{
+"playerId": "1641815",
+"name": "Isaiah Stevens",
+"espnId": "4432117",
+"nbaId": 1641815,
+"birthDate": "2000-11-01"
+},
+{
+"playerId": "1641816",
+"name": "Hunter Tyson",
+"espnId": "4395620",
+"nbaId": 1641816,
+"birthDate": null
+},
+{
+"playerId": "1641817",
+"name": "Anton Watson",
+"espnId": "4431705",
+"nbaId": 1641817,
+"birthDate": "2000-10-06"
+},
+{
+"playerId": "1641824",
+"name": "Matas Buzelis",
+"espnId": "4711294",
+"nbaId": 1641824,
+"birthDate": "2004-10-13"
+},
+{
+"playerId": "1641842",
+"name": "Ronald Holland II",
+"espnId": "4683771",
+"nbaId": 1641842,
+"birthDate": "2005-07-07"
+},
+{
+"playerId": "1641847",
+"name": "Andrew Funk",
+"espnId": "4397650",
+"nbaId": 1641847,
+"birthDate": null
+},
+{
+"playerId": "1641851",
+"name": "Timmy Allen",
+"espnId": "4397148",
+"nbaId": 1641851,
+"birthDate": null
+},
+{
+"playerId": "1641854",
+"name": "Craig Porter Jr.",
+"espnId": "4701233",
+"nbaId": 1641854,
+"birthDate": "2000-02-26"
+},
+{
+"playerId": "1641857",
+"name": "Liam Robbins",
+"espnId": "4397347",
+"nbaId": 1641857,
+"birthDate": null
+},
+{
+"playerId": "1641869",
+"name": "Malachi Smith",
+"espnId": "4397784",
+"nbaId": 1641869,
+"birthDate": "1999-12-06"
+},
+{
+"playerId": "1641871",
+"name": "Duop Reath",
+"espnId": "4066268",
+"nbaId": 1641871,
+"birthDate": "1996-06-26"
+},
+{
+"playerId": "1641877",
+"name": "Nathan Mensah",
+"espnId": null,
+"nbaId": 1641877,
+"birthDate": null
+},
+{
+"playerId": "1641878",
+"name": "Damion Baugh",
+"espnId": "4431766",
+"nbaId": 1641878,
+"birthDate": null
+},
+{
+"playerId": "1641879",
+"name": "Yuri Collins",
+"espnId": "4432957",
+"nbaId": 1641879,
+"birthDate": null
+},
+{
+"playerId": "1641890",
+"name": "Tyler Smith",
+"espnId": "5167876",
+"nbaId": 1641890,
+"birthDate": "2004-11-02"
+},
+{
+"playerId": "1641926",
+"name": "Dexter Dennis",
+"espnId": "4396676",
+"nbaId": 1641926,
+"birthDate": null
+},
+{
+"playerId": "1641931",
+"name": "Onuralp Bitim",
+"espnId": "4438552",
+"nbaId": 1641931,
+"birthDate": null
+},
+{
+"playerId": "1641936",
+"name": "Miles Norris",
+"espnId": "4397104",
+"nbaId": 1641936,
+"birthDate": null
+},
+{
+"playerId": "1641970",
+"name": "Maozinha Pereira",
+"espnId": "5184018",
+"nbaId": 1641970,
+"birthDate": null
+},
+{
+"playerId": "1641989",
+"name": "Elijah Harkless",
+"espnId": "4397449",
+"nbaId": 1641989,
+"birthDate": "2000-02-03"
+},
+{
+"playerId": "1641998",
+"name": "Trey Jemison III",
+"espnId": "4395623",
+"nbaId": 1641998,
+"birthDate": "1999-11-28"
+},
+{
+"playerId": "1642013",
+"name": "Malik Williams",
+"espnId": "4277880",
+"nbaId": 1642013,
+"birthDate": "1998-08-26"
+},
+{
+"playerId": "1642024",
+"name": "Alex Reese",
+"espnId": "4277812",
+"nbaId": 1642024,
+"birthDate": null
+},
+{
+"playerId": "1642050",
+"name": "Jackson Rowe",
+"espnId": "4066889",
+"nbaId": 1642050,
+"birthDate": null
+},
+{
+"playerId": "1642066",
+"name": "Myron Gardner",
+"espnId": "4431772",
+"nbaId": 1642066,
+"birthDate": "2001-05-21"
+},
+{
+"playerId": "1642258",
+"name": "Zaccharie Risacher",
+"espnId": "5211175",
+"nbaId": 1642258,
+"birthDate": "2005-04-08"
+},
+{
+"playerId": "1642259",
+"name": "Alex Sarr",
+"espnId": "5160992",
+"nbaId": 1642259,
+"birthDate": "2005-04-26"
+},
+{
+"playerId": "1642260",
+"name": "Nikola Topic",
+"espnId": "5159925",
+"nbaId": 1642260,
+"birthDate": "2005-08-10"
+},
+{
+"playerId": "1642261",
+"name": "Dalton Knecht",
+"espnId": "4897943",
+"nbaId": 1642261,
+"birthDate": "2001-04-19"
+},
+{
+"playerId": "1642262",
+"name": "Cody Williams",
+"espnId": "4895758",
+"nbaId": 1642262,
+"birthDate": "2004-11-20"
+},
+{
+"playerId": "1642263",
+"name": "Reed Sheppard",
+"espnId": "4711272",
+"nbaId": 1642263,
+"birthDate": "2004-06-24"
+},
+{
+"playerId": "1642264",
+"name": "Stephon Castle",
+"espnId": "4845367",
+"nbaId": 1642264,
+"birthDate": "2004-11-01"
+},
+{
+"playerId": "1642265",
+"name": "Rob Dillingham",
+"espnId": "4684275",
+"nbaId": 1642265,
+"birthDate": "2005-01-04"
+},
+{
+"playerId": "1642266",
+"name": "Ja'Kobe Walter",
+"espnId": "4684272",
+"nbaId": 1642266,
+"birthDate": "2004-09-04"
+},
+{
+"playerId": "1642267",
+"name": "Bub Carrington",
+"espnId": "4845374",
+"nbaId": 1642267,
+"birthDate": "2005-07-21"
+},
+{
+"playerId": "1642268",
+"name": "Isaiah Collier",
+"espnId": "4683766",
+"nbaId": 1642268,
+"birthDate": "2004-10-08"
+},
+{
+"playerId": "1642269",
+"name": "Devin Carter",
+"espnId": "4433188",
+"nbaId": 1642269,
+"birthDate": "2002-03-18"
+},
+{
+"playerId": "1642270",
+"name": "Donovan Clingan",
+"espnId": "5105565",
+"nbaId": 1642270,
+"birthDate": "2004-02-23"
+},
+{
+"playerId": "1642271",
+"name": "Kyle Filipowski",
+"espnId": "4684793",
+"nbaId": 1642271,
+"birthDate": "2003-11-07"
+},
+{
+"playerId": "1642272",
+"name": "Jared McCain",
+"espnId": "4683778",
+"nbaId": 1642272,
+"birthDate": "2004-02-20"
+},
+{
+"playerId": "1642273",
+"name": "Kyshawn George",
+"espnId": "5174563",
+"nbaId": 1642273,
+"birthDate": "2003-12-12"
+},
+{
+"playerId": "1642274",
+"name": "Yves Missi",
+"espnId": "5061589",
+"nbaId": 1642274,
+"birthDate": "2004-05-14"
+},
+{
+"playerId": "1642275",
+"name": "Tidjane Salaun",
+"espnId": "5211176",
+"nbaId": 1642275,
+"birthDate": "2005-08-10"
+},
+{
+"playerId": "1642276",
+"name": "Kel'el Ware",
+"espnId": "5105623",
+"nbaId": 1642276,
+"birthDate": "2004-04-20"
+},
+{
+"playerId": "1642277",
+"name": "Johnny Furphy",
+"espnId": "5157066",
+"nbaId": 1642277,
+"birthDate": "2004-12-07"
+},
+{
+"playerId": "1642278",
+"name": "Tyler Kolek",
+"espnId": "4433225",
+"nbaId": 1642278,
+"birthDate": "2001-03-27"
+},
+{
+"playerId": "1642279",
+"name": "Ulrich Chomche",
+"espnId": "5211984",
+"nbaId": 1642279,
+"birthDate": null
+},
+{
+"playerId": "1642280",
+"name": "Trentyn Flowers",
+"espnId": "5165257",
+"nbaId": 1642280,
+"birthDate": null
+},
+{
+"playerId": "1642281",
+"name": "Jaylon Tyson",
+"espnId": "4683747",
+"nbaId": 1642281,
+"birthDate": "2002-12-02"
+},
+{
+"playerId": "1642282",
+"name": "Hunter Sallis",
+"espnId": "4433281",
+"nbaId": 1642282,
+"birthDate": null
+},
+{
+"playerId": "1642285",
+"name": "Cam Spencer",
+"espnId": "4433083",
+"nbaId": 1642285,
+"birthDate": "2000-04-06"
+},
+{
+"playerId": "1642345",
+"name": "Oso Ighodaro",
+"espnId": "4601023",
+"nbaId": 1642345,
+"birthDate": "2002-07-14"
+},
+{
+"playerId": "1642346",
+"name": "Ryan Dunn",
+"espnId": "4888725",
+"nbaId": 1642346,
+"birthDate": "2003-01-07"
+},
+{
+"playerId": "1642347",
+"name": "Jamal Shead",
+"espnId": "4432241",
+"nbaId": 1642347,
+"birthDate": "2002-07-24"
+},
+{
+"playerId": "1642348",
+"name": "Justin Edwards",
+"espnId": "4711297",
+"nbaId": 1642348,
+"birthDate": "2003-12-16"
+},
+{
+"playerId": "1642349",
+"name": "Ajay Mitchell",
+"espnId": "4900671",
+"nbaId": 1642349,
+"birthDate": "2002-06-25"
+},
+{
+"playerId": "1642352",
+"name": "Keshad Johnson",
+"espnId": "4431786",
+"nbaId": 1642352,
+"birthDate": "2001-06-23"
+},
+{
+"playerId": "1642353",
+"name": "Cam Christie",
+"espnId": "4845363",
+"nbaId": 1642353,
+"birthDate": "2005-07-24"
+},
+{
+"playerId": "1642354",
+"name": "KJ Simpson",
+"espnId": "4683834",
+"nbaId": 1642354,
+"birthDate": "2002-08-08"
+},
+{
+"playerId": "1642355",
+"name": "Bronny James",
+"espnId": "4683774",
+"nbaId": 1642355,
+"birthDate": "2004-10-06"
+},
+{
+"playerId": "1642357",
+"name": "David Jones Garcia",
+"espnId": "4713010",
+"nbaId": 1642357,
+"birthDate": "2001-11-24"
+},
+{
+"playerId": "1642358",
+"name": "AJ Johnson",
+"espnId": "5170947",
+"nbaId": 1642358,
+"birthDate": "2004-12-01"
+},
+{
+"playerId": "1642359",
+"name": "Pacome Dadiet",
+"espnId": "5211983",
+"nbaId": 1642359,
+"birthDate": "2005-07-27"
+},
+{
+"playerId": "1642362",
+"name": "Payton Sandfort",
+"espnId": "4697270",
+"nbaId": 1642362,
+"birthDate": "2002-07-12"
+},
+{
+"playerId": "1642363",
+"name": "Nique Clifford",
+"espnId": "4702384",
+"nbaId": 1642363,
+"birthDate": "2002-02-09"
+},
+{
+"playerId": "1642364",
+"name": "Jamir Watkins",
+"espnId": "4606840",
+"nbaId": 1642364,
+"birthDate": "2001-07-06"
+},
+{
+"playerId": "1642366",
+"name": "Quinten Post",
+"espnId": "4593016",
+"nbaId": 1642366,
+"birthDate": "2000-03-21"
+},
+{
+"playerId": "1642367",
+"name": "Jonathan Mogbo",
+"espnId": "5107897",
+"nbaId": 1642367,
+"birthDate": "2001-10-29"
+},
+{
+"playerId": "1642368",
+"name": "N'Faly Dante",
+"espnId": "4592401",
+"nbaId": 1642368,
+"birthDate": "2001-10-19"
+},
+{
+"playerId": "1642377",
+"name": "Jaylen Wells",
+"espnId": "5112087",
+"nbaId": 1642377,
+"birthDate": "2003-08-26"
+},
+{
+"playerId": "1642380",
+"name": "Adama Bal",
+"espnId": "4896365",
+"nbaId": 1642380,
+"birthDate": "2003-12-18"
+},
+{
+"playerId": "1642382",
+"name": "Branden Carlson",
+"espnId": "4592435",
+"nbaId": 1642382,
+"birthDate": "1999-06-14"
+},
+{
+"playerId": "1642383",
+"name": "Walter Clayton Jr.",
+"espnId": "4896372",
+"nbaId": 1642383,
+"birthDate": "2003-03-06"
+},
+{
+"playerId": "1642384",
+"name": "Isaiah Crawford",
+"espnId": "4592857",
+"nbaId": 1642384,
+"birthDate": "2001-11-01"
+},
+{
+"playerId": "1642385",
+"name": "Cui Yongxi",
+"espnId": null,
+"nbaId": 1642385,
+"birthDate": null
+},
+{
+"playerId": "1642389",
+"name": "Zyon Pullin",
+"espnId": "4592979",
+"nbaId": 1642389,
+"birthDate": "2001-03-03"
+},
+{
+"playerId": "1642396",
+"name": "Blake Hinson",
+"espnId": "4396963",
+"nbaId": 1642396,
+"birthDate": "1999-12-26"
+},
+{
+"playerId": "1642399",
+"name": "Jesse Edwards",
+"espnId": "4431816",
+"nbaId": 1642399,
+"birthDate": "2000-03-18"
+},
+{
+"playerId": "1642400",
+"name": "Tristan Enaruna",
+"espnId": "4431734",
+"nbaId": 1642400,
+"birthDate": "2001-06-26"
+},
+{
+"playerId": "1642402",
+"name": "Enrique Freeman",
+"espnId": "4592699",
+"nbaId": 1642402,
+"birthDate": "2000-07-29"
+},
+{
+"playerId": "1642403",
+"name": "Isaac Jones",
+"espnId": "5107818",
+"nbaId": 1642403,
+"birthDate": "2000-07-11"
+},
+{
+"playerId": "1642404",
+"name": "Chaz Lanier",
+"espnId": "4700852",
+"nbaId": 1642404,
+"birthDate": "2001-12-19"
+},
+{
+"playerId": "1642419",
+"name": "Jamison Battle",
+"espnId": "4431893",
+"nbaId": 1642419,
+"birthDate": "2001-05-10"
+},
+{
+"playerId": "1642422",
+"name": "Armel Traore",
+"espnId": "5104156",
+"nbaId": 1642422,
+"birthDate": null
+},
+{
+"playerId": "1642434",
+"name": "Riley Minix",
+"espnId": "5177362",
+"nbaId": 1642434,
+"birthDate": "2000-09-22"
+},
+{
+"playerId": "1642439",
+"name": "Quincy Olivari",
+"espnId": "4432070",
+"nbaId": 1642439,
+"birthDate": null
+},
+{
+"playerId": "1642443",
+"name": "Jahmir Young",
+"espnId": "4433133",
+"nbaId": 1642443,
+"birthDate": "2000-10-07"
+},
+{
+"playerId": "1642449",
+"name": "Tolu Smith",
+"espnId": "4397882",
+"nbaId": 1642449,
+"birthDate": "2000-07-26"
+},
+{
+"playerId": "1642450",
+"name": "Daniss Jenkins",
+"espnId": "5107199",
+"nbaId": 1642450,
+"birthDate": "2001-08-17"
+},
+{
+"playerId": "1642461",
+"name": "Spencer Jones",
+"espnId": "4592427",
+"nbaId": 1642461,
+"birthDate": "2001-06-14"
+},
+{
+"playerId": "1642468",
+"name": "Darius Brown",
+"espnId": "4397450",
+"nbaId": 1642468,
+"birthDate": null
+},
+{
+"playerId": "1642484",
+"name": "RayJ Dennis",
+"espnId": "4431941",
+"nbaId": 1642484,
+"birthDate": "2001-03-30"
+},
+{
+"playerId": "1642490",
+"name": "Josh Oduro",
+"espnId": "4432068",
+"nbaId": 1642490,
+"birthDate": "2000-10-14"
+},
+{
+"playerId": "1642502",
+"name": "Malevy Leons",
+"espnId": "4897449",
+"nbaId": 1642502,
+"birthDate": "1999-09-23"
+},
+{
+"playerId": "1642504",
+"name": "Cormac Ryan",
+"espnId": "4397114",
+"nbaId": 1642504,
+"birthDate": "1998-10-26"
+},
+{
+"playerId": "1642505",
+"name": "Alex Ducas",
+"espnId": "4432971",
+"nbaId": 1642505,
+"birthDate": null
+},
+{
+"playerId": "1642530",
+"name": "Yuki Kawamura",
+"espnId": "5159895",
+"nbaId": 1642530,
+"birthDate": "2001-05-02"
+},
+{
+"playerId": "1642843",
+"name": "Cooper Flagg",
+"espnId": "5041939",
+"nbaId": 1642843,
+"birthDate": "2006-12-21"
+},
+{
+"playerId": "1642844",
+"name": "Dylan Harper",
+"espnId": "5037871",
+"nbaId": 1642844,
+"birthDate": "2006-03-02"
+},
+{
+"playerId": "1642845",
+"name": "VJ Edgecombe",
+"espnId": "5124612",
+"nbaId": 1642845,
+"birthDate": "2005-07-30"
+},
+{
+"playerId": "1642846",
+"name": "Ace Bailey",
+"espnId": "4873138",
+"nbaId": 1642846,
+"birthDate": "2006-08-13"
+},
+{
+"playerId": "1642847",
+"name": "Jeremiah Fears",
+"espnId": "5144091",
+"nbaId": 1642847,
+"birthDate": "2006-10-14"
+},
+{
+"playerId": "1642848",
+"name": "Tre Johnson",
+"espnId": "5238230",
+"nbaId": 1642848,
+"birthDate": "2006-03-07"
+},
+{
+"playerId": "1642849",
+"name": "Nolan Traore",
+"espnId": "5279130",
+"nbaId": 1642849,
+"birthDate": "2006-05-28"
+},
+{
+"playerId": "1642851",
+"name": "Kon Knueppel",
+"espnId": "5061575",
+"nbaId": 1642851,
+"birthDate": "2005-08-03"
+},
+{
+"playerId": "1642852",
+"name": "Derik Queen",
+"espnId": "4869780",
+"nbaId": 1642852,
+"birthDate": "2004-12-27"
+},
+{
+"playerId": "1642853",
+"name": "Rasheer Fleming",
+"espnId": "5105977",
+"nbaId": 1642853,
+"birthDate": "2004-07-10"
+},
+{
+"playerId": "1642854",
+"name": "Asa Newell",
+"espnId": "4873201",
+"nbaId": 1642854,
+"birthDate": "2005-10-05"
+},
+{
+"playerId": "1642855",
+"name": "Noa Essengue",
+"espnId": "5242496",
+"nbaId": 1642855,
+"birthDate": "2006-12-18"
+},
+{
+"playerId": "1642856",
+"name": "Egor Demin",
+"espnId": "5175643",
+"nbaId": 1642856,
+"birthDate": "2006-03-03"
+},
+{
+"playerId": "1642857",
+"name": "Kasparas Jakucionis",
+"espnId": "5214640",
+"nbaId": 1642857,
+"birthDate": "2006-05-29"
+},
+{
+"playerId": "1642859",
+"name": "Jase Richardson",
+"espnId": "5239561",
+"nbaId": 1642859,
+"birthDate": "2005-10-16"
+},
+{
+"playerId": "1642860",
+"name": "Will Riley",
+"espnId": "5144126",
+"nbaId": 1642860,
+"birthDate": "2006-02-10"
+},
+{
+"playerId": "1642862",
+"name": "Liam McNeeley",
+"espnId": "5239590",
+"nbaId": 1642862,
+"birthDate": "2005-10-10"
+},
+{
+"playerId": "1642863",
+"name": "Khaman Maluach",
+"espnId": "5203685",
+"nbaId": 1642863,
+"birthDate": "2006-09-14"
+},
+{
+"playerId": "1642864",
+"name": "Hugo Gonzalez",
+"espnId": "5175647",
+"nbaId": 1642864,
+"birthDate": "2006-02-05"
+},
+{
+"playerId": "1642866",
+"name": "Joan Beringer",
+"espnId": "5279133",
+"nbaId": 1642866,
+"birthDate": "2006-11-11"
+},
+{
+"playerId": "1642867",
+"name": "Collin Murray-Boyles",
+"espnId": "5093267",
+"nbaId": 1642867,
+"birthDate": "2005-06-10"
+},
+{
+"playerId": "1642868",
+"name": "Carter Bryant",
+"espnId": "5061568",
+"nbaId": 1642868,
+"birthDate": "2005-11-26"
+},
+{
+"playerId": "1642869",
+"name": "Noah Penda",
+"espnId": "5214637",
+"nbaId": 1642869,
+"birthDate": "2005-01-07"
+},
+{
+"playerId": "1642873",
+"name": "Amari Williams",
+"espnId": "4702745",
+"nbaId": 1642873,
+"birthDate": "2002-01-28"
+},
+{
+"playerId": "1642874",
+"name": "Danny Wolf",
+"espnId": "5107173",
+"nbaId": 1642874,
+"birthDate": "2004-05-05"
+},
+{
+"playerId": "1642875",
+"name": "Maxime Raynaud",
+"espnId": "4898371",
+"nbaId": 1642875,
+"birthDate": "2003-04-07"
+},
+{
+"playerId": "1642876",
+"name": "Adou Thiero",
+"espnId": "5060631",
+"nbaId": 1642876,
+"birthDate": "2004-05-08"
+},
+{
+"playerId": "1642877",
+"name": "Micah Peavy",
+"espnId": "4432185",
+"nbaId": 1642877,
+"birthDate": "2001-07-16"
+},
+{
+"playerId": "1642878",
+"name": "Tyrese Proctor",
+"espnId": "5023693",
+"nbaId": 1642878,
+"birthDate": "2004-04-01"
+},
+{
+"playerId": "1642879",
+"name": "Ben Saraf",
+"espnId": "5242502",
+"nbaId": 1642879,
+"birthDate": "2006-04-14"
+},
+{
+"playerId": "1642880",
+"name": "Kam Jones",
+"espnId": "4697268",
+"nbaId": 1642880,
+"birthDate": "2002-02-25"
+},
+{
+"playerId": "1642882",
+"name": "Julian Reese",
+"espnId": "4683742",
+"nbaId": 1642882,
+"birthDate": "2003-06-30"
+},
+{
+"playerId": "1642883",
+"name": "Sion James",
+"espnId": "4602025",
+"nbaId": 1642883,
+"birthDate": "2002-12-04"
+},
+{
+"playerId": "1642884",
+"name": "Vladislav Goldin",
+"espnId": "4700818",
+"nbaId": 1642884,
+"birthDate": "2001-05-12"
+},
+{
+"playerId": "1642885",
+"name": "Mohamed Diawara",
+"espnId": "5289900",
+"nbaId": 1642885,
+"birthDate": "2005-04-29"
+},
+{
+"playerId": "1642886",
+"name": "Koby Brea",
+"espnId": "4591259",
+"nbaId": 1642886,
+"birthDate": "2002-11-06"
+},
+{
+"playerId": "1642905",
+"name": "Hansen Yang",
+"espnId": null,
+"nbaId": 1642905,
+"birthDate": null
+},
+{
+"playerId": "1642907",
+"name": "Cedric Coward",
+"espnId": "4903027",
+"nbaId": 1642907,
+"birthDate": "2003-09-11"
+},
+{
+"playerId": "1642910",
+"name": "John Tonje",
+"espnId": "4593043",
+"nbaId": 1642910,
+"birthDate": "2001-04-23"
+},
+{
+"playerId": "1642911",
+"name": "Rocco Zikarsky",
+"espnId": "5157587",
+"nbaId": 1642911,
+"birthDate": "2006-07-11"
+},
+{
+"playerId": "1642914",
+"name": "Javon Small",
+"espnId": "4781746",
+"nbaId": 1642914,
+"birthDate": "2002-12-19"
+},
+{
+"playerId": "1642917",
+"name": "Max Shulga",
+"espnId": "4701992",
+"nbaId": 1642917,
+"birthDate": "2002-06-25"
+},
+{
+"playerId": "1642918",
+"name": "Alijah Martin",
+"espnId": "4702656",
+"nbaId": 1642918,
+"birthDate": "2001-12-26"
+},
+{
+"playerId": "1642920",
+"name": "Kobe Sanders",
+"espnId": "4702352",
+"nbaId": 1642920,
+"birthDate": "2002-05-30"
+},
+{
+"playerId": "1642928",
+"name": "Dylan Cardwell",
+"espnId": "4433174",
+"nbaId": 1642928,
+"birthDate": "2001-12-16"
+},
+{
+"playerId": "1642933",
+"name": "Keshon Gilbert",
+"espnId": "4585618",
+"nbaId": 1642933,
+"birthDate": "2003-06-30"
+},
+{
+"playerId": "1642935",
+"name": "Chucky Hepburn",
+"espnId": "4590360",
+"nbaId": 1642935,
+"birthDate": "2003-02-09"
+},
+{
+"playerId": "1642938",
+"name": "Curtis Jones",
+"espnId": "4898369",
+"nbaId": 1642938,
+"birthDate": "2001-10-04"
+},
+{
+"playerId": "1642939",
+"name": "Miles Kelly",
+"espnId": "4696317",
+"nbaId": 1642939,
+"birthDate": "2003-01-26"
+},
+{
+"playerId": "1642942",
+"name": "Jahmai Mashack",
+"espnId": "4683934",
+"nbaId": 1642942,
+"birthDate": "2002-11-10"
+},
+{
+"playerId": "1642948",
+"name": "Ryan Nembhard",
+"espnId": "4433629",
+"nbaId": 1642948,
+"birthDate": "2003-03-10"
+},
+{
+"playerId": "1642949",
+"name": "Yanic Konan Niederhauser",
+"espnId": "5108024",
+"nbaId": 1642949,
+"birthDate": "2003-03-14"
+},
+{
+"playerId": "1642950",
+"name": "Lachlan Olbrich",
+"espnId": "5107156",
+"nbaId": 1642950,
+"birthDate": "2003-12-30"
+},
+{
+"playerId": "1642951",
+"name": "Sean Pedulla",
+"espnId": "4709131",
+"nbaId": 1642951,
+"birthDate": "2002-10-10"
+},
+{
+"playerId": "1642954",
+"name": "Will Richard",
+"espnId": "4897262",
+"nbaId": 1642954,
+"birthDate": "2002-12-24"
+},
+{
+"playerId": "1642955",
+"name": "Kadary Richmond",
+"espnId": "4701845",
+"nbaId": 1642955,
+"birthDate": "2001-08-25"
+},
+{
+"playerId": "1642959",
+"name": "Chris Youngblood",
+"espnId": "4706557",
+"nbaId": 1642959,
+"birthDate": "2002-02-09"
+},
+{
+"playerId": "1642962",
+"name": "Drake Powell",
+"espnId": "5037873",
+"nbaId": 1642962,
+"birthDate": "2005-09-08"
+},
+{
+"playerId": "1642964",
+"name": "Brooks Barnhizer",
+"espnId": "4684208",
+"nbaId": 1642964,
+"birthDate": "2002-03-02"
+},
+{
+"playerId": "1642967",
+"name": "John Poulakidas",
+"espnId": "4898238",
+"nbaId": 1642967,
+"birthDate": "2003-04-04"
+},
+{
+"playerId": "1643007",
+"name": "Taelon Peter",
+"espnId": "4703421",
+"nbaId": 1643007,
+"birthDate": "2002-02-27"
+},
+{
+"playerId": "1643016",
+"name": "Bez Mbeng",
+"espnId": "4898237",
+"nbaId": 1643016,
+"birthDate": "2003-05-02"
+},
+{
+"playerId": "1643018",
+"name": "LJ Cryer",
+"espnId": "4433149",
+"nbaId": 1643018,
+"birthDate": "2001-10-09"
+},
+{
+"playerId": "1643024",
+"name": "Chris Manon",
+"espnId": "4702972",
+"nbaId": 1643024,
+"birthDate": "2001-12-09"
+},
+{
+"playerId": "1643047",
+"name": "CJ Huntley",
+"espnId": "4702602",
+"nbaId": 1643047,
+"birthDate": "2002-01-06"
+},
+{
+"playerId": "1643052",
+"name": "Chaney Johnson",
+"espnId": "5174655",
+"nbaId": 1643052,
+"birthDate": "2002-06-20"
+},
+{
+"playerId": "1643060",
+"name": "Hayden Gray",
+"espnId": "5176420",
+"nbaId": 1643060,
+"birthDate": "2003-05-11"
+},
+{
+"playerId": "1643133",
+"name": "Lawson Lovering",
+"espnId": "4596528",
+"nbaId": 1643133,
+"birthDate": "2003-05-09"
+},
+{
+"playerId": "1643141",
+"name": "Jahmyl Telfort",
+"espnId": "4702785",
+"nbaId": 1643141,
+"birthDate": "2001-04-30"
+},
+{
+"playerId": "1643158",
+"name": "Andersson Garcia",
+"espnId": "4702431",
+"nbaId": 1643158,
+"birthDate": null
+},
+{
+"playerId": "1643253",
+"name": "Toby Okani",
+"espnId": "4700873",
+"nbaId": 1643253,
+"birthDate": "2001-10-05"
+},
+{
+"playerId": "1643257",
+"name": "Jayson Kent",
+"espnId": "4703889",
+"nbaId": 1643257,
+"birthDate": "2002-02-03"
+},
+{
+"playerId": "200768",
+"name": "Kyle Lowry",
+"espnId": "3012",
+"nbaId": 200768,
+"birthDate": "1986-03-25"
+},
+{
+"playerId": "200782",
+"name": "P.J. Tucker",
+"espnId": "3033",
+"nbaId": 200782,
+"birthDate": null
+},
+{
+"playerId": "201142",
+"name": "Kevin Durant",
+"espnId": "3202",
+"nbaId": 201142,
+"birthDate": "1988-09-29"
+},
+{
+"playerId": "201143",
+"name": "Al Horford",
+"espnId": "3213",
+"nbaId": 201143,
+"birthDate": "1986-06-03"
+},
+{
+"playerId": "201144",
+"name": "Mike Conley",
+"espnId": "3195",
+"nbaId": 201144,
+"birthDate": "1987-10-11"
+},
+{
+"playerId": "201145",
+"name": "Jeff Green",
+"espnId": "3209",
+"nbaId": 201145,
+"birthDate": "1986-08-28"
+},
+{
+"playerId": "201152",
+"name": "Thaddeus Young",
+"espnId": "3244",
+"nbaId": 201152,
+"birthDate": null
+},
+{
+"playerId": "201565",
+"name": "Derrick Rose",
+"espnId": "3456",
+"nbaId": 201565,
+"birthDate": null
+},
+{
+"playerId": "201566",
+"name": "Russell Westbrook",
+"espnId": "3468",
+"nbaId": 201566,
+"birthDate": "1988-11-12"
+},
+{
+"playerId": "201567",
+"name": "Kevin Love",
+"espnId": "3449",
+"nbaId": 201567,
+"birthDate": "1988-09-07"
+},
+{
+"playerId": "201568",
+"name": "Danilo Gallinari",
+"espnId": "3428",
+"nbaId": 201568,
+"birthDate": null
+},
+{
+"playerId": "201569",
+"name": "Eric Gordon",
+"espnId": "3431",
+"nbaId": 201569,
+"birthDate": null
+},
+{
+"playerId": "201572",
+"name": "Brook Lopez",
+"espnId": "3448",
+"nbaId": 201572,
+"birthDate": "1988-04-01"
+},
+{
+"playerId": "201577",
+"name": "Robin Lopez",
+"espnId": "3447",
+"nbaId": 201577,
+"birthDate": null
+},
+{
+"playerId": "201580",
+"name": "JaVale McGee",
+"espnId": null,
+"nbaId": 201580,
+"birthDate": null
+},
+{
+"playerId": "201587",
+"name": "Nicolas Batum",
+"espnId": "3416",
+"nbaId": 201587,
+"birthDate": "1988-12-14"
+},
+{
+"playerId": "201599",
+"name": "DeAndre Jordan",
+"espnId": "3442",
+"nbaId": 201599,
+"birthDate": "1988-07-21"
+},
+{
+"playerId": "201935",
+"name": "James Harden",
+"espnId": "3992",
+"nbaId": 201935,
+"birthDate": "1989-08-26"
+},
+{
+"playerId": "201939",
+"name": "Stephen Curry",
+"espnId": "3975",
+"nbaId": 201939,
+"birthDate": "1988-03-14"
+},
+{
+"playerId": "201942",
+"name": "DeMar DeRozan",
+"espnId": "3978",
+"nbaId": 201942,
+"birthDate": "1989-08-07"
+},
+{
+"playerId": "201949",
+"name": "James Johnson",
+"espnId": "3999",
+"nbaId": 201949,
+"birthDate": "1987-02-20"
+},
+{
+"playerId": "201950",
+"name": "Jrue Holiday",
+"espnId": "3995",
+"nbaId": 201950,
+"birthDate": "1990-06-12"
+},
+{
+"playerId": "201959",
+"name": "Taj Gibson",
+"espnId": "3986",
+"nbaId": 201959,
+"birthDate": "1985-06-24"
+},
+{
+"playerId": "201976",
+"name": "Patrick Beverley",
+"espnId": "3964",
+"nbaId": 201976,
+"birthDate": null
+},
+{
+"playerId": "201980",
+"name": "Danny Green",
+"espnId": "3988",
+"nbaId": 201980,
+"birthDate": null
+},
+{
+"playerId": "201988",
+"name": "Patty Mills",
+"espnId": "2284648",
+"nbaId": 201988,
+"birthDate": null
+},
+{
+"playerId": "202066",
+"name": "Garrett Temple",
+"espnId": "4023",
+"nbaId": 202066,
+"birthDate": "1986-05-08"
+},
+{
+"playerId": "202083",
+"name": "Wesley Matthews",
+"espnId": "4032",
+"nbaId": 202083,
+"birthDate": null
+},
+{
+"playerId": "202330",
+"name": "Gordon Hayward",
+"espnId": "4249",
+"nbaId": 202330,
+"birthDate": null
+},
+{
+"playerId": "202331",
+"name": "Paul George",
+"espnId": "4251",
+"nbaId": 202331,
+"birthDate": "1990-05-02"
+},
+{
+"playerId": "202397",
+"name": "Ish Smith",
+"espnId": "4305",
+"nbaId": 202397,
+"birthDate": null
+},
+{
+"playerId": "202681",
+"name": "Kyrie Irving",
+"espnId": "6442",
+"nbaId": 202681,
+"birthDate": "1992-03-23"
+},
+{
+"playerId": "202684",
+"name": "Tristan Thompson",
+"espnId": "6474",
+"nbaId": 202684,
+"birthDate": null
+},
+{
+"playerId": "202685",
+"name": "Jonas Valanciunas",
+"espnId": "6477",
+"nbaId": 202685,
+"birthDate": "1992-05-06"
+},
+{
+"playerId": "202687",
+"name": "Bismack Biyombo",
+"espnId": "6427",
+"nbaId": 202687,
+"birthDate": "1992-08-28"
+},
+{
+"playerId": "202691",
+"name": "Klay Thompson",
+"espnId": "6475",
+"nbaId": 202691,
+"birthDate": "1990-02-08"
+},
+{
+"playerId": "202692",
+"name": "Alec Burks",
+"espnId": "6429",
+"nbaId": 202692,
+"birthDate": null
+},
+{
+"playerId": "202693",
+"name": "Markieff Morris",
+"espnId": "6461",
+"nbaId": 202693,
+"birthDate": null
+},
+{
+"playerId": "202694",
+"name": "Marcus Morris Sr.",
+"espnId": "6462",
+"nbaId": 202694,
+"birthDate": null
+},
+{
+"playerId": "202695",
+"name": "Kawhi Leonard",
+"espnId": "6450",
+"nbaId": 202695,
+"birthDate": "1991-06-29"
+},
+{
+"playerId": "202696",
+"name": "Nikola Vucevic",
+"espnId": "6478",
+"nbaId": 202696,
+"birthDate": "1990-10-24"
+},
+{
+"playerId": "202699",
+"name": "Tobias Harris",
+"espnId": "6440",
+"nbaId": 202699,
+"birthDate": "1992-07-15"
+},
+{
+"playerId": "202704",
+"name": "Reggie Jackson",
+"espnId": "6443",
+"nbaId": 202704,
+"birthDate": null
+},
+{
+"playerId": "202709",
+"name": "Cory Joseph",
+"espnId": "6446",
+"nbaId": 202709,
+"birthDate": null
+},
+{
+"playerId": "202710",
+"name": "Jimmy Butler III",
+"espnId": "6430",
+"nbaId": 202710,
+"birthDate": "1989-09-14"
+},
+{
+"playerId": "202711",
+"name": "Bojan Bogdanovic",
+"espnId": "3593",
+"nbaId": 202711,
+"birthDate": null
+},
+{
+"playerId": "202722",
+"name": "Davis Bertans",
+"espnId": "6426",
+"nbaId": 202722,
+"birthDate": null
+},
+{
+"playerId": "202738",
+"name": "Isaiah Thomas",
+"espnId": "6472",
+"nbaId": 202738,
+"birthDate": null
+},
+{
+"playerId": "203076",
+"name": "Anthony Davis",
+"espnId": "6583",
+"nbaId": 203076,
+"birthDate": "1993-03-11"
+},
+{
+"playerId": "203078",
+"name": "Bradley Beal",
+"espnId": "6580",
+"nbaId": 203078,
+"birthDate": "1993-06-28"
+},
+{
+"playerId": "203081",
+"name": "Damian Lillard",
+"espnId": "6606",
+"nbaId": 203081,
+"birthDate": "1990-07-15"
+},
+{
+"playerId": "203083",
+"name": "Andre Drummond",
+"espnId": "6585",
+"nbaId": 203083,
+"birthDate": "1993-08-10"
+},
+{
+"playerId": "203084",
+"name": "Harrison Barnes",
+"espnId": "6578",
+"nbaId": 203084,
+"birthDate": "1992-05-30"
+},
+{
+"playerId": "203095",
+"name": "Evan Fournier",
+"espnId": "6588",
+"nbaId": 203095,
+"birthDate": null
+},
+{
+"playerId": "203109",
+"name": "Jae Crowder",
+"espnId": "6581",
+"nbaId": 203109,
+"birthDate": null
+},
+{
+"playerId": "203110",
+"name": "Draymond Green",
+"espnId": "6589",
+"nbaId": 203110,
+"birthDate": "1990-03-04"
+},
+{
+"playerId": "203114",
+"name": "Khris Middleton",
+"espnId": "6609",
+"nbaId": 203114,
+"birthDate": "1991-08-12"
+},
+{
+"playerId": "203200",
+"name": "Justin Holiday",
+"espnId": "2284101",
+"nbaId": 203200,
+"birthDate": null
+},
+{
+"playerId": "203458",
+"name": "Alex Len",
+"espnId": "2596107",
+"nbaId": 203458,
+"birthDate": null
+},
+{
+"playerId": "203468",
+"name": "CJ McCollum",
+"espnId": "2490149",
+"nbaId": 203468,
+"birthDate": "1991-09-19"
+},
+{
+"playerId": "203469",
+"name": "Cody Zeller",
+"espnId": "2579258",
+"nbaId": 203469,
+"birthDate": null
+},
+{
+"playerId": "203471",
+"name": "Dennis Schroder",
+"espnId": "3032979",
+"nbaId": 203471,
+"birthDate": "1993-09-15"
+},
+{
+"playerId": "203482",
+"name": "Kelly Olynyk",
+"espnId": "2489663",
+"nbaId": 203482,
+"birthDate": "1991-04-19"
+},
+{
+"playerId": "203484",
+"name": "Kentavious Caldwell-Pope",
+"espnId": "2581018",
+"nbaId": 203484,
+"birthDate": "1993-02-18"
+},
+{
+"playerId": "203486",
+"name": "Mason Plumlee",
+"espnId": "2488653",
+"nbaId": 203486,
+"birthDate": "1990-03-05"
+},
+{
+"playerId": "203488",
+"name": "Mike Muscala",
+"espnId": "2490089",
+"nbaId": 203488,
+"birthDate": null
+},
+{
+"playerId": "203490",
+"name": "Otto Porter Jr.",
+"espnId": "2594922",
+"nbaId": 203490,
+"birthDate": null
+},
+{
+"playerId": "203493",
+"name": "Reggie Bullock",
+"espnId": "2528779",
+"nbaId": 203493,
+"birthDate": null
+},
+{
+"playerId": "203496",
+"name": "Robert Covington",
+"espnId": "2490620",
+"nbaId": 203496,
+"birthDate": null
+},
+{
+"playerId": "203497",
+"name": "Rudy Gobert",
+"espnId": "3032976",
+"nbaId": 203497,
+"birthDate": "1992-06-26"
+},
+{
+"playerId": "203500",
+"name": "Steven Adams",
+"espnId": "2991235",
+"nbaId": 203500,
+"birthDate": "1993-07-20"
+},
+{
+"playerId": "203501",
+"name": "Tim Hardaway Jr.",
+"espnId": "2528210",
+"nbaId": 203501,
+"birthDate": "1992-03-16"
+},
+{
+"playerId": "203507",
+"name": "Giannis Antetokounmpo",
+"espnId": "3032977",
+"nbaId": 203507,
+"birthDate": "1994-12-06"
+},
+{
+"playerId": "203552",
+"name": "Seth Curry",
+"espnId": "2326307",
+"nbaId": 203552,
+"birthDate": "1990-08-23"
+},
+{
+"playerId": "203648",
+"name": "Thanasis Antetokounmpo",
+"espnId": "3102533",
+"nbaId": 203648,
+"birthDate": "1992-07-18"
+},
+{
+"playerId": "203897",
+"name": "Zach LaVine",
+"espnId": "3064440",
+"nbaId": 203897,
+"birthDate": "1995-03-10"
+},
+{
+"playerId": "203901",
+"name": "Elfrid Payton",
+"espnId": "2583639",
+"nbaId": 203901,
+"birthDate": "1994-02-22"
+},
+{
+"playerId": "203903",
+"name": "Jordan Clarkson",
+"espnId": "2528426",
+"nbaId": 203903,
+"birthDate": "1992-06-07"
+},
+{
+"playerId": "203914",
+"name": "Gary Harris",
+"espnId": "2999547",
+"nbaId": 203914,
+"birthDate": "1994-09-14"
+},
+{
+"playerId": "203915",
+"name": "Spencer Dinwiddie",
+"espnId": "2580782",
+"nbaId": 203915,
+"birthDate": null
+},
+{
+"playerId": "203924",
+"name": "Jerami Grant",
+"espnId": "2991070",
+"nbaId": 203924,
+"birthDate": "1994-03-12"
+},
+{
+"playerId": "203925",
+"name": "Joe Harris",
+"espnId": "2528794",
+"nbaId": 203925,
+"birthDate": null
+},
+{
+"playerId": "203926",
+"name": "Doug McDermott",
+"espnId": "2528588",
+"nbaId": 203926,
+"birthDate": "1992-01-03"
+},
+{
+"playerId": "203932",
+"name": "Aaron Gordon",
+"espnId": "3064290",
+"nbaId": 203932,
+"birthDate": "1995-09-16"
+},
+{
+"playerId": "203933",
+"name": "T.J. Warren",
+"espnId": "2982334",
+"nbaId": 203933,
+"birthDate": null
+},
+{
+"playerId": "203935",
+"name": "Marcus Smart",
+"espnId": "2990992",
+"nbaId": 203935,
+"birthDate": "1994-03-06"
+},
+{
+"playerId": "203937",
+"name": "Kyle Anderson",
+"espnId": "2993874",
+"nbaId": 203937,
+"birthDate": "1993-09-20"
+},
+{
+"playerId": "203939",
+"name": "Dwight Powell",
+"espnId": "2531367",
+"nbaId": 203939,
+"birthDate": "1991-07-20"
+},
+{
+"playerId": "203944",
+"name": "Julius Randle",
+"espnId": "3064514",
+"nbaId": 203944,
+"birthDate": "1994-11-29"
+},
+{
+"playerId": "203952",
+"name": "Andrew Wiggins",
+"espnId": "3059319",
+"nbaId": 203952,
+"birthDate": "1995-02-23"
+},
+{
+"playerId": "203954",
+"name": "Joel Embiid",
+"espnId": "3059318",
+"nbaId": 203954,
+"birthDate": "1994-03-16"
+},
+{
+"playerId": "203957",
+"name": "Dante Exum",
+"espnId": "3102528",
+"nbaId": 203957,
+"birthDate": null
+},
+{
+"playerId": "203967",
+"name": "Dario Saric",
+"espnId": "3032978",
+"nbaId": 203967,
+"birthDate": null
+},
+{
+"playerId": "203991",
+"name": "Clint Capela",
+"espnId": "3102529",
+"nbaId": 203991,
+"birthDate": "1994-05-18"
+},
+{
+"playerId": "203992",
+"name": "Bogdan Bogdanovic",
+"espnId": "3037789",
+"nbaId": 203992,
+"birthDate": "1992-08-18"
+},
+{
+"playerId": "203994",
+"name": "Jusuf Nurkic",
+"espnId": "3102530",
+"nbaId": 203994,
+"birthDate": "1994-08-23"
+},
+{
+"playerId": "203995",
+"name": "Vasilije Micic",
+"espnId": "3102532",
+"nbaId": 203995,
+"birthDate": null
+},
+{
+"playerId": "203999",
+"name": "Nikola Jokic",
+"espnId": "3112335",
+"nbaId": 203999,
+"birthDate": "1995-02-19"
+},
+{
+"playerId": "204001",
+"name": "Kristaps Porzingis",
+"espnId": "3102531",
+"nbaId": 204001,
+"birthDate": "1995-08-02"
+},
+{
+"playerId": "204060",
+"name": "Joe Ingles",
+"espnId": "2968436",
+"nbaId": 204060,
+"birthDate": "1987-10-02"
+},
+{
+"playerId": "204456",
+"name": "T.J. McConnell",
+"espnId": "2530530",
+"nbaId": 204456,
+"birthDate": "1992-03-25"
+},
+{
+"playerId": "2544",
+"name": "LeBron James",
+"espnId": "1966",
+"nbaId": 2544,
+"birthDate": "1984-12-30"
+},
+{
+"playerId": "espn:2995706",
+"name": "Mario Hezonja",
+"espnId": "2995706",
+"nbaId": 1626209,
+"birthDate": "1995-02-25"
+},
+{
+"playerId": "espn:3904625",
+"name": "Tacko Fall",
+"espnId": "3904625",
+"nbaId": 1629605,
+"birthDate": "1995-12-10"
+},
+{
+"playerId": "espn:4065813",
+"name": "Alpha Diallo",
+"espnId": "4065813",
+"nbaId": 1643813,
+"birthDate": "1997-06-29"
+},
+{
+"playerId": "espn:4395997",
+"name": "Terrell Brown Jr.",
+"espnId": "4395997",
+"nbaId": null,
+"birthDate": "1998-04-23"
+},
+{
+"playerId": "espn:4432586",
+"name": "Nate Bittle",
+"espnId": "4432586",
+"nbaId": 1642927,
+"birthDate": "2003-06-03"
+},
+{
+"playerId": "espn:4432588",
+"name": "John Butler Jr.",
+"espnId": "4432588",
+"nbaId": 1631219,
+"birthDate": "2002-12-04"
+},
+{
+"playerId": "espn:4432737",
+"name": "Jaden Bradley",
+"espnId": "4432737",
+"nbaId": 1643558,
+"birthDate": "2003-09-14"
+},
+{
+"playerId": "espn:4433599",
+"name": "Arthur Kaluma",
+"espnId": "4433599",
+"nbaId": 1641751,
+"birthDate": "2002-03-01"
+},
+{
+"playerId": "espn:4565698",
+"name": "Bryce Hopkins",
+"espnId": "4565698",
+"nbaId": 1643624,
+"birthDate": "2002-09-07"
+},
+{
+"playerId": "espn:4683730",
+"name": "Jaden Akins",
+"espnId": "4683730",
+"nbaId": 1643022,
+"birthDate": "2003-02-25"
+},
+{
+"playerId": "espn:4683860",
+"name": "Quadir Copeland",
+"espnId": "4683860",
+"nbaId": 1643595,
+"birthDate": "2003-09-01"
+},
+{
+"playerId": "espn:4683933",
+"name": "Tamar Bates",
+"espnId": "4683933",
+"nbaId": null,
+"birthDate": "2003-02-21"
+},
+{
+"playerId": "espn:4684269",
+"name": "Kylan Boswell",
+"espnId": "4684269",
+"nbaId": 1643573,
+"birthDate": "2005-04-18"
+},
+{
+"playerId": "espn:4684682",
+"name": "Jonas Aidoo",
+"espnId": "4684682",
+"nbaId": null,
+"birthDate": "2002-12-10"
+},
+{
+"playerId": "espn:4685802",
+"name": "Robert McCray V",
+"espnId": "4685802",
+"nbaId": null,
+"birthDate": "2002-09-26"
+},
+{
+"playerId": "espn:4698719",
+"name": "Trevon Brazile",
+"espnId": "4698719",
+"nbaId": 1642350,
+"birthDate": "2003-01-07"
+},
+{
+"playerId": "espn:4702784",
+"name": "J'Vonne Hadley",
+"espnId": "4702784",
+"nbaId": null,
+"birthDate": "2002-04-03"
+},
+{
+"playerId": "espn:4703115",
+"name": "Jaron Pierre Jr.",
+"espnId": "4703115",
+"nbaId": 1643555,
+"birthDate": "2002-07-12"
+},
+{
+"playerId": "espn:4703396",
+"name": "Graham Ike",
+"espnId": "4703396",
+"nbaId": 1643633,
+"birthDate": "2002-08-03"
+},
+{
+"playerId": "espn:4704043",
+"name": "Steve Settle III",
+"espnId": "4704043",
+"nbaId": null,
+"birthDate": "2001-02-20"
+},
+{
+"playerId": "espn:4712862",
+"name": "Malik Dia",
+"espnId": "4712862",
+"nbaId": 1643738,
+"birthDate": "2004-02-04"
+},
+{
+"playerId": "espn:4837356",
+"name": "Tre Donaldson",
+"espnId": "4837356",
+"nbaId": 1643621,
+"birthDate": "2003-12-11"
+},
+{
+"playerId": "espn:4838721",
+"name": "Tyler Nickel",
+"espnId": "4838721",
+"nbaId": 1643589,
+"birthDate": "2003-09-05"
+},
+{
+"playerId": "espn:4848625",
+"name": "Dailyn Swain",
+"espnId": "4848625",
+"nbaId": 1643517,
+"birthDate": "2005-07-15"
+},
+{
+"playerId": "espn:4870564",
+"name": "Joshua Jefferson",
+"espnId": "4870564",
+"nbaId": 1643538,
+"birthDate": "2003-11-21"
+},
+{
+"playerId": "espn:4873090",
+"name": "Labaron Philon Jr.",
+"espnId": "4873090",
+"nbaId": 1642889,
+"birthDate": "2005-11-24"
+},
+{
+"playerId": "espn:4873153",
+"name": "Morez Johnson Jr.",
+"espnId": "4873153",
+"nbaId": 1643516,
+"birthDate": "2006-01-25"
+},
+{
+"playerId": "espn:4898010",
+"name": "Jaylin Sellers",
+"espnId": "4898010",
+"nbaId": 1643637,
+"birthDate": "2003-06-03"
+},
+{
+"playerId": "espn:4917149",
+"name": "Alex Karaban",
+"espnId": "4917149",
+"nbaId": 1642284,
+"birthDate": "2002-11-11"
+},
+{
+"playerId": "espn:4997530",
+"name": "Khalifa Diop",
+"espnId": "4997530",
+"nbaId": 1631215,
+"birthDate": "2002-01-15"
+},
+{
+"playerId": "espn:5037878",
+"name": "Ugonna Onyenso",
+"espnId": "5037878",
+"nbaId": 1642391,
+"birthDate": "2004-09-25"
+},
+{
+"playerId": "espn:5041935",
+"name": "Cameron Boozer",
+"espnId": "5041935",
+"nbaId": 1643409,
+"birthDate": "2007-07-18"
+},
+{
+"playerId": "espn:5041951",
+"name": "Meleek Thomas",
+"espnId": "5041951",
+"nbaId": 1643509,
+"birthDate": "2006-08-06"
+},
+{
+"playerId": "espn:5041953",
+"name": "Koa Peat",
+"espnId": "5041953",
+"nbaId": 1643520,
+"birthDate": "2007-01-20"
+},
+{
+"playerId": "espn:5041955",
+"name": "Darryn Peterson",
+"espnId": "5041955",
+"nbaId": 1643408,
+"birthDate": "2007-01-17"
+},
+{
+"playerId": "espn:5060701",
+"name": "Christian Anderson",
+"espnId": "5060701",
+"nbaId": 1643515,
+"birthDate": "2006-04-02"
+},
+{
+"playerId": "espn:5061585",
+"name": "Isaiah Evans",
+"espnId": "5061585",
+"nbaId": 1642912,
+"birthDate": "2005-12-06"
+},
+{
+"playerId": "espn:5061603",
+"name": "Thomas Sorber",
+"espnId": "5061603",
+"nbaId": 1642850,
+"birthDate": null
+},
+{
+"playerId": "espn:5075626",
+"name": "Baba Miller",
+"espnId": "5075626",
+"nbaId": 1642394,
+"birthDate": "2004-02-07"
+},
+{
+"playerId": "espn:5082206",
+"name": "Brayden Burries",
+"espnId": "5082206",
+"nbaId": 1643415,
+"birthDate": "2005-09-18"
+},
+{
+"playerId": "espn:5095151",
+"name": "Caleb Wilson",
+"espnId": "5095151",
+"nbaId": 1643410,
+"birthDate": "2006-07-18"
+},
+{
+"playerId": "espn:5101761",
+"name": "Mikel Brown Jr.",
+"espnId": "5101761",
+"nbaId": 1643414,
+"birthDate": "2006-04-03"
+},
+{
+"playerId": "espn:5101845",
+"name": "Jayden Quaintance",
+"espnId": "5101845",
+"nbaId": 1643519,
+"birthDate": "2007-07-11"
+},
+{
+"playerId": "espn:5105337",
+"name": "Maliq Brown",
+"espnId": "5105337",
+"nbaId": null,
+"birthDate": "2003-11-15"
+},
+{
+"playerId": "espn:5105555",
+"name": "Tobe Awaka",
+"espnId": "5105555",
+"nbaId": 1643591,
+"birthDate": "2004-01-30"
+},
+{
+"playerId": "espn:5105571",
+"name": "Henri Veesaar",
+"espnId": "5105571",
+"nbaId": 1643539,
+"birthDate": "2004-03-28"
+},
+{
+"playerId": "espn:5105626",
+"name": "Tyler Bilodeau",
+"espnId": "5105626",
+"nbaId": 1643548,
+"birthDate": "2004-04-17"
+},
+{
+"playerId": "espn:5105800",
+"name": "Josh Dix",
+"espnId": "5105800",
+"nbaId": 1643717,
+"birthDate": "2004-06-29"
+},
+{
+"playerId": "espn:5105809",
+"name": "Tarris Reed Jr.",
+"espnId": "5105809",
+"nbaId": 1643542,
+"birthDate": "2003-08-05"
+},
+{
+"playerId": "espn:5105817",
+"name": "Carson Cooper",
+"espnId": "5105817",
+"nbaId": 1643721,
+"birthDate": "2004-04-09"
+},
+{
+"playerId": "espn:5105832",
+"name": "Nick Martinelli",
+"espnId": "5105832",
+"nbaId": 1643568,
+"birthDate": "2004-04-20"
+},
+{
+"playerId": "espn:5105837",
+"name": "Bruce Thornton",
+"espnId": "5105837",
+"nbaId": 1643570,
+"birthDate": "2003-09-14"
+},
+{
+"playerId": "espn:5105841",
+"name": "Felix Okpara",
+"espnId": "5105841",
+"nbaId": 1643590,
+"birthDate": "2004-04-20"
+},
+{
+"playerId": "espn:5105854",
+"name": "Braden Smith",
+"espnId": "5105854",
+"nbaId": 1643552,
+"birthDate": "2003-07-25"
+},
+{
+"playerId": "espn:5105875",
+"name": "Mike Sharavjamts",
+"espnId": "5105875",
+"nbaId": null,
+"birthDate": "2002-01-01"
+},
+{
+"playerId": "espn:5106040",
+"name": "Tobi Lawal",
+"espnId": "5106040",
+"nbaId": 1643588,
+"birthDate": "2003-05-01"
+},
+{
+"playerId": "espn:5106058",
+"name": "Emanuel Sharp",
+"espnId": "5106058",
+"nbaId": 1643567,
+"birthDate": "2004-03-07"
+},
+{
+"playerId": "espn:5106261",
+"name": "Ernest Udeh Jr.",
+"espnId": "5106261",
+"nbaId": 1643640,
+"birthDate": "2004-01-08"
+},
+{
+"playerId": "espn:5106262",
+"name": "Zuby Ejiofor",
+"espnId": "5106262",
+"nbaId": 1643544,
+"birthDate": "2004-04-20"
+},
+{
+"playerId": "espn:5106270",
+"name": "Otega Oweh",
+"espnId": "5106270",
+"nbaId": 1642923,
+"birthDate": "2003-06-21"
+},
+{
+"playerId": "espn:5106283",
+"name": "Dillon Mitchell",
+"espnId": "5106283",
+"nbaId": 1641759,
+"birthDate": "2003-10-03"
+},
+{
+"playerId": "espn:5107157",
+"name": "Ryan Conwell",
+"espnId": "5107157",
+"nbaId": 1643553,
+"birthDate": "2004-06-15"
+},
+{
+"playerId": "espn:5107251",
+"name": "Izaiyah Nelson",
+"espnId": "5107251",
+"nbaId": 1643593,
+"birthDate": "2003-10-01"
+},
+{
+"playerId": "espn:5107968",
+"name": "Ja'Kobi Gillespie",
+"espnId": "5107968",
+"nbaId": 1643551,
+"birthDate": "2004-03-10"
+},
+{
+"playerId": "espn:5113969",
+"name": "Cameron Carr",
+"espnId": "5113969",
+"nbaId": 1643418,
+"birthDate": "2004-11-21"
+},
+{
+"playerId": "espn:5114350",
+"name": "AK Okereke",
+"espnId": "5114350",
+"nbaId": 1643758,
+"birthDate": "2003-07-02"
+},
+{
+"playerId": "espn:5142620",
+"name": "Darius Acuff Jr.",
+"espnId": "5142620",
+"nbaId": 1643411,
+"birthDate": "2006-11-16"
+},
+{
+"playerId": "espn:5142621",
+"name": "Chris Cenac Jr.",
+"espnId": "5142621",
+"nbaId": 1643416,
+"birthDate": "2007-02-01"
+},
+{
+"playerId": "espn:5142718",
+"name": "AJ Dybantsa",
+"espnId": "5142718",
+"nbaId": 1643407,
+"birthDate": "2007-01-29"
+},
+{
+"playerId": "espn:5148538",
+"name": "Tarik Biberovic",
+"espnId": "5148538",
+"nbaId": 1641844,
+"birthDate": "2001-01-28"
+},
+{
+"playerId": "espn:5149077",
+"name": "Kingston Flemings",
+"espnId": "5149077",
+"nbaId": 1643412,
+"birthDate": "2007-01-03"
+},
+{
+"playerId": "espn:5149115",
+"name": "Allen Graves",
+"espnId": "5149115",
+"nbaId": 1643512,
+"birthDate": "2006-07-28"
+},
+{
+"playerId": "espn:5164559",
+"name": "Nate Ament",
+"espnId": "5164559",
+"nbaId": 1643417,
+"birthDate": "2006-12-10"
+},
+{
+"playerId": "espn:5174983",
+"name": "Aday Mara",
+"espnId": "5174983",
+"nbaId": 1643530,
+"birthDate": "2005-04-07"
+},
+{
+"playerId": "espn:5175737",
+"name": "Yaxel Lendeborg",
+"espnId": "5175737",
+"nbaId": 1642865,
+"birthDate": "2002-09-30"
+},
+{
+"playerId": "espn:5214989",
+"name": "Bogoljub Markovic",
+"espnId": "5214989",
+"nbaId": 1642881,
+"birthDate": "2005-07-12"
+},
+{
+"playerId": "espn:5217746",
+"name": "Yang Hansen",
+"espnId": "5217746",
+"nbaId": 1642905,
+"birthDate": "2005-06-26"
+},
+{
+"playerId": "espn:5231919",
+"name": "Karim Lopez",
+"espnId": "5231919",
+"nbaId": 1643510,
+"birthDate": "2007-04-12"
+},
+{
+"playerId": "espn:5241364",
+"name": "Bennett Stirtz",
+"espnId": "5241364",
+"nbaId": 1642892,
+"birthDate": "2003-10-03"
+},
+{
+"playerId": "espn:5254165",
+"name": "Keaton Wagler",
+"espnId": "5254165",
+"nbaId": 1643413,
+"birthDate": "2007-02-03"
+},
+{
+"playerId": "espn:5258459",
+"name": "Ebuka Okorie",
+"espnId": "5258459",
+"nbaId": 1643536,
+"birthDate": "2007-04-10"
+},
+{
+"playerId": "espn:5279129",
+"name": "Sergio de Larrea",
+"espnId": "5279129",
+"nbaId": 1643547,
+"birthDate": "2005-12-04"
+},
+{
+"playerId": "espn:5281370",
+"name": "Hannes Steinbach",
+"espnId": "5281370",
+"nbaId": 1643419,
+"birthDate": "2006-05-01"
+},
+{
+"playerId": "espn:6576",
+"name": "Quincy Acy",
+"espnId": "6576",
+"nbaId": 203112,
+"birthDate": "1990-10-06"
+},
+{
+"playerId": "espn:984",
+"name": "Tyson Chandler",
+"espnId": "984",
+"nbaId": 2199,
+"birthDate": "1982-10-02"
+}
+]
+}

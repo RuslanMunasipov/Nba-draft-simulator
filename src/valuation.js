@@ -23,13 +23,11 @@ export function draftValue(player){
  return (Number.isFinite(player.projectedFP)?player.projectedFP:-Infinity)*evidence.weight;
 }
 
-// The forecast already contains projected games: never multiply availability twice.
-// This is a transparent risk preference, not another prediction of missed games.
+// The forecast already contains projected games, shrinkage of short records and the spread of similar players' seasons:
+// no further penalty is added for evidence or availability. A style only states a preference about the downside.
+export const STYLE_DOWNSIDE={volatile:.02,best:.08,balanced:.14};
 export function riskAdjustedValue(player,style='balanced'){
- const raw=draftValue(player),f=player.forecast,e=availabilityEvidence(player);
+ const raw=draftValue(player),f=player.forecast;
  const width=f&&Number.isFinite(f.seasonFloor)?Math.max(0,f.meanSeason-f.seasonFloor)/82:Math.abs(raw)*.25;
- const evidencePenalty=player.forecast?.coverageTier==='GROUP_PRIOR'?.18:player.forecast?.coverageTier==='LIMITED_PERSONAL'?.10:0;
- const chronic=e.repeatedAbsences?.08:0;
- const coefficient=style==='volatile'?.02:style==='best'?.08:.14;
- return raw-width*coefficient-Math.abs(raw)*(evidencePenalty+chronic+(player.injuries?.some(i=>/out|suspension/i.test(i.status||''))?.04:0));
+ return raw-width*(STYLE_DOWNSIDE[style]??STYLE_DOWNSIDE.balanced);
 }

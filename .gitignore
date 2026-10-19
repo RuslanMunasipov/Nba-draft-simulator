@@ -5,3 +5,4 @@ playwright-report/
 public/
 data/reports/
 __pycache__/
+.cache/

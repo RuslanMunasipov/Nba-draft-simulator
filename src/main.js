@@ -283,7 +283,7 @@ function renderPostDraft(){
  if(complete&&standingsState!==state){standingsState=state;try{standings=seasonSensitivitySimulations(state,{runs:5000,seed:1});}catch{standings=null;}}
  const sim=complete?standings:null,name=t=>teamLabel(t-1)+(t===1?' (ты)':'');
  const rows=summary.map((t,i)=>({...t,mean:sim?sim.teams[i].mean:t.score,sim:sim?.teams[i]})).sort((a,b)=>(b.mean??-1)-(a.mean??-1));
- $('standings-note').textContent=complete?`Прогноз мест: ${sim?.runs??0} сценариев сезона по прогнозам ФО Sports.ru-формулы (общие колебания лиги, клубов NBA и игроков). Это вероятности, а не гарантия.`:`Драфт идёт (${n}/80): места по сумме прогнозов уже выбранных игроков; вероятности мест появятся после 80-го пика.`;
+ $('standings-note').textContent=complete?`Прогноз мест: ${sim?.runs??0} сценариев сезона по прогнозам ФО Sports.ru-формулы (общие колебания лиги, клубов NBA и игроков). Доли — это частота мест в сценариях из диапазонов прогнозов (откалиброваны на прошлых сезонах), а не гарантия: тренеры, травмы и сделки меняют сезон.`:`Драфт идёт (${n}/80): места по сумме прогнозов уже выбранных игроков; доли мест в сценариях появятся после 80-го пика.`;
  const table=document.createElement('table');table.className='standings-table';
  const head=document.createElement('tr');for(const h of complete?['#','GM','Прогноз ФО','P10–P90','1-е место','Места 1–8, %']:['#','GM','Игроков','Сумма прогнозов'])head.append(text('th',h));table.append(head);
  rows.forEach((t,rank)=>{const row=document.createElement('tr');if(t.team===1)row.className='mine';

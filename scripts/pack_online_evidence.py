@@ -11,9 +11,19 @@ for player in data['players']:
  player['onlineSummary']=dict(careerSeasons=len(career),firstSeason=career[0]['season'] if career else None,
                              lastSeason=career[-1]['season'] if career else None,
                              recentGames=len(evidence.get('recentGames',[])),collegeSeasons=len((evidence.get('college') or {}).get('seasons',[])))
- if prediction:player['careerModelSummary']={k:v for k,v in prediction.items() if k not in ('perGame',)}
+ # The superseded career-model summary is not read by the app: it moves to the per-player file with the evidence.
  filename=str(player['id']).replace(':','-')+'.json'
- (folder/filename).write_text(json.dumps(dict(name=player['name'],espnId=player.get('espnId'),evidence=evidence,draft=player.get('draftContext')),ensure_ascii=False),encoding='utf-8')
+ (folder/filename).write_text(json.dumps(dict(name=player['name'],espnId=player.get('espnId'),evidence=evidence,draft=player.get('draftContext'),
+   careerModel={k:v for k,v in prediction.items() if k not in ('perGame',)} if prediction else None),ensure_ascii=False),encoding='utf-8')
+# Three decimals are far below any forecast's precision and keep the phone download small. The forecast's own
+# arithmetic (components adding up to the per-game value, per game times games) keeps full precision.
+EXACT={'components','scoringBreakdown','meanPerGame','meanSeason','games','projectedFP'}
+def compact(v):
+ if isinstance(v,float):return round(v,3)
+ if isinstance(v,dict):return {k:(x if k in EXACT else compact(x)) for k,x in v.items()}
+ if isinstance(v,list):return [compact(x) for x in v]
+ return v
+data=compact(data)
 path.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
 size=path.stat().st_size
 if size>4_000_000:raise ValueError('Mobile draft payload too large: '+str(size))

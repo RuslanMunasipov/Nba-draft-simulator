@@ -10,7 +10,10 @@ function insightContext(players){
  const byForecast=[...priced].sort((a,b)=>b.forecast.meanSeason-a.forecast.meanSeason);
  const overall=new Map(byForecast.map((p,i)=>[p.id,i+1])),positional=new Map();
  for(const pos of ['PG','SG','SF','PF','C'])byForecast.filter(p=>p.positions.includes(pos)).forEach((p,i)=>positional.set(p.id+pos,i+1));
- ctx={value,values,overall,positional};insightCache.set(players,ctx);return ctx;
+ // Spread is judged against the other priced players: the weakest and strongest fifth of floor-to-mean ratios.
+ const floors=priced.filter(p=>Number.isFinite(p.forecast.seasonFloor)&&p.forecast.meanSeason>0).map(p=>p.forecast.seasonFloor/p.forecast.meanSeason).sort((a,b)=>a-b);
+ const at=q=>floors.length?floors[Math.floor(q*(floors.length-1))]:null;
+ ctx={value,values,overall,positional,wide:at(.2),narrow:at(.8)};insightCache.set(players,ctx);return ctx;
 }
 // Data-driven pros and cons: Sports.ru trend and games, price value, positional rank, market (ADP) and risk.
 export function playerInsights(p,players){
@@ -41,8 +44,10 @@ export function playerInsights(p,players){
  }
  const f=p.forecast;
  if(f&&Number.isFinite(f.seasonFloor)&&f.meanSeason>0){
-  if(f.seasonFloor/f.meanSeason<.06)cons.push(`Большой разброс: слабый сезон всего ${Math.round(f.seasonFloor)} ФО (риск травмы или потери роли).`);
-  else if(f.seasonFloor/f.meanSeason>.2)pros.push(`Узкий разброс: даже слабый сезон ${Math.round(f.seasonFloor)} ФО.`);
+  const ratio=f.seasonFloor/f.meanSeason;
+  if(ctx.wide!==null&&ratio<=ctx.wide)cons.push(`Большой разброс: слабый сезон всего ${Math.round(f.seasonFloor)} ФО — среди 20% самых рискованных (травмы или потеря роли у похожих игроков).`);
+  else if(ctx.narrow!==null&&ratio>=ctx.narrow)pros.push(`Узкий разброс: даже слабый сезон ${Math.round(f.seasonFloor)} ФО — среди 20% самых надёжных.`);
+  if(Number.isFinite(f.shortSeasonRisk)&&f.shortSeasonRisk>=.2)cons.push(`Риск короткого сезона: у ${Math.round(f.shortSeasonRisk*100)}% похожих случаев — меньше четверти матчей.`);
  }
  const d=f?.historicalDownside;if(d&&Number.isFinite(d.meanWorstTenPercent)&&d.meanWorstTenPercent>=12)pros.push(`Высокий пол: худшие 10% матчей в среднем ${d.meanWorstTenPercent.toFixed(1)} ФО.`);
  if(d?.negativeGames>=3)cons.push(`Минусовые матчи: ${d.negativeGames} в ${d.season}.`);
