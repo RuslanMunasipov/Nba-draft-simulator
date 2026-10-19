@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers} from '../src/season.js';
+import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -126,4 +126,13 @@ test('a transfer that breaks the Sports.ru budget is flagged',()=>{
  const t=[{team:0,outId:1,inId:81,date:'2026-10-26',outPrice:1500,inPrice:9000}];
  const r=allTransfers(players,live,{transfers:t},picks);
  assert.ok(r.warnings.some(w=>w.team===0&&/превышен/.test(w.message)));
+});
+test('a made transfer is judged by the forecast and compared with the best swap',()=>{
+ // Team 0 sells #1 (PG, 30 a game) for #81 (PG, 20 a game); #92 (PG, 31 a game) was free.
+ const t={team:0,outId:1,inId:81,date:'2026-10-20',outPrice:1500,inPrice:1500};
+ const v=transferVerdict(ctx({rosters:seasonRosters([t],picks)}),t,{bankMoney:500});
+ assert.equal(v.verdict,'down');assert.ok(v.gain.month<-15&&v.gain.season<v.gain.month);
+ assert.equal(v.best.player.id,92);assert.ok(v.best.gain.month>0);
+ const w=transferVerdict(ctx({rosters:seasonRosters([{...t,inId:92}],picks)}),{...t,inId:92},{bankMoney:500});
+ assert.equal(w.verdict,'even');assert.equal(w.best,null);
 });

@@ -152,6 +152,19 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  const gains={};for(const h of ['week','month','season'])gains[h]=pairs.reduce((s,x)=>s+playerOutlook(x.in,ctx)[h].points-playerOutlook(x.out,ctx)[h].points,0);
  return {k,gain,gains,pairs,bankAfter:wealth-next.reduce((s,p)=>s+p.price,0)};
 }
+// A transfer already made, judged from today: expected official points of the newcomer minus those of the player sold,
+// and the best swap of the same player the team could have made with the same money. bankMoney is the bank after the move.
+export const VERDICTS={up:'💪 Усиление',down:'🤡 Ослабление',short:'⏳ Усиление только на ближайший месяц',long:'📅 Задел на сезон, сейчас не усиление',even:'🤷 Примерно равноценно'};
+export function transferVerdict(ctx,transfer,{bankMoney,threshold=15}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),out=byId.get(transfer.outId),joined=byId.get(transfer.inId);
+ if(!out||!joined)return null;
+ const a=playerOutlook(out,ctx),b=playerOutlook(joined,ctx),gain={};for(const k of Object.keys(a))gain[k]=b[k].points-a[k].points;
+ const m=gain.month,s=gain.season,T=threshold;
+ const verdict=m>=T&&s>=0?'up':m>=T?'short':s>=T&&m>-T?'long':m<=-T||s<=-T?'down':'even';
+ const before=ctx.rosters.map((r,t)=>t===transfer.team?r.map(id=>id===transfer.inId?transfer.outId:id):r);
+ const [best]=transferOptions({...ctx,rosters:before},{team:transfer.team,outId:transfer.outId,bankMoney:bankMoney-transfer.outPrice+transfer.inPrice,limit:1});
+ return {gain,verdict,label:VERDICTS[verdict],best:best&&best.player.id!==transfer.inId&&best.gain.month>gain.month?best:null};
+}
 // Free agents who beat a current player of the same position over the horizon and over the rest of the season,
 // affordable in a one-for-one swap: real upgrades, not short-term streams.
 export function marketAlerts(ctx,{team,bankMoney,sort='month',minGain=15}){

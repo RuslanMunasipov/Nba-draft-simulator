@@ -1,8 +1,9 @@
-// Transfer alerts for one FBL team, sent to Telegram when something new appears on the market.
+// Transfer alerts for one FBL team, sent to Telegram when something new appears on the market,
+// and a verdict on every new transfer of the other teams.
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,WEEKLY_TRANSFERS} from '../src/season.js';
 import {teamLabel} from '../src/teams.js';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
@@ -16,9 +17,9 @@ const previous=await json(RAW+'data/season-live/notify-state.json').catch(()=>({
 const byId=new Map(db.players.map(p=>[p.id,p])),today=moscowToday();
 const {transfers,warnings}=allTransfers(db.players,live,league);
 const ctx={players:db.players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers)};
-const sports=live.teams?.[team];
-const money=Number.isFinite(sports?.balance)?sports.balance:Number.isFinite(league.banks?.[team])?league.banks[team]:bank(team,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);
-const left=Number.isFinite(sports?.transfersLeft)?sports.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,team,today));
+const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
+const leftOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today));};
+const money=bankOf(team),left=leftOf(team);
 for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
 const alerts=marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20});
@@ -38,11 +39,28 @@ lines.push('',SITE);
 const message=lines.join('\n');
 const changed=fresh.length>0||freshHurt.length>0;
 console.log(message,'\n\nnew:',fresh,freshHurt.map(h=>h.key));
-if(changed&&process.env.TELEGRAM_BOT_TOKEN&&process.env.TELEGRAM_CHAT_ID){
+async function send(text){
+ if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID){console.log('Telegram secrets not set: message not sent.');return;}
  const res=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
-  body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text:message,disable_web_page_preview:true})});
+  body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text,disable_web_page_preview:true})});
  if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());
  console.log('sent to Telegram');
-}else console.log(changed?'Telegram secrets not set: message not sent.':'Nothing new: no message.');
+}
+// Every new transfer of the other teams, with the forecast verdict: an upgrade or not, and what would have been better.
+const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,reported=new Set(previous.transfers||[]);
+const rival=transfers.filter(x=>x.team!==team&&!reported.has(transferKey(x)));
+if(rival.length){
+ const blocks=rival.map(x=>{
+  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)});
+  const b=[`${teamLabel(x.team)}`,`${x.date.slice(8,10)}.${x.date.slice(5,7)}: ${out?.name} (${x.outPrice}) → ${joined?.name} (${x.inPrice})`];
+  if(v){b.push(`${v.label}: ${s(v.gain.month)} ФО за 4 недели, ${s(v.gain.season)} за сезон`);
+   if(v.best)b.push(`Лучший вариант за те же деньги: ${v.best.player.name} (${v.best.player.price}): ${s(v.best.gain.month)} / ${s(v.best.gain.season)}`);}
+  b.push(`Банк ${bankOf(x.team)} · трансферов осталось ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`);
+  return b.join('\n');});
+ const text=[`🔄 Трансферы соперников (${rival.length})`,...blocks,SITE].join('\n\n');
+ console.log(text);await send(text);
+}
+if(changed)await send(message);else console.log('Nothing new for my team: no message.');
 // Remember what was already reported so the same advice is not sent every two hours.
-fs.writeFileSync(statePath,JSON.stringify({updatedAt:new Date().toISOString(),sent:[...new Set([...(previous.sent||[]),...keys])].slice(-200),injuries:hurt.map(h=>h.key)}));
+fs.writeFileSync(statePath,JSON.stringify({updatedAt:new Date().toISOString(),sent:[...new Set([...(previous.sent||[]),...keys])].slice(-200),injuries:hurt.map(h=>h.key),
+ transfers:[...new Set([...(previous.transfers||[]),...transfers.map(transferKey)])]}));
