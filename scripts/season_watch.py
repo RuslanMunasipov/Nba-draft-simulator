@@ -66,8 +66,8 @@ class Watch:
         if self.failures==self.ALERT_AFTER:
             telegram(f'⚠️ Сбор Sports.ru не удаётся {self.failures} раза подряд: цены, очки и трансферы в помощнике могут быть устаревшими. '
                      'Вероятно, Sports.ru изменил страницы или ограничил запросы.')
-    def full(self):
-        try:result=subprocess.run([sys.executable,'scripts/collect_sports_current.py',str(self.live)],timeout=40*60)
+    def full(self,limit=40*60):
+        try:result=subprocess.run([sys.executable,'scripts/collect_sports_current.py',str(self.live)],timeout=limit)
         except subprocess.TimeoutExpired:print('full collection timed out',flush=True);return False
         return result.returncode==0 and self.live.exists()
     def notify(self):
@@ -94,8 +94,11 @@ def main():
     args=a.parse_args();w=Watch(args.live,args.state);config=teams_config()
     stop=time.time()+args.minutes*60;next_full=0
     while time.time()<stop:
-        if time.time()>=next_full:
-            ok=w.full();w.collected(ok)
+        left=stop-time.time()
+        # A full collection never starts so late that it could outlive the run: a run killed by its job timeout would
+        # skip the step that starts the next run and break the chain.
+        if time.time()>=next_full and left>15*60:
+            ok=w.full(limit=min(40*60,left-5*60));w.collected(ok)
             if ok:
                 w.notify();w.publish(f'Sports.ru live snapshot {now()}')
             # A failed collection retries soon; the journals keep being watched on the last snapshot.

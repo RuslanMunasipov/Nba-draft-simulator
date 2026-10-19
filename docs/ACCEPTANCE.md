@@ -129,3 +129,9 @@ Do not convert historical averages into a season prediction, invent missing pric
 - Rollout ties use the Student t critical value for the number of paired runs (4.30 for three), not 2.
 - The device stores a draft on the automatic database as its picks and the picked players' snapshots (kilobytes instead of 3.7 MB); the catalog comes from the cached or fetched database. Saves without a price mode keep the cap on, as imports do. The cap and roster sizes come from `data/league-rules.json`.
 - Imported links render only for http(s) URLs; imported forecasts must be numeric. In training mode Undo returns to before my last pick; in live mode a rival's real pick that the app thinks leaves no completion can still be recorded after confirmation.
+
+## Pipeline reliability — 19 October 2026
+- The season watcher never starts a full Sports.ru collection in its last 15 minutes and caps it at the time left, so a slow collection cannot run into the job timeout (which would skip the step that starts the next run and break the chain).
+- Sports.ru is collected with four parallel requests and a short pause per page (about 960 pages every two hours) and backs off on HTTP 429.
+- ESPN roster and projection requests retry four times with growing pauses; one slow TLS handshake no longer fails the daily build (a failed build keeps the previous deployment).
+- Open risk, owner's decision: the season watcher keeps one GitHub Actions runner busy around the clock. That is free for a public repository, but GitHub's terms discourage using Actions as an always-on service; a small always-on host (or a schedule limited to the hours rivals trade) would remove the risk.
