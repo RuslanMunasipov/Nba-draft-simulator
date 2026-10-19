@@ -172,6 +172,13 @@ def collect(live_path, token_path):
     # The exact key (<season game id>.l.<league id>) comes from the account's own leagues: the bare 'nba' alias
     # can still point to last season, where this league id belongs to someone else.
     wanted = league_id()
+    # Diagnostics: is the app blocked as a whole, or only some resources?
+    for probe in ('game/nba', 'users;use_login=1/games;game_codes=nba', f'league/nba.l.{wanted}'):
+        try:
+            api_get(tokens['access_token'], probe)
+            print(f'check {probe}: OK')
+        except SystemExit as e:
+            print(f'check {probe}: {str(e)[:160]}')
     mine = [k for k, i, _ in parse_user_leagues(get('users;use_login=1/games;game_codes=nba/leagues')) if i == wanted]
     if not mine:
         raise SystemExit(f'League {wanted} is not among the leagues of the connected Yahoo account.')
