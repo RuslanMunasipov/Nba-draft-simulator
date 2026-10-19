@@ -2,6 +2,7 @@ import solver from 'javascript-lp-solver';
 import {rosterFits,POSITIONS,TEAM_COUNT,DEFAULT_CAP,CLUB_LIMIT as RULE_CLUB_LIMIT} from './engine.js';
 import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
+import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 
 export const CAP=DEFAULT_CAP,WEEKLY_TRANSFERS=3,CLUB_LIMIT=RULE_CLUB_LIMIT;
 export {TEAM_COUNT};
@@ -91,6 +92,25 @@ export function playRate(player,live,ctx){
  const team=Math.max(rows.length,finished,on),k=CALIBRATION.availability.priorGames;
  return (k*prior+on)/(k+team);
 }
+// Chance to play each of the next n club games for a player available now: the absence chain (short and long spells
+// with the player's hazards, league spell lengths) scaled so that over a season it plays `share` of the games. A healthy
+// player plays the next games far more often than his season share (backtest 2025/26, after playing the last game:
+// 83.7% of the next 7 played; season share 78.2%, chain 86.4%), because long absences have not started yet.
+const curves=new Map();
+function chainCurve(h,share,n){
+ const key=`${h[0]},${h[1]},${share.toFixed(3)}`;let c=curves.get(key);
+ if(!c){
+  const run=(m,len)=>{const hs=h[0]*m,hl=h[1]*m,stay=Math.max(0,1-hs-hl),out=[];let p=new Float64Array(LENGTHS.longLengths.length);p[0]=1;
+   for(let j=0;j<len;j++){const a=p[0],q=new Float64Array(p.length);out.push(a*stay);for(let r=1;r<p.length;r++)q[r-1]=p[r];q[0]+=a*stay;
+    for(let k=1;k<p.length;k++)q[k-1]+=a*(hs*(LENGTHS.shortLengths[k]||0)+hl*LENGTHS.longLengths[k]);p=q;}
+   return out;};
+  const mean=m=>run(m,82).reduce((s,x)=>s+x,0)/82;let lo=-6,hi=6;
+  if(mean(Math.exp(hi))>=share)lo=hi;else if(mean(Math.exp(lo))<=share)hi=lo;
+  else for(let i=0;i<22;i++){const m=(lo+hi)/2;if(mean(Math.exp(m))>share)lo=m;else hi=m;}
+  c=run(Math.exp((lo+hi)/2),82);curves.set(key,c);
+ }
+ return Array.from({length:n},(_,j)=>c[Math.min(j,c.length-1)]);
+}
 export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||/out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season/i.test(injury?.comment||'');
 // Chance to play a game on a date given the ESPN injury report.
 export function injuryFactor(injury,day,today){
@@ -103,12 +123,21 @@ export function injuryFactor(injury,day,today){
 }
 // Expected official points between two dates (inclusive), counting only club games not yet played: a game is done once
 // the calendar has its score, its day has passed, Sports.ru lists it for the player, or it is running (ctx.running).
+// Each game counts with the injury report's factor times the chain's chance to be available that many healthy games on
+// (counted from today, or from the return of an injured player); without hazards (rookies, market players) it is the
+// flat season share as before.
 export function expectedPoints(player,ctx,from,to){
  const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,calendar=ctx.live?.clubs?.[club]||[];
- const rate=perGame(player,live).value*playRate(player,live,ctx),injury=ctx.injuries?.get(String(player.espnId));
- const done=new Set((live?.games||[]).map(x=>x.date)),running=ctx.running?.get(player.id)?.day;
- let games=0,points=0;
- for(const g of calendar){if(g.date<from||g.date>to||g.score||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running)continue;const f=injuryFactor(injury,g.date,ctx.today);games+=f;points+=rate*f;}
+ const share=playRate(player,live,ctx),value=perGame(player,live).value,injury=ctx.injuries?.get(String(player.espnId));
+ const done=new Set((live?.games||[]).map(x=>x.date)),running=ctx.running?.get(player.id)?.day,h=player.forecast?.availability?.hazards;
+ const ahead=calendar.filter(g=>!(g.score||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running)).sort((a,b)=>a.date<b.date?-1:1);
+ const curve=Array.isArray(h)?chainCurve(h,share,ahead.length):null;
+ let games=0,points=0,healthy=0;
+ for(const g of ahead){
+  const f=injuryFactor(injury,g.date,ctx.today);if(!f)continue;
+  const p=f*(curve?curve[healthy++]:share);
+  if(g.date>=from&&g.date<=to){games+=p;points+=value*p;}
+ }
  return {points,games};
 }
 export function horizons(ctx){
@@ -321,7 +350,7 @@ export function playerPicture(player,ctx,key){
  const clubGames=(ctx.live?.clubs?.[club]||[]).filter(x=>x.date>=h.from&&x.date<=h.to&&!x.score&&!(ctx.today&&x.date<ctx.today)).length;
  const injury=ctx.injuries?.get(String(player.espnId))||null,played=(live?.games||[]).filter(x=>x.played);
  return {player,points:outlook.points,perGame:g.value,prior:g.prior,average:g.average,played:played.length,playRate:rate,
-  expectedGames:outlook.games*rate,clubGames,injury,spread:pointsSpread(player,ctx,{points:outlook.points,games:outlook.games*rate}),
+  expectedGames:outlook.games,clubGames,injury,spread:pointsSpread(player,ctx,outlook),
   price:current(player,ctx).price,priceChange:Number.isFinite(live?.price)&&Number.isFinite(live?.initialPrice)?live.price-live.initialPrice:0};
 }
 // Logarithmic-mean split of a difference of products a1*b1*c1 - a0*b0*c0 into exact additive parts.
