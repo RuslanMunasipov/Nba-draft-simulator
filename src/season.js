@@ -349,6 +349,7 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
   if(e&&m&&Math.abs(e.games-m.games)>=12)flags.push(`${a.player.name}: модель ждёт ${Math.round(m.games)} матчей, ESPN — ${Math.round(e.games)}; итог ${Math.round(fo.games)}. Если он здоров, разница меньше.`);
   const e2=f.sources?.espn,m2=f.sources?.model;
   if(e2&&m2&&Math.abs(e2.games-m2.games)>=12)flags.push(`${b.player.name}: модель ждёт ${Math.round(m2.games)} матчей, ESPN — ${Math.round(e2.games)}; итог ${Math.round(f.games)}.`);
+  if(b.player.depth?.rank>=3)flags.push(`${b.player.name}: по составу ESPN №${b.player.depth.rank} на ${b.player.depth.position} — роль и минуты не гарантированы.`);
   if(b.played<5&&a.played<5&&ctx.today)flags.push('Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.');
  }
  const sd=Math.sqrt(variance),confidence=sd>0?normalCdf(gain/sd):gain>0?1:0;

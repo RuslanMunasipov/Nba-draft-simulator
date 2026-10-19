@@ -23,6 +23,7 @@ import numpy as np
 import pyarrow.parquet as pq
 
 CAREER=Path('data/raw/career_games.parquet')
+TEAM_CONTEXT=Path('public/data/team-context.json')
 PEOPLE=Path('data/career-players.json')
 DRAFTS=Path('data/nba-drafts.json')
 SEASON_FILES={2024:'data/raw/game_logs_2023-24.parquet',2025:'data/raw/game_logs_2024-25.parquet',2026:'data/raw/game_logs_2025-26.parquet'}
@@ -216,7 +217,8 @@ def examples_for(history,targets,current):
     for pid in history.by:
         last=max(history.by[pid])
         for t in targets:
-            if not (last>t or pid in current):continue
+            # Playing in the target season puts a player in the population too (complete league seasons).
+            if not (last>t or pid in current or t in history.by[pid]):continue
             x=history.features(pid,t)
             if x:out.append(dict(pid=pid,t=t,x=x,y=history.target(pid,t)))
     return out
@@ -393,10 +395,43 @@ def evaluate(model,ranges,test,bonus,beta):
                 medianFloorShare=statistics.median(r['lo']/r['centre'] for r in rows if r['centre']>0),
                 shortSeasonBrier=brier,shortSeasonBaseRateBrier=brier0,shortSeasonRate=base)
 
+def error_sources(model,test,history):
+    """Where the season error comes from on the held-out season: the same MAE if the games played, or the points per game,
+    had been known in advance, and the pure game-to-game luck left when both are known (the floor no forecast can pass)."""
+    full=[];games=[];level=[];luck=[]
+    for e in test:
+        p=model.predict(e['x']);y=e['y'];n=season_length(e['t']);act=(y['rate'] or 0)*y['games']
+        full.append(abs(p['rate']*p['share']*n-act));games.append(abs(p['rate']*y['games']-act));level.append(abs((y['rate'] or 0)*p['share']*n-act))
+        s=history.by[e['pid']].get(e['t'])
+        luck.append(statistics.pstdev(s['logs'])*math.sqrt(s['games'])*math.sqrt(2/math.pi) if s and s['games']>=2 else 0)
+    return dict(modelMAE=statistics.mean(full),gamesKnownMAE=statistics.mean(games),perGameKnownMAE=statistics.mean(level),gameLuckFloorMAE=statistics.mean(luck))
+
 # ---------- build ----------
+# League files use NBA team codes, ESPN (career logs, rosters, BPI) its own: everything is keyed by the ESPN code.
+ESPN_CODES={'GSW':'GS','NOP':'NO','NYK':'NY','SAS':'SA','SAN':'SA','UTA':'UTAH','WAS':'WSH'}
+def league_rows():
+    """Every player of the three complete league seasons, in the career-log row format (result from the two team scores)."""
+    try:from minute_encoding import normalize_minutes
+    except ImportError:from scripts.minute_encoding import normalize_minutes
+    out=[]
+    for year,path in SEASON_FILES.items():
+        rows,_=normalize_minutes(pq.read_table(path).to_pylist(),year)
+        points=defaultdict(float);teams=defaultdict(set)
+        for r in rows:points[(r['game_id'],r['team'])]+=r['pts'];teams[r['game_id']].add(r['team'])
+        for r in rows:
+            if r['minutes']<=0:continue
+            other=[t for t in teams[r['game_id']] if t!=r['team']];mine=points[(r['game_id'],r['team'])]
+            result=None if not other or mine==points[(r['game_id'],other[0])] else 'W' if mine>points[(r['game_id'],other[0])] else 'L'
+            out.append(dict(player_id=str(r['player_id']),season=year,game_id=r['game_id'],team=ESPN_CODES.get(r['team'],r['team']),home=bool(r['home']),result=result,
+                            **{k:float(r[k]) for k in ['minutes',*STAT_KEYS]}))
+    return out
+
 def load():
+    """Career logs (players of the current catalog) up to 2022-23, then the complete league seasons 2023-24 to 2025-26:
+    the last three seasons hold every player, so levels fitted on them are free of the survivor selection of the logs."""
     births={p['playerId']:p['birthDate'] for p in json.loads(PEOPLE.read_text())['players'] if p.get('birthDate')}
-    rows=pq.read_table(CAREER,filters=[('competition','=','nba'),('season_type','=','REGULAR')]).to_pylist()
+    first=min(SEASON_FILES)
+    rows=[r for r in pq.read_table(CAREER,filters=[('competition','=','nba'),('season_type','=','REGULAR')]).to_pylist() if r['season']<first]+league_rows()
     seasons,team_games,bonus=season_table(rows,lambda r:r['player_id'])
     return History(seasons,team_games,births),bonus
 
@@ -417,6 +452,7 @@ def run(data=None):
     frozen=Veteran(fit)
     ranges=Ranges(forward(fit,range(TEST-POOL,TEST)))
     holdout=evaluate(frozen,ranges,test,bonus,beta)
+    holdout['errorSources']=error_sources(frozen,test,history)
     drafts=json.loads(DRAFTS.read_text())['drafts']
     league={y:league_seasons(p,y) for y,p in SEASON_FILES.items()}
     rookie_fit=rookie_rows(drafts,{2025:(league[2025],league[2024])})
@@ -449,13 +485,25 @@ def run(data=None):
     data['projectionModelAudit']=report
     return report
 
+def team_bonus(team,beta,bonus,teams):
+    """Expected Sports.ru result bonus per game of a club: last season's, shrunk by measured persistence, averaged with the
+    one implied by ESPN BPI projected wins (5p - 2.5 over a season of half home, half away games), which sees the
+    summer's roster changes. No archive of preseason BPI exists to fit the weight, so it is equal."""
+    if not team:return 0.0
+    last=beta*bonus.get((TEST,team),0);t=teams.get(team)
+    if not t:return last
+    p=t['projectedWins']/(t['projectedWins']+t['projectedLosses'])
+    return (last+5*p-2.5)/2
+
 def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ratios):
     """Model forecast for every catalog player with NBA history or a draft pick, combined with ESPN where it exists."""
     counts=defaultdict(int)
+    context=json.loads(TEAM_CONTEXT.read_text()) if TEAM_CONTEXT.exists() else {}
+    teams=(context.get('bpi') or {}).get('teams',{});depth=context.get('depth',{})
     for player in data['players']:
         pid=str(player.get('nbaId') or player['id'])
         f=player.get('forecast') or {}
-        team=player.get('team');b=beta*bonus.get((TEST,team),0) if team else 0
+        team=player.get('team');b=team_bonus(team,beta,bonus,teams)
         x=history.features(pid,TARGET)
         if x:
             p=model.predict(x);evidence='CAREER_MODEL'
@@ -469,7 +517,9 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
         espn=f if f.get('origin')=='ESPN_INDIVIDUAL' else None
         # Without any archive of ESPN projections their relative accuracy cannot be fitted: an equal-weight combination,
         # the standard choice for two unvalidated forecasts, until the 2026/27 season measures it.
-        rate=(model_rate+espn['meanPerGame'])/2 if espn else model_rate
+        # ESPN's per-game value carries last season's raw team result: it is swapped for the same team term as the model's.
+        espn_rate=espn['meanPerGame']-((espn.get('components') or {}).get('teamResult') or 0)+b if espn else None
+        rate=(model_rate+espn_rate)/2 if espn else model_rate
         games=(model_games+espn['games'])/2 if espn else model_games
         share=games/82
         lo,hi,short=ranges.interval(dict(p,rate=rate,share=share),x) if x else rookies.interval(rate,share)
@@ -494,9 +544,11 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
                          'Риск короткого сезона — доля похожих случаев с менее чем четвертью матчей.',
             inputStats=line,components=components,
             sources=dict(model=dict(perGame=model_rate,games=model_games,perMinute=p.get('perMinute'),minutes=p['minutes'],participation=2-p['short']),
-                         espn=dict(perGame=espn['meanPerGame'],games=espn['games']) if espn else None),
+                         espn=dict(perGame=espn_rate,games=espn['games']) if espn else None,
+                         teamResult=dict(value=b,lastSeason=beta*bonus.get((TEST,team),0) if team else None,bpiWins=(teams.get(team) or {}).get('projectedWins'))),
             draftPick=p.get('pick'),rookieExtrapolation=not x,rulesSource=RULES,asOf=data['generatedAt'],
             previous=dict(origin=f.get('origin'),meanPerGame=f.get('meanPerGame'),games=f.get('games')) if f else None)
+        player['depth']=depth.get(str(player.get('espnId')))
         counts[origin]+=1
     # One metric everywhere: the per-game value every module ranks by is the full-formula forecast.
     for player in data['players']:

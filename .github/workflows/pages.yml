@@ -64,6 +64,9 @@ jobs:
         run: python scripts/rookie_model.py
       - name: Complete forecasts for the entire player catalog
         run: python scripts/complete_forecasts.py
+      - name: ESPN team context (BPI projected wins, depth charts)
+        continue-on-error: true
+        run: python scripts/espn_team_context.py
       - name: Train, hold out and apply the career projection model (2002-2026 game logs)
         run: python scripts/projection_model.py
       - name: Independently audit all scoring terms and negative games
