@@ -219,66 +219,15 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
  }
  return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
 }
-// ---------- Yahoo league ----------
-// The private FBL Yahoo league mirrors every transfer with full names; prices come from Sports.ru on the day.
-export function normalizeName(name){
- return String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b\.?/g,'').replace(/[^a-z]/g,'');
-}
-// Sports.ru price on a date: the price after the last game played by then, else the current price.
-export function priceAt(player,live,date){
- const l=live?.players?.[player?.sportsId],games=(l?.games||[]).filter(g=>Number.isFinite(g.price)&&g.date<=date);
- return games.length?games[games.length-1].price:(l?.price??player?.price??0);
-}
-const moscowDay=ts=>new Date(ts*1000+3*3600e3).toISOString().slice(0,10);
-export function yahooTransfers(players,live,picks=DRAFT_PICKS){
- const y=live?.yahoo,warnings=[],mapped=new Map();
- if(!y?.teams?.length)return {transfers:[],warnings,teams:new Set()};
- const byName=new Map();for(const p of players){const k=normalizeName(p.name);if(!byName.has(k))byName.set(k,p);}
- const find=name=>byName.get(normalizeName(name))||null;
- const missing=new Set(),idOf=name=>{const p=find(name);if(!p)missing.add(name);return p?.id??null;};
- const tx=[...(y.transactions||[])].sort((a,b)=>a.timestamp-b.timestamp);
- // Roster right after the draft: today's Yahoo roster with every later move undone.
- const draftRoster=new Map(y.teams.map(t=>[t.key,new Set(t.roster.map(r=>idOf(r.name)).filter(Boolean))]));
- for(const t of [...tx].reverse())for(const m of t.moves){const id=idOf(m.name);if(!id)continue;
-  if(m.to&&draftRoster.has(m.to))draftRoster.get(m.to).delete(id);if(m.from&&draftRoster.has(m.from))draftRoster.get(m.from).add(id);}
- const fbl=seasonRosters([],picks),pairs=[];
- for(const [key,ids] of draftRoster)fbl.forEach((roster,t)=>pairs.push({key,t,overlap:roster.filter(id=>ids.has(id)).length}));
- pairs.sort((a,b)=>b.overlap-a.overlap);
- const usedTeams=new Set();
- for(const x of pairs){if(mapped.has(x.key)||usedTeams.has(x.t)||x.overlap<6)continue;mapped.set(x.key,x.t);usedTeams.add(x.t);}
- for(const t of y.teams)if(!mapped.has(t.key))warnings.push({team:-1,message:`Команда Yahoo «${t.name}» не сопоставилась с драфтом FBL.`});
- // Each drop pairs with an add of the same team: in one transaction or the next one of that team.
- const transfers=[],open=new Map();
- for(const t of tx){
-  if(t.type==='trade'){warnings.push({team:-1,message:`${moscowDay(t.timestamp)}: обмен между командами в Yahoo — учти вручную.`});continue;}
-  for(const m of t.moves){const team=mapped.get(m.kind==='add'?m.to:m.from);if(team===undefined)continue;const id=idOf(m.name);if(!id)continue;
-   const q=open.get(team)||{adds:[],drops:[]};open.set(team,q);
-   (m.kind==='add'?q.adds:q.drops).push({id,ts:t.timestamp});
-   while(q.adds.length&&q.drops.length){const a=q.adds.shift(),d=q.drops.shift(),date=moscowDay(Math.max(a.ts,d.ts));
-    const pin=players.find(p=>p.id===a.id),pout=players.find(p=>p.id===d.id);
-    transfers.push({team,outId:d.id,inId:a.id,date,outPrice:priceAt(pout,live,date),inPrice:priceAt(pin,live,date),source:'yahoo'});}
-  }
- }
- for(const [team,q] of open)for(const x of [...q.adds,...q.drops])warnings.push({team,message:`Yahoo: ${q.adds.includes(x)?'добавлен':'отчислен'} ${players.find(p=>p.id===x.id)?.name} без пары — жду второй половины трансфера.`});
- for(const name of missing)warnings.push({team:-1,message:`Yahoo: игрок «${name}» не найден в базе.`});
- return {transfers,warnings,teams:new Set(mapped.values()),yahooRosters:new Map([...mapped].map(([key,t])=>[t,y.teams.find(x=>x.key===key).roster.map(r=>idOf(r.name)).filter(Boolean)]))};
-}
-// Yahoo for every mapped team, Sports.ru journals for other connected teams, the shared league log for the rest.
+// Sports.ru journals for every connected team, the shared league log for the rest.
 // Anything breaking a rule is dropped; every team's bank is replayed with Sports.ru prices and flagged when it goes negative.
 export function allTransfers(players,live,league={transfers:[]},picks=DRAFT_PICKS){
- const fromYahoo=yahooTransfers(players,live,picks),fromSports=journalTransfers(players,live,picks),warnings=[...fromYahoo.warnings];
- const sports=fromSports.transfers.filter(x=>!fromYahoo.teams.has(x.team));
- warnings.push(...fromSports.warnings.filter(w=>!fromYahoo.teams.has(w.team)));
- const covered=new Set([...fromYahoo.teams,...fromSports.teams]);
+ const fromSports=journalTransfers(players,live,picks),warnings=[...fromSports.warnings],covered=fromSports.teams;
  const manual=(league.transfers||[]).filter(x=>!covered.has(x.team)).map(x=>({...x,source:'league'}));
- const merged=[...fromYahoo.transfers,...sports,...manual].sort((a,b)=>a.date.localeCompare(b.date)),valid=[];
+ const merged=[...fromSports.transfers,...manual].sort((a,b)=>a.date.localeCompare(b.date)),valid=[];
  for(const x of merged){try{seasonRosters([...valid,x],picks);valid.push(x);}catch(e){warnings.push({team:x.team,message:`${x.date}: ${e.message}`});}}
  const byId=new Map(players.map(p=>[p.id,p]));
  for(let t=0;t<TEAM_COUNT;t++){let money=CAP;picks.forEach((id,i)=>{if(i%TEAM_COUNT===t)money-=live?.players?.[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0;});
   for(const x of valid)if(x.team===t){money+=x.outPrice-x.inPrice;if(money<0)warnings.push({team:t,message:`${x.date}: после трансфера ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name} банк по ценам Sports.ru ${money} — превышен лимит ${CAP}.`});}}
- const rosters=seasonRosters(valid,picks);
- for(const [t,ids] of fromYahoo.yahooRosters||[]){const ours=new Set(rosters[t]),theirs=new Set(ids);
-  const extra=[...theirs].filter(id=>!ours.has(id)),gone=[...ours].filter(id=>!theirs.has(id));
-  if(extra.length||gone.length)warnings.push({team:t,message:`Состав Yahoo отличается: в Yahoo есть ${extra.map(id=>byId.get(id)?.name).join(', ')||'—'}, нет ${gone.map(id=>byId.get(id)?.name).join(', ')||'—'}.`});}
- return {transfers:valid,warnings,connected:covered,yahoo:fromYahoo.teams};
+ return {transfers:valid,warnings,connected:covered};
 }
