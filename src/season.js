@@ -181,3 +181,49 @@ export function liveGamePoints(summary,event){
  }
  return out;
 }
+
+// ---------- Sports.ru team journals ----------
+// Each FBL team mirrors its roster on Sports.ru, whose public journal lists every purchase and sale (short name and price).
+// FBL transfers are the journal rows after the moment the Sports.ru roster equals the FBL draft roster.
+const shortName=(p,live)=>p?.sportsName||live?.players?.[p?.sportsId]?.name||'';
+const positionOf=(p,live)=>{const x=live?.players?.[p.sportsId]?.position;return x?[x]:p.positions;};
+const priceOf=(p,live)=>live?.players?.[p.sportsId]?.price??p.price;
+function sameNames(a,b){if(a.length!==b.length)return false;const x=[...a].sort(),y=[...b].sort();return x.every((v,i)=>v===y[i]);}
+export function journalTransfers(players,live,picks=DRAFT_PICKS){
+ const byId=new Map(players.map(p=>[p.id,p])),rosters=seasonRosters([],picks),events=[],warnings=[];
+ for(const [key,team] of Object.entries(live?.teams||{})){
+  const t=Number(key),draft=rosters[t].map(id=>shortName(byId.get(id),live)),journal=team.journal||[];
+  let names=[],start=-1;
+  journal.forEach((row,i)=>{if(row.sell){const j=names.indexOf(row.sell.name);if(j>=0)names.splice(j,1);}if(row.buy)names.push(row.buy.name);if(sameNames(names,draft))start=i;});
+  if(start<0){
+   warnings.push({team:t,message:'Состав на Sports.ru ни разу не совпал с драфтом FBL: трансферы взяты по датам после драфта.'});
+   start=journal.reduce((m,row,i)=>row.date<=DRAFT_DATE?i:m,-1);
+  }
+  journal.slice(start+1).forEach((row,i)=>events.push({t,row,i}));
+ }
+ events.sort((a,b)=>a.row.date.localeCompare(b.row.date)||a.t-b.t||a.i-b.i);
+ const taken=new Set(rosters.flat()),out=[];
+ for(const {t,row} of events){
+  if(!row.buy||!row.sell){warnings.push({team:t,message:`${row.date}: запись без пары покупка/продажа (${row.buy?.name||row.sell?.name}).`});continue;}
+  const roster=rosters[t];
+  const outs=roster.map(id=>byId.get(id)).filter(p=>p&&shortName(p,live)===row.sell.name).sort((a,b)=>Math.abs(priceOf(a,live)-row.sell.price)-Math.abs(priceOf(b,live)-row.sell.price));
+  if(!outs.length){warnings.push({team:t,message:`${row.date}: продан ${row.sell.name}, но его нет в составе.`});continue;}
+  const leaving=outs[0],pos=positionOf(leaving,live);
+  const score=p=>(positionOf(p,live).some(x=>pos.includes(x))?0:1e6)+Math.abs(priceOf(p,live)-row.buy.price);
+  const ins=players.filter(p=>p.sportsId&&!taken.has(p.id)&&shortName(p,live)===row.buy.name).sort((a,b)=>score(a)-score(b));
+  if(!ins.length){warnings.push({team:t,message:`${row.date}: куплен ${row.buy.name}, игрок не найден среди свободных.`});continue;}
+  if(ins.length>1&&score(ins[0])===score(ins[1]))warnings.push({team:t,message:`${row.date}: ${row.buy.name} неоднозначен, выбран ${ins[0].name} (${ins[0].team}).`});
+  const joining=ins[0];
+  roster[roster.indexOf(leaving.id)]=joining.id;taken.delete(leaving.id);taken.add(joining.id);
+  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru'});
+ }
+ return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
+}
+// Sports.ru journals for connected teams, the shared league log for the rest; anything breaking a rule is dropped.
+export function allTransfers(players,live,league={transfers:[]},picks=DRAFT_PICKS){
+ const fromSports=journalTransfers(players,live,picks),warnings=[...fromSports.warnings];
+ const manual=(league.transfers||[]).filter(x=>!fromSports.teams.has(x.team)).map(x=>({...x,source:'league'}));
+ const merged=[...fromSports.transfers,...manual].sort((a,b)=>a.date.localeCompare(b.date)),valid=[];
+ for(const x of merged){try{seasonRosters([...valid,x],picks);valid.push(x);}catch(e){warnings.push({team:x.team,message:`${x.date}: ${e.message}`});}}
+ return {transfers:valid,warnings,connected:fromSports.teams};
+}

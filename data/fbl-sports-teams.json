@@ -1,0 +1,6 @@
+{
+  "note": "FBL team index (0-7, draft order) -> Sports.ru fantasy team id from https://www.sports.ru/fantasy/basketball/team/<id>.html",
+  "teams": {
+    "0": "5930241"
+  }
+}

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints} from '../src/season.js';
+import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -100,4 +100,25 @@ test('packages never trade the season for a short-term gain unless asked',()=>{
  c.injuries.set('5099',{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:'2026-10-27'});
  const free=bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'week',protectSeason:false}),safe=bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'week'});
  assert.ok(safe.gains.season>=-1e-6);assert.ok(free.gain>=safe.gain-1e-6);
+});
+test('Sports.ru journals become FBL transfers after the roster matches the draft',()=>{
+ const named=players.map(p=>({...p,sportsName:p.id===81||p.id===91?'Twin':'N'+p.id}));
+ const draftRows=[...picks.filter((_,i)=>i%8===0).map(id=>({date:'2026-10-18',buy:{name:'N'+id,price:1500},sell:null}))];
+ // Pre-draft churn, then the draft roster, then one real transfer: PG #1 out for 'Twin', a name two free-agent PGs (81, 91) share.
+ const journal=[{date:'2026-10-16',buy:{name:'N99',price:1500},sell:null},{date:'2026-10-17',buy:{name:'N1',price:1500},sell:{name:'N99',price:1500}},
+  ...draftRows.slice(1),{date:'2026-10-25',buy:{name:'Twin',price:1500},sell:{name:'N1',price:1500}}];
+ const liveTeams={...live,teams:{0:{journal}}};
+ const r=journalTransfers(named,liveTeams,picks);
+ assert.equal(r.transfers.length,1);assert.equal(r.transfers[0].outId,1);assert.ok([81,91].includes(r.transfers[0].inId));
+ assert.ok(r.warnings.some(w=>/неоднозначен/.test(w.message)));
+ // Connected teams take transfers from Sports.ru only; the league log still covers the others.
+ const all=allTransfers(named,liveTeams,{transfers:[{team:0,outId:9,inId:82,date:'2026-10-20'},{team:1,outId:2,inId:83,date:'2026-10-20',outPrice:1,inPrice:1}]},picks);
+ assert.deepEqual(all.transfers.map(x=>[x.team,x.source]),[[1,'league'],[0,'sports.ru']]);
+});
+test('a sold player is matched by name and the buy by position and price',()=>{
+ const named=players.map(p=>({...p,sportsName:[82,84].includes(p.id)?'Same':'N'+p.id}));
+ // 82 is PG, 84 is SG: selling the SG #17 must bring the SG namesake.
+ const journal=[...picks.filter((_,i)=>i%8===0).map(id=>({date:'2026-10-18',buy:{name:'N'+id,price:1500},sell:null})),{date:'2026-10-21',buy:{name:'Same',price:1500},sell:{name:'N17',price:1500}}];
+ const r=journalTransfers(named,{...live,teams:{0:{journal}}},picks);
+ assert.equal(r.transfers[0].inId,84);assert.equal(r.warnings.length,0);
 });
