@@ -67,6 +67,9 @@ jobs:
         run: python scripts/audit_scoring.py
       - name: Attach official Sports.ru fantasy points per season and audit forecasts
         run: python scripts/apply_sports_history.py
+      - name: Bundle a Sports.ru live snapshot as fallback for the season tab
+        continue-on-error: true
+        run: python scripts/collect_sports_current.py public/data/sports-current.json
       - name: Pack career evidence for mobile loading
         run: python scripts/pack_online_evidence.py
       - name: Preserve generated model and integration audits

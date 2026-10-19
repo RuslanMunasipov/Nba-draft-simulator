@@ -1,0 +1,31 @@
+name: Season live data
+on:
+  schedule:
+    - cron: '23 */2 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: season-live
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Collect Sports.ru prices, calendar, official points and ESPN injuries
+        run: python scripts/collect_sports_current.py out/sports-current.json
+      - name: Publish the snapshot to the data/season-live branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          git init -q -b data/season-live
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sports-current.json
+          git commit -qm "Sports.ru live snapshot $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" data/season-live
