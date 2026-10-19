@@ -1,0 +1,15 @@
+{
+  "note": "Players who entered the Sports.ru market after the dated 2026-10-17 catalog. Each row is copied from a public Sports.ru team roster (points JSON) with its fantasy id, club, position code and price on the capture date.",
+  "source": "https://www.sports.ru/fantasy/basketball/team/points/5930735/0.json",
+  "capturedAt": "2026-10-19T12:40:00Z",
+  "players": [
+    {
+      "club": "Торонто",
+      "clubId": "4202",
+      "name": "Ленард",
+      "price": 2400,
+      "sportsId": "1796991",
+      "sportsPosition": "3"
+    }
+  ]
+}
