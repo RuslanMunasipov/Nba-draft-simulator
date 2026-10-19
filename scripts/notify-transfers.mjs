@@ -4,7 +4,7 @@
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {esc,gains,moveLines,details,message,plainText} from './telegram-format.mjs';
@@ -28,29 +28,43 @@ for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
 const alerts=marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20});
 const pack=left>1?bestPackage(ctx,{team,bankMoney:money,k:left,sort}):null;
+// Only a package the model is sure of starts a new message; a doubtful one is shown with its confidence when one is sent.
+const packWhy=pack?.pairs.length>1?explainSwap(ctx,null,null,sort,pack.pairs.map(x=>[x.out.id,x.in.id])):null;
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
  .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${i.returnDate?' до '+i.returnDate.slice(8,10)+'.'+i.returnDate.slice(5,7):''}`};});
-const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?.pairs.length>1?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
+const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?.pairs.length>1&&packWhy.confidence>=CONFIDENT?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
 const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=hurt.filter(h=>!previous.injuries?.includes(h.key));
 const day=d=>d?`${d.slice(8,10)}.${d.slice(5,7)}`:'';
 const link=`<a href="${SITE}">Открыть помощника</a>`;
 const swapPairs=x=>[{out:current(byId.get(x.outId),ctx).name,in:x.player.name}];
+// How sure the model is about a deal over the season, and the main caveats, for the collapsed details.
+const dealPairs=d=>d.pack?d.pack.pairs.map(q=>[q.out.id,q.in.id]):[[d.swap.outId,d.swap.player.id]];
+const sureness=why=>`Уверенность ${Math.round(why.confidence*100)}%: ${why.level==='CONFIDENT'?'уверенно':why.level==='MODERATE'?'умеренно':'сомнительно'}`;
+const whyLines=why=>[sureness(why),`Откуда: ${Math.round(why.parts.perGame)} ФО/матч · ${Math.round(why.parts.availability)} доля матчей · ${Math.round(why.parts.schedule)} календарь`,...why.flags.slice(0,3).map(f=>'⚠️ '+esc(f))];
+// Latest ESPN fantasy news headline of a player from the last three days, if any.
+const news=new Map();
+async function headline(p){
+ if(!p?.espnId)return null;
+ if(!news.has(p.espnId))news.set(p.espnId,json(`https://site.api.espn.com/apis/fantasy/v2/games/fba/news/players?limit=1&playerId=${p.espnId}`).then(d=>d.feed?.[0]||null).catch(()=>null));
+ const n=await news.get(p.espnId);if(!n)return null;
+ return Date.now()-Date.parse(n.published||n.lastModified)<3*864e5?`📰 ${esc(n.headline)}`:null;
+}
 // A deal for my team: the gain, then the numbered moves.
 const dealLines=d=>d.pack?[gains(d.pack.gains.season,d.pack.gains.month),...moveLines(d.pack.pairs.map(q=>({out:q.out.name,in:q.in.name})),d.pack.bankAfter)]
  :[gains(d.swap.gain.season,d.swap.gain.month),...moveLines(swapPairs(d.swap),d.swap.bankAfter)];
 // One pro and one risk from the player cards, with the current per-game estimate and injury.
-function brief(p){
+async function brief(p){
  if(!p)return [];
- const {pros,cons}=playerInsights(p,players),injury=ctx.injuries.get(String(p.espnId));
+ const {pros,cons}=playerInsights(p,players),injury=ctx.injuries.get(String(p.espnId)),n=await headline(p);
  return [`<b>${esc(p.name)}</b> · ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${esc(injury.status)}`:''}`,
-  ...pros.slice(0,1).map(x=>'✅ '+esc(x)),...cons.slice(0,1).map(x=>'⚠️ '+esc(x))];
+  ...pros.slice(0,1).map(x=>'✅ '+esc(x)),...cons.slice(0,1).map(x=>'⚠️ '+esc(x)),...(n?[n]:[])];
 }
 
 // My team: the best move first, then single upgrades, budget problems and injuries.
 const mine=[`🏀 <b>${esc(teamLabel(team))}</b>`,`Банк ${money} · трансферов ${left}/${WEEKLY_TRANSFERS}`];
-if(pack?.pairs.length>1&&pack.gain>0)mine.push('',`🧩 <b>Лучший ход: ${pack.pairs.length} трансфера</b>`,
+if(pack?.pairs.length>1&&pack.gain>0)mine.push('',`🧩 <b>Лучший ход: ${pack.pairs.length} трансфера</b> · ${sureness(packWhy).toLowerCase()}`,
  gains(pack.gains.season,pack.gains.month),...moveLines(pack.pairs.map(x=>({out:x.out.name,in:x.in.name})),pack.bankAfter));
-if(alerts.length)mine.push('','📈 <b>Отдельные усиления</b>',...alerts.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)}`));
+if(alerts.length)mine.push('','📈 <b>Отдельные усиления</b>',...alerts.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)} · ${Math.round(a.why.confidence*100)}%`));
 if(budget.length)mine.push('','⚠️ <b>Бюджет по ценам Sports.ru</b>',...budget.map(w=>`${esc(teamLabel(w.team))}: ${esc(w.message)}`));
 if(hurt.length)mine.push('','🩹 <b>Травмы</b>',...hurt.map(h=>esc(h.text)));
 mine.push('',link);
@@ -85,11 +99,17 @@ async function report(text,mark){if(await send(text)){mark();save();}}
 // What my team should do about a player a rival let go: the decision in bold, the deal under it.
 function decision(p){
  if(!p)return {head:null,why:[]};
+ return decide(p);
+}
+function decide(p){
  if(ctx.rosters.flat().includes(p.id))return {head:`🔒 <b>${esc(p.name)} уже в другой команде FBL</b>`,why:[]};
  // With no transfers left this week nothing can be bought now: say so first, and what the deal would be next week.
  const d=acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:Math.max(1,left)});
  if(!left)return {head:'⛔ <b>Тебе: трансферы на неделе закончились</b>',why:d.worth?[`Если ${esc(p.name)} останется свободным, на новой неделе:`,...dealLines(d)]:[]};
- if(d.worth)return {head:message(`🎯 <b>Тебе: забирай ${esc(p.name)}</b>`,dealLines(d)),why:[]};
+ // A deal the model is not sure of is offered, not ordered.
+ if(d.worth){const why=explainSwap(ctx,null,null,'season',dealPairs(d));
+  return why.confidence>=CONFIDENT?{head:message(`🎯 <b>Тебе: забирай ${esc(p.name)}</b>`,dealLines(d)),why:whyLines(why)}
+   :{head:message(`🤔 <b>Тебе: можно взять ${esc(p.name)}, но не уверенно</b>`,dealLines(d)),why:whyLines(why)};}
  if(d.swap)return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`Если всё же брать ${esc(p.name)}: ${esc(current(byId.get(d.swap.outId),ctx).name)} → ${esc(p.name)}, ${gains(d.swap.gain.season,d.swap.gain.month)}`]};
  return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`${esc(p.name)} не влезает по позиции, бюджету или правилу rookie.`]};
 }
@@ -98,9 +118,10 @@ const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,reported=new Set
 const rival=transfers.filter(x=>x.team!==team&&!reported.has(transferKey(x)));
 for(const x of rival){
  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)}),mineNow=decision(out);
+ const briefs=[...await brief(joined),...await brief(out)];
  const effect=v?`${v.gain.season>=0?'📈':'📉'} Им: ${gains(v.gain.season,v.gain.month)} · ${v.label}`:null;
  await report(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
-  details([...mineNow.why,...brief(joined),...brief(out),
+  details([...mineNow.why,...briefs,
    ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
    `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>state.transfers.push(transferKey(x)));
 }
@@ -116,9 +137,11 @@ const warned=new Set(previous.returns||[]),soon=targets.filter(x=>x.soon&&!warne
 // Back on the injury-free list and still free: buy now if it pays over the next 4 weeks too.
 const back=!left?[]:(previous.watch||[]).map(id=>byId.get(id)).filter(p=>p&&!ctx.injuries.get(String(p.espnId))&&!ctx.rosters.flat().includes(p.id))
  .map(p=>({player:current(p,ctx),...acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:left})})).filter(x=>x.worth);
-for(const x of back)await report(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',`🎯 <b>Тебе: забирай</b>`,dealLines(x),details(brief(x.player).slice(1))),()=>{});
-for(const x of soon)await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${x.injury.returnDate?' до '+day(x.injury.returnDate):''}`,'',
- `🎯 <b>Тебе: можно брать</b>`,dealLines(x),details(brief(x.player).slice(1))),()=>state.returns.push(injuryKey(x)));
+for(const x of back){const why=explainSwap(ctx,null,null,'season',dealPairs(x)),sure=why.confidence>=CONFIDENT;
+ await report(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',sure?'🎯 <b>Тебе: забирай</b>':'🤔 <b>Тебе: можно брать, но не уверенно</b>',dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>{});}
+for(const x of soon){const why=explainSwap(ctx,null,null,'season',dealPairs(x));
+ await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${x.injury.returnDate?' до '+day(x.injury.returnDate):''}`,'',
+ `🎯 <b>Тебе: можно брать</b> · ${sureness(why).toLowerCase()}`,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>state.returns.push(injuryKey(x)));}
 // Remember what was already reported so the same advice is not sent again. Until Telegram is configured nothing
 // counts as reported: the first messages arrive once the secrets are set. Transfers already in the journal count as seen.
 state.transfers=[...new Set([...state.transfers,...transfers.map(transferKey)])];state.returns=state.returns.slice(-500);state.unknown=state.unknown.slice(-200);

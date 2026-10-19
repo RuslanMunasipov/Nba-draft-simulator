@@ -243,3 +243,16 @@ test('the derived roster is checked against the roster Sports.ru shows',()=>{
  const off=[...roster.slice(1),{sportsId:'1081'}],w=allTransfers(players,{teams:{0:{journal:[],roster:off}}},{transfers:[]},picks).warnings;
  assert.ok(w.some(x=>/расходится.*P1\b/.test(x.message)));
 });
+test('a swap explanation splits the gain exactly and grows surer with a bigger gap',async()=>{
+ const {explainSwap}=await import('../src/season.js');
+ const cal=Array.from({length:30},(_,i)=>({date:new Date(Date.parse('2026-10-22')+i*2*864e5).toISOString().slice(0,10),week:1+Math.floor(i/4)}));
+ const f=(mean,games)=>({meanPerGame:mean,games,meanSeason:mean*games,seasonFloor:mean*games*.6,seasonCeiling:mean*games*1.3,gameFloor:mean*.5,gameCeiling:mean*1.5});
+ const list=players.map(p=>p.id===81?{...p,forecast:f(34,80)}:p.id===82?{...p,forecast:f(31,80)}:p.id===1?{...p,forecast:f(30,60)}:p);
+ const c={...ctx({today:'2026-10-21'}),players:list,live:{clubs:Object.fromEntries(list.map(p=>[p.sportsClub,cal])),players:{}}};
+ const big=explainSwap(c,1,81,'season'),small=explainSwap(c,1,82,'season');
+ assert.ok(Math.abs(big.parts.perGame+big.parts.availability+big.parts.schedule-big.gain)<1e-6);
+ assert.ok(big.gain>small.gain&&big.confidence>small.confidence&&big.confidence<1);
+ assert.ok(big.parts.availability>0&&big.parts.perGame>0);
+ assert.equal(big.sides[0].out.player.id,1);assert.equal(big.sides[0].in.player.id,81);
+ const pack=explainSwap(c,null,null,'season',[[1,81],[2,82]]);assert.equal(pack.sides.length,2);
+});
