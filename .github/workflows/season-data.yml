@@ -35,7 +35,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '253172941' }}
         run: python scripts/season_watch.py out/sports-current.json out/notify-state.json --minutes 345 --every 60 --full-every 120
       - name: Start the next watch run
         if: success() || failure()
