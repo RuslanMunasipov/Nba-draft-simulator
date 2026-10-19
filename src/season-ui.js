@@ -204,15 +204,17 @@ function whyBox(why,ctx){
 }
 // The forecast's own numbers: career model, ESPN, the draft-pick model, and the result.
 function sourcesLine(f){
- const m=f.sources?.model,e=f.sources?.espn;if(!m)return f.basis||'';
+ const m=f.sources?.model,e=f.sources?.espn,t=f.sources?.teamResult;if(!m)return f.basis||'';
+ const team=t&&Number.isFinite(t.bpiWins)?` Бонус команды ${t.value>=0?'+':''}${t.value.toFixed(1)} за матч (прогноз ESPN BPI ${Math.round(t.bpiWins)} побед и прошлый сезон).`:'';
  const own=f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных':'модель по карьере';
- return `Прогноз до сезона: ${own} ${m.perGame.toFixed(1)} × ${Math.round(m.games)} м.${e?`, ESPN ${e.perGame.toFixed(1)} × ${Math.round(e.games)} м. → итог ${f.meanPerGame.toFixed(1)} × ${Math.round(f.games)} м.`:''}`;
+ return `Прогноз до сезона: ${own} ${m.perGame.toFixed(1)} × ${Math.round(m.games)} м.${e?`, ESPN ${e.perGame.toFixed(1)} × ${Math.round(e.games)} м. → итог ${f.meanPerGame.toFixed(1)} × ${Math.round(f.games)} м.`:''}${team}`;
 }
 function sideBlock(label,x){
  const p=x.player,f=p.forecast||{},box=el('div',null,'sp-side'),hist=Object.entries(p.sportsHistory||{}).slice(-2);
  box.append(el('small',label),el('strong',`${p.name} · ${x.price??'—'}${x.priceChange?` (${signed(x.priceChange)})`:''}`));
  const lines=[`${x.perGame.toFixed(1)} ФО/матч сейчас (прогноз до сезона ${x.prior.toFixed(1)}${x.played?`, в сезоне ${x.average.toFixed(1)} за ${x.played} м.`:''})`,
   `в периоде ${x.expectedGames.toFixed(1)} из ${x.clubGames} матчей клуба · играет ${Math.round(x.playRate*100)}% матчей`,
+  p.depth?`состав ESPN: ${p.depth.rank===1?'стартер':'№'+p.depth.rank} на ${p.depth.position}`:'',
   x.injury?`🩹 ${x.injury.status}${x.injury.returnDate?' до '+ddmm(x.injury.returnDate):''}${x.injury.comment?' — '+x.injury.comment:''}`:'травм в отчёте ESPN нет',
   sourcesLine(f),hist.length?'Sports.ru: '+hist.map(([k,v])=>`${k} ${v.perGame} × ${v.games} м.`).join(' · '):''];
  for(const l of lines.filter(Boolean))box.append(el('p',l));
