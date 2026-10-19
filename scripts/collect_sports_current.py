@@ -24,6 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PRICES = ROOT / 'data' / 'sports-prices-2026-10-17.json'
+ADDITIONS = ROOT / 'data' / 'sports-market-additions.json'
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'public' / 'data' / 'sports-current.json'
 TOURNAMENT = 150
 BASE_URL = 'https://www.sports.ru/fantasy/basketball/player/info/{t}/{pid}.html'
@@ -268,7 +269,7 @@ def week_ranges(calendars):
 
 
 def main():
-    pool = json.loads(PRICES.read_text(encoding='utf-8'))['players']
+    pool = json.loads(PRICES.read_text(encoding='utf-8'))['players'] + json.loads(ADDITIONS.read_text(encoding='utf-8'))['players']
     players, calendars, errors = {}, {}, []
     with ThreadPoolExecutor(WORKERS) as ex:
         futures = [ex.submit(collect, p) for p in pool]

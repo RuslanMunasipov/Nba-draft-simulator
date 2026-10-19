@@ -3842,6 +3842,14 @@
       "name": "Bryce Hopkins",
       "sportsName": "Hopkins",
       "sportsClub": "Денвер"
+    },
+    {
+      "sportsId": "1796991",
+      "espnId": "6450",
+      "nbaId": 202695,
+      "name": "Kawhi Leonard",
+      "sportsName": "Ленард",
+      "sportsClub": "Торонто"
     }
   ]
 }

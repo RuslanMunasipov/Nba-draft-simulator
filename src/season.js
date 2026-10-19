@@ -317,6 +317,8 @@ export function allTransfers(players,live,league={transfers:[]},picks=DRAFT_PICK
  for(const x of merged){try{seasonRosters([...valid,x],picks);valid.push(x);}catch(e){warnings.push({team:x.team,message:`${x.date}: ${e.message}`});}}
  const byId=new Map(players.map(p=>[p.id,p]));
  for(let t=0;t<TEAM_COUNT;t++){let money=CAP;picks.forEach((id,i)=>{if(i%TEAM_COUNT===t)money-=live?.players?.[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0;});
-  for(const x of valid)if(x.team===t){money+=x.outPrice-x.inPrice;if(money<0)warnings.push({team:t,message:`${x.date}: после трансфера ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name} банк по ценам Sports.ru ${money} — превышен лимит ${CAP}.`});}}
+  // Sports.ru confirms a day's transfers as one package: only the bank after the last move of a day must stay within the cap.
+  const mine=valid.filter(x=>x.team===t);
+  mine.forEach((x,i)=>{money+=x.outPrice-x.inPrice;if(money<0&&mine[i+1]?.date!==x.date)warnings.push({team:t,message:`${x.date}: после трансферов дня (последний ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}) банк по ценам Sports.ru ${money} — превышен лимит ${CAP}.`});});}
  return {transfers:valid,warnings,connected:covered};
 }
