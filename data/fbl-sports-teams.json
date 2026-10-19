@@ -1,6 +1,13 @@
 {
-  "note": "Sports.ru fantasy team id per FBL team index (0-7, draft order); used by the 2-hour season collector.",
+  "note": "Sports.ru fantasy team id per FBL team index (0-7, draft order); used by the 2-hour season collector. Each id was confirmed by its Sports.ru journal reproducing the FBL draft roster.",
   "teams": {
-    "0": "5930241"
+    "0": "5930241",
+    "1": "5930648",
+    "2": "5930228",
+    "3": "5930244",
+    "4": "5930225",
+    "5": "5930599",
+    "6": "5930735",
+    "7": "5930727"
   }
 }
