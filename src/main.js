@@ -12,6 +12,7 @@ import './baseline.js';
 import './history.js';
 import {newDraft,pick,undo,replacePick,exportDraft,importDraft,recommendations,riskPriority} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
+import {setSeasonPlayers,initSeasonTabs} from './season-ui.js';
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
@@ -414,6 +415,7 @@ function render(){
  renderRookies();
  renderPlan();
  renderPostDraft();
+ setSeasonPlayers(state.players,card);
  $('results').replaceChildren();if(n){for(const t of draftSummary(state))$('results').append(text('li',`${teamName(t.team-1)}: ${t.players}/10 · ${t.metric==='FBL_FULL_FORMULA_ESTIMATE'?'ФО за сезон':'сумма импортированных оценок'} ${t.score?.toFixed(0)??(t.players?'есть игрок без сезонной оценки':'состав пока пуст')} ${state.priceMode==='ON'?' · бюджет '+t.cost+' / '+state.cap:''} · rookie ${t.rookieCount} (${t.rookieRule})`));}
 }
 let databaseLoading=false;
@@ -471,4 +473,4 @@ $('batch').onclick=()=>{
  worker.onerror=()=>{finish();$('simulation-status').textContent='Ошибка симуляции';};worker.postMessage({state,seed:Number($('seed').value)||1,seasonRuns:Number($('season-runs').value)});
 };
 $('draft-mode').value=mode;$('bots').hidden=mode!=='INTERACTIVE';
-render();updateSaveStatus();loadDatabase();
+render();updateSaveStatus();initSeasonTabs(render);loadDatabase();

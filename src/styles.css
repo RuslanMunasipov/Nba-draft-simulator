@@ -255,3 +255,43 @@ section[hidden]{display:none!important}
 .export-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.export-row button{width:auto;flex:1 1 auto}
 #export-text{width:100%;min-height:220px;font-size:12px;margin-bottom:10px}
 #postdraft{order:20}
+/* Draft / season tabs */
+.tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:12px}
+.tabs button{min-height:38px;padding:8px 16px;background:transparent;color:var(--muted);border-radius:9px}
+.tabs button[aria-pressed=true]{background:var(--accent);color:var(--paper)}
+body[data-tab=season]>*:not(.masthead):not(#season):not(footer):not(script){display:none!important}
+body:not([data-tab=season]) #season{display:none}
+.season-section .section-heading button{min-height:38px;padding:8px 14px}
+.sp-controls{display:flex;flex-wrap:wrap;gap:var(--s3);margin-bottom:var(--s3)}
+.sp-controls label{font-size:12px;font-weight:700;color:var(--muted)}
+.sp-controls input{width:110px}
+.sp-roster{border-top:1px solid var(--line)}
+.sp-header,.sp-row{display:grid;grid-template-columns:minmax(0,2.2fr) 70px minmax(0,1.3fr) minmax(0,1.1fr);gap:var(--s2);align-items:center}
+.sp-header{font-size:11px;font-weight:700;color:var(--muted);padding:8px 0;border-bottom:1px solid var(--line)}
+.season-player{border-bottom:1px solid var(--line)}
+.season-player>summary{list-style:none;padding:10px 0;font-weight:400;display:block}
+.season-player>summary::marker{content:''}
+.season-player>summary:before{content:none!important;display:none}
+.season-player>summary::-webkit-details-marker{display:none}
+.season-player strong{display:block;font-size:14px;font-variant-numeric:tabular-nums}
+.season-player small{display:block;font-size:11px}
+.sp-injury{grid-column:1/-1;font-size:12px;font-weight:700;color:#c0573f}
+.sp-actions{display:flex;gap:var(--s3);align-items:center;margin:4px 0 10px}
+.sp-actions button{min-height:38px;padding:8px 14px}
+.sp-actions a{font-size:13px}
+.sp-replace{background:var(--soft);border-radius:12px;padding:var(--s3);margin-bottom:var(--s3)}
+.sp-replace input{width:100%;margin-bottom:var(--s2)}
+.sp-options{list-style:none;padding:0;margin:0}
+.sp-option{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:var(--s2);align-items:center;padding:8px 0;border-bottom:1px solid var(--line);margin:0}
+.sp-option button{min-height:38px;padding:8px 12px}
+.sp-gains{display:flex;gap:10px;text-align:right}
+.sp-gains span{min-width:52px}
+.sp-gains strong{font-size:13px;color:var(--accent)}
+.sp-gains .neg strong{color:#c0573f}
+.sp-gains .on strong{font-size:16px}
+.sp-best{margin:var(--s5) 0}
+.sp-log{margin:var(--s4) 0}
+.sp-log li{font-size:13px}
+.sp-log button{min-height:32px;padding:4px 10px;margin-left:8px}
+.standings-table tr{cursor:pointer}
+@media(max-width:600px){.sp-header,.sp-row{grid-template-columns:minmax(0,1fr) 56px 76px}.sp-header span:nth-child(3),.sp-form{display:none}.sp-option{grid-template-columns:minmax(0,1fr) auto}.sp-gains{grid-column:1/-1;justify-content:flex-start}.tabs button{padding:8px 10px}}

@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""Collect the live Sports.ru fantasy state of every player in the transfer pool.
+
+Source: the public Sports.ru fantasy player popup (no login needed)
+  https://www.sports.ru/fantasy/basketball/player/info/150/<sportsId>.html
+It shows the current and initial price, the role ("Амплуа"), the share of
+Sports.ru users who own the player, the club calendar with official fantasy
+week numbers and, once the season has started, the per-game table of the
+current season with the official fantasy points ("ФО") and the price after
+each game ("С"). Nothing is estimated here.
+
+Usage: collect_sports_current.py [output.json]
+"""
+import html
+import json
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+PRICES = ROOT / 'data' / 'sports-prices-2026-10-17.json'
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'public' / 'data' / 'sports-current.json'
+TOURNAMENT = 150
+BASE_URL = 'https://www.sports.ru/fantasy/basketball/player/info/{t}/{pid}.html'
+SEASON_URL = BASE_URL + '?s={sid}'
+SEASON_LABEL = '2026/2027'
+INJURY_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries'
+UA = 'Mozilla/5.0 (compatible; fbl-draft-simulator/1.0; season tracker)'
+WORKERS = 10
+ROLES = {'Разыгрывающий защитник': 'PG', 'Разыгрывающий': 'PG', 'Атакующий защитник': 'SG', 'Лёгкий форвард': 'SF', 'Легкий форвард': 'SF',
+         'Тяжёлый форвард': 'PF', 'Тяжелый форвард': 'PF', 'Центровой': 'C'}
+
+
+def fetch(url):
+    last = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept-Language': 'ru'})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return r.read().decode('utf-8', 'replace')
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            last = e
+        except Exception as e:  # noqa: BLE001
+            last = e
+        time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(f'{url}: {last}')
+
+
+def text(page):
+    return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', ' ', page))).strip()
+
+
+def cell(c):
+    return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', c))).strip()
+
+
+def iso(d):
+    day, month, year = d.split('.')
+    return f'{year}-{month}-{day}'
+
+
+def number(value):
+    try:
+        return float(value.replace(',', '.'))
+    except (AttributeError, ValueError):
+        return None
+
+
+def parse_info(page):
+    t = text(page)
+    out = {}
+    m = re.search(r'Амплуа (.+?) Текущая стоимость', t)
+    if m:
+        out['role'] = m.group(1).strip()
+        out['position'] = ROLES.get(out['role'])
+    for key, label in (('price', 'Текущая стоимость'), ('initialPrice', 'Первоначальная стоимость')):
+        m = re.search(label + r' (\d+)', t)
+        if m:
+            out[key] = int(m.group(1))
+    m = re.search(r'Выбрали ([\d.,]+)%', t)
+    if m:
+        out['ownedShare'] = number(m.group(1)) / 100
+    m = re.search(r'Команда (.+?) \(номер', t) or re.search(r'Команда (.+?) Амплуа', t)
+    if m:
+        out['club'] = m.group(1).strip()
+    m = re.search(r'<h1[^>]*>\s*(?:<b>)?([^<]+)', page)
+    if m:
+        out['fullName'] = html.unescape(m.group(1)).strip()
+    return out
+
+
+def parse_calendar(page):
+    i = page.find('id="calendar"')
+    if i < 0:
+        return []
+    block = page[i:page.find('</table>', i)]
+    games = []
+    for row in re.findall(r'<tr>(.*?)</tr>', block, re.S):
+        m = re.search(r'(\d\d\.\d\d\.\d{4})<span class="sp">\|</span>\s*неделя (\d+)', row)
+        if not m:
+            continue
+        cs = [cell(c) for c in re.findall(r'<td[^>]*>(.*?)</td>', row, re.S)]
+        games.append({'date': iso(m.group(1)), 'week': int(m.group(2)), 'opponent': cs[1] if len(cs) > 1 else '',
+                      'home': len(cs) > 2 and cs[2].startswith('Д'),
+                      'score': cs[3].replace(' ', '') if len(cs) > 3 and re.search(r'\d', cs[3]) else None})
+    return games
+
+
+def season_id(page, label=SEASON_LABEL):
+    sel = re.search(r'<select[^>]*id="slt"[^>]*>(.*?)</select>', page, re.S)
+    if not sel:
+        return None
+    for sid, name in re.findall(r'<option value="(\d+)"[^>]*>\s*([^<]+?)\s*</option>', sel.group(1)):
+        if name == label:
+            return sid
+    return None
+
+
+def parse_games(page, season_start='2026-10-01'):
+    m = re.search(r'<table class="stat-table small".*?</table>', page, re.S)
+    if not m:
+        return []
+    rows = re.findall(r'<tr>(.*?)</tr>', m.group(0), re.S)
+    if not rows:
+        return []
+    head = [cell(c) for c in re.findall(r'<td[^>]*>(.*?)</td>', rows[0], re.S)]
+    if 'ФО' not in head or 'МИН' not in head:
+        return []
+    col = {name: i for i, name in enumerate(head)}
+    games = []
+    for row in rows[1:]:
+        cs = [cell(c) for c in re.findall(r'<td[^>]*>(.*?)</td>', row, re.S)]
+        if len(cs) <= col['ФО'] or not re.fullmatch(r'\d\d\.\d\d\.\d{4}', cs[0]):
+            continue
+        day = iso(cs[0])
+        if day < season_start:
+            continue
+        minutes = cs[col['МИН']]
+        played = minutes not in ('', '00:00', '–', '-')
+        game = {'date': day, 'opponent': cs[1], 'home': cs[2].startswith('Д'), 'minutes': minutes if played else '00:00',
+                'points': number(cs[col['ФО']]) or 0, 'played': played}
+        if 'С' in col and len(cs) > col['С']:
+            price = number(cs[col['С']])
+            if price is not None:
+                game['price'] = int(price)
+        games.append(game)
+    games.sort(key=lambda g: g['date'])
+    return games
+
+
+def collect(player):
+    pid = player['sportsId']
+    page = fetch(BASE_URL.format(t=TOURNAMENT, pid=pid))
+    if page is None:
+        return pid, None, None
+    info = parse_info(page)
+    info['name'] = player.get('name')
+    info['clubId'] = player.get('clubId')
+    games = parse_games(page)
+    if not games:
+        sid = season_id(page)
+        if sid:
+            season_page = fetch(SEASON_URL.format(t=TOURNAMENT, pid=pid, sid=sid))
+            games = parse_games(season_page) if season_page else []
+    info['games'] = games
+    return pid, info, parse_calendar(page)
+
+
+def espn_injuries():
+    """ESPN injury report trimmed to what the app reads; a fallback when the browser cannot reach ESPN."""
+    try:
+        feed = json.loads(fetch(INJURY_URL))
+    except Exception as e:  # noqa: BLE001
+        print(f'ESPN injuries unavailable: {e}')
+        return None
+    teams = []
+    for team in feed.get('injuries', []):
+        rows = []
+        for i in team.get('injuries', []):
+            links = (i.get('athlete') or {}).get('links') or []
+            details = i.get('details') or {}
+            rows.append({'status': i.get('status'), 'shortComment': i.get('shortComment', ''), 'date': i.get('date'),
+                         'athlete': {'displayName': (i.get('athlete') or {}).get('displayName'),
+                                     'links': [{'href': links[0].get('href')}] if links else []},
+                         'details': {'returnDate': details.get('returnDate'), 'type': details.get('type'),
+                                     'fantasyStatus': {'abbreviation': (details.get('fantasyStatus') or {}).get('abbreviation', '')}}})
+        teams.append({'displayName': team.get('displayName'), 'injuries': rows})
+    return {'source': INJURY_URL, 'fetchedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'injuries': teams}
+
+
+def week_ranges(calendars):
+    weeks = {}
+    for games in calendars:
+        for g in games:
+            weeks.setdefault(g['week'], []).append(g['date'])
+    out = {}
+    for week, days in sorted(weeks.items()):
+        first = date.fromisoformat(min(days))
+        monday = first - timedelta(days=first.weekday())
+        out[str(week)] = {'start': monday.isoformat(), 'end': (monday + timedelta(days=6)).isoformat()}
+    return out
+
+
+def main():
+    pool = json.loads(PRICES.read_text(encoding='utf-8'))['players']
+    players, calendars, errors = {}, {}, []
+    with ThreadPoolExecutor(WORKERS) as ex:
+        futures = [ex.submit(collect, p) for p in pool]
+        for p, f in zip(pool, futures):
+            try:
+                pid, info, calendar = f.result()
+            except Exception as e:  # noqa: BLE001
+                errors.append({'sportsId': p['sportsId'], 'error': str(e)[:200]})
+                continue
+            if info is None:
+                errors.append({'sportsId': pid, 'error': 'page not found'})
+                continue
+            players[pid] = info
+            club = info.get('club') or p.get('club')
+            if calendar and club:
+                key = json.dumps(calendar, ensure_ascii=False, sort_keys=True)
+                votes = calendars.setdefault(club, {})
+                votes[key] = votes.get(key, 0) + 1
+    # A traded player's page can carry another club's calendar: each club keeps the one most of its players show.
+    clubs = {club: json.loads(max(votes, key=votes.get)) for club, votes in calendars.items()}
+    if len(players) < len(pool) * 0.9:
+        raise SystemExit(f'Only {len(players)} of {len(pool)} Sports.ru players collected; refusing to publish.')
+    out_injuries = espn_injuries()
+    out = {'source': BASE_URL.format(t=TOURNAMENT, pid='<sportsId>'), 'season': SEASON_LABEL,
+           'collectedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+           'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'errors': errors}
+    if out_injuries:
+        out['espnInjuries'] = out_injuries
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+    played = sum(1 for p in players.values() for g in p['games'] if g['played'])
+    print(f'Sports.ru: {len(players)} players, {len(clubs)} club calendars, {played} played games, {len(errors)} errors -> {OUT}')
+
+
+if __name__ == '__main__':
+    main()
