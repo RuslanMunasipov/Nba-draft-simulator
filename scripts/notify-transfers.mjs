@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
+import {esc,gains,moveLines,details,message,plainText} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -29,84 +30,79 @@ const alerts=marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20});
 const pack=left>1?bestPackage(ctx,{team,bankMoney:money,k:left,sort}):null;
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
  .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${i.returnDate?' до '+i.returnDate.slice(8,10)+'.'+i.returnDate.slice(5,7):''}`};});
-const r=n=>Math.round(n),s=n=>(n>=0?'+':'−')+Math.abs(r(n));
 const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?.pairs.length>1?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
 const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=hurt.filter(h=>!previous.injuries?.includes(h.key));
-const lines=[`🏀 FBL · ${teamLabel(team)}`,`Банк ${money} · трансферов осталось на неделе ${left}/${WEEKLY_TRANSFERS}`];
-if(alerts.length){lines.push('','📈 На рынке есть усиление (ФО за 4 недели / сезон):');
- for(const a of alerts.slice(0,5)){const out=current(byId.get(a.outId),ctx);lines.push(`• ${out.name} (${out.price}) → ${a.player.name} (${a.player.price}): ${s(a.gain.month)} / ${s(a.gain.season)}`);}}
-if(pack?.pairs.length>1&&pack.gain>0){lines.push('',`🧩 Лучший пакет из ${pack.pairs.length}: ${s(pack.gains.month)} ФО за 4 недели (сезон ${s(pack.gains.season)}), банк после ${pack.bankAfter}`);for(const x of pack.pairs)lines.push(`• ${x.out.name} → ${x.in.name}`);}
-if(budget.length){lines.push('','⚠️ Нарушения бюджета по ценам Sports.ru:');for(const w of budget)lines.push(`• ${teamLabel(w.team)}: ${w.message}`);}
-if(hurt.length){lines.push('','🩹 Травмы в составе:');for(const h of hurt)lines.push('• '+h.text);}
-lines.push('',SITE);
-const message=lines.join('\n');
+const day=d=>d?`${d.slice(8,10)}.${d.slice(5,7)}`:'';
+const link=`<a href="${SITE}">Открыть помощника</a>`;
+const swapPairs=x=>[{out:current(byId.get(x.outId),ctx).name,in:x.player.name}];
+// A deal for my team: the gain, then the numbered moves.
+const dealLines=d=>d.pack?[gains(d.pack.gains.season,d.pack.gains.month),...moveLines(d.pack.pairs.map(q=>({out:q.out.name,in:q.in.name})),d.pack.bankAfter)]
+ :[gains(d.swap.gain.season,d.swap.gain.month),...moveLines(swapPairs(d.swap),d.swap.bankAfter)];
+// One pro and one risk from the player cards, with the current per-game estimate and injury.
+function brief(p){
+ if(!p)return [];
+ const {pros,cons}=playerInsights(p,db.players),injury=ctx.injuries.get(String(p.espnId));
+ return [`<b>${esc(p.name)}</b> · ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${esc(injury.status)}`:''}`,
+  ...pros.slice(0,1).map(x=>'✅ '+esc(x)),...cons.slice(0,1).map(x=>'⚠️ '+esc(x))];
+}
+
+// My team: the best move first, then single upgrades, budget problems and injuries.
+const mine=[`🏀 <b>${esc(teamLabel(team))}</b>`,`Банк ${money} · трансферов ${left}/${WEEKLY_TRANSFERS}`];
+if(pack?.pairs.length>1&&pack.gain>0)mine.push('',`🧩 <b>Лучший ход: ${pack.pairs.length} трансфера</b>`,
+ gains(pack.gains.season,pack.gains.month),...moveLines(pack.pairs.map(x=>({out:x.out.name,in:x.in.name})),pack.bankAfter));
+if(alerts.length)mine.push('','📈 <b>Отдельные усиления</b>',...alerts.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)}`));
+if(budget.length)mine.push('','⚠️ <b>Бюджет по ценам Sports.ru</b>',...budget.map(w=>`${esc(teamLabel(w.team))}: ${esc(w.message)}`));
+if(hurt.length)mine.push('','🩹 <b>Травмы</b>',...hurt.map(h=>esc(h.text)));
+mine.push('',link);
 const changed=fresh.length>0||freshHurt.length>0;
-console.log(message,'\n\nnew:',fresh,freshHurt.map(h=>h.key));
+console.log(message(mine),'\n\nnew:',fresh,freshHurt.map(h=>h.key));
 async function send(text){
+ console.log('\n'+text+'\n');
  if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID){console.log('Telegram secrets not set: message not sent.');return;}
  const res=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
-  body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text,disable_web_page_preview:true})});
+  body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text,parse_mode:'HTML',disable_web_page_preview:true})});
+ // Rejected markup must not lose the alert: resend the same words as plain text.
+ if(res.status===400){const plain=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
+  body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text:plainText(text),disable_web_page_preview:true})});
+  if(!plain.ok)throw Error('Telegram: '+plain.status+' '+await plain.text());console.log('sent to Telegram as plain text');return;}
  if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());
  console.log('sent to Telegram');
 }
-// The analyst's take from the player cards, one pro and one risk, with the current per-game estimate and injury.
-function brief(label,p){
- if(!p)return [];
- const {pros,cons}=playerInsights(p,db.players),injury=ctx.injuries.get(String(p.espnId));
- return [`${label} ${p.name}: ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${injury.status}`:''}`,
-  ...pros.slice(0,1).map(x=>'  ✅ '+x),...cons.slice(0,1).map(x=>'  ⚠️ '+x)];
-}
-const swapLine=x=>{const out=current(byId.get(x.outId),ctx);return `${out.name} (${out.price}) → ${x.player.name} (${x.player.price}): ${s(x.gain.month)} ФО за 4 недели / ${s(x.gain.season)} за сезон, банк после ${x.bankAfter}`;};
-const packLines=x=>[`пакет из ${x.pairs.length}: ${s(x.gains.month)} ФО за 4 недели / ${s(x.gains.season)} за сезон, банк после ${x.bankAfter}`,
- ...x.pairs.map(q=>`  • ${q.out.name} (${q.out.price}) → ${q.in.name} (${q.in.price})`)];
-const dealLines=(head,d)=>d.pack?[`${head} ${packLines(d.pack)[0]}`,...packLines(d.pack).slice(1)]:[`${head} ${swapLine(d.swap)}`];
-// Whether my team should pick up a player a rival let go, and how: one swap or a full package of this week's transfers.
-function grab(p){
- if(!p)return [];
- if(ctx.rosters.flat().includes(p.id))return [`🔒 ${p.name} уже в другой команде FBL.`];
+// What my team should do about a player a rival let go: the decision in bold, the deal under it.
+function decision(p){
+ if(!p)return {head:null,why:[]};
+ if(ctx.rosters.flat().includes(p.id))return {head:`🔒 <b>${esc(p.name)} уже в другой команде FBL</b>`,why:[]};
  const d=acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:left});
- if(d.worth)return dealLines('🎯 Забирай:',d);
- if(!left)return [`⛔ Трансферы на этой неделе закончились.`];
- if(d.swap)return [`🙅 Тебе брать не стоит. Лучший вариант: ${swapLine(d.swap)}`];
- return [`🙅 Тебе ${p.name} не подходит: не влезает по позиции, бюджету или правилу rookie даже пакетом.`];
+ if(d.worth)return {head:message(`🎯 <b>Тебе: забирай ${esc(p.name)}</b>`,dealLines(d)),why:[]};
+ if(!left)return {head:'⛔ <b>Тебе: трансферы на неделе закончились</b>',why:[]};
+ if(d.swap)return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`Если всё же брать ${esc(p.name)}: ${esc(current(byId.get(d.swap.outId),ctx).name)} → ${esc(p.name)}, ${gains(d.swap.gain.season,d.swap.gain.month)}`]};
+ return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`${esc(p.name)} не влезает по позиции, бюджету или правилу rookie.`]};
 }
-// Every new transfer of the other teams, with the forecast verdict: an upgrade or not, and what would have been better.
+// Every new transfer of the other teams, one message each: who moved, what it gives them, what I should do.
 const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,reported=new Set(previous.transfers||[]);
 const rival=transfers.filter(x=>x.team!==team&&!reported.has(transferKey(x)));
-if(rival.length){
- const blocks=rival.map(x=>{
-  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)});
-  const b=[`${teamLabel(x.team)}`,`${x.date.slice(8,10)}.${x.date.slice(5,7)}: ${out?.name} (${x.outPrice}) → ${joined?.name} (${x.inPrice})`];
-  if(v)b.push(`${v.label}: ${s(v.gain.month)} ФО за 4 недели, ${s(v.gain.season)} за сезон`);
-  b.push(...brief('➖ Ушёл',out),...brief('➕ Пришёл',joined));
-  if(v?.best)b.push(`Лучший вариант за те же деньги: ${v.best.player.name} (${v.best.player.price}): ${s(v.best.gain.month)} / ${s(v.best.gain.season)}`);
-  b.push(`Банк ${bankOf(x.team)} · трансферов осталось ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`);
-  b.push(...grab(out));
-  return b.join('\n');});
- const text=[`🔄 Трансферы соперников (${rival.length})`,...blocks,SITE].join('\n\n');
- console.log(text);await send(text);
+for(const x of rival){
+ const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)}),mineNow=decision(out);
+ const effect=v?`${v.gain.season>=0?'📈':'📉'} Им: ${gains(v.gain.season,v.gain.month)}`:null;
+ await send(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
+  details([...mineNow.why,...brief(joined),...brief(out),
+   ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
+   `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])));
 }
 // Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
-const freshUnknown=unknown.filter(w=>!(previous.unknown||[]).includes(unknownKey(w)));
-if(freshUnknown.length){
- const text=['❓ Сделки соперников с игроками вне нашей базы (разбор недоступен, проверь на Sports.ru)',...freshUnknown.map(w=>`• ${teamLabel(w.team)}: ${w.message}`),SITE].join('\n\n');
- console.log(text);await send(text);
-}
-if(changed)await send(message);else console.log('Nothing new for my team: no message.');
+for(const w of unknown.filter(w=>!(previous.unknown||[]).includes(unknownKey(w))))
+ await send(message(`❓ <b>${esc(teamLabel(w.team))}</b>`,esc(w.message),'Игрока нет в нашей базе: оценки нет, проверь на Sports.ru.'));
+if(changed)await send(message(mine));else console.log('Nothing new for my team: no message.');
 // Injured free agents worth a season transfer: warn when one is about to return, and again the moment he is back.
 const targets=injuredTargets(ctx,{team,bankMoney:money,k:Math.max(1,left)}),injuryKey=x=>`${x.player.id}:${x.injury.status}:${x.injury.returnDate||''}`;
 const warned=new Set(previous.returns||[]),soon=targets.filter(x=>x.soon&&!warned.has(injuryKey(x)));
 // Back on the injury-free list and still free: buy now if it pays over the next 4 weeks too.
 const back=(previous.watch||[]).map(id=>byId.get(id)).filter(p=>p&&!ctx.injuries.get(String(p.espnId))&&!ctx.rosters.flat().includes(p.id))
  .map(p=>({player:current(p,ctx),...acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:Math.max(1,left)})})).filter(x=>x.worth);
-if(soon.length||back.length){
- const date=d=>d?` до ${d.slice(8,10)}.${d.slice(5,7)}`:'';
- const block=(head,x)=>[`${head} ${x.player.name} (${x.player.price})${x.injury?` — ${x.injury.status}${date(x.injury.returnDate)}`:''}`,
-  ...dealLines('  🎯',x).map((l,i)=>i?'  '+l:l),...brief(' ',x.player).slice(1)].join('\n');
- const text=['🏥 Свободные игроки после травм',...back.map(x=>block('✅ Вернулся в строй:',x)),...soon.map(x=>block('🔜 Скоро вернётся:',x)),SITE].join('\n\n');
- console.log(text);await send(text);
-}
+for(const x of back)await send(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',`🎯 <b>Тебе: забирай</b>`,dealLines(x),details(brief(x.player).slice(1))));
+for(const x of soon)await send(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${x.injury.returnDate?' до '+day(x.injury.returnDate):''}`,'',
+ `🎯 <b>Тебе: можно брать</b>`,dealLines(x),details(brief(x.player).slice(1))));
 // Remember what was already reported so the same advice is not sent every two hours.
 // Until Telegram is configured nothing counts as reported: the first messages arrive once the secrets are set.
 if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID)fs.writeFileSync(statePath,JSON.stringify({...previous,updatedAt:new Date().toISOString()}));
