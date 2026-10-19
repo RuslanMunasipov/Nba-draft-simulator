@@ -1,6 +1,11 @@
-import {draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
+import {riskAdjustedValue} from './valuation.js';
+import RULES from '../data/league-rules.json' with {type:'json'};
 export const POSITIONS=['PG','SG','SF','PF','C'];
-export const TEAM_COUNT=8, ROUNDS=10;
+export const TEAM_COUNT=RULES.teams, ROUNDS=RULES.rosterSize, DEFAULT_CAP=RULES.cap.default;
+// Sports.ru: at most two players of one NBA club (rules page 150). Players without a known club are not limited.
+export const CLUB_LIMIT=RULES.nbaClubLimit??Infinity;
+export const clubOf=p=>p?.sportsClub??null;
+export function clubsFit(players){const n=new Map();for(const p of players){const c=clubOf(p);if(c===null)continue;n.set(c,(n.get(c)||0)+1);if(n.get(c)>CLUB_LIMIT)return false;}return true;}
 export const STATUS=['VERIFIED','ESTIMATED','MISSING'];
 // Draft states are immutable; cache ID lookup and current rosters across candidate checks.
 const indexes=new WeakMap(),rosters=new WeakMap();
@@ -10,13 +15,18 @@ export function getPlayer(state,id){
 function cachedRoster(state,team){
  let teams=rosters.get(state);if(!teams){teams=Array.from({length:TEAM_COUNT},()=>[]);for(const choice of state.picks)teams[choice.team].push(getPlayer(state,choice.playerId));rosters.set(state,teams);}return teams[team];
 }
-export function newDraft(players=[],cap=20000,priceMode='OFF'){
+export function newDraft(players=[],cap=DEFAULT_CAP,priceMode='OFF'){
  if(!['OFF','ON'].includes(priceMode))throw Error('Неверный режим цен');
  if(!Number.isFinite(cap)||cap<0)throw Error('Неверный Salary Cap');
  if(!Array.isArray(players)||players.some(p=>!validatePlayer(p))||new Set(players.map(p=>p.id)).size!==players.length)throw Error('Неверные данные игроков или дубли ID');
  return {version:1,cap,priceMode,players,picks:[]};
 }
-export function validatePlayer(p){return p!=null&&typeof p.name==='string'&&p.name.trim().length>0&&(p.price==null||(Number.isFinite(p.price)&&p.price>=0))&&(p.projectedFP==null||Number.isFinite(p.projectedFP))&&(p.isRookie==null||typeof p.isRookie==='boolean')&&((Number.isInteger(p.id)&&p.id>0)||(typeof p.id==='string'&&/^espn:[0-9]+$/.test(p.id)))&&Array.isArray(p.positions)&&(p.positions.length>0||p.positionStatus==='MISSING')&&p.positions.every(x=>POSITIONS.includes(x))&&(!p.priceStatus||STATUS.includes(p.priceStatus));}
+// Only web links leave the page: an imported "javascript:" or data URL is never rendered as a link.
+export const safeUrl=url=>typeof url==='string'&&/^https?:\/\//i.test(url)?url:null;
+// Forecast numbers of an imported player must be numbers, or every later render would break on them.
+const finiteOrMissing=v=>v==null||Number.isFinite(v);
+function validForecast(f){return f==null||(typeof f==='object'&&['meanPerGame','meanSeason','games','seasonFloor','seasonCeiling','gameFloor','gameCeiling','minutes'].every(k=>finiteOrMissing(f[k])));}
+export function validatePlayer(p){return p!=null&&validForecast(p.forecast)&&typeof p.name==='string'&&p.name.trim().length>0&&(p.price==null||(Number.isFinite(p.price)&&p.price>=0))&&(p.projectedFP==null||Number.isFinite(p.projectedFP))&&(p.isRookie==null||typeof p.isRookie==='boolean')&&((Number.isInteger(p.id)&&p.id>0)||(typeof p.id==='string'&&/^espn:[0-9]+$/.test(p.id)))&&Array.isArray(p.positions)&&(p.positions.length>0||p.positionStatus==='MISSING')&&p.positions.every(x=>POSITIONS.includes(x))&&(!p.priceStatus||STATUS.includes(p.priceStatus));}
 export function rosterFits(players){
  if(players.length>10)return false;
  const slots=POSITIONS.flatMap(p=>[p,p]);
@@ -39,6 +49,7 @@ export function pick(state,playerId){
  const team=state.picks.length%TEAM_COUNT;
  const roster=cachedRoster(state,team);
  if(!rosterFits([...roster,player]))throw Error('Невозможно назначить позиции');
+ if(!clubsFit([...roster,player]))throw Error(`Больше ${CLUB_LIMIT} игроков из ${clubOf(player)} нельзя (правило Sports.ru)`);
  if(state.priceMode==='ON'&&[...roster,player].some(p=>p.priceStatus!=='VERIFIED'||!Number.isFinite(p.price)))throw Error('Цена не подтверждена');
  if(roster.length===9&&![...roster,player].some(p=>p.isRookie===true))throw Error('В составе нужен минимум один подтверждённый новичок');
  const cost=[...roster,player].every(p=>Number.isFinite(p.price))?[...roster,player].reduce((s,p)=>s+p.price,0):null;

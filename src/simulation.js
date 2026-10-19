@@ -1,7 +1,15 @@
-import {pickCompletion} from './completion.js';
+import {pickCompletion,completionPlan} from './completion.js';
 import {scoringMetric,seasonScore,FULL_SEASON} from './season-scoring.js';
 import {draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
 import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority, getPlayer } from './engine.js';
+import {DRAFT_PICKS} from './fbl-draft-2026.js';
+
+// Rounds in which the FBL GMs took rookies in the real 2026 draft (picks 32-79): the bots' rookie habit is drawn from them.
+// Without that draft in the catalog (tests, other leagues) bots follow their forecasts alone.
+export function observedRookieRounds(state){
+  const rounds=DRAFT_PICKS.map((id,i)=>getPlayer(state,id)?.isRookie===true?Math.floor(i/TEAM_COUNT)+1:null).filter(Boolean);
+  return rounds.length>=4?rounds:null;
+}
 
 // Deterministic PRNG: identical seed + player data => identical draft.
 export function randomFromSeed(seed=1) {
@@ -28,7 +36,15 @@ export function availableCandidates(state) {
 }
 function botValue(player,style) { return riskAdjustedValue(player,style); }
 function rankingFor(state,style){const metric=scoringMetric(state);return state.players.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>botValue(b,style)-botValue(a,style)||riskPriority(a)-riskPriority(b));}
-export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=null) {
+// How many rookies the team on the clock could still complete its roster with after taking `player` now.
+function rookiesLeftAfter(state,player){
+  const team=currentTeam(state),after={...state,picks:[...state.picks,{number:state.picks.length+1,team,playerId:player.id}]};
+  if(!completionPlan(after,team).possible)return 0;
+  const used=new Set(after.picks.map(p=>p.playerId));let n=0;
+  for(const p of state.players)if(p.isRookie===true&&!used.has(p.id)&&completionPlan({...after,picks:[...after.picks,{team,playerId:p.id}]},team).possible)n++;
+  return n;
+}
+export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=null,rookieRound=null) {
   const metric=scoringMetric(state);
   let candidates=availableCandidates(state).filter(p=>metric!==FULL_SEASON||seasonScore(p,metric)!==null);
   const roster=teamRoster(state,currentTeam(state));
@@ -36,8 +52,9 @@ export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=
   const needsRookie=!roster.some(p=>p.isRookie===true);
   const teamsNeedingRookie=Array.from({length:TEAM_COUNT},(_,team)=>teamRoster(state,team)).filter(r=>!r.some(p=>p.isRookie===true)).length;
   const rookies=candidates.filter(p=>p.isRookie===true);
+  // Rookies are only reserved when they run short; otherwise a rookie is taken when his forecast earns it (the completion
+  // check below keeps a legal rookie slot). The 2026 FBL draft took its rookies between picks 32 and 79.
   if(rookies.length<=teamsNeedingRookie)candidates=needsRookie?rookies:candidates.filter(p=>p.isRookie!==true);
-  else if(needsRookie&&roster.length>=5)candidates=rookies;
   if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
   const allowed=new Set(candidates.map(p=>p.id));
@@ -45,7 +62,18 @@ export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=
   if(!ranked.length) throw Error('Симуляция требует прогнозов projectedFP; без них бот не будет притворяться аналитиком');
   const pool=ranked.slice(0,Math.min(8,ranked.length));
   const index=style==='best' ? 0 : Math.min(pool.length-1,Math.floor(Math.pow(random(),style==='volatile'?0.65:2)*pool.length));
-  const preferred=pool[index];
+  let preferred=pool[index];
+  // Human GMs take their rookie by habit more than by forecast: a team whose target round has come takes its best rookie.
+  // Safety first: when the rookies this team can still use (its open positions, clubs and budget) are no more than the
+  // teams still needing one, the other teams could take them all before this team picks again.
+  if(needsRookie){
+   const habit=rookieRound!=null&&Math.floor(state.picks.length/TEAM_COUNT)+1>=rookieRound;
+   // The exact check runs only when it can matter: few open slots or few rookies left at all.
+   const tight=roster.length>=7||rookies.length<=teamsNeedingRookie+3;
+   if(habit||(preferred.isRookie!==true&&tight&&rookiesLeftAfter(state,preferred)<=teamsNeedingRookie)){
+    const usable=ranked.find(p=>p.isRookie===true&&pickCompletion(state,p.id).possible);if(usable)preferred=usable;
+   }
+  }
   // A locally legal position assignment may consume the only slot for a rookie.
   // Check the selected move before committing, then try deterministic alternatives.
   for(const candidate of [preferred,...ranked.filter(p=>p.id!==preferred.id)]){
@@ -62,10 +90,13 @@ export function advanceBots(state,{humanTeam=0,seed=1,style='balanced'}={}) {
 export function simulateDraft(state,{seed=1,styles=['balanced','best','volatile']}={}) {
   const random=randomFromSeed(seed);
   let next=state;const rankings=new Map();
+  // A GM keeps one style and one rookie habit for the whole draft.
+  const teamStyles=Array.from({length:TEAM_COUNT},()=>styles[Math.floor(random()*styles.length)]);
+  const habits=observedRookieRounds(state),rookieRounds=Array.from({length:TEAM_COUNT},()=>habits?habits[Math.floor(random()*habits.length)]:null);
   while(!isComplete(next)) {
-    const style=styles[Math.floor(random()*styles.length)];
+    const style=teamStyles[currentTeam(next)];
     if(!rankings.has(style))rankings.set(style,rankingFor(state,style));
-    next=botPick(next,random,style,rankings.get(style));
+    next=botPick(next,random,style,rankings.get(style),rookieRounds[currentTeam(next)]);
   }
   return next;
 }

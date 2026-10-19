@@ -1,9 +1,9 @@
 import solver from 'javascript-lp-solver';
-import {rosterFits,POSITIONS,TEAM_COUNT} from './engine.js';
+import {rosterFits,POSITIONS,TEAM_COUNT,DEFAULT_CAP,CLUB_LIMIT as RULE_CLUB_LIMIT} from './engine.js';
 import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 
-export const CAP=20000,WEEKLY_TRANSFERS=3,CLUB_LIMIT=2;
+export const CAP=DEFAULT_CAP,WEEKLY_TRANSFERS=3,CLUB_LIMIT=RULE_CLUB_LIMIT;
 export {TEAM_COUNT};
 // Sports.ru posts its calendar and fantasy weeks in Moscow dates.
 export function moscowToday(now=Date.now()){return new Date(now+3*3600e3).toISOString().slice(0,10);}

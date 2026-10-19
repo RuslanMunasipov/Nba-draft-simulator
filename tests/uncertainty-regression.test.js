@@ -29,8 +29,9 @@ test('precomputed bot rankings preserve identical seeded choices',async()=>{
  const {botPick,randomFromSeed,isComplete}=await import('../src/simulation.js');
  const state=newDraft(players),styles=['balanced','best','volatile'];
  for(const seed of [1,19]){
-  const rng=randomFromSeed(seed);let reference=state;
-  while(!isComplete(reference)){const style=styles[Math.floor(rng()*styles.length)];reference=botPick(reference,rng,style);}
+  // Each GM draws one style for the whole draft; synthetic players carry no real-draft rookie habit.
+  const rng=randomFromSeed(seed);let reference=state;const teamStyles=Array.from({length:8},()=>styles[Math.floor(rng()*styles.length)]);
+  while(!isComplete(reference)){reference=botPick(reference,rng,teamStyles[reference.picks.length%8]);}
   assert.deepEqual(simulateDraft(state,{seed}).picks,reference.picks);
  }
 });

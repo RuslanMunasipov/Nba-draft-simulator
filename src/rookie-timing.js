@@ -1,6 +1,6 @@
 import {completionPlan} from './completion.js';
 import {scoringMetric,fullSeason,FULL_SEASON} from './season-scoring.js';
-import {rosterFits} from './engine.js';
+import {rosterFits,clubsFit} from './engine.js';
 import {severeRisk} from './valuation.js';
 export const DEMAND_PROFILES=[
  {id:'early',name:'Ранний спрос: GM планируют rookie в раундах 2–4',from:2,to:4},
@@ -48,6 +48,7 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
  let actualRookieRound=state.picks.find(p=>p.team===0&&byId.get(p.playerId).isRookie)?.number;actualRookieRound=actualRookieRound?Math.floor((actualRookieRound-1)/8)+1:null;
  const rookies=players.filter(p=>p.isRookie),compatibility=Array.from({length:8},()=>new Map());
  let budgetWitness=Array(8).fill(null);const pendingPlans=new Map();
+ const freePrices=players.filter(p=>!used.has(p.id)&&Number.isFinite(p.price)).map(p=>p.price).sort((a,b)=>a-b);
  function reserveRookies(candidate,team){
   const remaining=rookies.filter(p=>!used.has(p.id)&&p.id!==candidate.id),requirements=[];
   for(let other=0;other<8;other++){
@@ -57,7 +58,7 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
    for(let i=0;i<remaining.length;i++){
     const rookie=remaining[i];let fits;
     if(other!==team&&compatibility[other].has(rookie.id))fits=compatibility[other].get(rookie.id);
-    else{fits=rosterFits([...roster,rookie])&&(state.priceMode!=='ON'||roster.reduce((s,p)=>s+p.price,0)+rookie.price<=state.cap);if(other!==team)compatibility[other].set(rookie.id,fits);}
+    else{fits=rosterFits([...roster,rookie])&&clubsFit([...roster,rookie])&&(state.priceMode!=='ON'||roster.reduce((s,p)=>s+p.price,0)+rookie.price<=state.cap);if(other!==team)compatibility[other].set(rookie.id,fits);}
     if(fits)eligible.push(i);
    }
    if(!eligible.length)return false;requirements.push(eligible);
@@ -68,14 +69,15 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
   return requirements.every((_,i)=>assign(i,new Set()));
  }
  function allowed(p,team,reserve=true){
-  if(used.has(p.id)||!rosterFits([...rosters[team],p]))return false;
+  if(used.has(p.id)||!rosterFits([...rosters[team],p])||!clubsFit([...rosters[team],p]))return false;
   const next=[...rosters[team],p],hasRookie=next.some(x=>x.isRookie);
   if(next.length===10&&!hasRookie)return false;
   if(state.priceMode==='ON'){
    const cost=next.reduce((s,x)=>s+x.price,0);if(cost>state.cap)return false;
-   const remaining=10-next.length;
-   const cheapest=players.filter(x=>!used.has(x.id)&&x.id!==p.id).map(x=>x.price).sort((a,b)=>a-b).slice(0,remaining);
-   if(cheapest.length<remaining||cost+cheapest.reduce((a,b)=>a+b,0)>state.cap)return false;
+   // Quick bound before the exact witness: the cheapest unused prices (kept sorted as players go), without p's own.
+   let remaining=10-next.length,sum=0,skipped=false;
+   for(const price of freePrices){if(!remaining)break;if(!skipped&&price===p.price){skipped=true;continue;}sum+=price;remaining--;}
+   if(remaining>0||cost+sum>state.cap)return false;
   }
   if(state.priceMode==='ON'){
    const after={...state,players,picks:[...picks,{number:picks.length+1,team,playerId:p.id}]};
@@ -106,9 +108,10 @@ export function simulateRookieTiming(state,players,targetRound,profile,seed,scen
   const draw=random(seed+number*7919)(),p=candidates[team===0?0:Math.min(candidates.length-1,Math.floor(draw*draw*candidates.length))];
   if(state.priceMode==='ON')budgetWitness=pendingPlans.get(p.id);pendingPlans.clear();
   used.add(p.id);rosters[team].push(p);compatibility[team].clear();picks.push({number,team,playerId:p.id});
+  if(Number.isFinite(p.price))freePrices.splice(freePrices.indexOf(p.price),1);
   if(team===0&&p.isRookie&&actualRookieRound===null)actualRookieRound=round;
  }
- const valid=rosters.every(r=>r.length===10&&r.some(p=>p.isRookie)&&rosterFits(r)&&(state.priceMode!=='ON'||r.reduce((s,p)=>s+p.price,0)<=state.cap));
+ const valid=rosters.every(r=>r.length===10&&r.some(p=>p.isRookie)&&rosterFits(r)&&clubsFit(r)&&(state.priceMode!=='ON'||r.reduce((s,p)=>s+p.price,0)<=state.cap));
  const human=rosters[0],rookie=human.filter(p=>p.isRookie).reduce((s,p)=>s+value(p),0),veterans=human.filter(p=>!p.isRookie).reduce((s,p)=>s+value(p),0);
  const topThree=new Set(valueOrder.filter(p=>p.isRookie).slice(0,3).map(p=>p.id));
  const future=picks.slice(state.picks.length),humanChoices=future.filter(p=>p.team===0);
@@ -178,5 +181,5 @@ export function rookieTimingStudy(state,{runs=24,seed=2026}={}){
   }
  }
  return {sensitivityDrafts:forecastSensitivity.length*profilesToUse.length*3*2,forecastSensitivity,metric:scoringMetric(state),decision,reason,paired,ourPick:current?.pick??null,nextPick:next?.pick??null,teamsNeedingRookie:Array.from({length:7},(_,i)=>i+1).filter(team=>!state.picks.some(p=>p.team===team&&players.find(x=>x.id===p.playerId)?.isRookie)).length,covered:false,cohort:players.length,rookies:players.filter(p=>p.isRookie).length,runsPerProfile:runs,totalDrafts:rows.length*profilesToUse.length*runs,rows,bestByProfile,excludedProfiles,recommendedRound:best?.round??null,recommendedPick:best?.pick??null,robustRound:robust?.round??null,profileRange:profileRounds.length?[Math.min(...profileRounds),Math.max(...profileRounds)]:null,stable:profileRounds.length===profilesToUse.length&&new Set(profileRounds).size===1,meanGap:best&&runner?best.meanTeam-runner.meanTeam:null,
-  method:'Основной критерий — максимальная средняя сумма сезонных оценок полного состава в единой метрике при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. Для автоматической базы учитываются все компоненты формулы, включая оценочные фолы и бонусы. Импорт без полной модели сравнивается отдельно по частичным ФО. Допуск автоматического драфта берётся строго из Sports.ru; позиции Yahoo не расширяют доступные места. При включённом бюджете проверяется допустимый добор всех команд; соперники по возможности сохраняют средний бюджет на оставшиеся места. Это заданная бюджетная стратегия GM, не доказательство глобально оптимального состава. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
+  method:'Основной критерий — максимальная средняя сумма сезонных оценок полного состава в единой метрике при РАВНОМ техническом весе совместимых сценариев, не подтверждённых вероятностях. Дополнительно рассчитываем минимакс сожаления: минимальное наибольшее отставание от лучшего решения внутри каждого сценария спроса. Профили спроса и выбор GM — допущения, не подтверждённые вероятности. Сценарии, противоречащие уже записанным пикам GM, исключаются; это согласование гипотез, не калибровка вероятностей. ADP задаёт рыночный порядок ветеранов; новичков GM выбирают по индивидуальному прогнозу. Для автоматической базы учитываются все компоненты формулы, включая оценочные фолы и бонусы. Импорт без полной модели сравнивается отдельно по частичным ФО. Допуск автоматического драфта берётся строго из Sports.ru; позиции Yahoo не расширяют доступные места. При включённом бюджете каждый выбор оставляет всем командам допустимый добор состава (позиции, не больше двух игроков одного клуба, бюджет); отдельной стратегии распределения бюджета у соперников нет. Это не доказательство глобально оптимального состава. Невалидные прогоны не исключаются молча: стратегия с ними не допускается к рекомендации.'};
 }
