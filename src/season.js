@@ -44,11 +44,12 @@ export function perGame(player,live){
 }
 // Share of team games a healthy player plays, from his own forecast of games.
 export function playRate(player){const g=player.forecast?.games;return Number.isFinite(g)?Math.min(.97,Math.max(.5,g/82)):.85;}
+export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||/out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season/i.test(injury?.comment||'');
 // Chance to play a game on a date given the ESPN injury report.
 export function injuryFactor(injury,day,today){
  if(!injury)return 1;
  const status=String(injury.status||''),fantasy=String(injury.fantasyStatus||''),back=injury.returnDate||null;
- if(fantasy==='OFS'||/out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season/i.test(injury.comment||''))return back&&day>=back?1:0;
+ if(seasonEnding(injury))return back&&day>=back?1:0;
  const out=/out|suspension/i.test(status)&&fantasy!=='GTD';
  if(back)return day<back?(out?0:.5):1;
  return out?(day<addDays(today,10)?0:1):(day<addDays(today,3)?.5:1);
@@ -78,20 +79,41 @@ export function playerOutlook(player,ctx){
 }
 // Every legal one-for-one replacement of a roster player: same Sports.ru slot structure, price within the bank, a rookie kept.
 // Gains are expected official points of the newcomer minus those of the player sold, over each horizon.
+function selling(ctx,team,outId,bankMoney,byId){
+ const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),leaving=roster.find(p=>p.id===outId);
+ if(!leaving)return null;
+ const rest=roster.filter(p=>p.id!==outId);
+ return {leaving,rest,money:bankMoney+leaving.price,needRookie:!rest.some(p=>p.isRookie===true),base:playerOutlook(leaving,ctx)};
+}
+const onMarket=(raw,ctx)=>raw.sportsId&&(ctx.live?.players?.[raw.sportsId]||raw.priceStatus==='VERIFIED');
+const fits=(sale,p)=>Number.isFinite(p.price)&&p.price<=sale.money&&(!sale.needRookie||p.isRookie===true)&&rosterFits([...sale.rest,p]);
+function swap(sale,p,ctx){
+ const outlook=playerOutlook(p,ctx),gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-sale.base[k].points;
+ return {outId:sale.leaving.id,player:p,outlook,gain,bankAfter:sale.money-p.price};
+}
 export function transferOptions(ctx,{team,outId,bankMoney,limit=15,sort='month'}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),rosters=ctx.rosters,taken=new Set(rosters.flat());
- const roster=rosters[team].map(id=>current(byId.get(id),ctx)),leaving=roster.find(p=>p.id===outId);
- if(!leaving)return [];
- const rest=roster.filter(p=>p.id!==outId),money=bankMoney+leaving.price,needRookie=!rest.some(p=>p.isRookie===true);
- const base=playerOutlook(leaving,ctx),options=[];
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),sale=selling(ctx,team,outId,bankMoney,byId);
+ if(!sale)return [];
+ const options=[];
  for(const raw of ctx.players){
-  if(taken.has(raw.id)||!raw.sportsId||!ctx.live?.players?.[raw.sportsId]&&raw.priceStatus!=='VERIFIED')continue;
+  if(taken.has(raw.id)||!onMarket(raw,ctx))continue;
   const p=current(raw,ctx);
-  if(!Number.isFinite(p.price)||p.price>money||(needRookie&&p.isRookie!==true)||!rosterFits([...rest,p]))continue;
-  const outlook=playerOutlook(p,ctx),gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-base[k].points;
-  options.push({player:p,outlook,gain,bankAfter:money-p.price});
+  if(fits(sale,p))options.push(swap(sale,p,ctx));
  }
  return options.sort((a,b)=>b.gain[sort]-a.gain[sort]).slice(0,limit);
+}
+// The best legal one-for-one swap that brings a given free player into a team, or null when none fits.
+export function bestSwapFor(ctx,{team,playerId,bankMoney,sort='season'}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),raw=byId.get(playerId);
+ if(!raw||ctx.rosters.flat().includes(playerId)||!onMarket(raw,ctx))return null;
+ const p=current(raw,ctx);let best=null;
+ for(const outId of ctx.rosters[team]){
+  const sale=selling(ctx,team,outId,bankMoney,byId);
+  if(!sale||!fits(sale,p))continue;
+  const option=swap(sale,p,ctx);
+  if(!best||option.gain[sort]>best.gain[sort])best=option;
+ }
+ return best;
 }
 // The single best replacement for every player of a team, best gains first.
 export function bestTransfers(ctx,{team,bankMoney,sort='month',limit=10}){
@@ -120,7 +142,7 @@ export function parseInjuries(feed){
 // Exact best package of up to k transfers this week (integer programming over the roster and the strongest free agents):
 // keep or sell each player, buy free agents, two per Sports.ru position, at least one rookie, money within the bank.
 // By default the package may not lower the rest-of-season expectation: short-term gains never cost the season.
-export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true}){
+export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat());
  const value=p=>playerOutlook(p,ctx)[sort].points;
  const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),wealth=bankMoney+roster.reduce((s,p)=>s+p.price,0);
@@ -130,14 +152,18 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
    .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth)
    .map(p=>({p,v:value(p)})).sort((a,b)=>b.v-a.v).slice(0,poolPerPosition));
  }
+ // `include`: a free player the package must buy.
+ const must=include!=null&&!taken.has(include)&&byId.get(include)?current(byId.get(include),ctx):null;
+ if(include!=null&&!must)return null;
+ if(must)pool.push({p:must,v:value(must)});
  const unique=[...new Map(pool.map(x=>[x.p.id,x])).values()];
- const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1}},variables:{},ints:{}};
+ const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1},...(must?{must:{min:1}}:{})},variables:{},ints:{}};
  const subsets=Array.from({length:31},(_,m)=>POSITIONS.filter((_,i)=>(m+1)>>i&1));
  subsets.forEach((T,i)=>{model.constraints['pos'+i]={max:2*T.length};});
  const items=[...roster.map(p=>({p,v:value(p),own:true})),...unique.map(x=>({...x,own:false}))];
  const seasonOf=new Map(items.map(x=>[x.p.id,playerOutlook(x.p,ctx).season.points]));
  if(protectSeason&&sort!=='season')model.constraints.season={min:roster.reduce((s,p)=>s+seasonOf.get(p.id),0)-1e-6};
- items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;
+ items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;if(x.p.id===must?.id)v.must=1;
   subsets.forEach((T,j)=>{if(x.p.positions.every(q=>T.includes(q)))v['pos'+j]=1;});
   model.constraints['one'+i]={max:1};model.variables['x'+i]=v;model.ints['x'+i]=1;});
  const result=solver.Solve(model);if(!result.feasible)return null;
@@ -164,6 +190,35 @@ export function transferVerdict(ctx,transfer,{bankMoney,threshold=15}){
  const before=ctx.rosters.map((r,t)=>t===transfer.team?r.map(id=>id===transfer.inId?transfer.outId:id):r);
  const [best]=transferOptions({...ctx,rosters:before},{team:transfer.team,outId:transfer.outId,bankMoney:bankMoney-transfer.outPrice+transfer.inPrice,limit:1});
  return {gain,verdict,label:VERDICTS[verdict],best:best&&best.player.id!==transfer.inId&&best.gain.month>gain.month?best:null};
+}
+// How a team can get a given free player: the best one-for-one swap, or else the best package of up to k transfers
+// that buys him. Worth it when the season gains at least minGain and the next 4 weeks do not drop below monthFloor.
+export function acquisition(ctx,{team,playerId,bankMoney,k=1,minGain=15,monthFloor=0}){
+ const swap=bestSwapFor(ctx,{team,playerId,bankMoney});
+ if(swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor)return {worth:true,swap,pack:null};
+ if(k>1){
+  const pack=bestPackage(ctx,{team,bankMoney,k,sort:'season',include:playerId});
+  if(pack&&pack.gains.season>=minGain&&pack.gains.month>=monthFloor)return {worth:true,swap,pack};
+ }
+ return {worth:false,swap,pack:null};
+}
+// Injured free agents worth getting over the season (not out for it), with how to get them.
+// `soon`: day-to-day, or an ESPN return date within `days` — the moment to buy before the rivals and the price react.
+export function injuredTargets(ctx,{team,bankMoney,k=1,days=7,minGain=30}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),until=addDays(ctx.today,days),out=[];
+ const rate=p=>perGame(p,ctx.live?.players?.[p.sportsId]).value*playRate(p);
+ const weakest=Math.min(...ctx.rosters[team].map(id=>rate(byId.get(id))));
+ for(const raw of ctx.players){
+  const injury=raw.espnId&&ctx.injuries?.get(String(raw.espnId));
+  if(!injury||taken.has(raw.id)||seasonEnding(injury)||rate(raw)<=weakest)continue;
+  // Still out for a while: judged on the season only; the 4-week window is checked again once he is back.
+  const deal=acquisition(ctx,{team,playerId:raw.id,bankMoney,k,minGain,monthFloor:-Infinity});
+  if(!deal.worth)continue;
+  const dayToDay=!/out|suspension/i.test(injury.status||'')||injury.fantasyStatus==='GTD';
+  out.push({player:current(raw,ctx),injury,...deal,soon:dayToDay||Boolean(injury.returnDate&&injury.returnDate.slice(0,10)<=until)});
+ }
+ const gainOf=x=>x.pack?x.pack.gains.season:x.swap.gain.season;
+ return out.sort((a,b)=>gainOf(b)-gainOf(a));
 }
 // Free agents who beat a current player of the same position over the horizon and over the rest of the season,
 // affordable in a one-for-one swap: real upgrades, not short-term streams.

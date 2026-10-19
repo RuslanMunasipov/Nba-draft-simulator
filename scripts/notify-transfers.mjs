@@ -1,9 +1,10 @@
 // Transfer alerts for one FBL team, sent to Telegram when something new appears on the market,
-// and a verdict on every new transfer of the other teams.
+// a verdict on every new transfer of the other teams (and whether to grab the player they let go),
+// and injured free agents about to return or just back.
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 const [livePath,statePath]=process.argv.slice(2);
@@ -54,6 +55,20 @@ function brief(label,p){
  return [`${label} ${p.name}: ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${injury.status}`:''}`,
   ...pros.slice(0,1).map(x=>'  ✅ '+x),...cons.slice(0,1).map(x=>'  ⚠️ '+x)];
 }
+const swapLine=x=>{const out=current(byId.get(x.outId),ctx);return `${out.name} (${out.price}) → ${x.player.name} (${x.player.price}): ${s(x.gain.month)} ФО за 4 недели / ${s(x.gain.season)} за сезон, банк после ${x.bankAfter}`;};
+const packLines=x=>[`пакет из ${x.pairs.length}: ${s(x.gains.month)} ФО за 4 недели / ${s(x.gains.season)} за сезон, банк после ${x.bankAfter}`,
+ ...x.pairs.map(q=>`  • ${q.out.name} (${q.out.price}) → ${q.in.name} (${q.in.price})`)];
+const dealLines=(head,d)=>d.pack?[`${head} ${packLines(d.pack)[0]}`,...packLines(d.pack).slice(1)]:[`${head} ${swapLine(d.swap)}`];
+// Whether my team should pick up a player a rival let go, and how: one swap or a full package of this week's transfers.
+function grab(p){
+ if(!p)return [];
+ if(ctx.rosters.flat().includes(p.id))return [`🔒 ${p.name} уже в другой команде FBL.`];
+ const d=acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:left});
+ if(d.worth)return dealLines('🎯 Забирай:',d);
+ if(!left)return [`⛔ Трансферы на этой неделе закончились.`];
+ if(d.swap)return [`🙅 Тебе брать не стоит. Лучший вариант: ${swapLine(d.swap)}`];
+ return [`🙅 Тебе ${p.name} не подходит: не влезает по позиции, бюджету или правилу rookie даже пакетом.`];
+}
 // Every new transfer of the other teams, with the forecast verdict: an upgrade or not, and what would have been better.
 const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,reported=new Set(previous.transfers||[]);
 const rival=transfers.filter(x=>x.team!==team&&!reported.has(transferKey(x)));
@@ -65,11 +80,26 @@ if(rival.length){
   b.push(...brief('➖ Ушёл',out),...brief('➕ Пришёл',joined));
   if(v?.best)b.push(`Лучший вариант за те же деньги: ${v.best.player.name} (${v.best.player.price}): ${s(v.best.gain.month)} / ${s(v.best.gain.season)}`);
   b.push(`Банк ${bankOf(x.team)} · трансферов осталось ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`);
+  b.push(...grab(out));
   return b.join('\n');});
  const text=[`🔄 Трансферы соперников (${rival.length})`,...blocks,SITE].join('\n\n');
  console.log(text);await send(text);
 }
 if(changed)await send(message);else console.log('Nothing new for my team: no message.');
+// Injured free agents worth a season transfer: warn when one is about to return, and again the moment he is back.
+const targets=injuredTargets(ctx,{team,bankMoney:money,k:Math.max(1,left)}),injuryKey=x=>`${x.player.id}:${x.injury.status}:${x.injury.returnDate||''}`;
+const warned=new Set(previous.returns||[]),soon=targets.filter(x=>x.soon&&!warned.has(injuryKey(x)));
+// Back on the injury-free list and still free: buy now if it pays over the next 4 weeks too.
+const back=(previous.watch||[]).map(id=>byId.get(id)).filter(p=>p&&!ctx.injuries.get(String(p.espnId))&&!ctx.rosters.flat().includes(p.id))
+ .map(p=>({player:current(p,ctx),...acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:Math.max(1,left)})})).filter(x=>x.worth);
+if(soon.length||back.length){
+ const date=d=>d?` до ${d.slice(8,10)}.${d.slice(5,7)}`:'';
+ const block=(head,x)=>[`${head} ${x.player.name} (${x.player.price})${x.injury?` — ${x.injury.status}${date(x.injury.returnDate)}`:''}`,
+  ...dealLines('  🎯',x).map((l,i)=>i?'  '+l:l),...brief(' ',x.player).slice(1)].join('\n');
+ const text=['🏥 Свободные игроки после травм',...back.map(x=>block('✅ Вернулся в строй:',x)),...soon.map(x=>block('🔜 Скоро вернётся:',x)),SITE].join('\n\n');
+ console.log(text);await send(text);
+}
 // Remember what was already reported so the same advice is not sent every two hours.
 fs.writeFileSync(statePath,JSON.stringify({updatedAt:new Date().toISOString(),sent:[...new Set([...(previous.sent||[]),...keys])].slice(-200),injuries:hurt.map(h=>h.key),
- transfers:[...new Set([...(previous.transfers||[]),...transfers.map(transferKey)])]}));
+ transfers:[...new Set([...(previous.transfers||[]),...transfers.map(transferKey)])],
+ returns:[...new Set([...(previous.returns||[]),...soon.map(injuryKey)])].slice(-500),watch:targets.map(x=>x.player.id)}));

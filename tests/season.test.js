@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict} from '../src/season.js';
+import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -135,4 +135,28 @@ test('a made transfer is judged by the forecast and compared with the best swap'
  assert.equal(v.best.player.id,92);assert.ok(v.best.gain.month>0);
  const w=transferVerdict(ctx({rosters:seasonRosters([{...t,inId:92}],picks)}),{...t,inId:92},{bankMoney:500});
  assert.equal(w.verdict,'even');assert.equal(w.best,null);
+});
+test('a free player is brought in for the roster player he beats most, within the slots and the rookie rule',()=>{
+ // #100 is a C (39 a game); team 0 has C #65 (30) and the rookie C #73, which must stay.
+ const s=bestSwapFor(ctx(),{team:0,playerId:100,bankMoney:0});
+ assert.equal(s.outId,65);assert.ok(s.gain.season>0);
+ assert.equal(bestSwapFor(ctx(),{team:0,playerId:2,bankMoney:0}),null);// #2 plays for team 1
+ const poor=players.map(p=>p.id===100?{...p,price:9000}:p);
+ assert.equal(bestSwapFor(ctx({players:poor}),{team:0,playerId:100,bankMoney:0}),null);
+});
+test('injured free agents worth a season transfer are flagged when they are about to return',()=>{
+ const injuries=new Map([['5100',{status:'Out',returnDate:'2026-10-22'}],['5099',{status:'Out',fantasyStatus:'OFS',returnDate:'2027-07-01'}],
+  ['5090',{status:'Out',returnDate:'2026-10-22'}],['5098',{status:'Out',returnDate:'2026-11-18'}]]);
+ const list=injuredTargets(ctx({injuries}),{team:0,bankMoney:0,minGain:20});
+ // #99 is out for the season, #90 (29 a game) is no upgrade; #98 returns too late to be worth it on this short calendar.
+ assert.deepEqual(list.map(x=>[x.player.id,x.swap.outId,x.soon]),[[100,65,true]]);
+});
+test('a player too expensive for one swap is bought within a package that funds him',()=>{
+ // #100 (C, 39 a game) costs 3000 with an empty bank: selling C #65 alone (1500) is not enough.
+ const pricey=players.map(p=>p.id===100?{...p,price:3000}:p.id===96?{...p,price:0}:p);
+ const c=ctx({players:pricey});
+ assert.equal(bestSwapFor(c,{team:0,playerId:100,bankMoney:0}),null);
+ const one=acquisition(c,{team:0,playerId:100,bankMoney:0,k:1,minGain:0});assert.equal(one.worth,false);
+ const two=acquisition(c,{team:0,playerId:100,bankMoney:0,k:2,minGain:0,monthFloor:-Infinity});
+ assert.equal(two.worth,true);assert.ok(two.pack.pairs.some(x=>x.in.id===100));assert.ok(two.pack.bankAfter>=0);
 });
