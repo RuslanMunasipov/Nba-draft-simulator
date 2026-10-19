@@ -1,42 +1,44 @@
 name: Season live data
+# One long run at a time: FBL transfer journals every minute, the full Sports.ru collection every two hours.
+# Each run lasts just under six hours and then starts the next one itself: GitHub schedules are best-effort
+# and skipped runs are common, so the cron below is only a fallback. Cancel a run to stop the chain.
 on:
   schedule:
-    - cron: '23 */2 * * *'
+    - cron: '23 */6 * * *'
   workflow_dispatch:
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: season-live
   cancel-in-progress: false
 jobs:
-  collect:
+  watch:
     runs-on: ubuntu-latest
+    timeout-minutes: 358
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Collect Sports.ru prices, calendar, official points and ESPN injuries
-        run: python scripts/collect_sports_current.py out/sports-current.json
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
-      - name: Transfer alerts to Telegram (only when something new appears)
-        continue-on-error: true
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: node scripts/notify-transfers.mjs out/sports-current.json out/notify-state.json
-      - name: Publish the snapshot to the data/season-live branch
+      - name: Start from the last published snapshot and alert state
+        run: |
+          mkdir -p out
+          git fetch -q origin data/season-live:refs/remotes/origin/data/season-live || exit 0
+          git show origin/data/season-live:sports-current.json > out/sports-current.json || rm -f out/sports-current.json
+          git show origin/data/season-live:notify-state.json > out/notify-state.json || rm -f out/notify-state.json
+      - name: Watch transfers and collect Sports.ru data
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          cd out
-          git init -q -b data/season-live
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add sports-current.json
-          [ -f notify-state.json ] && git add notify-state.json || true
-          git commit -qm "Sports.ru live snapshot $(date -u +%FT%TZ)"
-          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" data/season-live
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/season_watch.py out/sports-current.json out/notify-state.json --minutes 345 --every 60 --full-every 120
+      - name: Start the next watch run
+        if: success() || failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run season-data.yml --ref "${{ github.ref_name }}"

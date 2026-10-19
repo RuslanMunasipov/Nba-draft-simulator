@@ -15,7 +15,8 @@ const json=async url=>{const r=await fetch(url);if(!r.ok)throw Error(url+': '+r.
 const live=JSON.parse(fs.readFileSync(livePath,'utf8'));
 const db=process.env.DB_PATH?JSON.parse(fs.readFileSync(process.env.DB_PATH,'utf8')):await json(SITE+'data/default-draft.json');
 const league=JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import.meta.url),'utf8'));
-const previous=await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
+// A watcher that runs for hours keeps the state locally: the published copy can lag behind the raw-file cache.
+const previous=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
 const byId=new Map(db.players.map(p=>[p.id,p])),today=moscowToday();
 const {transfers,warnings}=allTransfers(db.players,live,league);
 const ctx={players:db.players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers)};
@@ -85,6 +86,13 @@ if(rival.length){
  const text=[`🔄 Трансферы соперников (${rival.length})`,...blocks,SITE].join('\n\n');
  console.log(text);await send(text);
 }
+// Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
+const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
+const freshUnknown=unknown.filter(w=>!(previous.unknown||[]).includes(unknownKey(w)));
+if(freshUnknown.length){
+ const text=['❓ Сделки соперников с игроками вне нашей базы (разбор недоступен, проверь на Sports.ru)',...freshUnknown.map(w=>`• ${teamLabel(w.team)}: ${w.message}`),SITE].join('\n\n');
+ console.log(text);await send(text);
+}
 if(changed)await send(message);else console.log('Nothing new for my team: no message.');
 // Injured free agents worth a season transfer: warn when one is about to return, and again the moment he is back.
 const targets=injuredTargets(ctx,{team,bankMoney:money,k:Math.max(1,left)}),injuryKey=x=>`${x.player.id}:${x.injury.status}:${x.injury.returnDate||''}`;
@@ -104,4 +112,4 @@ if(soon.length||back.length){
 if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID)fs.writeFileSync(statePath,JSON.stringify({...previous,updatedAt:new Date().toISOString()}));
 else fs.writeFileSync(statePath,JSON.stringify({updatedAt:new Date().toISOString(),sent:[...new Set([...(previous.sent||[]),...keys])].slice(-200),injuries:hurt.map(h=>h.key),
  transfers:[...new Set([...(previous.transfers||[]),...transfers.map(transferKey)])],
- returns:[...new Set([...(previous.returns||[]),...soon.map(injuryKey)])].slice(-500),watch:targets.map(x=>x.player.id)}));
+ returns:[...new Set([...(previous.returns||[]),...soon.map(injuryKey)])].slice(-500),watch:targets.map(x=>x.player.id),unknown:[...new Set([...(previous.unknown||[]),...unknown.map(unknownKey)])].slice(-200)}));

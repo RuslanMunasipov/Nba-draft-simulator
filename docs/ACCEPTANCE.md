@@ -97,3 +97,8 @@ Do not convert historical averages into a season prediction, invent missing pric
 - Points per game: points per minute shrink slowly (20 forecast games), minutes faster and with recency (half-life 20 games); rookies and group priors adapt minutes faster. Held-out rest-of-season MAE 2.37 → 2.30 FP for established players, 2.70 → 2.55 for newcomers.
 - Availability: the share of team games played is now updated from games played and missed (20 forecast games of weight), counted against the club calendar too. Held-out MAE 0.223 → 0.189. No recency weight, so the injury report is not a second penalty for a current absence.
 - Player-clustered 95% bootstrap intervals of the MAE gain are positive for all three. The prior in the backtest is the previous season, not an archived ESPN forecast; zero error is not attainable.
+
+## Minute-level transfer watch — 19 October 2026
+- The season workflow is one long run: all 8 FBL Sports.ru transfer journals every 60 s, the full Sports.ru collection every 2 h. A new journal row runs the Telegram notifier and publishes `data/season-live` within about a minute (8 journals load in ~2 s; the notifier takes ~1 s).
+- Scheduled GitHub runs proved unreliable: the 2-hour cron never fired, all collections were manual. Each run now lasts just under six hours and dispatches the next one itself; the cron is only a fallback. Cancelling a run stops the chain.
+- The notifier keeps its state in the run, so a fresh rival move is not reported twice through the raw-file cache. Rival deals with players missing from the Sports.ru catalog are sent once as raw journal lines; they cannot be evaluated until the player is in the database.
