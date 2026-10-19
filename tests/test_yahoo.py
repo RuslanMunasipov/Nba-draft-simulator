@@ -46,6 +46,13 @@ class YahooTest(unittest.TestCase):
         self.assertEqual(yahoo.redirect_used('https://localhost:8080/?code=x&state=https%3A%2F%2Flocalhost%3A8080'), 'https://localhost:8080')
         self.assertEqual(yahoo.redirect_used('https://localhost:8080/?code=x'), 'https://localhost:8080/')
 
+    def test_user_leagues_give_the_exact_season_key(self):
+        xml = HEAD + '''<users><user><games>
+<game><game_key>454</game_key><leagues><league><league_key>454.l.246081</league_key><league_id>246081</league_id><name>Old</name></league></leagues></game>
+<game><game_key>466</game_key><leagues><league><league_key>466.l.246081</league_key><league_id>246081</league_id><name>FBL</name></league></leagues></game>
+</games></user></users></fantasy_content>'''
+        self.assertEqual([k for k, i, _ in yahoo.parse_user_leagues(xml) if i == '246081'][-1], '466.l.246081')
+
     def test_token_is_stored_encrypted(self):
         os.environ['YAHOO_CLIENT_SECRET'] = 'test-secret'
         sealed = yahoo.crypt(b'refresh-token-value')
