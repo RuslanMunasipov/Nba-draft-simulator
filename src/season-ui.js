@@ -256,13 +256,13 @@ function yahooHelper(){
  const status=live?.yahooStatus;
  if(status?.error==='not_approved'){
   // Since July 2026 Yahoo serves Fantasy data only to apps it approved; consent alone gets a token but every call answers 403.
-  const warn=el('div',null,'sp-alerts');warn.append(el('h3','Yahoo не одобрил приложение для Fantasy API'),
-   el('p',`Проверено ${stamp(status.checkedAt)}: вход и токен работают, но Yahoo отвечает 403 «not authorized» на любой запрос, даже публичный. С июля 2026 Yahoo даёт Fantasy API только одобренным приложениям. Повторное «Agree» не поможет.`));
+  const warn=el('div',null,'sp-alerts');warn.append(el('h3','Yahoo не активировал приложение для Fantasy API'),
+   el('p',`Проверено ${stamp(status.checkedAt)}: вход и токен работают, но Yahoo отвечает 403 «not authorized» на любой запрос, даже публичный. Это переключатель на стороне Yahoo, его включают вручную. Повторное «Agree» не поможет.`));
   const todo=el('ol');
-  const a=el('li');a.append(link('Подать заявку на доступ ↗','https://sports.yahoo.com/developer/access/'),document.createTextNode(' и подписать соглашение из письма (DocuSign).'));
-  const b=el('li','После одобрения создать НОВОЕ приложение на developer.yahoo.com (старые Yahoo не включает).');
-  const c=el('li');c.append(document.createTextNode('Отправить Client ID и App ID нового приложения через '),link('форму подтверждения ↗','https://sports.yahoo.com/developer/application-confirmation/'),document.createTextNode('.'));
-  const d=el('li','Заменить секреты YAHOO_CLIENT_ID и YAHOO_CLIENT_SECRET в GitHub и пройти шаги ниже с новым Client ID. Сбор данных проверяет доступ каждые 2 часа.');
+  const a=el('li');a.append(document.createTextNode('Если в приложении на developer.yahoo.com в API Permissions есть Fantasy Sports — отправить его Client ID через '),link('форму подтверждения ↗','https://sports.yahoo.com/developer/application-confirmation/'),document.createTextNode('.'));
+  const b=el('li');b.append(document.createTextNode('Написать на '),link('fantasyapideveloper@yahoosports.com','mailto:fantasyapideveloper@yahoosports.com'),document.createTextNode(': App ID, Client ID, Yahoo ID и просьба активировать приложение для Fantasy API (Client Secret не отправлять).'));
+  const c=el('li');c.append(document.createTextNode('Если Fantasy Sports в приложении нет — '),link('подать заявку ↗','https://sports.yahoo.com/developer/access/'),document.createTextNode(', подписать соглашение и создать новое приложение.'));
+  const d=el('li','Сбор данных проверяет доступ каждые 2 часа: как только Yahoo включит, данные появятся сами. Для нового приложения — заменить секреты YAHOO_CLIENT_ID/SECRET и пройти шаги ниже.');
   todo.append(a,b,c,d);warn.append(todo);box.append(warn);box.open=true;
  }else if(status)box.append(el('p',`Yahoo ${stamp(status.checkedAt)}: ${status.message}`,'warning'));
  const id=el('input');id.placeholder='Client ID приложения Yahoo';id.value=readStored('fbl-yahoo-client')||'';

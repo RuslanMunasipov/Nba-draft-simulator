@@ -26,10 +26,11 @@ API = 'https://fantasysports.yahooapis.com/fantasy/v2/'
 NS = {'y': 'http://fantasysports.yahooapis.com/fantasy/v2/base.rng'}
 # Since July 2026 Yahoo answers every Fantasy resource, public game/nba included, with this 403 unless it approved the app.
 # Consent and tokens still work, so pressing Agree again changes nothing.
-NOT_APPROVED = ('Yahoo has not approved this app for the Fantasy API: tokens work, but every Fantasy resource answers 403 '
-                '"This application is not authorized to perform this action". Apply at https://sports.yahoo.com/developer/access/, '
-                'sign the agreement, then create a NEW app and submit its Client ID at '
-                'https://sports.yahoo.com/developer/application-confirmation/. Re-consenting does not help.')
+NOT_APPROVED = ('Yahoo has not activated this app for the Fantasy API: tokens work, but every Fantasy resource answers 403 '
+                '"This application is not authorized to perform this action". Yahoo flips this manually. If the app lists Fantasy Sports '
+                'under API Permissions, submit its Client ID at https://sports.yahoo.com/developer/application-confirmation/ and email '
+                'fantasyapideveloper@yahoosports.com with the App ID, Client ID and Yahoo ID; otherwise apply at '
+                'https://sports.yahoo.com/developer/access/ and create a new app. Re-consenting does not help.')
 
 
 def secret(name):
