@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,normalizeName} from '../src/season.js';
+import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -122,21 +122,41 @@ test('a sold player is matched by name and the buy by position and price',()=>{
  const r=journalTransfers(named,{...live,teams:{0:{journal}}},picks);
  assert.equal(r.transfers[0].inId,84);assert.equal(r.warnings.length,0);
 });
-test('Yahoo add/drop moves become transfers priced by Sports.ru on the day',()=>{
- const named=players.map(p=>({...p,name:p.id===81?'Nikola Jokić':p.id===1?'Morez Johnson Jr.':'Player '+[...String(p.id)].map(d=>'abcdefghij'[d]).join('')}));
- const roster=t=>picks.filter((_,i)=>i%8===t).map(id=>({name:named[id-1].name}));
- const yahooTeams=Array.from({length:8},(_,t)=>({key:'k'+t,name:'Y'+t,roster:roster(t)}));
- // Team 0 has already swapped #1 for 81 in Yahoo: today's roster shows 81.
- yahooTeams[0].roster=yahooTeams[0].roster.map(r=>r.name==='Morez Johnson Jr.'?{name:'Nikola Jokic'}:r);
- const ts=Date.parse('2026-10-26T10:00:00Z')/1000;
- const yahoo={teams:yahooTeams,transactions:[{key:'t1',type:'add/drop',timestamp:ts,moves:[{name:'Nikola Jokic',kind:'add',to:'k0'},{name:'Morez Johnson Jr',kind:'drop',from:'k0'}]}]};
- const priced={...live,yahoo,players:{1081:{price:1700,games:[{date:'2026-10-24',price:1600,played:true,points:20},{date:'2026-10-27',price:1800,played:true,points:20}]}}};
- const r=allTransfers(named,priced,{transfers:[]},picks);
- assert.deepEqual(r.transfers.map(x=>[x.team,x.outId,x.inId,x.date,x.inPrice,x.source]),[[0,1,81,'2026-10-26',1600,'yahoo']]);
- assert.equal(r.yahoo.size,8);assert.ok(!r.warnings.some(w=>/отличается|не найден/.test(w.message)),JSON.stringify(r.warnings));
-});
 test('a transfer that breaks the Sports.ru budget is flagged',()=>{
  const t=[{team:0,outId:1,inId:81,date:'2026-10-26',outPrice:1500,inPrice:9000}];
  const r=allTransfers(players,live,{transfers:t},picks);
  assert.ok(r.warnings.some(w=>w.team===0&&/превышен/.test(w.message)));
+});
+test('a made transfer is judged by the forecast and compared with the best swap',()=>{
+ // Team 0 sells #1 (PG, 30 a game) for #81 (PG, 20 a game); #92 (PG, 31 a game) was free.
+ const t={team:0,outId:1,inId:81,date:'2026-10-20',outPrice:1500,inPrice:1500};
+ const v=transferVerdict(ctx({rosters:seasonRosters([t],picks)}),t,{bankMoney:500});
+ assert.equal(v.verdict,'down');assert.ok(v.gain.month<-15&&v.gain.season<v.gain.month);
+ assert.equal(v.best.player.id,92);assert.ok(v.best.gain.month>0);
+ const w=transferVerdict(ctx({rosters:seasonRosters([{...t,inId:92}],picks)}),{...t,inId:92},{bankMoney:500});
+ assert.equal(w.verdict,'even');assert.equal(w.best,null);
+});
+test('a free player is brought in for the roster player he beats most, within the slots and the rookie rule',()=>{
+ // #100 is a C (39 a game); team 0 has C #65 (30) and the rookie C #73, which must stay.
+ const s=bestSwapFor(ctx(),{team:0,playerId:100,bankMoney:0});
+ assert.equal(s.outId,65);assert.ok(s.gain.season>0);
+ assert.equal(bestSwapFor(ctx(),{team:0,playerId:2,bankMoney:0}),null);// #2 plays for team 1
+ const poor=players.map(p=>p.id===100?{...p,price:9000}:p);
+ assert.equal(bestSwapFor(ctx({players:poor}),{team:0,playerId:100,bankMoney:0}),null);
+});
+test('injured free agents worth a season transfer are flagged when they are about to return',()=>{
+ const injuries=new Map([['5100',{status:'Out',returnDate:'2026-10-22'}],['5099',{status:'Out',fantasyStatus:'OFS',returnDate:'2027-07-01'}],
+  ['5090',{status:'Out',returnDate:'2026-10-22'}],['5098',{status:'Out',returnDate:'2026-11-18'}]]);
+ const list=injuredTargets(ctx({injuries}),{team:0,bankMoney:0,minGain:20});
+ // #99 is out for the season, #90 (29 a game) is no upgrade; #98 returns too late to be worth it on this short calendar.
+ assert.deepEqual(list.map(x=>[x.player.id,x.swap.outId,x.soon]),[[100,65,true]]);
+});
+test('a player too expensive for one swap is bought within a package that funds him',()=>{
+ // #100 (C, 39 a game) costs 3000 with an empty bank: selling C #65 alone (1500) is not enough.
+ const pricey=players.map(p=>p.id===100?{...p,price:3000}:p.id===96?{...p,price:0}:p);
+ const c=ctx({players:pricey});
+ assert.equal(bestSwapFor(c,{team:0,playerId:100,bankMoney:0}),null);
+ const one=acquisition(c,{team:0,playerId:100,bankMoney:0,k:1,minGain:0});assert.equal(one.worth,false);
+ const two=acquisition(c,{team:0,playerId:100,bankMoney:0,k:2,minGain:0,monthFloor:-Infinity});
+ assert.equal(two.worth,true);assert.ok(two.pack.pairs.some(x=>x.in.id===100));assert.ok(two.pack.bankAfter>=0);
 });

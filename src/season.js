@@ -44,11 +44,12 @@ export function perGame(player,live){
 }
 // Share of team games a healthy player plays, from his own forecast of games.
 export function playRate(player){const g=player.forecast?.games;return Number.isFinite(g)?Math.min(.97,Math.max(.5,g/82)):.85;}
+export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||/out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season/i.test(injury?.comment||'');
 // Chance to play a game on a date given the ESPN injury report.
 export function injuryFactor(injury,day,today){
  if(!injury)return 1;
  const status=String(injury.status||''),fantasy=String(injury.fantasyStatus||''),back=injury.returnDate||null;
- if(fantasy==='OFS'||/out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season/i.test(injury.comment||''))return back&&day>=back?1:0;
+ if(seasonEnding(injury))return back&&day>=back?1:0;
  const out=/out|suspension/i.test(status)&&fantasy!=='GTD';
  if(back)return day<back?(out?0:.5):1;
  return out?(day<addDays(today,10)?0:1):(day<addDays(today,3)?.5:1);
@@ -78,20 +79,41 @@ export function playerOutlook(player,ctx){
 }
 // Every legal one-for-one replacement of a roster player: same Sports.ru slot structure, price within the bank, a rookie kept.
 // Gains are expected official points of the newcomer minus those of the player sold, over each horizon.
+function selling(ctx,team,outId,bankMoney,byId){
+ const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),leaving=roster.find(p=>p.id===outId);
+ if(!leaving)return null;
+ const rest=roster.filter(p=>p.id!==outId);
+ return {leaving,rest,money:bankMoney+leaving.price,needRookie:!rest.some(p=>p.isRookie===true),base:playerOutlook(leaving,ctx)};
+}
+const onMarket=(raw,ctx)=>raw.sportsId&&(ctx.live?.players?.[raw.sportsId]||raw.priceStatus==='VERIFIED');
+const fits=(sale,p)=>Number.isFinite(p.price)&&p.price<=sale.money&&(!sale.needRookie||p.isRookie===true)&&rosterFits([...sale.rest,p]);
+function swap(sale,p,ctx){
+ const outlook=playerOutlook(p,ctx),gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-sale.base[k].points;
+ return {outId:sale.leaving.id,player:p,outlook,gain,bankAfter:sale.money-p.price};
+}
 export function transferOptions(ctx,{team,outId,bankMoney,limit=15,sort='month'}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),rosters=ctx.rosters,taken=new Set(rosters.flat());
- const roster=rosters[team].map(id=>current(byId.get(id),ctx)),leaving=roster.find(p=>p.id===outId);
- if(!leaving)return [];
- const rest=roster.filter(p=>p.id!==outId),money=bankMoney+leaving.price,needRookie=!rest.some(p=>p.isRookie===true);
- const base=playerOutlook(leaving,ctx),options=[];
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),sale=selling(ctx,team,outId,bankMoney,byId);
+ if(!sale)return [];
+ const options=[];
  for(const raw of ctx.players){
-  if(taken.has(raw.id)||!raw.sportsId||!ctx.live?.players?.[raw.sportsId]&&raw.priceStatus!=='VERIFIED')continue;
+  if(taken.has(raw.id)||!onMarket(raw,ctx))continue;
   const p=current(raw,ctx);
-  if(!Number.isFinite(p.price)||p.price>money||(needRookie&&p.isRookie!==true)||!rosterFits([...rest,p]))continue;
-  const outlook=playerOutlook(p,ctx),gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-base[k].points;
-  options.push({player:p,outlook,gain,bankAfter:money-p.price});
+  if(fits(sale,p))options.push(swap(sale,p,ctx));
  }
  return options.sort((a,b)=>b.gain[sort]-a.gain[sort]).slice(0,limit);
+}
+// The best legal one-for-one swap that brings a given free player into a team, or null when none fits.
+export function bestSwapFor(ctx,{team,playerId,bankMoney,sort='season'}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),raw=byId.get(playerId);
+ if(!raw||ctx.rosters.flat().includes(playerId)||!onMarket(raw,ctx))return null;
+ const p=current(raw,ctx);let best=null;
+ for(const outId of ctx.rosters[team]){
+  const sale=selling(ctx,team,outId,bankMoney,byId);
+  if(!sale||!fits(sale,p))continue;
+  const option=swap(sale,p,ctx);
+  if(!best||option.gain[sort]>best.gain[sort])best=option;
+ }
+ return best;
 }
 // The single best replacement for every player of a team, best gains first.
 export function bestTransfers(ctx,{team,bankMoney,sort='month',limit=10}){
@@ -120,7 +142,7 @@ export function parseInjuries(feed){
 // Exact best package of up to k transfers this week (integer programming over the roster and the strongest free agents):
 // keep or sell each player, buy free agents, two per Sports.ru position, at least one rookie, money within the bank.
 // By default the package may not lower the rest-of-season expectation: short-term gains never cost the season.
-export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true}){
+export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat());
  const value=p=>playerOutlook(p,ctx)[sort].points;
  const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),wealth=bankMoney+roster.reduce((s,p)=>s+p.price,0);
@@ -130,14 +152,18 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
    .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth)
    .map(p=>({p,v:value(p)})).sort((a,b)=>b.v-a.v).slice(0,poolPerPosition));
  }
+ // `include`: a free player the package must buy.
+ const must=include!=null&&!taken.has(include)&&byId.get(include)?current(byId.get(include),ctx):null;
+ if(include!=null&&!must)return null;
+ if(must)pool.push({p:must,v:value(must)});
  const unique=[...new Map(pool.map(x=>[x.p.id,x])).values()];
- const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1}},variables:{},ints:{}};
+ const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1},...(must?{must:{min:1}}:{})},variables:{},ints:{}};
  const subsets=Array.from({length:31},(_,m)=>POSITIONS.filter((_,i)=>(m+1)>>i&1));
  subsets.forEach((T,i)=>{model.constraints['pos'+i]={max:2*T.length};});
  const items=[...roster.map(p=>({p,v:value(p),own:true})),...unique.map(x=>({...x,own:false}))];
  const seasonOf=new Map(items.map(x=>[x.p.id,playerOutlook(x.p,ctx).season.points]));
  if(protectSeason&&sort!=='season')model.constraints.season={min:roster.reduce((s,p)=>s+seasonOf.get(p.id),0)-1e-6};
- items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;
+ items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;if(x.p.id===must?.id)v.must=1;
   subsets.forEach((T,j)=>{if(x.p.positions.every(q=>T.includes(q)))v['pos'+j]=1;});
   model.constraints['one'+i]={max:1};model.variables['x'+i]=v;model.ints['x'+i]=1;});
  const result=solver.Solve(model);if(!result.feasible)return null;
@@ -151,6 +177,48 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  for(const s of sold){const i=left.findIndex(b=>b.p.positions.some(q=>s.p.positions.includes(q)));const b=left.splice(i>=0?i:0,1)[0];pairs.push({out:s.p,in:b.p,gain:b.v-s.v});}
  const gains={};for(const h of ['week','month','season'])gains[h]=pairs.reduce((s,x)=>s+playerOutlook(x.in,ctx)[h].points-playerOutlook(x.out,ctx)[h].points,0);
  return {k,gain,gains,pairs,bankAfter:wealth-next.reduce((s,p)=>s+p.price,0)};
+}
+// A transfer already made, judged from today: expected official points of the newcomer minus those of the player sold,
+// and the best swap of the same player the team could have made with the same money. bankMoney is the bank after the move.
+export const VERDICTS={up:'💪 Усиление',down:'🤡 Ослабление',short:'⏳ Усиление только на ближайший месяц',long:'📅 Задел на сезон, сейчас не усиление',even:'🤷 Примерно равноценно'};
+export function transferVerdict(ctx,transfer,{bankMoney,threshold=15}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),out=byId.get(transfer.outId),joined=byId.get(transfer.inId);
+ if(!out||!joined)return null;
+ const a=playerOutlook(out,ctx),b=playerOutlook(joined,ctx),gain={};for(const k of Object.keys(a))gain[k]=b[k].points-a[k].points;
+ const m=gain.month,s=gain.season,T=threshold;
+ const verdict=m>=T&&s>=0?'up':m>=T?'short':s>=T&&m>-T?'long':m<=-T||s<=-T?'down':'even';
+ const before=ctx.rosters.map((r,t)=>t===transfer.team?r.map(id=>id===transfer.inId?transfer.outId:id):r);
+ const [best]=transferOptions({...ctx,rosters:before},{team:transfer.team,outId:transfer.outId,bankMoney:bankMoney-transfer.outPrice+transfer.inPrice,limit:1});
+ return {gain,verdict,label:VERDICTS[verdict],best:best&&best.player.id!==transfer.inId&&best.gain.month>gain.month?best:null};
+}
+// How a team can get a given free player: the best one-for-one swap, or else the best package of up to k transfers
+// that buys him. Worth it when the season gains at least minGain and the next 4 weeks do not drop below monthFloor.
+export function acquisition(ctx,{team,playerId,bankMoney,k=1,minGain=15,monthFloor=0}){
+ const swap=bestSwapFor(ctx,{team,playerId,bankMoney});
+ if(swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor)return {worth:true,swap,pack:null};
+ if(k>1){
+  const pack=bestPackage(ctx,{team,bankMoney,k,sort:'season',include:playerId});
+  if(pack&&pack.gains.season>=minGain&&pack.gains.month>=monthFloor)return {worth:true,swap,pack};
+ }
+ return {worth:false,swap,pack:null};
+}
+// Injured free agents worth getting over the season (not out for it), with how to get them.
+// `soon`: day-to-day, or an ESPN return date within `days` — the moment to buy before the rivals and the price react.
+export function injuredTargets(ctx,{team,bankMoney,k=1,days=7,minGain=30}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),until=addDays(ctx.today,days),out=[];
+ const rate=p=>perGame(p,ctx.live?.players?.[p.sportsId]).value*playRate(p);
+ const weakest=Math.min(...ctx.rosters[team].map(id=>rate(byId.get(id))));
+ for(const raw of ctx.players){
+  const injury=raw.espnId&&ctx.injuries?.get(String(raw.espnId));
+  if(!injury||taken.has(raw.id)||seasonEnding(injury)||rate(raw)<=weakest)continue;
+  // Still out for a while: judged on the season only; the 4-week window is checked again once he is back.
+  const deal=acquisition(ctx,{team,playerId:raw.id,bankMoney,k,minGain,monthFloor:-Infinity});
+  if(!deal.worth)continue;
+  const dayToDay=!/out|suspension/i.test(injury.status||'')||injury.fantasyStatus==='GTD';
+  out.push({player:current(raw,ctx),injury,...deal,soon:dayToDay||Boolean(injury.returnDate&&injury.returnDate.slice(0,10)<=until)});
+ }
+ const gainOf=x=>x.pack?x.pack.gains.season:x.swap.gain.season;
+ return out.sort((a,b)=>gainOf(b)-gainOf(a));
 }
 // Free agents who beat a current player of the same position over the horizon and over the rest of the season,
 // affordable in a one-for-one swap: real upgrades, not short-term streams.
@@ -219,66 +287,15 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
  }
  return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
 }
-// ---------- Yahoo league ----------
-// The private FBL Yahoo league mirrors every transfer with full names; prices come from Sports.ru on the day.
-export function normalizeName(name){
- return String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b\.?/g,'').replace(/[^a-z]/g,'');
-}
-// Sports.ru price on a date: the price after the last game played by then, else the current price.
-export function priceAt(player,live,date){
- const l=live?.players?.[player?.sportsId],games=(l?.games||[]).filter(g=>Number.isFinite(g.price)&&g.date<=date);
- return games.length?games[games.length-1].price:(l?.price??player?.price??0);
-}
-const moscowDay=ts=>new Date(ts*1000+3*3600e3).toISOString().slice(0,10);
-export function yahooTransfers(players,live,picks=DRAFT_PICKS){
- const y=live?.yahoo,warnings=[],mapped=new Map();
- if(!y?.teams?.length)return {transfers:[],warnings,teams:new Set()};
- const byName=new Map();for(const p of players){const k=normalizeName(p.name);if(!byName.has(k))byName.set(k,p);}
- const find=name=>byName.get(normalizeName(name))||null;
- const missing=new Set(),idOf=name=>{const p=find(name);if(!p)missing.add(name);return p?.id??null;};
- const tx=[...(y.transactions||[])].sort((a,b)=>a.timestamp-b.timestamp);
- // Roster right after the draft: today's Yahoo roster with every later move undone.
- const draftRoster=new Map(y.teams.map(t=>[t.key,new Set(t.roster.map(r=>idOf(r.name)).filter(Boolean))]));
- for(const t of [...tx].reverse())for(const m of t.moves){const id=idOf(m.name);if(!id)continue;
-  if(m.to&&draftRoster.has(m.to))draftRoster.get(m.to).delete(id);if(m.from&&draftRoster.has(m.from))draftRoster.get(m.from).add(id);}
- const fbl=seasonRosters([],picks),pairs=[];
- for(const [key,ids] of draftRoster)fbl.forEach((roster,t)=>pairs.push({key,t,overlap:roster.filter(id=>ids.has(id)).length}));
- pairs.sort((a,b)=>b.overlap-a.overlap);
- const usedTeams=new Set();
- for(const x of pairs){if(mapped.has(x.key)||usedTeams.has(x.t)||x.overlap<6)continue;mapped.set(x.key,x.t);usedTeams.add(x.t);}
- for(const t of y.teams)if(!mapped.has(t.key))warnings.push({team:-1,message:`Команда Yahoo «${t.name}» не сопоставилась с драфтом FBL.`});
- // Each drop pairs with an add of the same team: in one transaction or the next one of that team.
- const transfers=[],open=new Map();
- for(const t of tx){
-  if(t.type==='trade'){warnings.push({team:-1,message:`${moscowDay(t.timestamp)}: обмен между командами в Yahoo — учти вручную.`});continue;}
-  for(const m of t.moves){const team=mapped.get(m.kind==='add'?m.to:m.from);if(team===undefined)continue;const id=idOf(m.name);if(!id)continue;
-   const q=open.get(team)||{adds:[],drops:[]};open.set(team,q);
-   (m.kind==='add'?q.adds:q.drops).push({id,ts:t.timestamp});
-   while(q.adds.length&&q.drops.length){const a=q.adds.shift(),d=q.drops.shift(),date=moscowDay(Math.max(a.ts,d.ts));
-    const pin=players.find(p=>p.id===a.id),pout=players.find(p=>p.id===d.id);
-    transfers.push({team,outId:d.id,inId:a.id,date,outPrice:priceAt(pout,live,date),inPrice:priceAt(pin,live,date),source:'yahoo'});}
-  }
- }
- for(const [team,q] of open)for(const x of [...q.adds,...q.drops])warnings.push({team,message:`Yahoo: ${q.adds.includes(x)?'добавлен':'отчислен'} ${players.find(p=>p.id===x.id)?.name} без пары — жду второй половины трансфера.`});
- for(const name of missing)warnings.push({team:-1,message:`Yahoo: игрок «${name}» не найден в базе.`});
- return {transfers,warnings,teams:new Set(mapped.values()),yahooRosters:new Map([...mapped].map(([key,t])=>[t,y.teams.find(x=>x.key===key).roster.map(r=>idOf(r.name)).filter(Boolean)]))};
-}
-// Yahoo for every mapped team, Sports.ru journals for other connected teams, the shared league log for the rest.
+// Sports.ru journals for every connected team, the shared league log for the rest.
 // Anything breaking a rule is dropped; every team's bank is replayed with Sports.ru prices and flagged when it goes negative.
 export function allTransfers(players,live,league={transfers:[]},picks=DRAFT_PICKS){
- const fromYahoo=yahooTransfers(players,live,picks),fromSports=journalTransfers(players,live,picks),warnings=[...fromYahoo.warnings];
- const sports=fromSports.transfers.filter(x=>!fromYahoo.teams.has(x.team));
- warnings.push(...fromSports.warnings.filter(w=>!fromYahoo.teams.has(w.team)));
- const covered=new Set([...fromYahoo.teams,...fromSports.teams]);
+ const fromSports=journalTransfers(players,live,picks),warnings=[...fromSports.warnings],covered=fromSports.teams;
  const manual=(league.transfers||[]).filter(x=>!covered.has(x.team)).map(x=>({...x,source:'league'}));
- const merged=[...fromYahoo.transfers,...sports,...manual].sort((a,b)=>a.date.localeCompare(b.date)),valid=[];
+ const merged=[...fromSports.transfers,...manual].sort((a,b)=>a.date.localeCompare(b.date)),valid=[];
  for(const x of merged){try{seasonRosters([...valid,x],picks);valid.push(x);}catch(e){warnings.push({team:x.team,message:`${x.date}: ${e.message}`});}}
  const byId=new Map(players.map(p=>[p.id,p]));
  for(let t=0;t<TEAM_COUNT;t++){let money=CAP;picks.forEach((id,i)=>{if(i%TEAM_COUNT===t)money-=live?.players?.[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0;});
   for(const x of valid)if(x.team===t){money+=x.outPrice-x.inPrice;if(money<0)warnings.push({team:t,message:`${x.date}: после трансфера ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name} банк по ценам Sports.ru ${money} — превышен лимит ${CAP}.`});}}
- const rosters=seasonRosters(valid,picks);
- for(const [t,ids] of fromYahoo.yahooRosters||[]){const ours=new Set(rosters[t]),theirs=new Set(ids);
-  const extra=[...theirs].filter(id=>!ours.has(id)),gone=[...ours].filter(id=>!theirs.has(id));
-  if(extra.length||gone.length)warnings.push({team:t,message:`Состав Yahoo отличается: в Yahoo есть ${extra.map(id=>byId.get(id)?.name).join(', ')||'—'}, нет ${gone.map(id=>byId.get(id)?.name).join(', ')||'—'}.`});}
- return {transfers:valid,warnings,connected:covered,yahoo:fromYahoo.teams};
+ return {transfers:valid,warnings,connected:covered};
 }
