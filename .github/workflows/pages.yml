@@ -75,6 +75,8 @@ jobs:
         run: python scripts/apply_sports_history.py
       - name: Bundle a Sports.ru live snapshot as fallback for the season tab
         continue-on-error: true
+        # The season tab reads the live branch first; a slow Sports.ru must never hold the deployment.
+        timeout-minutes: 8
         run: python scripts/collect_sports_current.py public/data/sports-current.json
       - name: Pack career evidence for mobile loading
         run: python scripts/pack_online_evidence.py
@@ -98,6 +100,7 @@ jobs:
       - name: Test, build and verify
         run: npm run verify
       - name: Browser smoke test on a phone viewport
+        timeout-minutes: 10
         run: |
           npx playwright install --with-deps chromium
           node scripts/e2e-smoke.mjs
