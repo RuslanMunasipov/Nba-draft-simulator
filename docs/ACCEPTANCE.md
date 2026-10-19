@@ -91,3 +91,9 @@ Do not convert historical averages into a season prediction, invent missing pric
 - PR builds validate without deploying; Pages publishing remains restricted to main.
 
 - Commissioner confirmation on 17 October: all draft picks and transfers take place on Sports.ru; Sports.ru owns position eligibility, prices and accounting. Yahoo mirrors the resulting rosters and transfers only. Yahoo eligibility cannot make a Sports.ru transaction legal.
+
+## Calibrated in-season updating — 19 October 2026
+- `scripts/inseason_calibration.py` backtests how forecasts move with games already played. Weights are fitted on 2023/24 → 2024/25 only and tested on the untouched 2024/25 → 2025/26 pair; `--check` in CI proves `data/inseason-calibration.json` is reproducible from the supplied logs.
+- Points per game: points per minute shrink slowly (20 forecast games), minutes faster and with recency (half-life 20 games); rookies and group priors adapt minutes faster. Held-out rest-of-season MAE 2.37 → 2.30 FP for established players, 2.70 → 2.55 for newcomers.
+- Availability: the share of team games played is now updated from games played and missed (20 forecast games of weight), counted against the club calendar too. Held-out MAE 0.223 → 0.189. No recency weight, so the injury report is not a second penalty for a current absence.
+- Player-clustered 95% bootstrap intervals of the MAE gain are positive for all three. The prior in the backtest is the previous season, not an archived ESPN forecast; zero error is not attainable.

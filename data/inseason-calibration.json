@@ -1,0 +1,177 @@
+{
+ "version": 1,
+ "fitSeasons": [
+  "2023-24",
+  "2024-25"
+ ],
+ "testSeasons": [
+  "2024-25",
+  "2025-26"
+ ],
+ "target": "Official full-formula FBL points per played game over the rest of the season; share of remaining team games played",
+ "points": {
+  "established": {
+   "rateGames": 20,
+   "minuteGames": 5,
+   "minuteHalfLife": 20
+  },
+  "newcomer": {
+   "rateGames": 20,
+   "minuteGames": 2,
+   "minuteHalfLife": 5
+  }
+ },
+ "availability": {
+  "priorGames": 20
+ },
+ "holdout": {
+  "established": {
+   "cases": 3550,
+   "players": 351,
+   "currentMAE": 2.3675,
+   "calibratedMAE": 2.3016,
+   "currentByCheckpoint": {
+    "0": 2.639,
+    "1": 2.5964,
+    "2": 2.5276,
+    "3": 2.4819,
+    "5": 2.3835,
+    "8": 2.3927,
+    "12": 2.2665,
+    "16": 2.2139,
+    "20": 2.1369,
+    "30": 2.1109,
+    "40": 2.1458
+   },
+   "calibratedByCheckpoint": {
+    "0": 2.639,
+    "1": 2.5523,
+    "2": 2.4726,
+    "3": 2.4097,
+    "5": 2.3063,
+    "8": 2.3185,
+    "12": 2.1803,
+    "16": 2.0978,
+    "20": 2.0432,
+    "30": 2.0563,
+    "40": 2.0893
+   },
+   "maeGain95": [
+    0.0316,
+    0.101
+   ],
+   "checkpoints": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    12,
+    16,
+    20,
+    30,
+    40
+   ]
+  },
+  "newcomer": {
+   "cases": 701,
+   "players": 83,
+   "currentMAE": 2.7049,
+   "calibratedMAE": 2.5549,
+   "currentByCheckpoint": {
+    "0": 2.8726,
+    "1": 2.9184,
+    "2": 2.8075,
+    "3": 2.7421,
+    "5": 2.5337,
+    "8": 2.4839,
+    "12": 2.5136,
+    "16": 2.6657,
+    "20": 2.7279,
+    "30": 2.661,
+    "40": 2.6761
+   },
+   "calibratedByCheckpoint": {
+    "0": 2.8726,
+    "1": 2.555,
+    "2": 2.5168,
+    "3": 2.5719,
+    "5": 2.4899,
+    "8": 2.3934,
+    "12": 2.492,
+    "16": 2.4263,
+    "20": 2.5128,
+    "30": 2.5046,
+    "40": 2.733
+   },
+   "maeGain95": [
+    0.028,
+    0.2834
+   ],
+   "checkpoints": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    12,
+    16,
+    20,
+    30,
+    40
+   ]
+  },
+  "availability": {
+   "cases": 2552,
+   "players": 319,
+   "currentMAE": 0.2229,
+   "calibratedMAE": 0.189,
+   "currentByCheckpoint": {
+    "0": 0.2105,
+    "3": 0.2126,
+    "5": 0.2142,
+    "10": 0.2172,
+    "15": 0.2214,
+    "20": 0.2244,
+    "30": 0.2363,
+    "40": 0.2463
+   },
+   "calibratedByCheckpoint": {
+    "0": 0.2105,
+    "3": 0.1978,
+    "5": 0.194,
+    "10": 0.1836,
+    "15": 0.1798,
+    "20": 0.1751,
+    "30": 0.1817,
+    "40": 0.1892
+   },
+   "maeGain95": [
+    0.0252,
+    0.0437
+   ],
+   "checkpoints": [
+    0,
+    3,
+    5,
+    10,
+    15,
+    20,
+    30,
+    40
+   ]
+  }
+ },
+ "current": {
+  "priorGames": 10,
+  "availability": "Pre-season games/82, never updated"
+ },
+ "limitations": [
+  "Backtest prior is the previous season; a stronger pre-season forecast deserves more weight than fitted here.",
+  "Newcomers are players absent from the previous supplied season, a proxy for rookies and group priors.",
+  "Availability excludes traded players and players who never appeared; no injury report is used in the backtest.",
+  "One fit pair and one test pair: the calibrated rule is evidence-based, not a guarantee for 2026/27."
+ ]
+}
