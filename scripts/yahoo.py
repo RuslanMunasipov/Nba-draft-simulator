@@ -96,8 +96,14 @@ def exchange(path):
     print('Yahoo connected: refresh token stored encrypted.')
 
 
-def league_key():
-    return 'nba.l.' + str(json.loads(CONFIG.read_text(encoding='utf-8'))['yahooLeague'])
+def league_id():
+    return str(json.loads(CONFIG.read_text(encoding='utf-8'))['yahooLeague'])
+
+
+def parse_user_leagues(xml):
+    """League keys of the signed-in user, newest season last: [(league_key, league_id, name)]."""
+    root = ET.fromstring(xml)
+    return [(text(l, 'y:league_key'), text(l, 'y:league_id'), text(l, 'y:name')) for l in root.iter(f"{{{NS['y']}}}league")]
 
 
 def text(node, path):
@@ -146,10 +152,19 @@ def collect(live_path, token_path):
 
     def get(path):
         req = urllib.request.Request(API + path, headers={'Authorization': 'Bearer ' + tokens['access_token']})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.read()
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            raise SystemExit(f'Yahoo API {path}: {e.code} {e.read().decode(errors="replace")[:400]}') from None
 
-    key = league_key()
+    # The exact key (<season game id>.l.<league id>) comes from the account's own leagues: the bare 'nba' alias
+    # can still point to last season, where this league id belongs to someone else.
+    wanted = league_id()
+    mine = [k for k, i, _ in parse_user_leagues(get('users;use_login=1/games;game_codes=nba/leagues')) if i == wanted]
+    if not mine:
+        raise SystemExit(f'League {wanted} is not among the leagues of the connected Yahoo account.')
+    key = max(mine, key=lambda k: int(k.split('.')[0]) if k.split('.')[0].isdigit() else 0)
     teams = parse_teams(get(f'league/{key}/teams'))
     for team in teams:
         team['roster'] = parse_roster(get(f"team/{team['key']}/roster/players"))
