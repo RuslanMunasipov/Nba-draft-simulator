@@ -100,6 +100,8 @@ if(soon.length||back.length){
  console.log(text);await send(text);
 }
 // Remember what was already reported so the same advice is not sent every two hours.
-fs.writeFileSync(statePath,JSON.stringify({updatedAt:new Date().toISOString(),sent:[...new Set([...(previous.sent||[]),...keys])].slice(-200),injuries:hurt.map(h=>h.key),
+// Until Telegram is configured nothing counts as reported: the first messages arrive once the secrets are set.
+if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID)fs.writeFileSync(statePath,JSON.stringify({...previous,updatedAt:new Date().toISOString()}));
+else fs.writeFileSync(statePath,JSON.stringify({updatedAt:new Date().toISOString(),sent:[...new Set([...(previous.sent||[]),...keys])].slice(-200),injuries:hurt.map(h=>h.key),
  transfers:[...new Set([...(previous.transfers||[]),...transfers.map(transferKey)])],
  returns:[...new Set([...(previous.returns||[]),...soon.map(injuryKey)])].slice(-500),watch:targets.map(x=>x.player.id)}));
