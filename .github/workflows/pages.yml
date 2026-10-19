@@ -31,6 +31,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "test_*.py"
           python scripts/build_baseline.py
+          python scripts/inseason_calibration.py --check
       - name: Fetch current rosters and build automatic draft database
         run: python scripts/build_default_database.py
       - name: Restore collected NBA and NCAA history

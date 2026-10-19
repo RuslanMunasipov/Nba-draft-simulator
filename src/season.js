@@ -1,6 +1,7 @@
 import solver from 'javascript-lp-solver';
 import {rosterFits,POSITIONS,TEAM_COUNT} from './engine.js';
 import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
+import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 
 export const CAP=20000,WEEKLY_TRANSFERS=3;
 export {TEAM_COUNT};
@@ -35,15 +36,35 @@ export function bank(team,transfers,priceAtDraft,picks=DRAFT_PICKS){
 }
 export function transfersThisWeek(transfers,team,today){const from=weekStart(today);return transfers.filter(x=>x.team===team&&x.date>=from&&x.date<=today).length;}
 
-// Points per game: the pre-season full-formula forecast shrunk toward official Sports.ru points as games arrive.
+// Points per game: the pre-season full-formula forecast updated by official Sports.ru games as they arrive.
+// Weights come from scripts/inseason_calibration.py (fitted 2023/24->2024/25, tested on 2025/26):
+// points per minute move slowly, minutes move faster and favour recent games, newcomers adapt fastest.
 export const PRIOR_GAMES=10;
+export {CALIBRATION};
+export const clockMinutes=v=>{const m=String(v??'').match(/^(\d+):(\d{2})$/);return m?Number(m[1])+Number(m[2])/60:Math.max(0,Number(v)||0);};
+const newcomer=p=>p.isRookie===true||p.forecast?.origin==='EMPIRICAL_ROLE_PRIOR';
 export function perGame(player,live){
  const prior=Number.isFinite(player.forecast?.meanPerGame)?player.forecast.meanPerGame:Number.isFinite(player.projectedFP)?player.projectedFP:0;
  const played=(live?.games||[]).filter(g=>g.played),sum=played.reduce((s,g)=>s+g.points,0);
- return {prior,games:played.length,average:played.length?sum/played.length:null,value:(PRIOR_GAMES*prior+sum)/(PRIOR_GAMES+played.length)};
+ const out={prior,games:played.length,average:played.length?sum/played.length:null};
+ const priorMinutes=player.forecast?.minutes,minutes=played.map(g=>clockMinutes(g.minutes));
+ // Without minutes on both sides only the plain average can be shrunk.
+ if(!played.length||!(priorMinutes>0)||minutes.some(m=>!(m>0)))return {...out,value:(PRIOR_GAMES*prior+sum)/(PRIOR_GAMES+played.length)};
+ const c=CALIBRATION.points[newcomer(player)?'newcomer':'established'],n=minutes.length;
+ const w=minutes.map((_,i)=>c.minuteHalfLife?.5**((n-1-i)/c.minuteHalfLife):1),weight=w.reduce((s,x)=>s+x,0);
+ const expectedMinutes=(c.minuteGames*priorMinutes+minutes.reduce((s,m,i)=>s+w[i]*m,0))/(c.minuteGames+weight);
+ const rate=(c.rateGames*prior+sum)/(c.rateGames*priorMinutes+minutes.reduce((s,m)=>s+m,0));
+ return {...out,minutes:expectedMinutes,value:rate*expectedMinutes};
 }
-// Share of team games a healthy player plays, from his own forecast of games.
-export function playRate(player){const g=player.forecast?.games;return Number.isFinite(g)?Math.min(.97,Math.max(.5,g/82)):.85;}
+// Share of team games a player plays: his forecast of games, updated by games played and missed so far.
+// Missed games count against the club calendar too, in case Sports.ru lists only appearances.
+export function playRate(player,live,ctx){
+ const g=player.forecast?.games,prior=Number.isFinite(g)?Math.min(.97,Math.max(.5,g/82)):.85,today=ctx?.today;
+ const rows=(live?.games||[]).filter(x=>x.played||today&&x.date<today),on=rows.filter(x=>x.played).length;
+ const club=ctx?.live?.clubs?.[live?.club||player.sportsClub]||[],finished=club.filter(x=>x.score&&(!today||x.date<=today)).length;
+ const team=Math.max(rows.length,finished,on),k=CALIBRATION.availability.priorGames;
+ return (k*prior+on)/(k+team);
+}
 // Chance to play a game on a date given the ESPN injury report.
 export function injuryFactor(injury,day,today){
  if(!injury)return 1;
@@ -56,7 +77,7 @@ export function injuryFactor(injury,day,today){
 // Expected official points between two dates (inclusive), counting only club games not yet played.
 export function expectedPoints(player,ctx,from,to){
  const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,calendar=ctx.live?.clubs?.[club]||[];
- const rate=perGame(player,live).value*playRate(player),injury=ctx.injuries?.get(String(player.espnId));
+ const rate=perGame(player,live).value*playRate(player,live,ctx),injury=ctx.injuries?.get(String(player.espnId));
  let games=0,points=0;
  for(const g of calendar){if(g.date<from||g.date>to||g.score)continue;const f=injuryFactor(injury,g.date,ctx.today);games+=f;points+=rate*f;}
  return {points,games};

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,normalizeName} from '../src/season.js';
+import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,normalizeName,playRate,clockMinutes,CALIBRATION} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -27,6 +27,27 @@ test('per-game estimate moves from forecast to official points as games arrive',
  assert.equal(perGame(p,null).value,30);
  const games=Array.from({length:PRIOR_GAMES},()=>({played:true,points:40}));
  assert.equal(perGame(p,{games:[...games,{played:false,points:0}]}).value,35);
+});
+test('calibrated update beats the old rule on the held-out season',()=>{
+ for(const r of Object.values(CALIBRATION.holdout)){assert.ok(r.calibratedMAE<r.currentMAE);assert.ok(r.maeGain95[0]>0);}
+});
+test('minutes move the estimate before points per minute do',()=>{
+ assert.equal(clockMinutes('35:30'),35.5);assert.equal(clockMinutes('00:00'),0);
+ const vet={forecast:{meanPerGame:30,minutes:30}},rookie={...vet,isRookie:true};
+ const games=Array.from({length:5},(_,i)=>({played:true,points:40,minutes:'40:00',date:'2026-10-2'+i}));
+ const v=perGame(vet,{games}),r=perGame(rookie,{games});
+ // Same 1 FP per minute: the estimate is exactly the expected minutes, between forecast and new role.
+ assert.ok(Math.abs(v.value-v.minutes)<1e-9&&v.minutes>30&&v.minutes<40);
+ assert.ok(r.value>v.value,'newcomers adapt to a new role faster');
+ assert.equal(perGame(vet,{games:[...games,{played:true,points:10,minutes:''}]}).value,(10*30+210)/16);
+});
+test('missed games lower the play rate, also when only appearances are listed',()=>{
+ const p={forecast:{games:78},sportsClub:'X'},k=CALIBRATION.availability.priorGames,prior=78/82;
+ assert.equal(playRate(p,null,null),prior);
+ const games=[{date:'2026-10-22',played:true},{date:'2026-10-24',played:false},{date:'2026-10-26',played:false}];
+ assert.equal(playRate(p,{games},{today:'2026-10-27'}),(k*prior+1)/(k+3));
+ const clubs={X:Array.from({length:6},(_,i)=>({date:'2026-10-2'+i,score:'100:90'}))};
+ assert.equal(playRate(p,{games:[games[0]],club:'X'},{today:'2026-10-27',live:{clubs}}),(k*prior+1)/(k+6));
 });
 test('injury report removes games until the return date',()=>{
  assert.equal(injuryFactor({status:'Out',returnDate:'2026-10-28'},'2026-10-25','2026-10-20'),0);
