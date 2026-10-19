@@ -39,7 +39,9 @@ AMPLUA = {'1': 'PG', '2': 'SG', '3': 'SF', '4': 'PF', '5': 'C'}
 # Below these shares of the pool a collection is a broken page layout, not data: nothing is published.
 MIN_COLLECTED, MIN_PRICED = 0.9, 0.9
 UA = 'Mozilla/5.0 (compatible; fbl-draft-simulator/1.0; season tracker)'
-WORKERS = 10
+# Four parallel requests with a short pause each: about 960 pages every two hours, gentle on Sports.ru.
+WORKERS = 4
+PAUSE = 0.25
 ROLES = {'Разыгрывающий защитник': 'PG', 'Разыгрывающий': 'PG', 'Атакующий защитник': 'SG', 'Лёгкий форвард': 'SF', 'Легкий форвард': 'SF',
          'Тяжёлый форвард': 'PF', 'Тяжелый форвард': 'PF', 'Центровой': 'C'}
 
@@ -50,11 +52,15 @@ def fetch(url):
         try:
             req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept-Language': 'ru'})
             with urllib.request.urlopen(req, timeout=20) as r:
-                return r.read().decode('utf-8', 'replace')
+                body = r.read().decode('utf-8', 'replace')
+            time.sleep(PAUSE)
+            return body
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 return None
             last = e
+            if e.code == 429:  # rate limited: back off longer before the next attempt
+                time.sleep(15 * (attempt + 1))
         except Exception as e:  # noqa: BLE001
             last = e
         time.sleep(1.5 * (attempt + 1))

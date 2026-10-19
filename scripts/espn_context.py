@@ -1,5 +1,5 @@
 """Source-labelled ESPN ADP and season game projections; never ESPN FP as FBL FP."""
-import json
+import json,time
 import math
 import urllib.request
 
@@ -51,7 +51,13 @@ def fetch_context(now):
     filters={'players':{'limit':1500,'sortPercOwned':{'sortAsc':False,'sortPriority':1},
         'filterStatsForSourceIds':{'value':[1]},'filterStatsForExternalIds':{'value':[2027]}}}
     request=urllib.request.Request(SOURCE,headers={'X-Fantasy-Filter':json.dumps(filters),'User-Agent':'FBL-Draft-Intelligence/0.3'})
-    with urllib.request.urlopen(request,timeout=30) as response:payload=json.load(response)
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(request,timeout=30) as response:payload=json.load(response)
+            break
+        except Exception:  # noqa: BLE001
+            if attempt==3:raise
+            time.sleep(2*(attempt+1))
     result=parse_context(payload,now)
     if len(result)<500:raise ValueError('Incomplete ESPN player feed')
     return result

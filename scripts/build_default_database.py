@@ -23,13 +23,14 @@ def normalize(name):
 
 def get_json(url):
     error=None
-    for attempt in range(2):
+    # Four attempts with growing pauses: a single slow TLS handshake must not fail the daily build.
+    for attempt in range(4):
         try:
             request=urllib.request.Request(url,headers={'User-Agent':'FBL-Draft-Intelligence/0.3'})
             with urllib.request.urlopen(request,timeout=20) as response:return json.load(response)
         except Exception as exc:
             error=exc
-            if not attempt:time.sleep(.4)
+            if attempt<3:time.sleep(1.5*(attempt+1))
     raise RuntimeError(f'{url}: {error}')
 
 def roster(team):
