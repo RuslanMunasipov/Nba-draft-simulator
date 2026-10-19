@@ -3,7 +3,8 @@
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,WEEKLY_TRANSFERS} from '../src/season.js';
+import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
@@ -46,6 +47,13 @@ async function send(text){
  if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());
  console.log('sent to Telegram');
 }
+// The analyst's take from the player cards, one pro and one risk, with the current per-game estimate and injury.
+function brief(label,p){
+ if(!p)return [];
+ const {pros,cons}=playerInsights(p,db.players),injury=ctx.injuries.get(String(p.espnId));
+ return [`${label} ${p.name}: ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${injury.status}`:''}`,
+  ...pros.slice(0,1).map(x=>'  ✅ '+x),...cons.slice(0,1).map(x=>'  ⚠️ '+x)];
+}
 // Every new transfer of the other teams, with the forecast verdict: an upgrade or not, and what would have been better.
 const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,reported=new Set(previous.transfers||[]);
 const rival=transfers.filter(x=>x.team!==team&&!reported.has(transferKey(x)));
@@ -53,8 +61,9 @@ if(rival.length){
  const blocks=rival.map(x=>{
   const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)});
   const b=[`${teamLabel(x.team)}`,`${x.date.slice(8,10)}.${x.date.slice(5,7)}: ${out?.name} (${x.outPrice}) → ${joined?.name} (${x.inPrice})`];
-  if(v){b.push(`${v.label}: ${s(v.gain.month)} ФО за 4 недели, ${s(v.gain.season)} за сезон`);
-   if(v.best)b.push(`Лучший вариант за те же деньги: ${v.best.player.name} (${v.best.player.price}): ${s(v.best.gain.month)} / ${s(v.best.gain.season)}`);}
+  if(v)b.push(`${v.label}: ${s(v.gain.month)} ФО за 4 недели, ${s(v.gain.season)} за сезон`);
+  b.push(...brief('➖ Ушёл',out),...brief('➕ Пришёл',joined));
+  if(v?.best)b.push(`Лучший вариант за те же деньги: ${v.best.player.name} (${v.best.player.price}): ${s(v.best.gain.month)} / ${s(v.best.gain.season)}`);
   b.push(`Банк ${bankOf(x.team)} · трансферов осталось ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`);
   return b.join('\n');});
  const text=[`🔄 Трансферы соперников (${rival.length})`,...blocks,SITE].join('\n\n');
