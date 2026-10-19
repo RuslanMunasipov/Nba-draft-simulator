@@ -9,3 +9,11 @@ class WatchTests(unittest.TestCase):
   self.assertEqual(changed_teams({'teams':{}},{'3':[row('A')]}),['3'])
  def test_shorter_journal_is_a_bad_read_not_a_change(self):
   self.assertEqual(changed_teams({'teams':{'1':{'journal':[row('A'),row('B')]}}},{'1':[row('A')]}),[])
+ def test_stale_data_alerts_once_and_on_recovery(self):
+  import scripts.season_watch as sw
+  sent=[];real=sw.telegram;sw.telegram=sent.append
+  try:
+   w=sw.Watch('a','b')
+   for ok in [False,False,False,False,False,True,True]:w.collected(ok)
+  finally:sw.telegram=real
+  self.assertEqual(len(sent),2);self.assertIn('⚠️',sent[0]);self.assertIn('✅',sent[1])

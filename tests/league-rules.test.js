@@ -4,7 +4,7 @@ const rules=JSON.parse(readFileSync(new URL('../data/league-rules.json',import.m
 test('engine defaults match user-confirmed league rules without fabricating prices or club cap',()=>{
  assert.equal(TEAM_COUNT,rules.teams);assert.equal(ROUNDS,rules.rosterSize);
  assert.equal(newDraft().cap,rules.cap.default);assert.equal(newDraft().priceMode,'OFF');
- assert.equal(rules.draft.order,'LINEAR');assert.equal(rules.nbaClubLimit,null);
+ assert.equal(rules.draft.order,'LINEAR');assert.equal(rules.nbaClubLimit,2);
  assert.deepEqual(rules.draft.picks,Array.from({length:ROUNDS},(_,i)=>i*TEAM_COUNT+1));
  for(const p of POSITIONS)assert.equal(rules.slots[p],2);
 });

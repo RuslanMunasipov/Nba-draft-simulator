@@ -33,21 +33,48 @@ def apply(snapshot,fresh,teams,config):
         try:
             profile=sports.fetch(sports.TEAM_URL.format(id=config[t]))
             if profile:entry.update(sports.parse_team(profile))
+            roster=sports.fetch(sports.ROSTER_URL.format(id=config[t]))
+            if roster:entry['roster']=sports.parse_roster(roster)
         except Exception as e:  # noqa: BLE001
             print(f'team {t}: {e}',flush=True)
         entry['journal']=fresh[t];snapshot['teams'][t]=entry
     snapshot['teamsCheckedAt']=now()
     return snapshot
 
+def telegram(text):
+    """A plain service message to the FBL chat; silently skipped without the secrets."""
+    token,chat=os.environ.get('TELEGRAM_BOT_TOKEN'),os.environ.get('TELEGRAM_CHAT_ID')
+    if not token or not chat:return
+    import urllib.request
+    try:
+        req=urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',data=json.dumps({'chat_id':chat,'text':text}).encode(),headers={'content-type':'application/json'})
+        urllib.request.urlopen(req,timeout=20).read()
+    except Exception as e:  # noqa: BLE001
+        print(f'telegram: {e}',flush=True)
+
 class Watch:
+    # After this many failed collections in a row (about 30 minutes) the chat is told the data is stale, once.
+    ALERT_AFTER=3
     def __init__(self,live,state):
-        self.live,self.state=Path(live),Path(state)
+        self.live,self.state=Path(live),Path(state);self.failures=0
+    def collected(self,ok):
+        """Track consecutive failures: one alert when data goes stale, one when it recovers."""
+        if ok:
+            if self.failures>=self.ALERT_AFTER:telegram('✅ Сбор Sports.ru снова работает: данные свежие.')
+            self.failures=0;return
+        self.failures+=1
+        if self.failures==self.ALERT_AFTER:
+            telegram(f'⚠️ Сбор Sports.ru не удаётся {self.failures} раза подряд: цены, очки и трансферы в помощнике могут быть устаревшими. '
+                     'Вероятно, Sports.ru изменил страницы или ограничил запросы.')
     def full(self):
-        result=subprocess.run([sys.executable,'scripts/collect_sports_current.py',str(self.live)])
+        try:result=subprocess.run([sys.executable,'scripts/collect_sports_current.py',str(self.live)],timeout=40*60)
+        except subprocess.TimeoutExpired:print('full collection timed out',flush=True);return False
         return result.returncode==0 and self.live.exists()
     def notify(self):
-        # The notifier remembers what it reported in the state file; a failure must not stop the watch.
-        subprocess.run(['node','scripts/notify-transfers.mjs',str(self.live),str(self.state)])
+        # The notifier remembers what it reported in the state file; a failure must not stop the watch, but is logged.
+        try:result=subprocess.run(['node','scripts/notify-transfers.mjs',str(self.live),str(self.state)],timeout=10*60)
+        except subprocess.TimeoutExpired:print('notifier timed out',flush=True);return
+        if result.returncode:print(f'notifier failed with exit code {result.returncode}',flush=True)
     def publish(self,message):
         token=os.environ.get('GH_TOKEN');repo=os.environ.get('GITHUB_REPOSITORY')
         if not token or not repo:print('publish skipped: no GH_TOKEN/GITHUB_REPOSITORY',flush=True);return
@@ -58,7 +85,8 @@ class Watch:
         git('add',self.live.name);
         if self.state.exists():git('add',self.state.name)
         git('commit','-qm',message,'--allow-empty')
-        subprocess.run(['git','-C',str(folder),'push','-qf',f'https://x-access-token:{token}@github.com/{repo}.git','data/season-live'],check=False)
+        pushed=subprocess.run(['git','-C',str(folder),'push','-qf',f'https://x-access-token:{token}@github.com/{repo}.git','data/season-live'],check=False)
+        if pushed.returncode:print(f'publish failed with exit code {pushed.returncode}',flush=True)
 
 def main():
     a=argparse.ArgumentParser();a.add_argument('live');a.add_argument('state')
@@ -67,7 +95,7 @@ def main():
     stop=time.time()+args.minutes*60;next_full=0
     while time.time()<stop:
         if time.time()>=next_full:
-            ok=w.full()
+            ok=w.full();w.collected(ok)
             if ok:
                 w.notify();w.publish(f'Sports.ru live snapshot {now()}')
             # A failed collection retries soon; the journals keep being watched on the last snapshot.
