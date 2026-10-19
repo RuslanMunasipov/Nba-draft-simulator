@@ -1,7 +1,9 @@
+import solver from 'javascript-lp-solver';
 import {rosterFits,POSITIONS,TEAM_COUNT} from './engine.js';
 import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
 
 export const CAP=20000,WEEKLY_TRANSFERS=3;
+export {TEAM_COUNT};
 // Sports.ru posts its calendar and fantasy weeks in Moscow dates.
 export function moscowToday(now=Date.now()){return new Date(now+3*3600e3).toISOString().slice(0,10);}
 const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
@@ -110,7 +112,72 @@ export function parseInjuries(feed){
  const map=new Map();
  for(const team of feed?.injuries||[])for(const i of team.injuries||[]){
   const id=String(i.athlete?.links?.[0]?.href||'').match(/\/id\/(\d+)/)?.[1];if(!id)continue;
-  map.set(id,{status:i.status,fantasyStatus:i.details?.fantasyStatus?.abbreviation||'',returnDate:i.details?.returnDate||null,comment:i.shortComment||'',date:i.date,type:i.details?.type||''});
+  map.set(id,{name:i.athlete?.displayName||'',status:i.status,fantasyStatus:i.details?.fantasyStatus?.abbreviation||'',returnDate:i.details?.returnDate||null,comment:i.shortComment||'',date:i.date,type:i.details?.type||''});
  }
  return map;
+}
+
+// Exact best package of up to k transfers this week (integer programming over the roster and the strongest free agents):
+// keep or sell each player, buy free agents, two per Sports.ru position, at least one rookie, money within the bank.
+// By default the package may not lower the rest-of-season expectation: short-term gains never cost the season.
+export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat());
+ const value=p=>playerOutlook(p,ctx)[sort].points;
+ const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),wealth=bankMoney+roster.reduce((s,p)=>s+p.price,0);
+ const pool=[];
+ for(const pos of POSITIONS){
+  pool.push(...ctx.players.filter(p=>!taken.has(p.id)&&p.sportsId&&(ctx.live?.players?.[p.sportsId]||p.priceStatus==='VERIFIED'))
+   .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth)
+   .map(p=>({p,v:value(p)})).sort((a,b)=>b.v-a.v).slice(0,poolPerPosition));
+ }
+ const unique=[...new Map(pool.map(x=>[x.p.id,x])).values()];
+ const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1}},variables:{},ints:{}};
+ const subsets=Array.from({length:31},(_,m)=>POSITIONS.filter((_,i)=>(m+1)>>i&1));
+ subsets.forEach((T,i)=>{model.constraints['pos'+i]={max:2*T.length};});
+ const items=[...roster.map(p=>({p,v:value(p),own:true})),...unique.map(x=>({...x,own:false}))];
+ const seasonOf=new Map(items.map(x=>[x.p.id,playerOutlook(x.p,ctx).season.points]));
+ if(protectSeason&&sort!=='season')model.constraints.season={min:roster.reduce((s,p)=>s+seasonOf.get(p.id),0)-1e-6};
+ items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;
+  subsets.forEach((T,j)=>{if(x.p.positions.every(q=>T.includes(q)))v['pos'+j]=1;});
+  model.constraints['one'+i]={max:1};model.variables['x'+i]=v;model.ints['x'+i]=1;});
+ const result=solver.Solve(model);if(!result.feasible)return null;
+ const chosen=items.filter((_,i)=>result['x'+i]>0.5),next=chosen.map(x=>x.p);
+ if(next.length!==10||!rosterFits(next)||!next.some(p=>p.isRookie===true)||next.reduce((s,p)=>s+p.price,0)>wealth)return null;
+ const sold=items.filter((x,i)=>x.own&&!(result['x'+i]>0.5)),bought=chosen.filter(x=>!x.own);
+ if(sold.length>k)return null;
+ const base=roster.reduce((s,p)=>s+value(p),0),gain=chosen.reduce((s,x)=>s+x.v,0)-base;
+ // Pair each sale with a purchase of the same position for a readable list of one-for-one transfers.
+ const pairs=[],left=[...bought];
+ for(const s of sold){const i=left.findIndex(b=>b.p.positions.some(q=>s.p.positions.includes(q)));const b=left.splice(i>=0?i:0,1)[0];pairs.push({out:s.p,in:b.p,gain:b.v-s.v});}
+ const gains={};for(const h of ['week','month','season'])gains[h]=pairs.reduce((s,x)=>s+playerOutlook(x.in,ctx)[h].points-playerOutlook(x.out,ctx)[h].points,0);
+ return {k,gain,gains,pairs,bankAfter:wealth-next.reduce((s,p)=>s+p.price,0)};
+}
+// Free agents who beat a current player of the same position over the horizon and over the rest of the season,
+// affordable in a one-for-one swap: real upgrades, not short-term streams.
+export function marketAlerts(ctx,{team,bankMoney,sort='month',minGain=15}){
+ return bestTransfers(ctx,{team,bankMoney,sort,limit:10}).filter(x=>x.gain[sort]>=minGain&&x.gain.season>0);
+}
+// Official Sports.ru formula on an ESPN box-score line; the result bonus applies only to finished games.
+export function resultBonus(home,won){return won?(home?2:3):(home?-3:-2);}
+export function boxScorePoints(stats,{home,won=null}){
+ const n=v=>Number(v)||0,split=v=>String(v||'0-0').split('-').map(Number);
+ const [fgm,fga]=split(stats.FG),[ftm,fta]=split(stats.FT),min=n(stats.MIN);
+ if(!min&&!n(stats.PTS)&&!n(stats.REB))return null;
+ return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+(min>=10?2:1)+(won===null?0:resultBonus(home,won));
+}
+// ESPN summary -> {espnAthleteId: {points, minutes, final}}.
+export function liveGamePoints(summary,event){
+ const comp=event?.competitions?.[0],final=Boolean(event?.status?.type?.completed),out={};
+ const sides=new Map((comp?.competitors||[]).map(c=>[String(c.team?.id),{home:c.homeAway==='home',won:final?Boolean(c.winner):null}]));
+ for(const team of summary?.boxscore?.players||[]){
+  const side=sides.get(String(team.team?.id))||{home:false,won:null};
+  for(const st of team.statistics||[]){
+   const labels=st.labels||st.names||[];
+   for(const a of st.athletes||[]){
+    if(!a.stats?.length)continue;const stats=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]]));
+    const points=boxScorePoints(stats,side);if(points!==null)out[String(a.athlete?.id)]={points,minutes:Number(stats.MIN)||0,final};
+   }
+  }
+ }
+ return out;
 }

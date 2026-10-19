@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES} from '../src/season.js';
+import {seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -67,4 +67,37 @@ test('team points count only games played while on the team',()=>{
 test('ESPN injury feed is keyed by athlete id',()=>{
  const m=parseInjuries({injuries:[{injuries:[{status:'Out',shortComment:'x',athlete:{links:[{href:'https://www.espn.com/nba/player/_/id/123/x'}]},details:{returnDate:'2026-11-01',fantasyStatus:{abbreviation:'OUT'}}}]}]});
  assert.deepEqual(m.get('123').returnDate,'2026-11-01');
+});
+test('one-transfer package equals the best single swap; more transfers never lose',()=>{
+ const c=ctx({injuries:new Map([['5001',{status:'Out',returnDate:'2027-01-01'}]])});
+ const single=bestTransfers(c,{team:0,bankMoney:5000,sort:'month'})[0];
+ const p1=bestPackage(c,{team:0,bankMoney:5000,k:1,sort:'month'});
+ assert.ok(Math.abs(p1.gain-single.gain.month)<1e-6);assert.equal(p1.pairs.length,1);assert.equal(p1.pairs[0].out.id,1);
+ const p2=bestPackage(c,{team:0,bankMoney:5000,k:2,sort:'month'}),p3=bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'month'});
+ assert.ok(p2.gain>=p1.gain-1e-6&&p3.gain>=p2.gain-1e-6);assert.ok(p3.pairs.length<=3);
+ for(const x of p3.pairs){assert.deepEqual(x.in.positions,x.out.positions);assert.ok(x.in.id>80);}
+});
+test('a package can sell an expensive player to fund a better one elsewhere',()=>{
+ // Free agent 100 (C, 39/game) costs 2400; with 0 in the bank only selling two players makes room.
+ const prices=Object.fromEntries(players.slice(80).map(p=>[p.sportsId,{price:99999,position:p.positions[0],games:[]}]));prices[1100].price=2400;prices[1091].price=600;
+ const c=ctx({live:{...live,players:prices}});
+ assert.ok(!transferOptions(c,{team:0,outId:65,bankMoney:0,limit:100}).some(o=>o.player.id===100));
+ const p=bestPackage(c,{team:0,bankMoney:0,k:2,sort:'season'});
+ assert.ok(p.pairs.some(x=>x.in.id===100));assert.ok(p.bankAfter>=0);
+});
+test('box score uses the Sports.ru formula with the result bonus only for finished games',()=>{
+ const line={MIN:'36',PTS:'30',FG:'11-20',FT:'6-8',REB:'10',AST:'8',STL:'2',BLK:'1',TO:'3',PF:'2'};
+ assert.equal(boxScorePoints(line,{home:true,won:null}),30+10+8+2+1-9-2-6-2+2);
+ assert.equal(boxScorePoints(line,{home:false,won:true}),34+3);
+ assert.equal(boxScorePoints({...line,MIN:'8'},{home:true,won:false}),34-1-3);
+ const event={status:{type:{completed:true}},competitions:[{competitors:[{team:{id:'1'},homeAway:'home',winner:false},{team:{id:'2'},homeAway:'away',winner:true}]}]};
+ const summary={boxscore:{players:[{team:{id:'2'},statistics:[{labels:Object.keys(line),athletes:[{athlete:{id:'77'},stats:Object.values(line)},{athlete:{id:'78'},stats:[]}]}]}]}};
+ assert.deepEqual(liveGamePoints(summary,event),{77:{points:37,minutes:36,final:true}});
+});
+test('packages never trade the season for a short-term gain unless asked',()=>{
+ // Free agent 99 (C) is great this week but out from November; the roster centre is steady all season.
+ const c=ctx({injuries:new Map([['5099',{status:'Out',returnDate:'2027-06-01'}]]),today:'2026-10-26'});
+ c.injuries.set('5099',{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:'2026-10-27'});
+ const free=bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'week',protectSeason:false}),safe=bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'week'});
+ assert.ok(safe.gains.season>=-1e-6);assert.ok(free.gain>=safe.gain-1e-6);
 });

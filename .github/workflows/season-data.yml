@@ -18,6 +18,16 @@ jobs:
           python-version: '3.11'
       - name: Collect Sports.ru prices, calendar, official points and ESPN injuries
         run: python scripts/collect_sports_current.py out/sports-current.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Transfer alerts to Telegram (only when something new appears)
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/notify-transfers.mjs out/sports-current.json out/notify-state.json
       - name: Publish the snapshot to the data/season-live branch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -27,5 +37,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add sports-current.json
+          [ -f notify-state.json ] && git add notify-state.json || true
           git commit -qm "Sports.ru live snapshot $(date -u +%FT%TZ)"
           git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" data/season-live
