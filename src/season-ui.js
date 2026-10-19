@@ -216,7 +216,7 @@ function sideBlock(label,x){
   `в периоде ${x.expectedGames.toFixed(1)} из ${x.clubGames} матчей клуба · играет ${Math.round(x.playRate*100)}% матчей`,
   p.depth?`состав ESPN: ${p.depth.rank===1?'стартер':'№'+p.depth.rank} на ${p.depth.position}`:'',
   x.injury?`🩹 ${x.injury.status}${x.injury.returnDate?' до '+ddmm(x.injury.returnDate):''}${x.injury.comment?' — '+x.injury.comment:''}`:'травм в отчёте ESPN нет',
-  sourcesLine(f),hist.length?'Sports.ru: '+hist.map(([k,v])=>`${k} ${v.perGame} × ${v.games} м.`).join(' · '):''];
+  sourcesLine(f),f.availability?`история пропусков: ${f.availability.shortSpellsPer82.toFixed(1)} коротких и ${f.availability.longSpellsPer82.toFixed(1)} длинных за 82 матча (у ровесников ${f.availability.leagueShortSpellsPer82.toFixed(1)} и ${f.availability.leagueLongSpellsPer82.toFixed(1)}) · до сезона 80%: ${f.availability.gamesRange[0]}–${f.availability.gamesRange[1]} матчей`:'',hist.length?'Sports.ru: '+hist.map(([k,v])=>`${k} ${v.perGame} × ${v.games} м.`).join(' · '):''];
  for(const l of lines.filter(Boolean))box.append(el('p',l));
  box.append(newsBlock(p));
  const more=el('details');more.append(el('summary','Полная карточка игрока'));more.addEventListener('toggle',()=>{if(more.open&&!more.querySelector('.player-card'))more.append(card(p,null,true));});box.append(more);

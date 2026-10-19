@@ -47,7 +47,7 @@ export function playerInsights(p,players){
   const ratio=f.seasonFloor/f.meanSeason;
   if(ctx.wide!==null&&ratio<=ctx.wide)cons.push(`Большой разброс: слабый сезон всего ${Math.round(f.seasonFloor)} ФО — среди 20% самых рискованных (травмы или потеря роли у похожих игроков).`);
   else if(ctx.narrow!==null&&ratio>=ctx.narrow)pros.push(`Узкий разброс: даже слабый сезон ${Math.round(f.seasonFloor)} ФО — среди 20% самых надёжных.`);
-  if(Number.isFinite(f.shortSeasonRisk)&&f.shortSeasonRisk>=.2)cons.push(`Риск короткого сезона: у ${Math.round(f.shortSeasonRisk*100)}% похожих случаев — меньше четверти матчей.`);
+  if(Number.isFinite(f.shortSeasonRisk)&&f.shortSeasonRisk>=.2)cons.push(f.availability?`Риск короткого сезона: ${Math.round(f.shortSeasonRisk*100)}% сыграть меньше четверти матчей (цепь пропусков по истории травм).`:`Риск короткого сезона: у ${Math.round(f.shortSeasonRisk*100)}% похожих случаев — меньше четверти матчей.`);
  }
  const d=f?.historicalDownside;if(d&&Number.isFinite(d.meanWorstTenPercent)&&d.meanWorstTenPercent>=12)pros.push(`Высокий пол: худшие 10% матчей в среднем ${d.meanWorstTenPercent.toFixed(1)} ФО.`);
  if(d?.negativeGames>=3)cons.push(`Минусовые матчи: ${d.negativeGames} в ${d.season}.`);
