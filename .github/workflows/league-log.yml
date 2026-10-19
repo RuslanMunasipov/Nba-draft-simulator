@@ -1,0 +1,43 @@
+name: League transfer log
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: league-log
+  cancel-in-progress: false
+jobs:
+  apply:
+    # Only the league owner's requests change the shared log.
+    if: github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, 'FBL:')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Validate and apply
+        id: apply
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node scripts/league-log.mjs
+      - name: Commit the log
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/fbl-league.json
+          if git diff --cached --quiet; then echo 'nothing to commit'; else git commit -qm "League log: ${ISSUE_TITLE}" && git push -q; fi
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+      - name: Report and close
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          [ -f league-log-result.txt ] || echo '❌ Заявка не обработана' > league-log-result.txt
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file league-log-result.txt
+          gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY"

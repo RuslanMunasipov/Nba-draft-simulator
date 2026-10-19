@@ -295,3 +295,36 @@ body:not([data-tab=season]) #season{display:none}
 .sp-log button{min-height:32px;padding:4px 10px;margin-left:8px}
 .standings-table tr{cursor:pointer}
 @media(max-width:600px){.sp-header,.sp-row{grid-template-columns:minmax(0,1fr) 56px 76px}.sp-header span:nth-child(3),.sp-form{display:none}.sp-option{grid-template-columns:minmax(0,1fr) auto}.sp-gains{grid-column:1/-1;justify-content:flex-start}.tabs button{padding:8px 10px}}
+.season-nav{display:flex;gap:4px;flex-wrap:wrap;background:var(--soft);padding:4px;border-radius:12px;margin-bottom:var(--s4);position:sticky;top:6px;z-index:5}
+.season-nav button{flex:1;min-height:40px;padding:8px 10px;background:transparent;color:var(--muted);border-radius:9px;white-space:nowrap}
+.season-nav button[aria-pressed=true]{background:var(--accent);color:var(--paper)}
+.season-section h3{margin:var(--s5) 0 var(--s2);font-size:18px}
+.sp-alerts:not(:empty){border:2px solid var(--accent);border-radius:14px;padding:var(--s3) var(--s4);margin-bottom:var(--s4)}
+.sp-alerts h3{margin-top:0}
+.sp-alerts p{font-size:14px;margin:6px 0}
+.sp-game{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0}
+.sp-game.is-live{border-color:#d9534f}
+.sp-game-head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.sp-game-head span{font-weight:800;font-variant-numeric:tabular-nums}
+.sp-game.is-live small{color:#d9534f;font-weight:700}
+.sp-game ul,.sp-day{margin:6px 0 0;padding-left:18px;font-size:13px}
+.sp-day li small{display:block}
+.sp-top ol li{font-size:14px}
+.sp-top ol li strong{margin-right:8px}
+.sp-top ol li span{color:var(--muted);font-size:13px}
+.sp-package{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0}
+.sp-package.over-limit{opacity:.75;border-style:dashed}
+.sp-package-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.sp-package ul{font-size:13px;margin:6px 0;padding-left:18px}
+.sp-package button{min-height:38px;padding:8px 14px;margin-top:6px}
+.sp-best select{width:100%;margin-bottom:var(--s2)}
+.sp-log li.pending{border-left:3px solid #d9b965;padding-left:8px}
+.sp-send{margin-left:8px;font-size:13px;font-weight:700}
+.sp-injury-item{padding:8px 0 8px 10px;border-left:3px solid #d9b965;margin:6px 0}
+.sp-injury-item.out{border-left-color:#d9534f}
+.sp-injury-item small{display:block}
+.sp-gains small{display:block}
+.sp-package small{display:block;margin-top:4px}
+.sp-option .sp-name strong,.sp-option .sp-name small{display:block}
+.sp-controls label{max-width:100%}.sp-controls select{max-width:100%;min-width:0}
+@media(max-width:600px){.sp-controls label{width:100%}.sp-controls select,.sp-controls input{flex:1}}
