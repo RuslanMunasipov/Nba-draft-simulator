@@ -37,6 +37,10 @@ class YahooTest(unittest.TestCase):
             {'name': 'Zion Williamson', 'yahooId': '1', 'kind': 'add', 'from': None, 'to': '466.l.246081.t.1'},
             {'name': 'Julius Randle', 'yahooId': '2', 'kind': 'drop', 'from': '466.l.246081.t.1', 'to': None}])
 
+    def test_code_is_cut_from_a_pasted_address(self):
+        self.assertEqual(yahoo.clean_code(' abc123 '), 'abc123')
+        self.assertEqual(yahoo.clean_code('https://localhost:8080/?code=abc%2D123&state=x'), 'abc-123')
+
     def test_token_is_stored_encrypted(self):
         os.environ['YAHOO_CLIENT_SECRET'] = 'test-secret'
         sealed = yahoo.crypt(b'refresh-token-value')

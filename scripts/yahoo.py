@@ -12,6 +12,7 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -42,12 +43,24 @@ def token_request(**fields):
     redirect = os.environ.get('YAHOO_REDIRECT_URI', '').strip() or 'oob'
     body = urllib.parse.urlencode({'redirect_uri': redirect, **fields}).encode()
     req = urllib.request.Request(TOKEN_URL, data=body, headers={'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded'})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        # Yahoo's explanation (invalid_grant, redirect mismatch, bad client) carries no secrets.
+        raise SystemExit(f'Yahoo token request failed ({e.code}, redirect_uri={redirect}): {e.read().decode(errors="replace")[:500]}')
+
+
+def clean_code(value):
+    """The code alone, also when the whole redirect address or 'code=...' was pasted."""
+    value = value.strip()
+    if 'code=' in value:
+        value = value.split('code=', 1)[1].split('&', 1)[0]
+    return urllib.parse.unquote(value).strip()
 
 
 def exchange(path):
-    tokens = token_request(grant_type='authorization_code', code=secret('YAHOO_CODE'))
+    tokens = token_request(grant_type='authorization_code', code=clean_code(secret('YAHOO_CODE')))
     Path(path).write_bytes(crypt(tokens['refresh_token'].encode()))
     print('Yahoo connected: refresh token stored encrypted.')
 
