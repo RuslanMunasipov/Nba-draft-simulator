@@ -8,7 +8,7 @@ import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackag
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers,checkRules,appeal} from '../src/rules.js';
-import {esc,gains,moveLines,details,message,plainText} from './telegram-format.mjs';
+import {esc,gains,moveLines,details,message,sender} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -75,28 +75,7 @@ if(hurt.length)mine.push('','🩹 <b>Травмы</b>',...hurt.map(h=>esc(h.text
 mine.push('',link);
 const changed=fresh.length>0||freshHurt.length>0;
 console.log(message(mine),'\n\nnew:',fresh,freshHurt.map(h=>h.key));
-const configured=Boolean(process.env.TELEGRAM_BOT_TOKEN&&process.env.TELEGRAM_CHAT_ID);
-// One Telegram call: waits out 429 rate limits (retry_after) and retries server errors a few times.
-async function post(body){
- for(let attempt=0;;attempt++){
-  const res=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,disable_web_page_preview:true,...body})});
-  if(res.ok||res.status===400||attempt>=4||(res.status!==429&&res.status<500))return res;
-  const wait=res.status===429?((await res.json().catch(()=>({})))?.parameters?.retry_after||5):2**attempt;
-  await new Promise(r=>setTimeout(r,wait*1000));
- }
-}
-// Telegram refuses messages over 4096 characters: a long one is cut at a line and says so.
-const fit=text=>text.length<=4000?text:text.slice(0,text.lastIndexOf('\n',3900))+'\n…';
-async function send(text){
- text=fit(text);console.log('\n'+text+'\n');
- if(!configured){console.log('Telegram secrets not set: message not sent.');return false;}
- const res=await post({text,parse_mode:'HTML'});
- // Rejected markup must not lose the alert: resend the same words as plain text.
- if(res.status===400){const plain=await post({text:plainText(text)});
-  if(!plain.ok)throw Error('Telegram: '+plain.status+' '+await plain.text());console.log('sent to Telegram as plain text');return true;}
- if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());
- console.log('sent to Telegram');return true;
-}
+const {configured,send}=sender(process.env.TELEGRAM_BOT_TOKEN,process.env.TELEGRAM_CHAT_ID);
 // What was reported is saved after every message, so a failure halfway never repeats the messages already sent.
 const state={...previous,sent:[...(previous.sent||[])],transfers:[...(previous.transfers||[])],returns:[...(previous.returns||[])],unknown:[...(previous.unknown||[])]};
 function save(){if(configured)fs.writeFileSync(statePath,JSON.stringify({...state,updatedAt:new Date().toISOString()}));}

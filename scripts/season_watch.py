@@ -75,6 +75,10 @@ class Watch:
         try:result=subprocess.run(['node','scripts/notify-transfers.mjs',str(self.live),str(self.state)],timeout=10*60)
         except subprocess.TimeoutExpired:print('notifier timed out',flush=True);return
         if result.returncode:print(f'notifier failed with exit code {result.returncode}',flush=True)
+        # The league chat's feed: every transfer with the rules check, remembered in its own state file.
+        try:result=subprocess.run(['node','scripts/league-feed.mjs',str(self.live),str(self.live.parent/'league-state.json')],timeout=10*60)
+        except subprocess.TimeoutExpired:print('league feed timed out',flush=True);return
+        if result.returncode:print(f'league feed failed with exit code {result.returncode}',flush=True)
     def publish(self,message):
         token=os.environ.get('GH_TOKEN');repo=os.environ.get('GITHUB_REPOSITORY')
         if not token or not repo:print('publish skipped: no GH_TOKEN/GITHUB_REPOSITORY',flush=True);return
@@ -84,7 +88,8 @@ class Watch:
             git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
         git('add',self.live.name);
         if self.state.exists():git('add',self.state.name)
-        if (folder/'injury-history.json').exists():git('add','injury-history.json')
+        for name in ('injury-history.json','league-state.json'):
+            if (folder/name).exists():git('add',name)
         git('commit','-qm',message,'--allow-empty')
         pushed=subprocess.run(['git','-C',str(folder),'push','-qf',f'https://x-access-token:{token}@github.com/{repo}.git','data/season-live'],check=False)
         if pushed.returncode:print(f'publish failed with exit code {pushed.returncode}',flush=True)
