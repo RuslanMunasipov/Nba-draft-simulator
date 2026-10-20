@@ -28,7 +28,17 @@ jobs:
       - name: Start from the last published snapshot and alert state
         run: |
           mkdir -p out
-          git fetch -q origin data/season-live:refs/remotes/origin/data/season-live || exit 0
+          # The published state is what was already posted: a run that cannot read it must not start from nothing
+          # (it would post the day's deals again and restart the protocol numbers). Only a missing branch is a first run.
+          for i in 1 2 3 4 5; do
+            git fetch -q origin data/season-live:refs/remotes/origin/data/season-live && break
+            if [ "$i" = 5 ]; then
+              code=0; git ls-remote --exit-code origin data/season-live >/dev/null || code=$?
+              [ "$code" = 2 ] && exit 0
+              echo "Cannot fetch data/season-live: not starting from an empty state"; exit 1
+            fi
+            sleep $((i * 15))
+          done
           git show origin/data/season-live:sports-current.json > out/sports-current.json || rm -f out/sports-current.json
           git show origin/data/season-live:notify-state.json > out/notify-state.json || rm -f out/notify-state.json
           git show origin/data/season-live:injury-history.json > out/injury-history.json || rm -f out/injury-history.json
@@ -48,4 +58,6 @@ jobs:
         if: success() || failure()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run season-data.yml --ref "${{ github.ref_name }}"
+        run: |
+          for i in 1 2 3 4 5; do gh workflow run season-data.yml --ref "${{ github.ref_name }}" && exit 0; sleep $((i * 20)); done
+          exit 1

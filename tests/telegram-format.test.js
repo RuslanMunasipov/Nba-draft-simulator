@@ -28,3 +28,10 @@ test('a protocol with a photo: the text is its caption when it fits, otherwise i
   assert.deepEqual(calls.map(c=>c.method),['sendPhoto','sendMessage']);assert.equal(calls[0].form.get('caption'),null);
  }finally{globalThis.fetch=real;console.log=log;}
 });
+test('Telegram usernames never reach the printed log',async()=>{
+ const {hideHandles}=await import('../scripts/telegram-format.mjs');
+ assert.equal(hideHandles('👨‍⚖️ @some_lawyer и @Commish64, 22:00 МСК'),'👨‍⚖️ @••• и @•••, 22:00 МСК');
+ const lines=[],log=console.log;console.log=(...a)=>lines.push(a.join(' '));
+ try{await sender(null,null).send('вызван @some_lawyer');}finally{console.log=log;}
+ assert.ok(!lines.join('\n').includes('some_lawyer'));
+});

@@ -29,13 +29,14 @@ def changed_teams(snapshot,fresh):
     old=snapshot.get('teams',{})
     # The stored rows carry seenAt (when the watcher first saw them); Sports.ru rows do not.
     # Rows of one date come in no stable order, so journals are compared as sorted lists.
-    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter')},ensure_ascii=False,sort_keys=True) for r in rows or [])
+    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','sellSid','buySid')},ensure_ascii=False,sort_keys=True) for r in rows or [])
     return [t for t,rows in fresh.items() if bare(rows)!=bare(old.get(t,{}).get('journal')) and len(rows)>=len(old.get(t,{}).get('journal') or [])]
-def mark_read(snapshot,fresh):
+def mark_read(snapshot,fresh,stamp=None):
     """Remember when each journal was last read unchanged: a row that appears later was made after that read, which
-    bounds the time of the transfer (FBL allows transfers only from 08:00 to 22:00 Moscow time)."""
-    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter')},ensure_ascii=False,sort_keys=True) for r in rows or [])
-    stamp=now()
+    bounds the time of the transfer (FBL allows transfers only from 08:00 to 22:00 Moscow time). The stamp is the time
+    the read began: a deal made while the pages were being fetched may be missing from them."""
+    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','sellSid','buySid')},ensure_ascii=False,sort_keys=True) for r in rows or [])
+    stamp=stamp or now()
     for t,rows in fresh.items():
         entry=snapshot.get('teams',{}).get(t)
         if entry and bare(rows)==bare(entry.get('journal')):entry['journalReadAt']=stamp
@@ -45,16 +46,17 @@ def merge_full(full,cur):
     journals while the collection ran, so its rows and their times stand; rows only the collection saw are stamped as
     new (by sale and purchase, as everywhere)."""
     if not cur:return full
-    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter')},ensure_ascii=False,sort_keys=True) for r in rows or [])
+    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','sellSid','buySid')},ensure_ascii=False,sort_keys=True) for r in rows or [])
     for t,entry in (full.get('teams') or {}).items():
         mine=(cur.get('teams') or {}).get(t)
         if not mine or not mine.get('journal'):continue
         # Every row the collection saw is already known (it read the journal earlier): the watcher's journal stands.
         if not Counter(bare(entry.get('journal')))-Counter(bare(mine['journal'])):entry['journal']=mine['journal']
-        else:entry['journal']=sports.stamp_journal(mine['journal'],entry.get('journal'),now=entry.get('journalReadAt'),after=mine.get('journalReadAt'))
+        else:entry['journal']=sports.stamp_journal(mine['journal'],entry.get('journal'),now=full.get('collectedAt') or entry.get('journalReadAt'),after=mine.get('journalReadAt'))
         entry['journalReadAt']=max(filter(None,(mine.get('journalReadAt'),entry.get('journalReadAt'))),default=None)
     return full
-def apply(snapshot,fresh,teams,config):
+def apply(snapshot,fresh,teams,config,read_from=None):
+    """New rows of the changed teams: seenAt is now (after the read), the next lower bound is when the read began."""
     for t in teams:
         entry=dict(snapshot.setdefault('teams',{}).get(t) or {'sportsTeamId':config[t]})
         try:
@@ -63,10 +65,17 @@ def apply(snapshot,fresh,teams,config):
             roster=sports.fetch(sports.ROSTER_URL.format(id=config[t]))
             if roster:entry['roster']=sports.parse_roster(roster)
         except Exception as e:  # noqa: BLE001
-            print(f'team {t}: {e}',flush=True)
+            print(f'team {t}: {e}',flush=True);roster=None
         stamp=now();previous=snapshot['teams'].get(t) or {}
-        entry['journal']=sports.stamp_journal(previous.get('journal'),fresh[t],now=stamp,after=previous.get('journalReadAt'))
-        entry['journalReadAt']=stamp;snapshot['teams'][t]=entry
+        # The exact players of a new deal come from the roster change, only when the roster was read just now.
+        entry['journal']=sports.stamp_journal(previous.get('journal'),fresh[t],now=stamp,after=previous.get('journalReadAt'),
+                                              old_roster=previous.get('roster'),new_roster=entry.get('roster') if roster else None)
+        entry['journalReadAt']=read_from or stamp;snapshot['teams'][t]=entry
+        # A player new to the Sports.ru market is known from the roster until the next full collection lists him.
+        for p in (entry.get('roster') or []) if roster else []:
+            if p.get('sportsId') and p.get('price') and p.get('position') and p['sportsId'] not in snapshot.setdefault('players',{}):
+                snapshot['players'][p['sportsId']]={'name':p.get('name'),'fullName':p.get('name'),'club':p.get('club'),'position':p['position'],
+                                                    'price':p['price'],'initialPrice':p['price'],'fromRoster':True}
     snapshot['teamsCheckedAt']=now()
     return snapshot
 
@@ -118,20 +127,28 @@ class Watch:
         cur=json.loads(self.live.read_text(encoding='utf-8')) if self.live.exists() else None
         self.live.write_text(json.dumps(merge_full(full,cur),ensure_ascii=False,separators=(',',':')),encoding='utf-8')
         return True
+    # When the feed or the notifier failed (a network error, Telegram down) the watch runs them again: in a minute, then
+    # less often while they keep failing (at most every ten minutes), so a deal is never left for the next journal change.
+    failed=0;retry_at=None
+    @property
+    def retry(self):return self.retry_at is not None and time.time()>=self.retry_at
     def notify(self):
         """The league feed first, saved to GitHub at once (it is what must never repeat), then the personal advice."""
-        self.feed();self.publish(f'League feed state {now()}')
-        self.personal()
+        ok=self.feed();self.publish(f'League feed state {now()}')
+        ok=self.personal() and ok
+        self.failed=0 if ok else self.failed+1
+        self.retry_at=None if ok else time.time()+60*min(10,2**(self.failed-1))
+    def run(self,name,script,state):
+        try:result=subprocess.run(['node',script,str(self.live),str(state)],timeout=10*60)
+        except subprocess.TimeoutExpired:print(f'{name} timed out',flush=True);return False
+        if result.returncode:print(f'{name} failed with exit code {result.returncode}',flush=True)
+        return not result.returncode
     def feed(self):
         # The league chat's feed: every transfer with the rules check, remembered in its own state file.
-        try:result=subprocess.run(['node','scripts/league-feed.mjs',str(self.live),str(self.live.parent/'league-state.json')],timeout=10*60)
-        except subprocess.TimeoutExpired:print('league feed timed out',flush=True);return
-        if result.returncode:print(f'league feed failed with exit code {result.returncode}',flush=True)
+        return self.run('league feed','scripts/league-feed.mjs',self.live.parent/'league-state.json')
     def personal(self):
         # The notifier remembers what it reported in the state file; a failure must not stop the watch, but is logged.
-        try:result=subprocess.run(['node','scripts/notify-transfers.mjs',str(self.live),str(self.state)],timeout=10*60)
-        except subprocess.TimeoutExpired:print('notifier timed out',flush=True);return
-        if result.returncode:print(f'notifier failed with exit code {result.returncode}',flush=True)
+        return self.run('notifier','scripts/notify-transfers.mjs',self.state)
     def publish(self,message):
         token=os.environ.get('GH_TOKEN');repo=os.environ.get('GITHUB_REPOSITORY')
         if not token or not repo:print('publish skipped: no GH_TOKEN/GITHUB_REPOSITORY',flush=True);return
@@ -178,11 +195,15 @@ def main():
             next_full=time.time()+(args.full_every if ok else 10)*60
         if w.live.exists():
             snapshot=json.loads(w.live.read_text(encoding='utf-8'))
-            fresh=journals(config);teams=changed_teams(snapshot,fresh);mark_read(snapshot,{t:r for t,r in fresh.items() if t not in teams})
+            read_from=now();fresh=journals(config);teams=changed_teams(snapshot,fresh)
+            mark_read(snapshot,{t:r for t,r in fresh.items() if t not in teams},read_from)
             if teams:
                 print(f'{now()} new journal rows: teams {teams}',flush=True)
-                w.live.write_text(json.dumps(apply(snapshot,fresh,teams,config),ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+                w.live.write_text(json.dumps(apply(snapshot,fresh,teams,config,read_from),ensure_ascii=False,separators=(',',':')),encoding='utf-8')
                 w.notify();w.publish(f'FBL transfer journals {now()} (teams {",".join(teams)})')
+            elif w.retry:
+                w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+                print(f'{now()} retrying the feed and the notifier',flush=True);w.notify()
             else:
                 # Nothing new: only the time of this read is kept (locally; it is published with the next change).
                 w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')

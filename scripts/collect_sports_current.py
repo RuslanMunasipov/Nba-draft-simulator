@@ -284,14 +284,17 @@ def parse_journal(page):
     return rows[::-1]
 
 
-def stamp_journal(old, new, now=None, after=None):
+def stamp_journal(old, new, now=None, after=None, old_roster=None, new_roster=None):
     """Sports.ru journals give only the date of a transfer. A row first seen by this collection gets seenAt, the UTC
     time it appeared, and seenAfter, the previous read of the same journal without it (after): the transfer was made
     between the two (the watcher reads journals every minute). Rows already known keep theirs. Sports.ru lists rows of one
     date in no stable order and even re-pairs a day's sales and purchases into other rows as the day goes on, so stamps
     belong to the events, not the rows: a row's sale and its purchase are each matched against the earlier journal's
     sales and purchases of that date. A row whose events were all seen before keeps their time (the later of the two);
-    a row with a new event is new. Without a previous journal nothing is stamped: the time of those rows is unknown."""
+    a row with a new event is new. Without a previous journal nothing is stamped: the time of those rows is unknown.
+    The exact players are pinned too (sellSid, buySid): journals give only short names (two «Уайт»), so a new sale or
+    purchase is matched to the player who left or joined the team's Sports.ru roster since the previous read
+    (old_roster, new_roster), once, and keeps that id when the rows are re-paired."""
     if not old:
         return new
     now = now or datetime.now(timezone.utc).isoformat(timespec='seconds')
@@ -300,19 +303,41 @@ def stamp_journal(old, new, now=None, after=None):
     for row in old:
         for side in ('sell', 'buy'):
             if row.get(side):
-                pool.setdefault(ident(side, row), []).append({k: row[k] for k in ('seenAt', 'seenAfter') if row.get(k)})
+                pool.setdefault(ident(side, row), []).append({**{k: row[k] for k in ('seenAt', 'seenAfter') if row.get(k)},
+                                                              **({'sid': row[side + 'Sid']} if row.get(side + 'Sid') else {})})
+    # Who left and who joined the roster since the previous read, for the new events.
+    ids = lambda roster: [p for p in roster or [] if p.get('sportsId')]
+    gone, came = [], []
+    if old_roster is not None and new_roster is not None:
+        before, after_ids = [p['sportsId'] for p in ids(old_roster)], [p['sportsId'] for p in ids(new_roster)]
+        gone = [p for p in ids(old_roster) if p['sportsId'] not in after_ids]
+        came = [p for p in ids(new_roster) if p['sportsId'] not in before]
+    def pin(side, row):
+        cands = [p for p in (gone if side == 'sell' else came) if p.get('name') == row[side].get('name')]
+        if not cands:
+            return None
+        best = min(cands, key=lambda p: abs((p.get('price') or 0) - (row[side].get('price') or 0)))
+        (gone if side == 'sell' else came).remove(best)
+        return best['sportsId']
     out = []
     for row in new:
-        events = [pool[ident(side, row)].pop(0) if pool.get(ident(side, row)) else None for side in ('sell', 'buy') if row.get(side)]
-        if any(e is None for e in events):
-            out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {})})
+        sides = [side for side in ('sell', 'buy') if row.get(side)]
+        events = {side: (pool[ident(side, row)].pop(0) if pool.get(ident(side, row)) else None) for side in sides}
+        pins = {}
+        for side in sides:
+            sid = events[side].get('sid') if events[side] else pin(side, row)
+            if sid:
+                pins[side + 'Sid'] = sid
+        if any(e is None for e in events.values()):
+            out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {}), **pins})
             continue
-        seen = [e for e in events if e.get('seenAt')]
+        seen = [e for e in events.values() if e.get('seenAt')]
         if not seen:
-            out.append(dict(row))
+            out.append({**row, **pins})
             continue
         latest = max(seen, key=lambda e: e['seenAt'])
-        out.append({**row, 'seenAt': latest['seenAt'], **({'seenAfter': max(e['seenAfter'] for e in seen if e.get('seenAfter'))} if any(e.get('seenAfter') for e in seen) else {})})
+        out.append({**row, 'seenAt': latest['seenAt'], **pins,
+                    **({'seenAfter': max(e['seenAfter'] for e in seen if e.get('seenAfter'))} if any(e.get('seenAfter') for e in seen) else {})})
     return out
 
 
@@ -336,6 +361,7 @@ def collect_teams(previous=None, errors=None):
     teams = {}
     for team, sid in config.items():
         old = previous.get(team)
+        read_from = datetime.now(timezone.utc).isoformat(timespec='seconds')
         try:
             profile, journal, roster = fetch(TEAM_URL.format(id=sid)), fetch(JOURNAL_URL.format(id=sid)), fetch(ROSTER_URL.format(id=sid))
             if profile is None or journal is None:
@@ -353,8 +379,9 @@ def collect_teams(previous=None, errors=None):
             errors.append({'team': team, 'error': f"journal shrank from {len(old['journal'])} to {len(entry['journal'])} rows; kept the previous one"})
             entry['journal'] = old['journal']
         read_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
-        entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'], now=read_at, after=(old or {}).get('journalReadAt'))
-        entry['journalReadAt'] = read_at
+        entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'], now=read_at, after=(old or {}).get('journalReadAt'),
+                                         old_roster=(old or {}).get('roster'), new_roster=entry.get('roster') if roster else None)
+        entry['journalReadAt'] = read_from
         if 'balance' not in entry or 'transfersLeft' not in entry:
             errors.append({'team': team, 'error': 'team profile without balance or transfers; layout changed?'})
             for key in ('balance', 'transfersLeft', 'value'):

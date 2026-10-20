@@ -43,3 +43,22 @@ class WatchTests(unittest.TestCase):
   full={'teams':{'0':{'journal':[row('A'),row('C')],'journalReadAt':'t5'}}}
   out=merge_full(full,{'teams':{'0':{'journal':[a],'journalReadAt':'t4'}}})['teams']['0']
   self.assertEqual((out['journal'][0]['seenAt'],out['journal'][1]['seenAt'],out['journal'][1]['seenAfter']),('t1','t5','t4'))
+ def test_a_failed_feed_is_retried_soon_and_then_less_often(self):
+  import scripts.season_watch as sw,time
+  w=sw.Watch('a','b');w.publish=lambda m:None;w.personal=lambda:True
+  w.feed=lambda:False;w.notify()
+  self.assertFalse(w.retry);self.assertAlmostEqual(w.retry_at-time.time(),60,delta=2)
+  w.notify();self.assertAlmostEqual(w.retry_at-time.time(),120,delta=2)
+  w.retry_at=time.time()-1;self.assertTrue(w.retry)
+  w.feed=lambda:True;w.notify();self.assertIsNone(w.retry_at);self.assertEqual(w.failed,0)
+ def test_new_rows_take_the_read_start_as_next_lower_bound_and_new_market_players_come_from_the_roster(self):
+  import json as _json,scripts.season_watch as sw
+  real=sw.sports.fetch
+  sw.sports.fetch=lambda url:_json.dumps({'players':[{'id':77,'name':'Новый','club':'Бостон','amplua':'1','price':'900','lock':'0'}]}) if 'roster' in url.lower() or 'squad' in url.lower() or url==sw.sports.ROSTER_URL.format(id='s0') else None
+  try:
+   snapshot={'players':{},'teams':{'0':{'journal':[row('A')],'journalReadAt':'t0'}}}
+   sw.apply(snapshot,{'0':[row('A'),row('Новый')]},['0'],{'0':'s0'},'t1')
+  finally:sw.sports.fetch=real
+  t=snapshot['teams']['0']
+  self.assertEqual(t['journalReadAt'],'t1');self.assertEqual(t['journal'][1]['seenAfter'],'t0');self.assertGreater(t['journal'][1]['seenAt'],'2026')
+  self.assertEqual(snapshot['players']['77']['price'],900);self.assertEqual(snapshot['players']['77']['name'],'Новый')

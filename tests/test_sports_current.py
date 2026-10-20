@@ -148,6 +148,16 @@ class JournalStampTests(unittest.TestCase):
         out = collector.stamp_journal(old, [r('J', 'E'), r('K', 'O'), r('W', 'K')], now='t2', after='t1b')
         self.assertEqual([(x['seenAt'], x['seenAfter']) for x in out], [('t1', 't0'), ('t1', 't0'), ('t2', 't1b')])
 
+    def test_the_exact_players_of_a_new_deal_are_pinned_from_the_roster_change(self):
+        r = lambda s, b, sp=1500, bp=1800: {'date': '2026-10-20', 'sell': {'name': s, 'price': sp}, 'buy': {'name': b, 'price': bp}}
+        old_roster = [{'sportsId': '9', 'name': 'Сабонис', 'price': 2100}]
+        new_roster = [{'sportsId': 'd1', 'name': 'Уайт', 'price': 1800}]
+        out = collector.stamp_journal([r('A', 'B')], [r('A', 'B'), r('Сабонис', 'Уайт', 2100)], now='t2', old_roster=old_roster, new_roster=new_roster)
+        self.assertEqual((out[1]['sellSid'], out[1]['buySid']), ('9', 'd1'))
+        # Re-paired later, the ids stay with their events.
+        again = collector.stamp_journal(out, [r('A', 'B'), r('Сабонис', 'Уайт', 2100)], now='t3')
+        self.assertEqual((again[1]['sellSid'], again[1]['buySid'], again[1]['seenAt']), ('9', 'd1', 't2'))
+
     def test_unlimited_transfers_in_pre_season(self):
         team = collector.parse_team('<th>Баланс</th><td>200</td><th>Трансферы</th><td>∞</td>')
         self.assertEqual((team['balance'], team['transfersLeft'], team['transfersUnlimited']), (200, None, True))
