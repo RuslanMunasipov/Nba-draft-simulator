@@ -1,5 +1,6 @@
 // Transfer alerts for one FBL team, sent to Telegram when something new appears on the market,
-// a verdict on every new transfer of the other teams (and whether to grab the player they let go),
+// a verdict on every new transfer of the other teams (and whether to grab the player they let go), a confirmation of
+// each of my own transfers,
 // and injured free agents about to return or just back.
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
@@ -108,6 +109,17 @@ for(const x of rival){
   details([...mineNow.why,...briefs,
    ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
    `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>state.transfers.push(transferKey(x)));
+}
+// My own transfers, once each, as the watcher saw them: what was done, when, what it gives by the model, and where the
+// bank and the week's transfers stand. Only those seen live (seenAt); older ones were never news.
+const leftLabel=t=>live.teams?.[t]?.transfersUnlimited?'∞ (предсезонье)':`${leftOf(t)}/${WEEKLY_TRANSFERS}`;
+for(const x of transfers.filter(x=>x.team===team&&x.seenAt&&!reported.has(transferKey(x)))){
+ const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:money});
+ const effect=v?`${v.gain.season>=0?'📈':'📉'} По модели: ${gains(v.gain.season,v.gain.month)} · ${v.label}`:null;
+ await report(message(`✅ <b>Твой трансфер зафиксирован</b> · ${moscow(x.seenAt)}`,`${esc(out?.name)} (${x.outPrice}) → <b>${esc(joined?.name)}</b> (${x.inPrice})`,effect,'',
+  `Банк: ${money} · трансферов осталось: ${leftLabel(team)}`,
+  details(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[])),
+  ()=>state.transfers.push(transferKey(x)));
 }
 // Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
