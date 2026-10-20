@@ -13,7 +13,12 @@ const ctx=(extra={})=>({players,live,injuries:new Map(),today:'2026-10-20',roste
 test('transfers move players between the draft roster and the free agent pool',()=>{
  const t=[{team:0,outId:1,inId:81,date:'2026-10-22',outPrice:1500,inPrice:1400}];
  const r=seasonRosters(t,picks);assert.equal(r[0][0],81);assert.equal(r[0].length,10);
- assert.throws(()=>seasonRosters([...t,{team:1,outId:2,inId:81,date:'2026-10-23'}],picks),/другой команды/);
+ // Sports.ru lets two teams hold one player: the rules check flags it, the rosters keep both.
+ const shared=seasonRosters([...t,{team:1,outId:2,inId:81,date:'2026-10-23'}],picks);assert.ok(shared[0].includes(81)&&shared[1].includes(81));
+ assert.throws(()=>seasonRosters([...t,{team:0,outId:picks[8],inId:81,date:'2026-10-23'}],picks),/этой команды/);
+ // Each team's stint of a shared player is its own.
+ const both=stints([...t,{team:1,outId:2,inId:81,date:'2026-10-23'}],picks).filter(x=>x.playerId===81);
+ assert.deepEqual(both.map(x=>[x.team,x.from,x.to]).sort(),[[0,'2026-10-22',null],[1,'2026-10-23',null]]);
  assert.throws(()=>seasonRosters([{team:0,outId:2,inId:82,date:'2026-10-23'}],picks),/нет в составе/);
  const s=stints(t,picks);assert.deepEqual(s.find(x=>x.playerId===1),{team:0,playerId:1,from:'2026-10-18',to:'2026-10-22'});
  assert.equal(bank(0,t,()=>1500,picks),20000-15000+100);

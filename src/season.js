@@ -41,15 +41,19 @@ export function seasonRosters(transfers=[],picks=DRAFT_PICKS){
  for(const x of transfers){
   const roster=rosters[x.team];
   if(!roster?.includes(x.outId))throw Error('Игрока, которого отдают, нет в составе');
-  if(rosters.some(r=>r.includes(x.inId)))throw Error('Игрок уже в составе другой команды');
+  // Sports.ru lets several fantasy teams hold one player, so a player on another FBL roster may still be bought; the
+  // league's rules check flags it for the lawyer. Only buying a player the team already has is impossible.
+  if(roster.includes(x.inId))throw Error('Игрок уже в составе этой команды');
   roster[roster.indexOf(x.outId)]=x.inId;
  }
  return rosters;
 }
 // Who scored for whom and when: each player counts for a team from the day he joined until the day he left.
 export function stints(transfers=[],picks=DRAFT_PICKS){
- const open=new Map(picks.map((id,i)=>[id,{team:i%TEAM_COUNT,playerId:id,from:DRAFT_DATE,to:null}])),done=[];
- for(const x of transfers){const s=open.get(x.outId);if(s){s.to=x.date;done.push(s);open.delete(x.outId);}open.set(x.inId,{team:x.team,playerId:x.inId,from:x.date,to:null});}
+ // Keyed by team and player: two teams may hold the same player (Sports.ru allows it).
+ const k=(team,id)=>`${team}:${id}`;
+ const open=new Map(picks.map((id,i)=>[k(i%TEAM_COUNT,id),{team:i%TEAM_COUNT,playerId:id,from:DRAFT_DATE,to:null}])),done=[];
+ for(const x of transfers){const s=open.get(k(x.team,x.outId));if(s){s.to=x.date;done.push(s);open.delete(k(x.team,x.outId));}open.set(k(x.team,x.inId),{team:x.team,playerId:x.inId,from:x.date,to:null});}
  return [...done,...open.values()];
 }
 // Sports.ru money: start at the cap, pay the initial price of each drafted player, then sell and buy at the prices of the day.
@@ -470,13 +474,16 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
   if(!outs.length){warnings.push({team:t,message:`${row.date}: продан ${row.sell.name}, но его нет в составе.`});continue;}
   const leaving=outs[0],pos=positionOf(leaving,live),now=new Set((live?.teams?.[t]?.roster||[]).map(r=>r.sportsId));
   // The roster JSON names the exact player a team holds today; position and price only break remaining ties.
-  const score=p=>(now.size&&!now.has(p.sportsId)?1e7:0)+(positionOf(p,live).some(x=>pos.includes(x))?0:1e6)+Math.abs(priceOf(p,live)-row.buy.price);
-  const ins=players.filter(p=>p.sportsId&&!taken.has(p.id)&&shortName(p,live)===row.buy.name).sort((a,b)=>score(a)-score(b));
-  if(!ins.length){warnings.push({team:t,message:`${row.date}: куплен ${row.buy.name}, игрок не найден среди свободных.`});continue;}
+  // A player another FBL team holds is still possible (Sports.ru allows it); when the roster cannot tell, a free one wins.
+  const score=p=>(now.size&&!now.has(p.sportsId)?1e7:0)+(positionOf(p,live).some(x=>pos.includes(x))?0:1e6)+(taken.has(p.id)?1e5:0)+Math.abs(priceOf(p,live)-row.buy.price);
+  const ins=players.filter(p=>p.sportsId&&!roster.includes(p.id)&&shortName(p,live)===row.buy.name).sort((a,b)=>score(a)-score(b));
+  if(!ins.length){warnings.push({team:t,message:`${row.date}: куплен ${row.buy.name}, игрок не найден в базе.`});continue;}
   if(ins.length>1&&score(ins[0])===score(ins[1]))warnings.push({team:t,message:`${row.date}: ${row.buy.name} неоднозначен, выбран ${ins[0].name} (${ins[0].team}).`});
   const joining=ins[0];
-  roster[roster.indexOf(leaving.id)]=joining.id;taken.delete(leaving.id);taken.add(joining.id);
-  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',...(row.seenAt?{seenAt:row.seenAt}:{}),...(row.seenAfter?{seenAfter:row.seenAfter}:{}),...(row.free?{free:true}:{})});
+  roster[roster.indexOf(leaving.id)]=joining.id;
+  // Still taken while another team holds the player.
+  taken.clear();for(const r of rosters)for(const id of r)taken.add(id);
+  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',...(row.seenAt?{seenAt:row.seenAt}:{}),...(row.seenAfter?{seenAfter:row.seenAfter}:{})});
  }
  return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
 }

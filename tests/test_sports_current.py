@@ -141,10 +141,9 @@ class JournalStampTests(unittest.TestCase):
         known = collector.stamp_journal([a, c], [a, c, b], now='2026-10-20T10:00:00+00:00')
         moved = collector.stamp_journal(known, [c, b, a], now='2026-10-20T12:00:00+00:00')
         self.assertEqual([r.get('seenAt') for r in moved], [None, '2026-10-20T10:00:00+00:00', None])
-        # A row seen while Sports.ru shows ∞ transfers is free (pre-season).
-        self.assertTrue(collector.stamp_journal([a], [a, b], now='x', free=True)[1]['free'])
 
     def test_unlimited_transfers_in_pre_season(self):
         team = collector.parse_team('<th>Баланс</th><td>200</td><th>Трансферы</th><td>∞</td>')
         self.assertEqual((team['balance'], team['transfersLeft'], team['transfersUnlimited']), (200, None, True))
         self.assertEqual(collector.parse_team('<th>Трансферы</th><td>2</td>')['transfersLeft'], 2)
+        self.assertEqual(collector.parse_team('<th>Дедлайн</th>\n<td>20 октября, 21:30 </td>')['deadline'], '20 октября, 21:30')

@@ -72,8 +72,8 @@
       "source": "League owner, 2026-10-20: transfers are allowed strictly from 08:00 to 22:00 Moscow time.",
       "note": "Sports.ru journals give only the date; the time is bounded by the watcher: after its last read of the journal without the transfer (seenAfter) and by its first read with it (seenAt)."
     },
-    "countFrom": "2026-10-21",
-    "preseason": "League owner, 2026-10-20: while Sports.ru shows ∞ transfers (pre-season, until shortly before the first game) transfers are unlimited and do not count against the FBL week. A transfer counts from countFrom on, unless the watcher saw it while Sports.ru still showed ∞ (journal row flag free)."
+    "countFrom": "2026-10-20T21:30:00+03:00",
+    "preseason": "League owner, 2026-10-20: pre-season transfers are unlimited and free. Sports.ru's own deadline of the first round (20.10, 21:30 Moscow time, the team page's «Дедлайн») ends the pre-season: a transfer counts against the FBL week when the watcher saw it at or after countFrom (or, never timed, when dated after that day)."
   },
   "whiteRule": {
     "min": 1,
@@ -102,5 +102,10 @@
       "since": "2026-10-20",
       "reason": "Два нарушения до начала сезона: белое правило на драфте (18.10) и трансфер после 22:00 МСК (19.10). Лига простила, Зак Онн взял команду под прицел."
     }
-  ]
+  ],
+  "sharedPlayers": {
+    "source": "Sports.ru lets several fantasy teams hold the same player; whether the FBL allows it is the league's call (asked 20.10).",
+    "verdict": "check",
+    "note": "A team buying a player another FBL team already holds is flagged for the lawyer's check (the team that had him first is not)."
+  }
 }

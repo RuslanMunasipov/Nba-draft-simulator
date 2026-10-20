@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
-import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST,isFreeTransfer} from '../src/rules.js';
+import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST,isFreeTransfer,FBL_TRANSFERS} from '../src/rules.js';
 import {HEADINGS,remark,circumstances,joke,signature} from './zak-voice.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
@@ -53,6 +53,7 @@ function checkLines(c,moves){
  return [`├ Новичок в составе — ${bad('rookie')?'❌ нет':'✅ '+names(c.rookies)}`,`├ Белое правило — ${white}`,
   `├ Лимит клуба NBA (2) — ${bad('club')?'❌ '+esc(c.violations.find(v=>v.rule==='club').text):'✅'}`,
   moves.every(m=>isFreeTransfer(m))?'├ Лимит трансферов — ✅ предсезонье, без лимита':`├ Лимит трансферов — ${bad('transfers')?'❌':'✅'} ${t.used}/${t.limit}`,
+  ...c.violations.filter(r=>r.rule==='duplicate').map(r=>`├ Игрок другой команды — ⏳ ${esc(r.text.split(' — ')[0])}`),
   `└ Время сделки (${TRANSFER_HOURS.from}–${TRANSFER_HOURS.to} МСК) — ${[...new Set(moves.map(m=>{const x=transferTime(m);return `${{ok:'✅',breach:'❌',doubt:'⏳',unknown:'❔'}[x.state]} ${timeLabel(x)}`;}))].join(', ')}`];
 }
 // The protocol's verdict (an obvious breach summons the lawyer, a doubt asks for his check, otherwise he approves) and
@@ -61,7 +62,7 @@ function reasons(c,blame=new Map()){
  const v=verdict(c);
  // Short names in the conclusion: the check lines above already carry the details.
  const label=r=>r.rule==='rookie'?'правило новичка':r.rule==='white'?(c.whiteState==='sold'?'белое правило — продан засчитываемый игрок, замена не отмечена':'белое правило')
-  :r.rule==='club'?'лимит клуба NBA':r.rule==='transfers'?'лимит трансферов':r.rule==='time'?(r.certain?'время сделки — вне 08:00–22:00 МСК':'время сделки — на границе 08:00–22:00 МСК'):esc(r.text);
+  :r.rule==='club'?'лимит клуба NBA':r.rule==='transfers'?'лимит трансферов':r.rule==='duplicate'?`игрок другой команды (${esc(r.text.split(' уже в составе ')[0])})`:r.rule==='time'?(r.certain?'время сделки — вне 08:00–22:00 МСК':'время сделки — на границе 08:00–22:00 МСК'):esc(r.text);
  const doubts=[...v.doubts.map(label),...(v.unmarked?[`белое правило — нет решения лиги по ${names(c.undecided)||'игрокам состава'}`]:[])];
  // Which deal of the package broke it, when there are several.
  const by=r=>blame.has(r.rule)?`${label(r)} (${blame.get(r.rule)})`:label(r);
@@ -91,8 +92,8 @@ const firstPreview=groups.size-preview;
 const when=moves=>{const at=moves.map(m=>m.seenAt).filter(Boolean).sort().pop();return at?`🕒 Трансфер зафиксирован: ${moscow(at)}`:'🕒 Время трансфера: не зафиксировано (до начала наблюдения)';};
 // The rules his remark speaks to: the broken ones for a breach, the doubtful ones for a check.
 function rulesOf(v,c){
- if(v.kind==='violation')return [...new Set(c.violations.filter(r=>!(r.rule==='white'&&c.whiteState==='sold')&&(r.rule!=='time'||r.certain)).map(r=>r.rule))];
- if(v.kind==='check')return [...c.violations.filter(r=>(r.rule==='time'&&!r.certain)||(r.rule==='white'&&c.whiteState==='sold')).map(r=>r.rule),...(c.whiteState==='unmarked'?['unmarked']:[])];
+ if(v.kind==='violation')return [...new Set(c.violations.filter(r=>!(r.rule==='white'&&c.whiteState==='sold')&&(r.rule!=='time'||r.certain)&&r.rule!=='duplicate').map(r=>r.rule))];
+ if(v.kind==='check')return [...c.violations.filter(r=>(r.rule==='time'&&!r.certain)||(r.rule==='white'&&c.whiteState==='sold')||r.rule==='duplicate').map(r=>r.rule),...(c.whiteState==='unmarked'?['unmarked']:[])];
  return [];
 }
 // His remark, then the extra lines (circumstances, a joke), which are dropped again when the protocol would not fit
@@ -134,7 +135,7 @@ for(const idx of groups.values()){
  // Each player is marked when he counts for a rule: «новичок» (rookie) and «белый» (the league's white list).
  const whiteSet=new Set((league.white||[]).map(String));
  const who=id=>`${esc(name(id))}${byId.get(id)?.isRookie===true?' <i>[новичок]</i>':''}${whiteSet.has(String(id))?' <i>[белый]</i>':''}`;
- const ruleName={rookie:'правило новичка',white:'белое правило',club:'лимит клуба NBA',transfers:'лимит трансферов',time:'время сделки'};
+ const ruleName={rookie:'правило новичка',white:'белое правило',club:'лимит клуба NBA',transfers:'лимит трансферов',time:'время сделки',duplicate:'игрок другой команды'};
  const deals=moves.map((m,i)=>[m,i]).filter(([m])=>fresh(m)).map(([m,i],n)=>`<b>Сделка${news.length>1?' '+(n+1):''}:</b> ${who(m.outId)} (${m.outPrice}) ⟶ ${who(m.inId)} (${m.inPrice})${broke.has(i)?` — ❌ ${broke.get(i).map(r=>ruleName[r]).join(', ')}`:''}${doubted.has(i)?` — ⏳ ${doubted.get(i).map(r=>ruleName[r]).join(', ')}`:''}`);
  // A breach left by the day's earlier deals that the new ones repair is said so.
  const prior=idx.filter(i=>!fresh(transfers[i])).pop();
@@ -147,7 +148,7 @@ for(const idx of groups.values()){
  const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team,v),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(news),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,repaired,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,
-  news.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит FBL (${t.limit} в неделю) — с первой игры сезона`
+  news.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит FBL (${t.limit} в неделю) — с дедлайна 1-го тура (${moscow(FBL_TRANSFERS.countFrom).replace(' МСК','')} МСК)`
    :`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c,news),'',CONCLUSION[v.kind](v.items,v.doubts),'',
   // Зак Онн's own word on it (the facts above are the rules check's): his remark on the verdict, then, while the

@@ -256,6 +256,9 @@ def parse_team(page):
     m = re.search(r'<th>Место</th>\s*<td>\s*(\d+) из (\d+)', page)
     if m:
         out['place'], out['of'] = int(m.group(1)), int(m.group(2))
+    m = re.search(r'<th>Дедлайн</th>\s*<td>([^<]+)', page)
+    if m:
+        out['deadline'] = html.unescape(m.group(1)).strip()
     m = re.search(r'<th>Текущая неделя</th>\s*<td>([^<]+)', page)
     if m:
         out['week'] = html.unescape(m.group(1)).strip()
@@ -281,11 +284,11 @@ def parse_journal(page):
     return rows[::-1]
 
 
-def stamp_journal(old, new, now=None, after=None, free=False):
+def stamp_journal(old, new, now=None, after=None):
     """Sports.ru journals give only the date of a transfer. A row first seen by this collection gets seenAt, the UTC
     time it appeared, and seenAfter, the previous read of the same journal without it (after): the transfer was made
-    between the two (the watcher reads journals every minute). A row seen while Sports.ru shows unlimited transfers
-    (pre-season) is marked free. Rows already known keep theirs: they are matched by content, since Sports.ru lists rows
+    between the two (the watcher reads journals every minute). Rows already known keep theirs: they are matched by
+    content, since Sports.ru lists rows
     of one date in no stable order. Without a previous journal nothing is stamped: the time of those rows is unknown."""
     if not old:
         return new
@@ -299,9 +302,9 @@ def stamp_journal(old, new, now=None, after=None, free=False):
         match = known.get(ident(row))
         if match:
             prev = match.pop(0)
-            out.append({**row, **{k: prev[k] for k in ('seenAt', 'seenAfter', 'free') if prev.get(k)}})
+            out.append({**row, **{k: prev[k] for k in ('seenAt', 'seenAfter') if prev.get(k)}})
         else:
-            out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {}), **({'free': True} if free else {})})
+            out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {})})
     return out
 
 
@@ -342,8 +345,7 @@ def collect_teams(previous=None, errors=None):
             errors.append({'team': team, 'error': f"journal shrank from {len(old['journal'])} to {len(entry['journal'])} rows; kept the previous one"})
             entry['journal'] = old['journal']
         read_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
-        entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'], now=read_at, after=(old or {}).get('journalReadAt'),
-                                         free=bool(entry.get('transfersUnlimited')))
+        entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'], now=read_at, after=(old or {}).get('journalReadAt'))
         entry['journalReadAt'] = read_at
         if 'balance' not in entry or 'transfersLeft' not in entry:
             errors.append({'team': team, 'error': 'team profile without balance or transfers; layout changed?'})

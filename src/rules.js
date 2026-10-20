@@ -46,8 +46,13 @@ export function timeLabel(t){
  return a&&a!==b&&t.state==='doubt'?`между ${a} и ${b} (${mskDate(t.at)})`:`${b} (${mskDate(t.at)})`;
 }
 
-// Pre-season transfers are free: those before countFrom, and any the watcher saw while Sports.ru showed ∞ transfers.
-export const isFreeTransfer=(x,rules=FBL_TRANSFERS)=>Boolean(x.free)||Boolean(rules.countFrom&&x.date<rules.countFrom);
+// Pre-season transfers are free: those the watcher saw before countFrom (Sports.ru's first-round deadline), and,
+// never timed, those dated up to that day (a row the watcher did not time predates the watch).
+export function isFreeTransfer(x,rules=FBL_TRANSFERS){
+ if(!rules.countFrom)return false;
+ if(x.seenAt)return Date.parse(x.seenAt)<Date.parse(rules.countFrom);
+ return x.date<=rules.countFrom.slice(0,10);
+}
 export function fblTransfers(transfers,team,today,rules=FBL_TRANSFERS){
  const counted=transfers.filter(x=>x.team===team&&!isFreeTransfer(x,rules));
  const week=fblWeek(today,rules),used=counted.filter(x=>x.date>=week.start&&x.date<=today&&x.date<=week.end).length;
@@ -92,6 +97,14 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
     text:t.state==='breach'?`трансфер ${deal} совершён в ${timeLabel(t)} МСК — трансферы разрешены только с ${TRANSFER_HOURS.from} до ${TRANSFER_HOURS.to} МСК`
      :`трансфер ${deal} совершён ${timeLabel(t)} МСК — на границе разрешённого времени (${TRANSFER_HOURS.from}–${TRANSFER_HOURS.to} МСК), сверьте время на Sports.ru`});
   }
+  // A player another FBL team already holds (Sports.ru allows it): the team that bought him later is flagged for the
+  // lawyer's check, the one that had him first is not.
+  for(const p of roster){
+   const others=rosters.map((r,t)=>t!==team&&r.includes(p.id)?t:-1).filter(t=>t>=0);if(!others.length)continue;
+   const since=t=>{let at=-1;transfers.forEach((x,i)=>{if(x.team===t&&x.inId===p.id)at=i;});return at;};
+   if(others.some(t=>since(t)<since(team)))violations.push({rule:'duplicate',key:`duplicate:${team}:${p.id}`,
+    text:`${nameOf(p)} уже в составе ${others.map(t=>`«${teamLabel(t).replace(/^\d+\.\s*/,'').replace(/ · GM .*/,'')}»`).join(', ')} — может ли игрок быть у двух команд лиги, решает лига`});
+  }
   const moves=fblTransfers(transfers,team,today);
   for(const w of moves.over)violations.push({rule:'transfers',key:`transfers:${team}:${w.start}:${w.count}`,
    text:`${w.count} трансфера за неделю ${ddmm(w.start)}–${ddmm(w.end)} при лимите ${moves.limit}`});
@@ -104,7 +117,7 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
 // no other one marked, a roster the league has not decided on, or a transfer whose time window crosses 08:00 or 22:00
 // needs his check; otherwise the roster stands approved.
 export function verdict(check){
- const doubtful=v=>(v.rule==='white'&&check.whiteState==='sold')||(v.rule==='time'&&!v.certain);
+ const doubtful=v=>(v.rule==='white'&&check.whiteState==='sold')||(v.rule==='time'&&!v.certain)||v.rule==='duplicate';
  const breaches=check.violations.filter(v=>!doubtful(v)),doubts=check.violations.filter(doubtful);
  const unmarked=check.whiteState==='unmarked';
  return {kind:breaches.length?'violation':doubts.length||unmarked?'check':'approved',breaches,doubts,unmarked};
