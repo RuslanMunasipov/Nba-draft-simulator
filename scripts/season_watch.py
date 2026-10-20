@@ -3,7 +3,8 @@ A new journal row triggers the Telegram notifier and a publish within about a mi
 so a player released by a rival is reported before the next full collection.
 Usage: season_watch.py <sports-current.json> <notify-state.json> [--minutes 345] [--every 60] [--full-every 120]
 """
-import argparse,json,os,signal,subprocess,sys,time
+import argparse,json,os,shutil,signal,subprocess,sys,time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timezone
 from pathlib import Path
@@ -39,6 +40,20 @@ def mark_read(snapshot,fresh):
         entry=snapshot.get('teams',{}).get(t)
         if entry and bare(rows)==bare(entry.get('journal')):entry['journalReadAt']=stamp
     return snapshot
+def merge_full(full,cur):
+    """The full collection's snapshot, with each team's journal as the minute watcher knows it: the watcher read the
+    journals while the collection ran, so its rows and their times stand; rows only the collection saw are stamped as
+    new (by sale and purchase, as everywhere)."""
+    if not cur:return full
+    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter')},ensure_ascii=False,sort_keys=True) for r in rows or [])
+    for t,entry in (full.get('teams') or {}).items():
+        mine=(cur.get('teams') or {}).get(t)
+        if not mine or not mine.get('journal'):continue
+        # Every row the collection saw is already known (it read the journal earlier): the watcher's journal stands.
+        if not Counter(bare(entry.get('journal')))-Counter(bare(mine['journal'])):entry['journal']=mine['journal']
+        else:entry['journal']=sports.stamp_journal(mine['journal'],entry.get('journal'),now=entry.get('journalReadAt'),after=mine.get('journalReadAt'))
+        entry['journalReadAt']=max(filter(None,(mine.get('journalReadAt'),entry.get('journalReadAt'))),default=None)
+    return full
 def apply(snapshot,fresh,teams,config):
     for t in teams:
         entry=dict(snapshot.setdefault('teams',{}).get(t) or {'sportsTeamId':config[t]})
@@ -82,10 +97,27 @@ class Watch:
         if self.failures==self.ALERT_AFTER:
             telegram(f'⚠️ Сбор Sports.ru не удаётся {self.failures} раза подряд: цены, очки и трансферы в помощнике могут быть устаревшими. '
                      'Вероятно, Sports.ru изменил страницы или ограничил запросы.')
-    def full(self,limit=40*60):
-        try:result=subprocess.run([sys.executable,'scripts/collect_sports_current.py',str(self.live)],timeout=limit)
-        except subprocess.TimeoutExpired:print('full collection timed out',flush=True);return False
-        return result.returncode==0 and self.live.exists()
+    # The full collection (about four minutes) runs in the background on a copy, so the journals are still read every
+    # minute meanwhile; its result is merged into the live snapshot when it ends.
+    full_proc=None
+    def start_full(self,limit=40*60):
+        self.full_path=self.live.with_name('sports-full.json')
+        if self.live.exists():shutil.copyfile(self.live,self.full_path)
+        self.full_proc=subprocess.Popen([sys.executable,'scripts/collect_sports_current.py',str(self.full_path)])
+        self.full_deadline=time.time()+limit
+    def poll_full(self):
+        """None while the collection runs; then whether it succeeded (its snapshot merged into the live one)."""
+        p=self.full_proc
+        if p is None:return None
+        if p.poll() is None:
+            if time.time()<self.full_deadline:return None
+            p.kill();p.wait();print('full collection timed out',flush=True);self.full_proc=None;return False
+        self.full_proc=None
+        if p.returncode or not self.full_path.exists():return False
+        full=json.loads(self.full_path.read_text(encoding='utf-8'))
+        cur=json.loads(self.live.read_text(encoding='utf-8')) if self.live.exists() else None
+        self.live.write_text(json.dumps(merge_full(full,cur),ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+        return True
     def notify(self):
         """The league feed first, saved to GitHub at once (it is what must never repeat), then the personal advice."""
         self.feed();self.publish(f'League feed state {now()}')
@@ -135,13 +167,16 @@ def main():
         left=stop-time.time()
         # A full collection never starts so late that it could outlive the run: a run killed by its job timeout would
         # skip the step that starts the next run and break the chain.
-        if time.time()>=next_full and left>15*60:
-            ok=w.full(limit=min(40*60,left-5*60));w.collected(ok)
+        if w.full_proc is None and time.time()>=next_full and left>15*60:
+            w.start_full(limit=min(40*60,left-5*60))
+        ok=w.poll_full()
+        if ok is not None:
+            w.collected(ok)
             if ok:
                 w.notify();w.publish(f'Sports.ru live snapshot {now()}')
             # A failed collection retries soon; the journals keep being watched on the last snapshot.
             next_full=time.time()+(args.full_every if ok else 10)*60
-        elif w.live.exists():
+        if w.live.exists():
             snapshot=json.loads(w.live.read_text(encoding='utf-8'))
             fresh=journals(config);teams=changed_teams(snapshot,fresh);mark_read(snapshot,{t:r for t,r in fresh.items() if t not in teams})
             if teams:
@@ -152,7 +187,8 @@ def main():
                 # Nothing new: only the time of this read is kept (locally; it is published with the next change).
                 w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
         time.sleep(max(0,min(args.every,stop-time.time())))
-    # The run hands over to the next one: everything posted is saved first.
+    # The run hands over to the next one: a collection still running is stopped, everything posted is saved first.
+    if w.full_proc and w.full_proc.poll() is None:w.full_proc.kill()
     w.publish(f'Watch run ended {now()}')
 
 if __name__=='__main__':main()

@@ -1,5 +1,5 @@
 import unittest
-from scripts.season_watch import changed_teams,mark_read
+from scripts.season_watch import changed_teams,mark_read,merge_full
 row=lambda n:{'date':'2026-10-19','buy':{'name':n,'price':1500},'sell':{'name':'X','price':1500}}
 class WatchTests(unittest.TestCase):
  def test_new_row_is_detected(self):
@@ -33,3 +33,13 @@ class WatchTests(unittest.TestCase):
   w.feed=lambda:calls.append('feed');w.personal=lambda:calls.append('personal');w.publish=lambda m:calls.append('publish')
   w.notify()
   self.assertEqual(calls,['feed','publish','personal'])
+ def test_a_full_collection_keeps_the_journal_the_watcher_read_meanwhile(self):
+  a={**row('A'),'seenAt':'t1','seenAfter':'t0'};b={**row('B'),'seenAt':'t3','seenAfter':'t2'}
+  cur={'teams':{'0':{'journal':[a,b],'journalReadAt':'t4'}}}
+  # The collection read the journal before B arrived: the watcher's rows and times stand.
+  full={'teams':{'0':{'journal':[row('A')],'journalReadAt':'t1b','balance':5}}}
+  out=merge_full(full,cur)['teams']['0'];self.assertEqual(out['journal'],[a,b]);self.assertEqual(out['journalReadAt'],'t4');self.assertEqual(out['balance'],5)
+  # A row only the collection saw is new, stamped between the watcher's last read and the collection's.
+  full={'teams':{'0':{'journal':[row('A'),row('C')],'journalReadAt':'t5'}}}
+  out=merge_full(full,{'teams':{'0':{'journal':[a],'journalReadAt':'t4'}}})['teams']['0']
+  self.assertEqual((out['journal'][0]['seenAt'],out['journal'][1]['seenAt'],out['journal'][1]['seenAfter']),('t1','t5','t4'))
