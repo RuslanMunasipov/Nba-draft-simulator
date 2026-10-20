@@ -58,9 +58,13 @@ for(const idx of groups.values()){
  const c=checkRules({rosters,byId,transfers:after,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:moves[moves.length-1].date,clubOf})[x.team];
  const money=bank(x.team,after,draftPrice),t=c.transfers;
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
- const conclusion=c.violations.length?`🔏 <b>Заключение:</b> выявлено нарушение — ${c.violations.map(v=>esc(v.text)).join('; ')}. Материалы направлены юристу лиги ${esc(LAWYER.name)} для рассмотрения.`
+ // An obvious breach summons the league's lawyer at once: on top of the protocol, and by his Telegram username when the
+ // rules give one (Telegram then notifies him personally).
+ const lawyer=LAWYER.telegram?`@${String(LAWYER.telegram).replace(/^@/,'')} (${esc(LAWYER.name)})`:esc(LAWYER.name);
+ const summons=c.violations.length?['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`⚖️ ${lawyer}, вы вызываетесь для расследования.`,'']:[];
+ const conclusion=c.violations.length?`🔏 <b>Заключение:</b> выявлено нарушение — ${c.violations.map(v=>esc(v.text)).join('; ')}. Юрист лиги ${lawyer} вызван для расследования.`
   :'🔏 <b>Заключение:</b> состав соответствует регламенту.';
- const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
+ const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),...summons,`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c),'',conclusion,`<i>Юрист лиги: ${esc(LAWYER.name)}</i>`);
