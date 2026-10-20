@@ -32,6 +32,7 @@ if(req.action==='transfer'){
  note=`✅ Банк команды ${team+1}: ${req.value??'расчётный'}.`;
 }else if(req.action==='white'){
  if(!Array.isArray(req.players))fail('Нужен список players.');
- league.white=[...new Set(req.players.map(pid))];note=`✅ Белое правило: в списке лиги ${league.white.length} игрок(ов).`;
+ // A player id, or "none:<team>" when the league found that a team has no such player.
+ league.white=[...new Set(req.players.map(v=>/^none:[0-7]$/.test(v)?v:pid(v)))];note=`✅ Белое правило: в списке лиги ${league.white.length} игрок(ов).`;
 }else fail('Неизвестное действие.');
 fs.writeFileSync(FILE,JSON.stringify(league,null,2)+'\n');fs.writeFileSync('league-log-result.txt',note);console.log(note);

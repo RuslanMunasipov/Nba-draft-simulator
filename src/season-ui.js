@@ -390,16 +390,27 @@ function rulesView(ctx){
  const white=whiteList(),pending=readJson('fbl-white-pending',null),out=[];
  const checks=checkRules({rosters:ctx.rosters,byId,transfers:ctx.transfers,white,today:ctx.today,clubOf});
  out.push(el('h3','Правила лиги'),el('p',`Минимум один новичок (rookie) · минимум один игрок по «белому правилу» (засчитывается по отцу; кто засчитывается — решает лига) · не больше двух игроков одного клуба NBA · не больше ${checks[0].transfers.limit} трансферов за неделю лиги (пн–вс; первая неделя — от драфта до ${ddmm(checks[0].transfers.week.end)}, предсезонные трансферы входят в неё). Нарушения разбирает ${LAWYER.name}, ${LAWYER.role}.`,'muted'));
- if(!white.length)out.push(el('p','⚠ Список «белого правила» пуст: отметь игроков ниже — без него правило не проверяется.','warning'));
+ const unmarked=checks.filter(c=>c.whiteState==='unmarked').length;
+ if(unmarked)out.push(el('p',`⚠ Белое правило: выбери по одному игроку у ${unmarked} команд — кто у них закрывает правило. Дальше приложение само следит за продажами этих игроков.`,'warning'));
+ const marks=new Set(white),pick=(c,value)=>{for(const p of c.roster)marks.delete(String(p.id));marks.delete(`none:${c.team}`);if(value)marks.add(value);
+  writeStored('fbl-white-pending',JSON.stringify([...marks]));renderSeason();};
  const table=el('table',null,'sp-table'),head=el('tr');for(const h of ['Команда','Rookie','Белое правило','Клубы NBA','Трансферы'])head.append(el('th',h));table.append(head);
  for(const c of checks){
   const tr=el('tr');if(c.team===0)tr.className='mine';const bad=r=>c.violations.some(v=>v.rule===r);
   const t=c.transfers;
-  for(const v of [c.label,bad('rookie')?'❌ нет':'✅ '+c.rookies.map(p=>p.name).join(', '),!white.length?'— список пуст':bad('white')?'❌ нет':'✅ '+c.whites.map(p=>p.name).join(', '),
-   bad('club')?'❌ больше двух':'✅',`${t.left}/${t.limit} осталось · обновление ${ddmm(t.resetOn)}${bad('transfers')?' · ❌ превышение':''}`])tr.append(el('td',v));
+  for(const v of [c.label,bad('rookie')?'❌ нет':'✅ '+c.rookies.map(p=>p.name).join(', ')])tr.append(el('td',v));
+  // One player per team is enough: the select names who satisfies the rule for this team, or the league's finding of none.
+  const cell=el('td'),select=el('select');select.setAttribute('aria-label','Белое правило: '+c.label);
+  for(const [value,label] of [['','— не выбран —'],...c.roster.map(p=>[String(p.id),p.name]),[`none:${c.team}`,'❌ нет такого игрока']]){const o=el('option',label);o.value=value;select.append(o);}
+  select.value=c.whites[0]?String(c.whites[0].id):marks.has(`none:${c.team}`)?`none:${c.team}`:'';select.onchange=()=>pick(c,select.value);
+  cell.append(c.whiteState==='ok'?'✅ ':c.whiteState==='unmarked'?'· ':'❌ ',select);tr.append(cell);
+  for(const v of [bad('club')?'❌ больше двух':'✅',`${t.left}/${t.limit} осталось · обновление ${ddmm(t.resetOn)}${bad('transfers')?' · ❌ превышение':''}`])tr.append(el('td',v));
   table.append(tr);
  }
  out.push(table);
+ if(pending){const save=el('a','Сохранить выбор в лиге (заявка)');save.href=issueUrl('белое правило',{action:'white',players:[...marks].map(x=>/^\d+$/.test(x)?Number(x):x)});save.target='_blank';save.rel='noopener';
+  const reset=el('button','Отменить');reset.onclick=()=>{writeStored('fbl-white-pending','');renderSeason();};
+  out.push(el('p','Выбор пока только на этом устройстве: чтобы его видели сторож и Telegram, сохрани его в лиге.','muted'),save,document.createTextNode(' '),reset);}
  for(const c of checks.filter(c=>c.violations.length)){
   const box=el('div',null,'sp-appeal'),text=appeal(c,ctx.today,0),area=el('textarea');area.value=text;area.rows=12;area.readOnly=true;
   const copy=el('button','Скопировать обращение');copy.onclick=async()=>{try{await navigator.clipboard.writeText(text);copy.textContent='Скопировано';}catch{area.select();}};
@@ -407,17 +418,6 @@ function rulesView(ctx){
   box.append(el('h4',`⚖️ ${c.label}: обращение к ${LAWYER.name}`),...c.violations.map(v=>el('p','• '+v.text)),area,copy,document.createTextNode(' '),share);out.push(box);
  }
  if(!checks.some(c=>c.violations.length))out.push(el('p','Нарушений не найдено.','muted'));
- // The list editor: every rostered player, marked as the league decided.
- const editor=el('details',null,'plan-method'),marks=new Set(white);editor.append(el('summary',`Список «белого правила» (${white.length}${pending?' · не сохранён в лиге':''})`));
- editor.append(el('p','Отметь игроков, которых лига засчитывает по «белому правилу». Приложение само цвет кожи не определяет: решение за лигой.','muted'));
- for(const c of checks){const g=el('div');g.append(el('strong',c.label));
-  for(const p of c.roster){const row=el('label',null,'adjust-row'),box=el('input');box.type='checkbox';box.checked=marks.has(String(p.id));
-   box.onchange=()=>{if(box.checked)marks.add(String(p.id));else marks.delete(String(p.id));writeStored('fbl-white-pending',JSON.stringify([...marks]));renderSeason();};
-   row.append(box,el('span',p.name));g.append(row);}
-  editor.append(g);}
- const save=el('a','Сохранить список в лиге (заявка)');save.href=issueUrl('белое правило',{action:'white',players:[...marks].map(x=>/^\d+$/.test(x)?Number(x):x)});save.target='_blank';save.rel='noopener';
- const reset=el('button','Вернуть список лиги');reset.onclick=()=>{writeStored('fbl-white-pending','');renderSeason();};
- editor.append(save,document.createTextNode(' '),reset);out.push(editor);
  return out;
 }
 function setView(v){view=v;writeStored('fbl-season-view',v);renderSeason();window.scrollTo({top:0});}
