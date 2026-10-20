@@ -7,6 +7,7 @@ import {teamLabel} from './teams.js';
 
 export const FBL_TRANSFERS=RULES.fblTransfers;
 export const LAWYER=RULES.lawyer;
+export const LEAGUE_FEED=RULES.leagueFeed||{};
 export const COMMISSIONER=RULES.commissioner||{role:'комиссионер лиги FBL',telegram:null};
 const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
 const monday=day=>addDays(day,-((new Date(day+'T00:00:00Z').getUTCDay()+6)%7));
