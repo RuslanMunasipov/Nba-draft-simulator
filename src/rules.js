@@ -25,7 +25,10 @@ export function fblTransfers(transfers,team,today,rules=FBL_TRANSFERS){
  return {used,left:Math.max(0,rules.perWeek-used),limit:rules.perWeek,week,resetOn:addDays(week.end,1),over};
 }
 
-// Every rule for every team. rosters: player ids per team; white: ids the league counts for the «белое правило».
+// Every rule for every team. rosters: player ids per team; white: ids the league counts for the «белое правило»; the
+// entry "none:<team>" records the league's finding that a team has no such player. Only one player per team needs to be
+// marked: a team breaks the rule when it sells its last marked player (or the league found none), never merely because
+// nobody of it is marked yet.
 export function checkRules({rosters,byId,transfers=[],white=[],today,clubOf=p=>p?.sportsClub??null}){
  const whiteSet=new Set(white.map(String));
  return Array.from({length:TEAM_COUNT},(_,team)=>{
@@ -33,15 +36,22 @@ export function checkRules({rosters,byId,transfers=[],white=[],today,clubOf=p=>p
   const rookies=roster.filter(p=>p.isRookie===true),whites=roster.filter(p=>whiteSet.has(String(p.id)));
   if(!rookies.length)violations.push({rule:'rookie',key:`rookie:${team}:${roster.map(p=>p.id).sort().join(',')}`,
    text:'в составе нет ни одного новичка (rookie) — нарушено правило обязательного новичка'});
-  if(white.length&&!whites.length)violations.push({rule:'white',key:`white:${team}:${roster.map(p=>p.id).sort().join(',')}`,
-   text:'в составе нет ни одного игрока, засчитываемого по «белому правилу» (по отцу)'});
+  const lastOut=[...transfers].reverse().find(x=>x.team===team&&whiteSet.has(String(x.outId)));
+  const whiteState=whites.length?'ok':whiteSet.has(`none:${team}`)?'none':lastOut?'sold':'unmarked';
+  if(whiteState==='none')violations.push({rule:'white',key:`white:${team}:none:${roster.map(p=>p.id).sort().join(',')}`,
+   text:'в составе нет ни одного игрока, засчитываемого по «белому правилу» (по отцу) — так решила лига'});
+  if(whiteState==='sold'){
+   const bought=transfers.filter(x=>x.team===team&&x.date>=lastOut.date).map(x=>byId.get(x.inId)?.name).filter(Boolean);
+   violations.push({rule:'white',key:`white:${team}:sold:${lastOut.outId}:${lastOut.date}`,
+    text:`${ddmm(lastOut.date)} продан ${byId.get(lastOut.outId)?.name||'игрок'}, который закрывал «белое правило»; другого засчитываемого игрока в составе не отмечено (куплены: ${bought.join(', ')||'—'}) — проверьте, выполняется ли правило`});
+  }
   const clubs=new Map();for(const p of roster){const c=clubOf(p);if(c)clubs.set(c,[...(clubs.get(c)||[]),p]);}
   for(const [club,list] of clubs)if(list.length>CLUB_LIMIT)violations.push({rule:'club',key:`club:${team}:${club}:${list.map(p=>p.id).sort().join(',')}`,
    text:`${list.length} игрока одного клуба NBA (${club}): ${list.map(p=>p.name).join(', ')} — допускается не больше ${CLUB_LIMIT}`});
   const moves=fblTransfers(transfers,team,today);
   for(const w of moves.over)violations.push({rule:'transfers',key:`transfers:${team}:${w.start}:${w.count}`,
    text:`${w.count} трансфера за неделю ${ddmm(w.start)}–${ddmm(w.end)} при лимите ${moves.limit}`});
-  return {team,label:teamLabel(team),roster,rookies,whites,whiteListed:white.length>0,transfers:moves,violations};
+  return {team,label:teamLabel(team),roster,rookies,whites,whiteState,transfers:moves,violations};
  });
 }
 

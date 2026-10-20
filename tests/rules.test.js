@@ -17,13 +17,24 @@ test('missing rookie, white player or a third player of a club is a breach with 
  const p=(id,club,extra={})=>({id,name:'P'+id,sportsClub:club,...extra});
  const byId=new Map([p(1,'A',{isRookie:true}),p(2,'A'),p(3,'B'),p(4,'A'),p(5,'C')].map(x=>[x.id,x]));
  const rosters=[[1,2,3],[2,4,5],...Array(6).fill([])];
- const checks=checkRules({rosters,byId,white:[3],today:'2026-10-20'});
- assert.deepEqual(checks[0].violations,[]);
+ // The league found that team 1 has nobody counting for the white rule.
+ const checks=checkRules({rosters,byId,white:[3,'none:1'],today:'2026-10-20'});
+ assert.deepEqual(checks[0].violations,[]);assert.equal(checks[0].whiteState,'ok');
  assert.deepEqual(checks[1].violations.map(v=>v.rule),['rookie','white']);
  const third=checkRules({rosters:[[1,2,4,3],...Array(7).fill([])],byId,white:[3],today:'2026-10-20'})[0];
  assert.deepEqual(third.violations.map(v=>v.rule),['club']);
  const text=appeal(checks[1],'2026-10-20');
  assert.ok(text.startsWith(`Уважаемый ${LAWYER.name}!`));assert.match(text,/нет ни одного новичка/);assert.match(text,/белому правилу/);
- // An empty league list means the rule is not checked, never that everyone breaks it.
- assert.ok(!checkRules({rosters,byId,white:[],today:'2026-10-20'})[1].violations.some(v=>v.rule==='white'));
+ // A team nobody marked yet is not a breach: one marked player per team is enough.
+ const fresh=checkRules({rosters,byId,white:[3],today:'2026-10-20'})[1];
+ assert.equal(fresh.whiteState,'unmarked');assert.ok(!fresh.violations.some(v=>v.rule==='white'));
+});
+test('selling the only marked white-rule player is reported with who came in',()=>{
+ const byId=new Map([[1,{id:1,name:'Rookie',isRookie:true}],[3,{id:3,name:'Marked'}],[6,{id:6,name:'Newcomer'}]]);
+ const transfers=[{team:0,outId:3,inId:6,date:'2026-10-27'}];
+ const c=checkRules({rosters:[[1,6],...Array(7).fill([])],byId,transfers,white:[3],today:'2026-10-27'})[0];
+ assert.equal(c.whiteState,'sold');
+ const v=c.violations.find(v=>v.rule==='white');assert.match(v.text,/продан Marked/);assert.match(v.text,/куплены: Newcomer/);
+ // Marking the newcomer settles it.
+ assert.equal(checkRules({rosters:[[1,6],...Array(7).fill([])],byId,transfers,white:[3,6],today:'2026-10-27'})[0].whiteState,'ok');
 });
