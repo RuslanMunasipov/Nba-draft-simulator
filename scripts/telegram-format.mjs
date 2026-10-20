@@ -19,9 +19,16 @@ export function moscow(at=new Date()){
 export const hideHandles=text=>String(text).replace(/@[A-Za-z][A-Za-z0-9_]{3,31}/g,'@•••');
 // Telegram's limit on a photo caption, counted on the visible text.
 export const CAPTION_LIMIT=1024;
+// Telegram refuses messages over 4096 characters: a long one is cut at a line and says so.
+const fit=text=>text.length<=4000?text:text.slice(0,text.lastIndexOf('\n',3900))+'\n…';
+// The text exactly as send() posts it: cut to Telegram's limit, with the Moscow time it is sent.
+export const stamped=text=>fit(text)+`\n\n<i>🕒 Отправлено: ${moscow()}</i>`;
+// Whether a text goes under a photo as its caption (Telegram counts UTF-16 units, an emoji is two, as JavaScript does).
+export const fitsCaption=text=>plainText(stamped(text)).length<=CAPTION_LIMIT;
 // Sending to one bot and chat. Without both the message is only printed and send() answers false. Every message ends
-// with the Moscow time it was sent. send(text,{photo}) puts a local image on top: the text is its caption when it fits,
-// otherwise the photo goes first and the text follows as its own message.
+// with the Moscow time it was sent. send(text,{photo,caption}) puts a local image on top: the text is its caption when it
+// fits; otherwise the photo goes with the short caption and the text follows as a reply to it (without a caption, the bare
+// photo, then the text).
 export function sender(token,chat){
  const configured=Boolean(token&&chat);
  // One Telegram call: waits out 429 rate limits (retry_after) and retries server errors a few times. A photo is uploaded
@@ -40,23 +47,28 @@ export function sender(token,chat){
    await new Promise(r=>setTimeout(r,wait*1000));
   }
  }
- // Rejected markup must not lose the message: resend the same words as plain text.
- async function deliver(field,text,photo){
-  const res=await post({[field]:text,parse_mode:'HTML'},photo);
-  if(res.status===400){const plain=await post({[field]:plainText(text)},photo);
-   if(!plain.ok)throw Error('Telegram: '+plain.status+' '+await plain.text());console.log('sent to Telegram as plain text');return;}
+ // Rejected markup must not lose the message: resend the same words as plain text. Answers the sent message.
+ async function deliver(field,text,photo,extra={}){
+  const res=await post({[field]:text,parse_mode:'HTML',...extra},photo);
+  if(res.status===400){const plain=await post({[field]:plainText(text),...extra},photo);
+   if(!plain.ok)throw Error('Telegram: '+plain.status+' '+await plain.text());console.log('sent to Telegram as plain text');return (await plain.json().catch(()=>null))?.result;}
   if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());
-  console.log('sent to Telegram');
+  console.log('sent to Telegram');return (await res.json().catch(()=>null))?.result;
  }
- // Telegram refuses messages over 4096 characters: a long one is cut at a line and says so.
- const fit=text=>text.length<=4000?text:text.slice(0,text.lastIndexOf('\n',3900))+'\n…';
- async function send(text,{photo}={}){
-  text=fit(text)+`\n\n<i>🕒 Отправлено: ${moscow()}</i>`;console.log((photo?`\n[фото: ${path.basename(photo)}]`:'')+'\n'+hideHandles(text)+'\n');
+ async function send(text,{photo,caption}={}){
+  const under=photo&&fitsCaption(text),short=photo&&!under&&caption&&plainText(caption).length<=CAPTION_LIMIT;text=stamped(text);
+  console.log((photo?`\n[фото: ${path.basename(photo)}]`:'')+(short?`\n${hideHandles(caption)}\n[ответом на фото]`:'')+'\n'+hideHandles(text)+'\n');
   if(!configured){console.log('Telegram secrets not set: message not sent.');return false;}
-  // Telegram counts the caption in UTF-16 units (an emoji is two), as JavaScript's length does.
-  if(photo&&plainText(text).length<=CAPTION_LIMIT)await deliver('caption',text,photo);
-  else{if(photo){const res=await post({},photo);if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());}
-   await deliver('text',text);}
+  if(under){await deliver('caption',text,photo);return true;}
+  if(short){
+   const shown=await deliver('caption',caption,photo);
+   // The verdict is in the chat under the photo: a failed reply is logged, never a reason to post the photo again.
+   try{await deliver('text',text,null,shown?.message_id?{reply_parameters:{message_id:shown.message_id}}:{});}
+   catch(e){console.error('the full protocol (reply to the photo) failed: '+e.message);}
+   return true;
+  }
+  if(photo){const res=await post({},photo);if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());}
+  await deliver('text',text);
   return true;
  }
  return {configured,send};

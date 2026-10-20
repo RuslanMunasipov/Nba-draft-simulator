@@ -521,10 +521,22 @@ export function unreported(transfers,keys=[],events=null){
  }
  return fresh;
 }
-// The reported events of a state: kept ones, or, for a state from before they were kept, those of the deals its keys
-// cover (once, on the first run after the update).
+// Every sale and purchase the journals hold, in dealEvents' words: the reported events can never be more than these (a
+// surplus, left by Sports.ru re-pairing rows under an older state, would swallow a new identical deal).
+export const journalEvents=live=>Object.entries(live?.teams||{}).flatMap(([t,team])=>(team.journal||[]).flatMap(r=>[
+ ...(r.sell?[`${t}|${r.date}|out|${r.sell.name}|${r.sell.price}`]:[]),...(r.buy?[`${t}|${r.date}|in|${r.buy.name}|${r.buy.price}`]:[])]));
+export function capEvents(events,allowed){
+ const left=new Map();for(const e of allowed)left.set(e,(left.get(e)||0)+1);
+ return events.filter(e=>{const n=left.get(e)||0;if(n>0)left.set(e,n-1);return n>0;});
+}
+// The reported events of a state: kept ones, or, for a state from before they were kept, once, on the first run after
+// the update: those of every deal seen before the state was last saved (a post saves the state at once, so a deal seen
+// later was never posted, and every deal seen earlier was handled). The keys name resolved players, which a better
+// resolution of a short name or a re-paired day changes, so they decide only for a state without that time.
 export function reportedEvents(transfers,state){
  if(Array.isArray(state?.events))return [...state.events];
+ const saved=Date.parse(state?.updatedAt);
+ if(Number.isFinite(saved))return transfers.filter(x=>!x.seenAt||Date.parse(x.seenAt)<=saved).flatMap(dealEvents);
  const open=unreported(transfers,state?.reported||[]);
  return transfers.filter(x=>!open.has(x)).flatMap(dealEvents);
 }

@@ -51,6 +51,8 @@ def merge_full(full,cur):
         if not sports.journal_events(entry.get('journal'))-sports.journal_events(mine['journal']):entry['journal']=mine['journal']
         else:entry['journal']=sports.stamp_journal(mine['journal'],entry.get('journal'),now=full.get('collectedAt') or entry.get('journalReadAt'),after=mine.get('journalReadAt'))
         entry['journalReadAt']=max(filter(None,(mine.get('journalReadAt'),entry.get('journalReadAt'))),default=None)
+    # A player the watcher took from a roster (new to the market) stays known: the collection may have started before.
+    for sid,p in (cur.get('players') or {}).items():full.setdefault('players',{}).setdefault(sid,p)
     return full
 # A team whose roster cannot be read waits for it this many reads at most (one a minute).
 HOLD=3

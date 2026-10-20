@@ -125,3 +125,8 @@ class WatchTests(unittest.TestCase):
   self.assertIsNone(sw.main_moved({**env,'GITHUB_SHA':'old'},boom))
   self.assertIsNone(sw.main_moved({**env,'GITHUB_SHA':'old'},lambda cmd,**kw:subprocess.CompletedProcess(cmd,128,'','fatal')))
   self.assertIsNone(sw.main_moved({**env,'GITHUB_SHA':'old'},lambda cmd,**kw:subprocess.CompletedProcess(cmd,0,'','')))
+
+ def test_a_player_taken_from_a_roster_survives_the_full_collection_merge(self):
+  cur={'players':{'9':{'name':'Новый','fromRoster':True},'1':{'name':'A','price':1}},'teams':{}}
+  out=merge_full({'players':{'1':{'name':'A','price':2}},'teams':{}},cur)
+  self.assertEqual(out['players'],{'1':{'name':'A','price':2},'9':{'name':'Новый','fromRoster':True}})

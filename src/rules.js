@@ -93,7 +93,7 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
     text:`${ddmm(lastOut.date)} продан ${byId.get(lastOut.outId)?.name||'игрок'}, который закрывал «белое правило»; другого засчитываемого игрока в составе не отмечено (куплены: ${bought.join(', ')||'—'}) — проверьте, выполняется ли правило`});
   }
   const clubs=new Map();for(const p of roster){const c=clubOf(p);if(c)clubs.set(c,[...(clubs.get(c)||[]),p]);}
-  for(const [club,list] of clubs)if(list.length>CLUB_LIMIT)violations.push({rule:'club',vid:`club:${club}`,key:`club:${team}:${club}:${list.map(p=>p.id).sort().join(',')}`,
+  for(const [club,list] of clubs)if(list.length>CLUB_LIMIT)violations.push({rule:'club',vid:`club:${club}`,club,players:list.map(nameOf),key:`club:${team}:${club}:${list.map(p=>p.id).sort().join(',')}`,
    text:`${list.length} игрока одного клуба NBA (${club}): ${list.map(nameOf).join(', ')} — допускается не больше ${CLUB_LIMIT}`});
   // Transfer hours, per transfer of the team (each is checked once, by its own time).
   for(const x of transfers.filter(x=>x.team===team)){
@@ -150,8 +150,9 @@ export function firstHolder(a,b){
 // found without a white player, a transfer outside the hours, a player another team holds) is for the lawyer to investigate; a sold white player with
 // no other one marked, a roster the league has not decided on, a transfer whose time window crosses 08:00 or 22:00, or a
 // week over the limit only by deals made at the pre-season deadline needs his check; otherwise the roster stands approved.
+export const isDoubt=(v,check)=>(v.rule==='white'&&check.whiteState==='sold')||(['time','transfers','duplicate'].includes(v.rule)&&v.certain===false);
 export function verdict(check){
- const doubtful=v=>(v.rule==='white'&&check.whiteState==='sold')||(['time','transfers','duplicate'].includes(v.rule)&&v.certain===false);
+ const doubtful=v=>isDoubt(v,check);
  const breaches=check.violations.filter(v=>!doubtful(v)),doubts=check.violations.filter(doubtful);
  const unmarked=check.whiteState==='unmarked';
  return {kind:breaches.length?'violation':doubts.length||unmarked?'check':'approved',breaches,doubts,unmarked};
