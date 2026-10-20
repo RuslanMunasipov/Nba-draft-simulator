@@ -18,6 +18,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -284,27 +285,36 @@ def parse_journal(page):
     return rows[::-1]
 
 
+def journal_event(side, row):
+    return json.dumps([row.get('date'), side, row.get(side)], ensure_ascii=False, sort_keys=True)
+
+
+def journal_events(rows):
+    """A journal's events, a multiset of (date, side, name, price): Sports.ru re-pairs a day's sales and purchases into
+    other rows, so journals are compared by their events, never by their rows."""
+    return Counter(journal_event(side, r) for r in rows or [] for side in ('sell', 'buy') if r.get(side))
+
+
 def stamp_journal(old, new, now=None, after=None, old_roster=None, new_roster=None):
     """Sports.ru journals give only the date of a transfer. A row first seen by this collection gets seenAt, the UTC
     time it appeared, and seenAfter, the previous read of the same journal without it (after): the transfer was made
-    between the two (the watcher reads journals every minute). Rows already known keep theirs. Sports.ru lists rows of one
-    date in no stable order and even re-pairs a day's sales and purchases into other rows as the day goes on, so stamps
-    belong to the events, not the rows: a row's sale and its purchase are each matched against the earlier journal's
-    sales and purchases of that date. A row whose events were all seen before keeps their time (the later of the two);
-    a row with a new event is new. Without a previous journal nothing is stamped: the time of those rows is unknown.
+    between the two (the watcher reads journals every minute). Rows already known keep theirs. Without a previous journal
+    nothing is stamped: the time of those rows is unknown.
+    Sports.ru lists rows of one date in no stable order and even re-pairs a day's sales and purchases into other rows as
+    the day goes on (J→O seen alone, later J→E and K→O after a new deal K→E), so a date of the previous journal keeps its
+    earlier pairing: its old rows, in their order, with their stamps, then the page's rows whose sale and purchase are
+    both new, as Sports.ru pairs them, then the remaining new sales paired with the remaining new purchases, all seen now.
+    One-sided rows (draft purchases) are kept and stamped alike but never paired. Only when an old event of the date is
+    gone from the page, or the remaining new sales and purchases do not pair up one to one, does the date follow the page:
+    each row's sale and purchase are matched against the earlier sales and purchases of that date, a row whose events
+    were all seen before keeps their time (the later of the two) and a row with a new event is new.
     The exact players are pinned too (sellSid, buySid): journals give only short names (two «Уайт»), so a new sale or
     purchase is matched to the player who left or joined the team's Sports.ru roster since the previous read
     (old_roster, new_roster), once, and keeps that id when the rows are re-paired."""
     if not old:
         return new
     now = now or datetime.now(timezone.utc).isoformat(timespec='seconds')
-    ident = lambda side, r: json.dumps([r.get('date'), side, r.get(side)], ensure_ascii=False, sort_keys=True)
-    pool = {}
-    for row in old:
-        for side in ('sell', 'buy'):
-            if row.get(side):
-                pool.setdefault(ident(side, row), []).append({**{k: row[k] for k in ('seenAt', 'seenAfter') if row.get(k)},
-                                                              **({'sid': row[side + 'Sid']} if row.get(side + 'Sid') else {})})
+    ident = journal_event
     # Who left and who joined the roster since the previous read, for the new events.
     ids = lambda roster: [p for p in roster or [] if p.get('sportsId')]
     gone, came = [], []
@@ -319,25 +329,72 @@ def stamp_journal(old, new, now=None, after=None, old_roster=None, new_roster=No
         best = min(cands, key=lambda p: abs((p.get('price') or 0) - (row[side].get('price') or 0)))
         (gone if side == 'sell' else came).remove(best)
         return best['sportsId']
-    out = []
-    for row in new:
-        sides = [side for side in ('sell', 'buy') if row.get(side)]
-        events = {side: (pool[ident(side, row)].pop(0) if pool.get(ident(side, row)) else None) for side in sides}
+    def fresh(row):
         pins = {}
-        for side in sides:
-            sid = events[side].get('sid') if events[side] else pin(side, row)
+        for side in ('sell', 'buy'):
+            sid = pin(side, row) if row.get(side) else None
             if sid:
                 pins[side + 'Sid'] = sid
-        if any(e is None for e in events.values()):
-            out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {}), **pins})
-            continue
-        seen = [e for e in events.values() if e.get('seenAt')]
-        if not seen:
-            out.append({**row, **pins})
-            continue
-        latest = max(seen, key=lambda e: e['seenAt'])
-        out.append({**row, 'seenAt': latest['seenAt'], **pins,
-                    **({'seenAfter': max(e['seenAfter'] for e in seen if e.get('seenAfter'))} if any(e.get('seenAfter') for e in seen) else {})})
+        return {**row, 'seenAt': now, **({'seenAfter': after} if after else {}), **pins}
+    def keep(day, known, rows):
+        """The date's earlier pairing with the page's new events added; None when it cannot stand."""
+        if journal_events(known) - journal_events(rows):
+            return None
+        news, whole, sells, buys, rest = journal_events(rows) - journal_events(known), [], [], [], []
+        for row in rows:
+            sides = [side for side in ('sell', 'buy') if row.get(side)]
+            if sides and all(news[ident(side, row)] > 0 for side in sides):
+                for side in sides:
+                    news[ident(side, row)] -= 1
+                whole.append(row)
+            else:
+                rest.append(row)
+        # A row with one new event and one old: the new one is paired with a new event of the other side.
+        for row in rest:
+            for side, bucket in (('sell', sells), ('buy', buys)):
+                if row.get(side) and news[ident(side, row)] > 0:
+                    news[ident(side, row)] -= 1
+                    bucket.append({side: row[side], **({side + 'Sid': row[side + 'Sid']} if row.get(side + 'Sid') else {})})
+        if len(sells) != len(buys):
+            return None
+        return [dict(r) for r in known] + [fresh(r) for r in whole + [{'date': day, **b, **s} for s, b in zip(sells, buys)]]
+    def follow(known, rows):
+        """The page's pairing: each row's sale and purchase matched against the earlier events of the date."""
+        pool = {}
+        for row in known:
+            for side in ('sell', 'buy'):
+                if row.get(side):
+                    pool.setdefault(ident(side, row), []).append({**{k: row[k] for k in ('seenAt', 'seenAfter') if row.get(k)},
+                                                                  **({'sid': row[side + 'Sid']} if row.get(side + 'Sid') else {})})
+        out = []
+        for row in rows:
+            sides = [side for side in ('sell', 'buy') if row.get(side)]
+            events = {side: (pool[ident(side, row)].pop(0) if pool.get(ident(side, row)) else None) for side in sides}
+            pins = {}
+            for side in sides:
+                sid = events[side].get('sid') if events[side] else pin(side, row)
+                if sid:
+                    pins[side + 'Sid'] = sid
+            if any(e is None for e in events.values()):
+                out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {}), **pins})
+                continue
+            seen = [e for e in events.values() if e.get('seenAt')]
+            if not seen:
+                out.append({**row, **pins})
+                continue
+            latest = max(seen, key=lambda e: e['seenAt'])
+            out.append({**row, 'seenAt': latest['seenAt'], **pins,
+                        **({'seenAfter': max(e['seenAfter'] for e in seen if e.get('seenAfter'))} if any(e.get('seenAfter') for e in seen) else {})})
+        return out
+    known, days = {}, {}
+    for row in old:
+        known.setdefault(row.get('date'), []).append(row)
+    for row in new:
+        days.setdefault(row.get('date'), []).append(row)
+    out = []
+    for day, rows in days.items():
+        kept = keep(day, known[day], rows) if day in known else None
+        out += kept if kept is not None else follow(known.get(day, []), rows)
     return out
 
 
@@ -352,7 +409,8 @@ def parse_roster(raw):
 
 def collect_teams(previous=None, errors=None):
     """Profile, journal and roster of every FBL team. A team whose pages fail keeps its previous entry, and a journal
-    shorter than the published one is a failed parse, never a reversal of transfers."""
+    with fewer events than the published one is a failed parse, never a reversal of transfers (events, not rows: the
+    published rows keep their earlier pairing)."""
     previous, errors = previous or {}, errors if errors is not None else []
     try:
         config = json.loads(TEAMS.read_text(encoding='utf-8')).get('teams', {})
@@ -375,13 +433,15 @@ def collect_teams(previous=None, errors=None):
             if old:
                 teams[team] = {**old, 'stale': True}
             continue
-        if old and len(entry['journal']) < len(old.get('journal') or []):
-            errors.append({'team': team, 'error': f"journal shrank from {len(old['journal'])} to {len(entry['journal'])} rows; kept the previous one"})
+        had, has = sum(journal_events((old or {}).get('journal')).values()), sum(journal_events(entry['journal']).values())
+        if old and has < had:
+            errors.append({'team': team, 'error': f"journal shrank from {had} to {has} events; kept the previous one"})
             entry['journal'] = old['journal']
         read_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
         entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'], now=read_at, after=(old or {}).get('journalReadAt'),
                                          old_roster=(old or {}).get('roster'), new_roster=entry.get('roster') if roster else None)
-        entry['journalReadAt'] = read_from
+        # A failed read bounds nothing: a deal it missed may be older than it.
+        entry['journalReadAt'] = old.get('journalReadAt') if old and has < had else read_from
         if 'balance' not in entry or 'transfersLeft' not in entry:
             errors.append({'team': team, 'error': 'team profile without balance or transfers; layout changed?'})
             for key in ('balance', 'transfersLeft', 'value'):

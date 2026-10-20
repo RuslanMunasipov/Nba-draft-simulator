@@ -346,3 +346,47 @@ test('rows of a day listed out of order, and namesakes pinned by the watcher, re
  const r=journalTransfers([...mine,coby,derrick],{players,teams:{0:{journal:[...draft,back,there]}}});
  assert.deepEqual(r.transfers.map(x=>[x.outId,x.inId]),[[out.id,'derrick'],['derrick',out.id]],JSON.stringify(r.warnings));
 });
+test('every order Sports.ru lists a day\'s package in gives the same deals',async()=>{
+ const {journalTransfers}=await import('../src/season.js');
+ const {DRAFT_PICKS}=await import('../src/fbl-draft-2026.js');
+ // Team 0 on 20.10.2026: Сабонис → Уайт (Derrick White), then one read showing five rows chained through each other.
+ const own=[['Йокич',3500,'C'],['Книппел',1700,'SG'],['Сабонис',2100,'C'],...[3,4,5,6,7,8,9].map(i=>[`П${i}`,1500,'PG'])];
+ const mine=DRAFT_PICKS.filter((_,i)=>i%8===0).map((id,i)=>({id,name:own[i][0],sportsId:`s${i}`,position:own[i][2],price:own[i][1]}));
+ const free=[['embiid','Эмбиид',2300,'C'],['okongwu','Оконгву',1700,'C'],['derrick','Уайт',1800,'SG'],['coby','Уайт',1500,'PG']].map(([id,name,price,position])=>({id,name,sportsId:id,position,price}));
+ const players={};for(const p of [...mine,...free])players[p.sportsId]={fullName:p.name,name:p.name,price:p.price,initialPrice:p.price,position:p.position};
+ const row=(sell,sp,buy,bp,seenAt)=>({date:'2026-10-20',sell:{name:sell,price:sp},buy:{name:buy,price:bp},seenAt,seenAfter:new Date(Date.parse(seenAt)-60e3).toISOString()});
+ const draft=mine.map(p=>({date:'2026-10-18',buy:{name:p.name,price:p.price},sell:null})),before=row('Сабонис',2100,'Уайт',1800,'2026-10-20T08:03:27Z');
+ const at='2026-10-20T08:11:29Z',pack=[row('Йокич',3500,'Эмбиид',2300,at),row('Книппел',1700,'Оконгву',1700,at),row('Уайт',1800,'Книппел',1700,at),row('Эмбиид',2300,'Сабонис',2100,at),row('Оконгву',1700,'Йокич',3500,at)];
+ const perms=a=>a.length<2?[a]:a.flatMap((x,i)=>perms([...a.slice(0,i),...a.slice(i+1)]).map(p=>[x,...p]));
+ const [jokic,knueppel,sabonis]=mine.map(p=>p.id),want=[[sabonis,'derrick'],[jokic,'embiid'],[knueppel,'okongwu'],['derrick',knueppel],['embiid',sabonis],['okongwu',jokic]].map(d=>d.join('>')).sort();
+ const orders=perms(pack);assert.equal(orders.length,120);
+ for(const order of orders){
+  const r=journalTransfers([...mine,...free],{players,teams:{0:{journal:[...draft,before,...order]}}});
+  assert.deepEqual(r.warnings,[],order.map(x=>`${x.sell.name}→${x.buy.name}`).join(', '));
+  assert.deepEqual(r.transfers.map(x=>`${x.outId}>${x.inId}`).sort(),want);
+ }
+ // A namesake of a held player is bought, not waited for: holding Coby White, the team buys Derrick White.
+ const coby=mine.map((p,i)=>i===9?{...free[3]}:p),buy={date:'2026-10-20',sell:{name:'П8',price:1500},buy:{name:'Уайт',price:1800}};
+ const r=journalTransfers([...coby,...free.slice(0,3)],{players,teams:{0:{journal:[...coby.map(p=>({date:'2026-10-18',buy:{name:p.name,price:p.price},sell:null})),buy,row('П7',1500,'Эмбиид',2300,at)]}}},
+  DRAFT_PICKS.map((id,i)=>i===72?'coby':id));
+ assert.deepEqual(r.transfers.map(x=>[x.outId,x.inId]),[[mine[7].id,'embiid'],[mine[8].id,'derrick']],JSON.stringify(r.warnings));
+});
+test('an unpinned purchase: the roster json first, then the journal price, then position; a shared player is no evidence',async()=>{
+ const {journalTransfers}=await import('../src/season.js');
+ const {DRAFT_PICKS}=await import('../src/fbl-draft-2026.js');
+ const own=[['Сабонис',2100,'C'],['Вашингтон',1400,'PF'],...[2,3,4,5,6,7,8,9].map(i=>[`П${i}`,1500,'PG'])];
+ const mine=DRAFT_PICKS.filter((_,i)=>i%8===0).map((id,i)=>({id,name:own[i][0],sportsId:`s${i}`,position:own[i][2],price:own[i][1]}));
+ // Team 1 holds Derrick White and Morez Johnson since the draft: Sports.ru allows it, so they may still be bought.
+ const derrick={id:DRAFT_PICKS[1],name:'Уайт',sportsId:'derrick',position:'SG',price:1800},morez={id:DRAFT_PICKS[9],name:'Джонсон',sportsId:'morez',position:'PF',price:1200};
+ const coby={id:'coby',name:'Уайт',sportsId:'coby',position:'PG',price:1500},tre={id:'tre',name:'Джонсон',sportsId:'tre',position:'SG',price:1200},jalen={id:'jalen',name:'Джонсон',sportsId:'jalen',position:'PF',price:2300};
+ const all=[...mine,derrick,morez,coby,tre,jalen],players={};for(const p of all)players[p.sportsId]={fullName:p.name,name:p.name,price:p.price,initialPrice:p.price,position:p.position};
+ const draft=mine.map(p=>({date:'2026-10-18',buy:{name:p.name,price:p.price},sell:null}));
+ const deals=[{date:'2026-10-20',sell:{name:'Сабонис',price:2100},buy:{name:'Уайт',price:1800}},{date:'2026-10-20',sell:{name:'Вашингтон',price:1400},buy:{name:'Джонсон',price:1200}}];
+ // The roster json was read before the deals: it names neither White nor any Johnson.
+ const stale=mine.map(p=>({sportsId:p.sportsId}));
+ const run=(roster=stale)=>journalTransfers(all,{players,teams:{0:{journal:[...draft,...deals],roster}}}).transfers.map(x=>x.inId);
+ // Derrick at 1800, not Coby (1500) because Derrick is held elsewhere; of the two 1200 Johnsons the PF, not a dearer PF.
+ assert.deepEqual(run(),[derrick.id,morez.id]);
+ // The roster json, when it names the player, outranks everything.
+ assert.deepEqual(run([...stale.slice(2),{sportsId:'coby'},{sportsId:'tre'}]),['coby','tre']);
+});

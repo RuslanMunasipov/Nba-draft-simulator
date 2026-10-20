@@ -2,6 +2,8 @@ name: Season live data
 # One long run at a time: FBL transfer journals every minute, the full Sports.ru collection every two hours.
 # Each run lasts just under six hours and then starts the next one itself: GitHub schedules are best-effort
 # and skipped runs are common, so the cron below is only a fallback. Cancel a run to stop the chain.
+# A merge to the run's branch ends the run early (the watcher checks every five minutes), so the next run starts on
+# the new code and data/fbl-league.json.
 on:
   schedule:
     - cron: '23 */6 * * *'

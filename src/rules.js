@@ -80,26 +80,26 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
   const roster=(rosters[team]||[]).map(id=>byId.get(id)).filter(Boolean),violations=[];
   const rookies=roster.filter(p=>p.isRookie===true),whites=roster.filter(p=>whiteSet.has(String(p.id)));
   const undecided=checked.length?roster.filter(p=>!decided.has(String(p.id))):[];
-  if(!rookies.length)violations.push({rule:'rookie',key:`rookie:${team}:${roster.map(p=>p.id).sort().join(',')}`,
+  if(!rookies.length)violations.push({rule:'rookie',vid:'rookie',key:`rookie:${team}:${roster.map(p=>p.id).sort().join(',')}`,
    text:'в составе нет ни одного новичка (rookie) — нарушено правило обязательного новичка'});
   const lastOut=[...transfers].reverse().find(x=>x.team===team&&whiteSet.has(String(x.outId)));
   const fullyDecided=checked.length>0&&roster.length>0&&!undecided.length;
   const whiteState=whites.length?'ok':whiteSet.has(`none:${team}`)||fullyDecided?'none':lastOut?'sold':'unmarked';
-  if(whiteState==='none')violations.push({rule:'white',key:`white:${team}:none:${roster.map(p=>p.id).sort().join(',')}`,
+  if(whiteState==='none')violations.push({rule:'white',vid:'white',key:`white:${team}:none:${roster.map(p=>p.id).sort().join(',')}`,
    text:'в составе нет ни одного игрока, засчитываемого по «белому правилу» (по отцу) — так решила лига'});
   if(whiteState==='sold'){
    const bought=transfers.filter(x=>x.team===team&&x.date>=lastOut.date).map(x=>byId.get(x.inId)?.name).filter(Boolean);
-   violations.push({rule:'white',key:`white:${team}:sold:${lastOut.outId}:${lastOut.date}`,
+   violations.push({rule:'white',vid:'white',key:`white:${team}:sold:${lastOut.outId}:${lastOut.date}`,
     text:`${ddmm(lastOut.date)} продан ${byId.get(lastOut.outId)?.name||'игрок'}, который закрывал «белое правило»; другого засчитываемого игрока в составе не отмечено (куплены: ${bought.join(', ')||'—'}) — проверьте, выполняется ли правило`});
   }
   const clubs=new Map();for(const p of roster){const c=clubOf(p);if(c)clubs.set(c,[...(clubs.get(c)||[]),p]);}
-  for(const [club,list] of clubs)if(list.length>CLUB_LIMIT)violations.push({rule:'club',key:`club:${team}:${club}:${list.map(p=>p.id).sort().join(',')}`,
+  for(const [club,list] of clubs)if(list.length>CLUB_LIMIT)violations.push({rule:'club',vid:`club:${club}`,club,players:list.map(nameOf),key:`club:${team}:${club}:${list.map(p=>p.id).sort().join(',')}`,
    text:`${list.length} игрока одного клуба NBA (${club}): ${list.map(nameOf).join(', ')} — допускается не больше ${CLUB_LIMIT}`});
   // Transfer hours, per transfer of the team (each is checked once, by its own time).
   for(const x of transfers.filter(x=>x.team===team)){
    const t=transferTime(x);if(t.state==='ok'||t.state==='unknown')continue;
    const deal=`${nameOf(byId.get(x.outId))||x.outId} → ${nameOf(byId.get(x.inId))||x.inId}`;
-   violations.push({rule:'time',certain:t.state==='breach',transfer:`${x.outId}>${x.inId}:${x.date}`,key:`time:${team}:${x.outId}>${x.inId}:${x.date}`,
+   violations.push({rule:'time',certain:t.state==='breach',vid:`time:${x.outId}>${x.inId}:${x.date}`,transfer:`${x.outId}>${x.inId}:${x.date}`,key:`time:${team}:${x.outId}>${x.inId}:${x.date}`,
     text:t.state==='breach'?`трансфер ${deal} совершён в ${timeLabel(t)} МСК — трансферы разрешены только с ${TRANSFER_HOURS.from} до ${TRANSFER_HOURS.to} МСК`
      :`трансфер ${deal} совершён ${timeLabel(t)} МСК — на границе разрешённого времени (${TRANSFER_HOURS.from}–${TRANSFER_HOURS.to} МСК), сверьте время на Sports.ru`});
   }
@@ -107,35 +107,52 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
   // already held is in breach, the one that had him first is not.
   for(const p of roster){
    const others=rosters.map((r,t)=>t!==team&&r.includes(p.id)?t:-1).filter(t=>t>=0);if(!others.length)continue;
-   // When team t's current holding of the player began (-1: since the draft). A sale and a buy-back on the same day do
-   // not break it: Sports.ru confirms a day's transfers as one package, judged on the day's final roster.
+   // When team t's current holding of the player began: the purchase (its place in the list and the transfer), or the
+   // draft (i -1). A sale and a buy-back on the same day do not break it: Sports.ru confirms a day's transfers as one
+   // package, judged on the day's final roster.
    const since=t=>{
     const mine=transfers.map((x,i)=>({x,i})).filter(({x})=>x.team===t&&(x.inId===p.id||x.outId===p.id));
-    let held=mine.length?mine[0].x.outId===p.id:true,start=held?-1:Infinity,left=null;
+    let held=mine.length?mine[0].x.outId===p.id:true,start=held?{i:-1}:{i:Infinity},left=null;
     for(const {x,i} of mine){
      if(x.outId===p.id){held=false;left={date:x.date,start};}
-     else if(!held){start=left&&left.date===x.date?left.start:i;held=true;}
+     else if(!held){start=left&&left.date===x.date?left.start:{i,x};held=true;}
     }
     return start;
    };
-   if(others.some(t=>since(t)<since(team)))violations.push({rule:'duplicate',key:`duplicate:${team}:${p.id}`,
-    text:`${nameOf(p)} уже в составе ${others.map(t=>`«${teamLabel(t).replace(/^\d+\.\s*/,'').replace(/ · GM .*/,'')}»`).join(', ')} — игрок может быть только в одной команде лиги`});
+   const name=t=>`«${teamLabel(t).replace(/^\d+\.\s*/,'').replace(/ · GM .*/,'')}»`,mine=since(team);
+   const order=others.map(t=>[t,firstHolder(since(t),mine)]),before=order.filter(([,o])=>o==='before').map(([t])=>t),same=order.filter(([,o])=>o==='same').map(([t])=>t);
+   if(before.length)violations.push({rule:'duplicate',certain:true,vid:`dup:${p.id}`,key:`duplicate:${team}:${p.id}`,
+    text:`${nameOf(p)} уже в составе ${before.map(name).join(', ')} — игрок может быть только в одной команде лиги`});
+   else if(same.length)violations.push({rule:'duplicate',certain:false,vid:`dup:${p.id}`,key:`duplicate:${team}:${p.id}`,
+    text:`${nameOf(p)} есть и в составе ${same.map(name).join(', ')} — куплен там в одно время с этой командой: кто купил первым, сверьте на Sports.ru`});
   }
   const moves=fblTransfers(transfers,team,today);
   // Only the week being checked: a week that went over earlier was that week's breach, not today's.
-  for(const w of moves.over.filter(w=>today>=w.start&&today<=w.end))violations.push({rule:'transfers',certain:w.certain,key:`transfers:${team}:${w.start}:${w.count}`,
+  for(const w of moves.over.filter(w=>today>=w.start&&today<=w.end))violations.push({rule:'transfers',certain:w.certain,vid:`transfers:${w.start}`,key:`transfers:${team}:${w.start}:${w.count}`,
    text:`${w.count} трансфера за неделю ${ddmm(w.start)}–${ddmm(w.end)} при лимите ${moves.limit}`+(w.certain?'':
     ` — с учётом ${w.atDeadline.map(x=>`${nameOf(byId.get(x.outId))||x.outId} → ${nameOf(byId.get(x.inId))||x.inId} (${timeLabel(transferTime(x))} МСК)`).join(', ')}: сделано у дедлайна ${mskTime(FBL_TRANSFERS.countFrom)} МСК, могло быть ещё бесплатным — сверьте время на Sports.ru`)});
   return {team,label:teamLabel(team),roster,rookies,whites,whiteState,undecided,transfers:moves,violations};
  });
 }
 
+// Whether the holding a began before the holding b ('before'), after it ('after'), or the watcher cannot tell ('same'):
+// the draft is first (two draft holders cannot be: the FBL draft picks each player once, so neither is flagged); a purchase of an earlier date is first; on one date the purchases' time windows (seenAfter, seenAt]
+// decide (a purchase without seenAfter was made in the two minutes before seenAt), and overlapping windows cannot be told
+// apart; a purchase the watcher never timed falls back to the order of the list.
+export function firstHolder(a,b){
+ if(a.i===-1||b.i===-1)return a.i===-1&&b.i!==-1?'before':'after';
+ if(a.x&&b.x&&a.x.date!==b.x.date)return a.x.date<b.x.date?'before':'after';
+ const span=x=>{const to=Date.parse(x.seenAt);return [x.seenAfter?Date.parse(x.seenAfter):to-2*60e3,to];};
+ if(a.x?.seenAt&&b.x?.seenAt){const [a0,a1]=span(a.x),[b0,b1]=span(b.x);return a1<=b0?'before':b1<=a0?'after':'same';}
+ return a.i<b.i?'before':'after';
+}
 // What a team's check asks of the league. An obvious breach (no rookie, the club or transfer limit, a team the league
 // found without a white player, a transfer outside the hours, a player another team holds) is for the lawyer to investigate; a sold white player with
 // no other one marked, a roster the league has not decided on, a transfer whose time window crosses 08:00 or 22:00, or a
 // week over the limit only by deals made at the pre-season deadline needs his check; otherwise the roster stands approved.
+export const isDoubt=(v,check)=>(v.rule==='white'&&check.whiteState==='sold')||(['time','transfers','duplicate'].includes(v.rule)&&v.certain===false);
 export function verdict(check){
- const doubtful=v=>(v.rule==='white'&&check.whiteState==='sold')||((v.rule==='time'||v.rule==='transfers')&&v.certain===false);
+ const doubtful=v=>isDoubt(v,check);
  const breaches=check.violations.filter(v=>!doubtful(v)),doubts=check.violations.filter(doubtful);
  const unmarked=check.whiteState==='unmarked';
  return {kind:breaches.length?'violation':doubts.length||unmarked?'check':'approved',breaches,doubts,unmarked};

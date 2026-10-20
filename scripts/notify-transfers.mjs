@@ -6,7 +6,7 @@
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
 import path from 'node:path';
-import {seasonRosters,bank,unreported,dealEvents,reportedEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers} from '../src/rules.js';
@@ -18,9 +18,9 @@ const team=Number(process.env.FBL_TEAM||0),sort='month';
 const json=async url=>{const r=await fetch(url);if(!r.ok)throw Error(url+': '+r.status);return r.json();};
 const live=JSON.parse(fs.readFileSync(livePath,'utf8'));
 const db=process.env.DB_PATH?JSON.parse(fs.readFileSync(process.env.DB_PATH,'utf8')):await json(SITE+'data/default-draft.json');
-// The league log as it is now on main (a white-rule decision made an hour ago counts at once); the copy checked out when
-// the watcher started is the fallback.
-const league=await json(RAW+'main/data/fbl-league.json').catch(()=>JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import.meta.url),'utf8')));
+// The league log from this checkout: the watcher hands over to a new run whenever main moves, so a white-rule decision
+// counts within minutes, and a failed download can never judge on an older list.
+const league=JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import.meta.url),'utf8'));
 // A watcher that runs for hours keeps the state locally: the published copy can lag behind the raw-file cache.
 const previous=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
 const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p])),today=moscowToday();
@@ -104,7 +104,7 @@ function decide(p){
 // Reported deals are kept as their journal events (a multiset), saved with every message, so a re-paired day or a
 // short name resolving to another player never repeats a message.
 const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`;
-state.transferEvents=reportedEvents(transfers,{events:previous.transferEvents,reported:previous.transfers});
+state.transferEvents=capEvents(reportedEvents(transfers,{events:previous.transferEvents,reported:previous.transfers}),[...journalEvents(live),...transfers.filter(x=>x.source!=='sports.ru').flatMap(dealEvents)]);
 const pending=unreported(transfers,[],state.transferEvents),told=x=>{state.transfers.push(transferKey(x));state.transferEvents.push(...dealEvents(x));};
 const rival=transfers.filter(x=>x.team!==team&&pending.has(x));
 for(const x of rival){

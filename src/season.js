@@ -467,34 +467,35 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
  // Across teams, a date's transfers go in the order the watcher saw them (rows it never timed first), not by team: the
  // first buyer of a player must come first.
  events.sort((a,b)=>a.row.date.localeCompare(b.row.date)||(a.row.seenAt||'').localeCompare(b.row.seenAt||'')||a.t-b.t||a.i-b.i);
- const taken=new Set(rosters.flat()),out=[],bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p]));
- // Within a team's day a row may sell a player a later-listed row bought (Sports.ru's order is not stable): such a row
- // waits until that later row is applied.
- const queue=[...events];
+ const out=[],bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p]));
+ // Within a team's day Sports.ru's order is not stable: a row may sell a player a later-listed row buys, or buy one a
+ // later-listed row sells. Such a row moves behind the team's last row of that day, as many times as the day has rows
+ // (enough for any order of a package); a row still impossible then is dropped.
+ const queue=[...events],day=e=>`${e.t}|${e.row.date}`,size=new Map();for(const e of events)size.set(day(e),(size.get(day(e))||0)+1);
  for(let i=0;i<queue.length;i++){
-  const {t,row}=queue[i];
+  const e=queue[i],{t,row}=e;
   if(!row.buy||!row.sell){warnings.push({team:t,message:`${row.date}: запись без пары покупка/продажа (${row.buy?.name||row.sell?.name}).`});continue;}
   const roster=rosters[t];
   const held=new Set((live?.teams?.[t]?.roster||[]).map(r=>r.sportsId)),gone=p=>held.size&&held.has(p.sportsId)?1e7:0;
   // The watcher pinned the exact players when it first saw the row (sellSid, buySid); names only when it could not.
   const pinnedOut=row.sellSid&&bySid.get(String(row.sellSid)),pinnedIn=row.buySid&&bySid.get(String(row.buySid));
   const outs=pinnedOut&&roster.includes(pinnedOut.id)?[pinnedOut]:roster.map(id=>byId.get(id)).filter(p=>p&&shortName(p,live)===row.sell.name).sort((a,b)=>gone(a)+Math.abs(priceOf(a,live)-row.sell.price)-gone(b)-Math.abs(priceOf(b,live)-row.sell.price));
-  if(!outs.length){
-   const later=queue.findIndex((e,j)=>j>i&&e.t===t&&e.row.date===row.date&&e.row.buy?.name===row.sell.name);
-   if(later>i&&!row.deferred){queue.splice(later+1,0,{t,row:{...row,deferred:true}});continue;}
-   warnings.push({team:t,message:`${row.date}: продан ${row.sell.name}, но его нет в составе.`});continue;
+  // The bought player is still here (pinned, or by name other than the one leaving): a later row of the day sells him.
+  const kept=roster.some(id=>id!==outs[0]?.id&&(pinnedIn?id===pinnedIn.id:shortName(byId.get(id),live)===row.buy.name));
+  if(!outs.length||kept||(pinnedOut&&!roster.includes(pinnedOut.id))){
+   const last=queue.findLastIndex(x=>day(x)===day(e));
+   if(last>i&&(e.moves||0)<size.get(day(e))){queue.splice(last+1,0,{...e,moves:(e.moves||0)+1});continue;}
   }
+  if(!outs.length){warnings.push({team:t,message:`${row.date}: продан ${row.sell.name}, но его нет в составе.`});continue;}
   const leaving=outs[0],pos=positionOf(leaving,live),now=new Set((live?.teams?.[t]?.roster||[]).map(r=>r.sportsId));
-  // The roster JSON names the exact player a team holds today; position and price only break remaining ties.
-  // A player another FBL team holds is still possible (Sports.ru allows it); when the roster cannot tell, a free one wins.
-  const score=p=>(now.size&&!now.has(p.sportsId)?1e7:0)+(positionOf(p,live).some(x=>pos.includes(x))?0:1e6)+(taken.has(p.id)?1e5:0)+Math.abs(priceOf(p,live)-row.buy.price);
+  // The roster JSON names the exact player a team holds today; then the journal's price matching his price, then position
+  // and the price gap break remaining ties. Another FBL team holding him is no evidence: Sports.ru allows shared players.
+  const score=p=>(now.size&&!now.has(p.sportsId)?1e7:0)+(priceOf(p,live)===row.buy.price?0:1e6)+(positionOf(p,live).some(x=>pos.includes(x))?0:1e5)+Math.abs(priceOf(p,live)-row.buy.price);
   const ins=pinnedIn&&!roster.includes(pinnedIn.id)?[pinnedIn]:players.filter(p=>p.sportsId&&!roster.includes(p.id)&&shortName(p,live)===row.buy.name).sort((a,b)=>score(a)-score(b));
   if(!ins.length){warnings.push({team:t,message:`${row.date}: куплен ${row.buy.name}, игрок не найден в базе.`});continue;}
   if(!pinnedIn&&ins.length>1&&score(ins[0])===score(ins[1]))warnings.push({team:t,message:`${row.date}: ${row.buy.name} неоднозначен, выбран ${ins[0].name} (${ins[0].team}).`});
   const joining=ins[0];
   roster[roster.indexOf(leaving.id)]=joining.id;
-  // Still taken while another team holds the player.
-  taken.clear();for(const r of rosters)for(const id of r)taken.add(id);
   out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',
    // The journal's own words, which never change when a name resolves differently: what «already reported» matches on.
    outName:row.sell.name,inName:row.buy.name,...(row.seenAt?{seenAt:row.seenAt}:{}),...(row.seenAfter?{seenAfter:row.seenAfter}:{})});
@@ -520,10 +521,22 @@ export function unreported(transfers,keys=[],events=null){
  }
  return fresh;
 }
-// The reported events of a state: kept ones, or, for a state from before they were kept, those of the deals its keys
-// cover (once, on the first run after the update).
+// Every sale and purchase the journals hold, in dealEvents' words: the reported events can never be more than these (a
+// surplus, left by Sports.ru re-pairing rows under an older state, would swallow a new identical deal).
+export const journalEvents=live=>Object.entries(live?.teams||{}).flatMap(([t,team])=>(team.journal||[]).flatMap(r=>[
+ ...(r.sell?[`${t}|${r.date}|out|${r.sell.name}|${r.sell.price}`]:[]),...(r.buy?[`${t}|${r.date}|in|${r.buy.name}|${r.buy.price}`]:[])]));
+export function capEvents(events,allowed){
+ const left=new Map();for(const e of allowed)left.set(e,(left.get(e)||0)+1);
+ return events.filter(e=>{const n=left.get(e)||0;if(n>0)left.set(e,n-1);return n>0;});
+}
+// The reported events of a state: kept ones, or, for a state from before they were kept, once, on the first run after
+// the update: those of every deal seen before the state was last saved (a post saves the state at once, so a deal seen
+// later was never posted, and every deal seen earlier was handled). The keys name resolved players, which a better
+// resolution of a short name or a re-paired day changes, so they decide only for a state without that time.
 export function reportedEvents(transfers,state){
  if(Array.isArray(state?.events))return [...state.events];
+ const saved=Date.parse(state?.updatedAt);
+ if(Number.isFinite(saved))return transfers.filter(x=>!x.seenAt||Date.parse(x.seenAt)<=saved).flatMap(dealEvents);
  const open=unreported(transfers,state?.reported||[]);
  return transfers.filter(x=>!open.has(x)).flatMap(dealEvents);
 }

@@ -4,7 +4,6 @@ so a player released by a rival is reported before the next full collection.
 Usage: season_watch.py <sports-current.json> <notify-state.json> [--minutes 345] [--every 60] [--full-every 120]
 """
 import argparse,json,os,shutil,signal,subprocess,sys,time
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timezone
 from pathlib import Path
@@ -25,47 +24,61 @@ def journals(config):
         return team,(sports.parse_journal(page) if page else None)
     with ThreadPoolExecutor(8) as ex:return {t:j for t,j in ex.map(one,config.items()) if j is not None}
 def changed_teams(snapshot,fresh):
-    """Teams whose journal differs from the published snapshot. A shorter journal is a failed parse, not a reversal."""
+    """Teams whose journal differs from the published snapshot. Fewer events is a failed parse, not a reversal."""
     old=snapshot.get('teams',{})
-    # The stored rows carry seenAt (when the watcher first saw them); Sports.ru rows do not.
-    # Rows of one date come in no stable order, so journals are compared as sorted lists.
-    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','sellSid','buySid')},ensure_ascii=False,sort_keys=True) for r in rows or [])
-    return [t for t,rows in fresh.items() if bare(rows)!=bare(old.get(t,{}).get('journal')) and len(rows)>=len(old.get(t,{}).get('journal') or [])]
+    # Journals are compared as multisets of events (date, side, name, price): the stored rows carry the watcher's stamps
+    # and keep the day's earlier pairing, Sports.ru lists a date's rows in no stable order and re-pairs them.
+    ev=sports.journal_events
+    return [t for t,rows in fresh.items() if ev(rows)!=ev(old.get(t,{}).get('journal')) and sum(ev(rows).values())>=sum(ev(old.get(t,{}).get('journal')).values())]
 def mark_read(snapshot,fresh,stamp=None):
     """Remember when each journal was last read unchanged: a row that appears later was made after that read, which
     bounds the time of the transfer (FBL allows transfers only from 08:00 to 22:00 Moscow time). The stamp is the time
     the read began: a deal made while the pages were being fetched may be missing from them."""
-    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','sellSid','buySid')},ensure_ascii=False,sort_keys=True) for r in rows or [])
     stamp=stamp or now()
     for t,rows in fresh.items():
         entry=snapshot.get('teams',{}).get(t)
-        if entry and bare(rows)==bare(entry.get('journal')):entry['journalReadAt']=stamp
+        if entry and sports.journal_events(rows)==sports.journal_events(entry.get('journal')):entry['journalReadAt']=stamp
     return snapshot
 def merge_full(full,cur):
     """The full collection's snapshot, with each team's journal as the minute watcher knows it: the watcher read the
-    journals while the collection ran, so its rows and their times stand; rows only the collection saw are stamped as
-    new (by sale and purchase, as everywhere)."""
+    journals while the collection ran, so its rows (and their pairing) and their times stand; events only the collection
+    saw are stamped as new (by sale and purchase, as everywhere)."""
     if not cur:return full
-    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','sellSid','buySid')},ensure_ascii=False,sort_keys=True) for r in rows or [])
     for t,entry in (full.get('teams') or {}).items():
         mine=(cur.get('teams') or {}).get(t)
         if not mine or not mine.get('journal'):continue
-        # Every row the collection saw is already known (it read the journal earlier): the watcher's journal stands.
-        if not Counter(bare(entry.get('journal')))-Counter(bare(mine['journal'])):entry['journal']=mine['journal']
+        # Every event the collection saw is already known (it read the journal earlier): the watcher's journal stands.
+        if not sports.journal_events(entry.get('journal'))-sports.journal_events(mine['journal']):entry['journal']=mine['journal']
         else:entry['journal']=sports.stamp_journal(mine['journal'],entry.get('journal'),now=full.get('collectedAt') or entry.get('journalReadAt'),after=mine.get('journalReadAt'))
         entry['journalReadAt']=max(filter(None,(mine.get('journalReadAt'),entry.get('journalReadAt'))),default=None)
+    # A player the watcher took from a roster (new to the market) stays known: the collection may have started before.
+    for sid,p in (cur.get('players') or {}).items():full.setdefault('players',{}).setdefault(sid,p)
     return full
-def apply(snapshot,fresh,teams,config,read_from=None):
-    """New rows of the changed teams: seenAt is now (after the read), the next lower bound is when the read began."""
+# A team whose roster cannot be read waits for it this many reads at most (one a minute).
+HOLD=3
+def apply(snapshot,fresh,teams,config,read_from=None,held=None):
+    """New rows of the changed teams: seenAt is now (after the read), the next lower bound is when the read began.
+    The exact players of a new deal come from the roster change, so a team whose roster read fails or comes back empty
+    is held: its journal stays as it was and the next read reports it again. held counts each team's such reads in a
+    row (the caller keeps it); the HOLD-th applies the rows without exact players. Teams still held are left in held."""
+    held=held if held is not None else {}
     for t in teams:
         entry=dict(snapshot.setdefault('teams',{}).get(t) or {'sportsTeamId':config[t]})
         try:
             profile=sports.fetch(sports.TEAM_URL.format(id=config[t]))
             if profile:entry.update(sports.parse_team(profile))
-            roster=sports.fetch(sports.ROSTER_URL.format(id=config[t]))
-            if roster:entry['roster']=sports.parse_roster(roster)
         except Exception as e:  # noqa: BLE001
-            print(f'team {t}: {e}',flush=True);roster=None
+            print(f'team {t}: {e}',flush=True)
+        try:
+            roster=sports.fetch(sports.ROSTER_URL.format(id=config[t]));roster=sports.parse_roster(roster) if roster else None
+        except Exception as e:  # noqa: BLE001
+            print(f'team {t} roster: {e}',flush=True);roster=None
+        if roster:held.pop(t,None);entry['roster']=roster
+        else:
+            held[t]=held.get(t,0)+1
+            # Without the roster a namesake («Уайт», «Джонсон») would resolve to the wrong player.
+            if held[t]<HOLD:print(f'team {t}: roster unread, new rows held ({held[t]})',flush=True);continue
+            print(f'team {t}: roster unread {held[t]} times in a row, new rows applied without exact players',flush=True);held.pop(t)
         stamp=now();previous=snapshot['teams'].get(t) or {}
         # The exact players of a new deal come from the roster change, only when the roster was read just now.
         entry['journal']=sports.stamp_journal(previous.get('journal'),fresh[t],now=stamp,after=previous.get('journalReadAt'),
@@ -92,11 +105,25 @@ def telegram(text):
     except Exception as e:  # noqa: BLE001
         print(f'telegram: {e}',flush=True)
 
+def main_moved(env=None,run=subprocess.run):
+    """The new head of the run's branch (main) on GitHub when it is no longer the commit this run checked out, else None:
+    a six-hour run would keep its code and data/fbl-league.json till its end. Never in a local run (no GITHUB_SHA or
+    GITHUB_REPOSITORY); a failed check is no news. The branch is the run's own, the one the next run starts on."""
+    env=os.environ if env is None else env
+    sha,repo,branch=env.get('GITHUB_SHA'),env.get('GITHUB_REPOSITORY'),env.get('GITHUB_REF_NAME') or 'main'
+    if not sha or not repo:return None
+    try:out=run(['git','ls-remote',f'https://github.com/{repo}.git',f'refs/heads/{branch}'],capture_output=True,text=True,timeout=30,env={**env,'GIT_TERMINAL_PROMPT':'0'})
+    except Exception as e:  # noqa: BLE001
+        print(f'main check: {e}',flush=True);return None
+    head=(out.stdout or '').split()[:1]
+    return head[0] if not out.returncode and head and head[0]!=sha else None
+
 class Watch:
     # After this many failed collections in a row (about 30 minutes) the chat is told the data is stale, once.
     ALERT_AFTER=3
     def __init__(self,live,state):
-        self.live,self.state=Path(live),Path(state);self.failures=0
+        # held: each team whose new rows wait for its roster, with its failed roster reads in a row (see apply).
+        self.live,self.state=Path(live),Path(state);self.failures=0;self.held={}
     def collected(self,ok):
         """Track consecutive failures: one alert when data goes stale, one when it recovers."""
         if ok:
@@ -179,8 +206,12 @@ def main():
         try:w.publish(f'Watch stopped {now()}')
         finally:sys.exit(0)
     signal.signal(signal.SIGINT,leave);signal.signal(signal.SIGTERM,leave)
-    stop=time.time()+args.minutes*60;next_full=0
+    stop=time.time()+args.minutes*60;next_full=0;next_check=0
     while time.time()<stop:
+        # A merge to main hands over to a run on the new code and data (the feed reads the white list from the checkout).
+        if time.time()>=next_check:
+            next_check=time.time()+5*60;head=main_moved()
+            if head:print(f'{now()} {os.environ.get("GITHUB_REF_NAME") or "main"} moved to {head[:7]}: handing over to a run on it',flush=True);break
         left=stop-time.time()
         # A full collection never starts so late that it could outlive the run: a run killed by its job timeout would
         # skip the step that starts the next run and break the chain.
@@ -197,16 +228,15 @@ def main():
             snapshot=json.loads(w.live.read_text(encoding='utf-8'))
             read_from=now();fresh=journals(config);teams=changed_teams(snapshot,fresh)
             mark_read(snapshot,{t:r for t,r in fresh.items() if t not in teams},read_from)
+            # A held team's count is of reads in a row that showed its new rows.
+            w.held={t:n for t,n in w.held.items() if t in teams}
             if teams:
                 print(f'{now()} new journal rows: teams {teams}',flush=True)
-                w.live.write_text(json.dumps(apply(snapshot,fresh,teams,config,read_from),ensure_ascii=False,separators=(',',':')),encoding='utf-8')
-                w.notify();w.publish(f'FBL transfer journals {now()} (teams {",".join(teams)})')
-            elif w.retry:
-                w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
-                print(f'{now()} retrying the feed and the notifier',flush=True);w.notify()
-            else:
-                # Nothing new: only the time of this read is kept (locally; it is published with the next change).
-                w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+                snapshot=apply(snapshot,fresh,teams,config,read_from,w.held);teams=[t for t in teams if t not in w.held]
+            # With nothing new (or only held teams) just the time of this read is kept, locally: published with the next change.
+            w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+            if teams:w.notify();w.publish(f'FBL transfer journals {now()} (teams {",".join(teams)})')
+            elif w.retry:print(f'{now()} retrying the feed and the notifier',flush=True);w.notify()
         time.sleep(max(0,min(args.every,stop-time.time())))
     # The run hands over to the next one: a collection still running is stopped, everything posted is saved first.
     if w.full_proc and w.full_proc.poll() is None:w.full_proc.kill()

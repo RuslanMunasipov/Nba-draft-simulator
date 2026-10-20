@@ -35,3 +35,21 @@ test('Telegram usernames never reach the printed log',async()=>{
  try{await sender(null,null).send('вызван @some_lawyer');}finally{console.log=log;}
  assert.ok(!lines.join('\n').includes('some_lawyer'));
 });
+test('a protocol too long for the caption: the photo carries the short caption, the protocol follows as a reply to it',async()=>{
+ const {fitsCaption,stamped}=await import('../scripts/telegram-format.mjs');
+ assert.ok(fitsCaption('x'.repeat(CAPTION_LIMIT-60)));assert.ok(!fitsCaption('x'.repeat(CAPTION_LIMIT-30)));
+ assert.match(stamped('a'),/^a\n\n<i>🕒 Отправлено: .* МСК<\/i>$/);
+ const calls=[],real=globalThis.fetch,log=console.log,err=console.error;let reply=200;
+ globalThis.fetch=async(url,init)=>{const method=url.split('/').pop();calls.push({method,form:init.body instanceof FormData?init.body:null,json:typeof init.body==='string'?JSON.parse(init.body):null});
+  return method==='sendPhoto'?new Response('{"ok":true,"result":{"message_id":42}}',{status:200}):new Response('{}',{status:reply});};
+ console.log=()=>{};console.error=()=>{};
+ try{
+  const {send}=sender('t','c'),photo=new URL('../scripts/assets/zak-onn/violation.jpg',import.meta.url).pathname;
+  assert.equal(await send('x'.repeat(CAPTION_LIMIT),{photo,caption:'<b>Нарушено</b>'}),true);
+  assert.deepEqual(calls.map(c=>c.method),['sendPhoto','sendMessage']);assert.equal(calls[0].form.get('caption'),'<b>Нарушено</b>');
+  assert.deepEqual(calls[1].json.reply_parameters,{message_id:42});assert.match(calls[1].json.text,/^x+\n\n<i>🕒 Отправлено/);
+  // The reply failing must not post the photo again: the verdict is already in the chat.
+  calls.length=0;reply=403;assert.equal(await send('x'.repeat(CAPTION_LIMIT),{photo,caption:'<b>Нарушено</b>'}),true);
+  assert.deepEqual(calls.map(c=>c.method),['sendPhoto','sendMessage']);
+ }finally{globalThis.fetch=real;console.log=log;console.error=err;}
+});
