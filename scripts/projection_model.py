@@ -603,12 +603,13 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
         unconditional_games=model_games
         if healthy:model_games=chain.healthy_mean(pid,TARGET,model_games,82)
         espn=f if f.get('origin')=='ESPN_INDIVIDUAL' else None
-        # Without any archive of ESPN projections their relative accuracy cannot be fitted: an equal-weight combination,
-        # the standard choice for two unvalidated forecasts, until the 2026/27 season measures it.
+        # Without any archive of ESPN projections their relative accuracy cannot be fitted: an equal-weight combination
+        # per game, the standard choice for two unvalidated forecasts, until the 2026/27 season measures it.
         # ESPN's per-game value carries last season's raw team result: it is swapped for the same team term as the model's.
         espn_rate=espn['meanPerGame']-((espn.get('components') or {}).get('teamResult') or 0)+b if espn else None
         rate=(model_rate+espn_rate)/2 if espn else model_rate
-        games=(model_games+espn['games'])/2 if espn else model_games
+        # Games are ESPN's alone (the owner's call): the absence chain predicts too few games for players who start healthy.
+        games=espn['games'] if espn else model_games
         share=games/82
         if x:with_games(p,chain,pid,TARGET,games,healthy)
         # Replacement credit only for players with an NBA record (the held-out check covers them). A rookie's missing games
@@ -633,7 +634,7 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
         line,components=stat_line(p,espn,player,rate,b)
         tier='PERSONAL_PROVIDER' if espn else 'PERSONAL_HISTORY' if x else 'DRAFT_PRIOR'
         player['forecast']=dict(version=4,metric='FBL_FULL_FORMULA_ESTIMATE',origin=origin,coverageTier=tier,
-            basis=('Среднее прогноза ESPN и модели по карьере' if espn else 'Модель по карьере' if x else 'Модель новичков по номеру драфта'
+            basis=('ФО за матч — среднее ESPN и модели по карьере, число матчей — ESPN' if espn else 'Модель по карьере' if x else 'Модель новичков по номеру драфта'
                    if p.get('pick') else 'Модель незадрафтованных новичков')+'; веса модели подобраны на сезонах до 2024/25 и проверены на 2025/26',
             meanPerGame=rate,games=games,minutes=(p['minutes']+espn['minutes'])/2 if espn else p['minutes'],meanSeason=rate*games,
             gameFloor=min(rate,game_floor),gameCeiling=max(rate,game_ceiling),seasonFloor=min(rate*games,lo),seasonCeiling=max(rate*games,hi),
