@@ -58,7 +58,9 @@ class SportsCurrentTest(unittest.TestCase):
         self.assertEqual(collector.quality(pool, bare), (1.0, 0.0))
 
     def test_failed_or_shrunk_team_pages_keep_the_previous_entry(self):
-        old = {'0': {'sportsTeamId': '1', 'balance': 200, 'transfersLeft': 3, 'journal': [{'date': '2026-10-18'}, {'date': '2026-10-19'}]},
+        old = {'0': {'sportsTeamId': '1', 'balance': 200, 'transfersLeft': 3, 'journalReadAt': 't0',
+                     'journal': [{'date': '2026-10-18', 'buy': {'name': 'A', 'price': 1}, 'sell': None},
+                                 {'date': '2026-10-19', 'buy': {'name': 'B', 'price': 1}, 'sell': None}]},
                '1': {'sportsTeamId': '2', 'balance': 100, 'transfersLeft': 2, 'journal': []}}
         real_fetch, real_teams = collector.fetch, collector.TEAMS
         import json, tempfile
@@ -82,6 +84,33 @@ class SportsCurrentTest(unittest.TestCase):
         self.assertEqual(teams['0']['balance'], 150)
         self.assertTrue(teams['1']['stale'])
         self.assertEqual(len(errors), 2)
+        # A failed read bounds nothing: the last good read stays the lower bound of the next deal's time.
+        self.assertEqual(teams['0']['journalReadAt'], 't0')
+
+    def test_a_re_paired_journal_with_fewer_rows_but_the_same_events_is_no_failed_read(self):
+        # Stored: a sale and a purchase seen in two one-sided rows; the page now pairs them in one row.
+        old = {'0': {'sportsTeamId': '1', 'journalReadAt': 't0', 'journal': [
+            {'date': '2026-10-20', 'buy': None, 'sell': {'name': 'J', 'price': 1}, 'seenAt': 't1'},
+            {'date': '2026-10-20', 'buy': {'name': 'O', 'price': 1}, 'sell': None, 'seenAt': 't2'}]}}
+        real_fetch, real_teams = collector.fetch, collector.TEAMS
+        import json, tempfile
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+            json.dump({'teams': {'0': '1'}}, f)
+        def fake(url):
+            if 'journal' in url:
+                return '<td>Покупки</td><tbody><tr><td>20.10.26</td><td>куплен O за 1</td><td>продан J за 1</td></tr></tbody>'
+            if url.endswith('.json'):
+                return '{"players":[]}'
+            return '<table><tr><th>Баланс</th><td>150</td></tr><tr><th>Трансферы</th><td>3</td></tr></table>'
+        collector.fetch, collector.TEAMS = fake, Path(f.name)
+        try:
+            errors = []
+            teams = collector.collect_teams(old, errors)
+        finally:
+            collector.fetch, collector.TEAMS = real_fetch, real_teams
+        self.assertEqual(errors, [])
+        self.assertEqual(teams['0']['journal'], old['0']['journal'])
+        self.assertNotEqual(teams['0']['journalReadAt'], 't0')
 
     def test_games_only_current_season(self):
         games = collector.parse_games(GAMES)
@@ -136,17 +165,59 @@ class JournalStampTests(unittest.TestCase):
         bounded = collector.stamp_journal([a], [a, b], now='2026-10-20T10:00:00+00:00', after='2026-10-20T09:59:00+00:00')
         self.assertEqual(bounded[1]['seenAfter'], '2026-10-20T09:59:00+00:00')
         self.assertEqual(collector.stamp_journal(bounded, [a, b], now='2026-10-20T11:00:00+00:00', after='2026-10-20T10:59:00+00:00')[1]['seenAfter'], '2026-10-20T09:59:00+00:00')
-        # Sports.ru lists rows of one date in no stable order: a reordered journal keeps every row's stamps.
+        # Sports.ru lists rows of one date in no stable order: a reordered journal keeps every row's stamps (and a known
+        # date its stored rows, in their order).
         c = {'date': '2026-10-19', 'buy': {'name': 'C', 'price': 3}, 'sell': None}
         known = collector.stamp_journal([a, c], [a, c, b], now='2026-10-20T10:00:00+00:00')
         moved = collector.stamp_journal(known, [c, b, a], now='2026-10-20T12:00:00+00:00')
-        self.assertEqual([r.get('seenAt') for r in moved], [None, '2026-10-20T10:00:00+00:00', None])
+        self.assertEqual([(r['buy']['name'], r.get('seenAt')) for r in moved], [('A', None), ('C', None), ('B', '2026-10-20T10:00:00+00:00')])
 
     def test_re_paired_rows_of_one_day_keep_their_time(self):
         r = lambda s, b: {'date': '2026-10-20', 'sell': {'name': s, 'price': 1}, 'buy': {'name': b, 'price': 1}}
         old = [{**r('J', 'O'), 'seenAt': 't1', 'seenAfter': 't0'}, {**r('K', 'E'), 'seenAt': 't1', 'seenAfter': 't0'}]
         out = collector.stamp_journal(old, [r('J', 'E'), r('K', 'O'), r('W', 'K')], now='t2', after='t1b')
         self.assertEqual([(x['seenAt'], x['seenAfter']) for x in out], [('t1', 't0'), ('t1', 't0'), ('t2', 't1b')])
+
+    def test_a_day_re_paired_around_a_new_deal_keeps_the_earlier_pairing(self):
+        r = lambda s, b: {'date': '2026-10-20', 'sell': {'name': s, 'price': 1}, 'buy': {'name': b, 'price': 1}}
+        jo = {**r('J', 'O'), 'seenAt': 't1', 'seenAfter': 't0', 'sellSid': 'j', 'buySid': 'o'}
+        # A new deal K→E: Sports.ru now shows the day as J→E and K→O. Neither row is a deal of its own: the old one stands
+        # with its time and players, the new one is K→E, seen now.
+        out = collector.stamp_journal([jo], [r('J', 'E'), r('K', 'O')], now='t2', after='t1b',
+                                      old_roster=[{'sportsId': 'o', 'name': 'O'}, {'sportsId': 'k', 'name': 'K'}],
+                                      new_roster=[{'sportsId': 'o', 'name': 'O'}, {'sportsId': 'e', 'name': 'E'}])
+        self.assertEqual(out, [jo, {**r('K', 'E'), 'seenAt': 't2', 'seenAfter': 't1b', 'sellSid': 'k', 'buySid': 'e'}])
+        # Read again as the page pairs it, or paired back: nothing changes.
+        self.assertEqual(collector.stamp_journal(out, [r('J', 'E'), r('K', 'O')], now='t3'), out)
+        self.assertEqual(collector.stamp_journal(out, [r('K', 'E'), r('J', 'O')], now='t3'), out)
+        # A third deal L→M shown re-paired again (J→M, L→E, K→O): the two known deals stand, L→M is new.
+        third = collector.stamp_journal(out, [r('J', 'M'), r('L', 'E'), r('K', 'O')], now='t4', after='t3b')
+        self.assertEqual([(x['sell']['name'], x['buy']['name'], x['seenAt']) for x in third], [('J', 'O', 't1'), ('K', 'E', 't2'), ('L', 'M', 't4')])
+        # Rows whose sale and purchase are both new keep Sports.ru's pairing; other dates are untouched.
+        other = {'date': '2026-10-19', 'sell': {'name': 'X', 'price': 1}, 'buy': {'name': 'Y', 'price': 1}, 'seenAt': 't'}
+        both = collector.stamp_journal([other, jo], [{k: other[k] for k in ('date', 'sell', 'buy')}, r('J', 'O'), r('P', 'Q')], now='t2')
+        self.assertEqual([(x['sell']['name'], x['buy']['name'], x['seenAt']) for x in both], [('X', 'Y', 't'), ('J', 'O', 't1'), ('P', 'Q', 't2')])
+
+    def test_a_day_whose_old_event_vanished_or_whose_new_events_do_not_pair_follows_the_page(self):
+        r = lambda s, b: {'date': '2026-10-20', 'sell': s and {'name': s, 'price': 1}, 'buy': b and {'name': b, 'price': 1}}
+        jo = {**r('J', 'O'), 'seenAt': 't1', 'seenAfter': 't0'}
+        # O is gone from the page (a misread or a reversal): the day is stamped as the page pairs it, event by event.
+        out = collector.stamp_journal([jo], [r('J', 'E')], now='t2', after='t1b')
+        self.assertEqual(out, [{**r('J', 'E'), 'seenAt': 't2', 'seenAfter': 't1b'}])
+        # A new sale without a new purchase to pair it with.
+        out = collector.stamp_journal([jo], [r('K', 'O'), r('J', None)], now='t2', after='t1b')
+        self.assertEqual([(x['sell']['name'], x['buy'] and x['buy']['name'], x['seenAt']) for x in out], [('K', 'O', 't2'), ('J', None, 't1')])
+
+    def test_one_sided_rows_are_kept_and_stamped_but_never_paired(self):
+        r = lambda s, b: {'date': '2026-10-20', 'sell': s and {'name': s, 'price': 1}, 'buy': b and {'name': b, 'price': 1}}
+        draft, jo = r(None, 'D'), {**r('J', 'O'), 'seenAt': 't1'}
+        # A new draft purchase F and a new deal K→E, the day shown as D, J→E, K→O, F.
+        out = collector.stamp_journal([draft, jo], [r(None, 'D'), r('J', 'E'), r('K', 'O'), r(None, 'F')], now='t2')
+        self.assertEqual([(x['sell'] and x['sell']['name'], x['buy']['name'], x.get('seenAt')) for x in out],
+                         [(None, 'D', None), ('J', 'O', 't1'), (None, 'F', 't2'), ('K', 'E', 't2')])
+        # A sale seen alone, then paired by Sports.ru with a later purchase: the day follows the page, the deal is new.
+        out = collector.stamp_journal([{**r('J', None), 'seenAt': 't1'}], [r('J', 'O')], now='t2')
+        self.assertEqual(out, [{**r('J', 'O'), 'seenAt': 't2'}])
 
     def test_the_exact_players_of_a_new_deal_are_pinned_from_the_roster_change(self):
         r = lambda s, b, sp=1500, bp=1800: {'date': '2026-10-20', 'sell': {'name': s, 'price': sp}, 'buy': {'name': b, 'price': bp}}

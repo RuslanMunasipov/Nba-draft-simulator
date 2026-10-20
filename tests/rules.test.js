@@ -118,3 +118,44 @@ test('a player another team already holds: the later buyer is in breach, the fir
  const dup=checks[1].violations.find(v=>v.rule==='duplicate');assert.match(dup.text,/Shared уже в составе/);
  assert.equal(verdict(checks[1]).kind,'violation');assert.match(dup.text,/только в одной команде/);
 });
+test('the first holder of a shared player is told by the time of the purchases, not by their order in the list',()=>{
+ const byId=new Map([[1,{id:1,name:'Rookie',isRookie:true}],[2,{id:2,name:'Rookie2',isRookie:true}],[3,{id:3,name:'Shared'}],[8,{id:8,name:'P8'}],[9,{id:9,name:'P9'}]]);
+ const rosters=[[1,3],...Array(6).fill([]),[2,3]];
+ const buy=(team,out,seenAfter,seenAt,date='2026-10-20')=>({team,outId:out,inId:3,date,...(seenAt?{seenAt}:{}),...(seenAfter?{seenAfter}:{})});
+ const run=transfers=>{const c=checkRules({rosters,byId,transfers,white:[1,2],today:'2026-10-20'});return [c[0],c[7]];},dup=c=>c.violations.find(v=>v.rule==='duplicate');
+ // Team 7 bought him at 13:01, team 0 at 14:06 the same day; the list has team 0 first.
+ let [c0,c7]=run([buy(0,9,'2026-10-20T11:05:00Z','2026-10-20T11:06:00Z'),buy(7,8,'2026-10-20T10:00:00Z','2026-10-20T10:01:00Z')]);
+ assert.equal(dup(c0).certain,true);assert.match(dup(c0).text,/Shared уже в составе/);assert.equal(verdict(c0).kind,'violation');
+ assert.equal(dup(c7),undefined);assert.equal(verdict(c7).kind,'approved');
+ // Without seenAfter a purchase is taken as made in the two minutes before seenAt: 13:58–14:00 is before 14:00–14:05.
+ [c0,c7]=run([buy(0,9,'2026-10-20T11:00:00Z','2026-10-20T11:05:00Z'),buy(7,8,null,'2026-10-20T11:00:00Z')]);
+ assert.ok(dup(c0).certain&&!dup(c7));
+ // Both inside one window: neither can be told first, both go to the lawyer's check.
+ [c0,c7]=run([buy(0,9,'2026-10-20T11:00:00Z','2026-10-20T11:05:00Z'),buy(7,8,'2026-10-20T11:02:00Z','2026-10-20T11:03:00Z')]);
+ for(const c of [c0,c7]){const v=dup(c);assert.equal(v.certain,false);assert.match(v.text,/в одно время.*кто купил первым, сверьте на Sports\.ru/);
+  assert.equal(verdict(c).kind,'check');assert.deepEqual(verdict(c).doubts,[v]);}
+ // Overlapping windows on different dates: the earlier date is first.
+ [c0,c7]=run([buy(0,9,'2026-10-20T18:00:00Z','2026-10-21T06:00:00Z','2026-10-21'),buy(7,8,'2026-10-20T18:30:00Z','2026-10-20T18:31:00Z')]);
+ assert.ok(dup(c0).certain&&!dup(c7));
+ // A purchase the watcher did not time: the list order decides.
+ [c0,c7]=run([buy(7,8),buy(0,9,'2026-10-20T11:05:00Z','2026-10-20T11:06:00Z')]);
+ assert.ok(dup(c0).certain&&!dup(c7));
+ [c0,c7]=run([buy(0,9),buy(7,8)]);
+ assert.ok(dup(c7).certain&&!dup(c0));
+ // Team 7's holding since the draft survives its sale and buy-back on the day team 0 bought him in between.
+ [c0,c7]=run([{team:7,outId:3,inId:8,date:'2026-10-20',seenAfter:'2026-10-20T09:00:00Z',seenAt:'2026-10-20T09:01:00Z'},buy(0,9,'2026-10-20T10:00:00Z','2026-10-20T10:01:00Z'),
+  {team:7,outId:8,inId:3,date:'2026-10-20',seenAfter:'2026-10-20T11:00:00Z',seenAt:'2026-10-20T11:01:00Z'}]);
+ assert.ok(dup(c0).certain&&!dup(c7));
+});
+test('every violation carries a stable identity: the rule and what it is about',()=>{
+ const p=(id,club,extra={})=>({id,name:'P'+id,sportsClub:club,...extra});
+ const byId=new Map([p(1,'A'),p(2,'A'),p(3,'A'),p(4,'B'),p(5,'C')].map(x=>[x.id,x]));
+ const night=x=>({team:0,outId:9,inId:5,date:'2026-10-27',seenAfter:'2026-10-27T20:13:00Z',seenAt:'2026-10-27T20:14:00Z',...x});
+ // Team 0 bought 4, whom team 1 holds since the draft, and made four night transfers: a week over the limit.
+ const transfers=[{team:0,outId:7,inId:4,date:'2026-10-27'},night(),...[1,2,3].map(n=>night({outId:10+n,inId:20+n}))];
+ const [c]=checkRules({rosters:[[1,2,3,4,5],[4],...Array(6).fill([])],byId,transfers,white:['none:0'],today:'2026-10-27'});
+ assert.deepEqual(c.violations.map(v=>v.vid),['rookie','white','club:A','time:9>5:2026-10-27','time:11>21:2026-10-27','time:12>22:2026-10-27','time:13>23:2026-10-27','dup:4','transfers:2026-10-26']);
+ for(const v of c.violations.filter(v=>v.rule==='time'))assert.equal(v.vid,`time:${v.transfer}`);
+ const sold=checkRules({rosters:[[5],...Array(7).fill([])],byId,transfers:[{team:0,outId:3,inId:5,date:'2026-10-27'}],white:[3],today:'2026-10-27'})[0];
+ assert.deepEqual(sold.violations.map(v=>[v.rule,v.vid]),[['rookie','rookie'],['white','white']]);
+});
