@@ -16,7 +16,9 @@ const team=Number(process.env.FBL_TEAM||0),sort='month';
 const json=async url=>{const r=await fetch(url);if(!r.ok)throw Error(url+': '+r.status);return r.json();};
 const live=JSON.parse(fs.readFileSync(livePath,'utf8'));
 const db=process.env.DB_PATH?JSON.parse(fs.readFileSync(process.env.DB_PATH,'utf8')):await json(SITE+'data/default-draft.json');
-const league=JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import.meta.url),'utf8'));
+// The league log as it is now on main (a white-rule decision made an hour ago counts at once); the copy checked out when
+// the watcher started is the fallback.
+const league=await json(RAW+'main/data/fbl-league.json').catch(()=>JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import.meta.url),'utf8')));
 // A watcher that runs for hours keeps the state locally: the published copy can lag behind the raw-file cache.
 const previous=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
 const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p])),today=moscowToday();
@@ -137,10 +139,12 @@ for(const c of checks.filter(c=>c.whiteState!=='ok'))for(const p of c.undecided)
  await report(message(`❔ <b>Белое правило: ${esc(c.label)}</b>`,`В составе ${esc(p.name)}, по нему нет решения лиги, а засчитываемого игрока у команды нет.`,'Внеси решение заявкой «FBL: белое правило» — и проверка закончится сама.'),
   ()=>{state.rules=[...new Set([...(state.rules||[]),key])];});
 }
-for(const c of checks.filter(c=>c.team!==team)){
+for(const c of checks){
  const freshRules=c.violations.filter(v=>!(previous.rules||[]).includes(v.key));if(!freshRules.length)continue;
- await report(message(`⚖️ <b>Нарушение правил: ${esc(c.label)}</b>`,...freshRules.map(v=>'• '+esc(v.text)),'','Обращение к юристу лиги — перешли в лигу:',`<pre>${esc(appeal(c,today,team))}</pre>`),
-  ()=>{state.rules=[...new Set([...(state.rules||[]),...freshRules.map(v=>v.key)])];});
+ // My own roster: a warning to fix it before the league sees it; another team: the appeal to forward.
+ const text=c.team===team?message(`🚨 <b>Твой состав нарушает правила</b>`,...freshRules.map(v=>'• '+esc(v.text)),'','Исправь трансфером до того, как это заметит лига.')
+  :message(`⚖️ <b>Нарушение правил: ${esc(c.label)}</b>`,...freshRules.map(v=>'• '+esc(v.text)),'','Обращение к юристу лиги — перешли в лигу:',`<pre>${esc(appeal(c,today,team))}</pre>`);
+ await report(text,()=>{state.rules=[...new Set([...(state.rules||[]),...freshRules.map(v=>v.key)])];});
 }
 // Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
