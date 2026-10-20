@@ -33,6 +33,10 @@ if(req.action==='transfer'){
 }else if(req.action==='white'){
  if(!Array.isArray(req.players))fail('Нужен список players.');
  // A player id, or "none:<team>" when the league found that a team has no such player.
- league.white=[...new Set(req.players.map(v=>/^none:[0-7]$/.test(v)?v:pid(v)))];note=`✅ Белое правило: в списке лиги ${league.white.length} игрок(ов).`;
+ league.white=[...new Set(req.players.map(v=>/^none:[0-7]$/.test(v)?v:pid(v)))];
+ // Optional "checked": every player the league decided on (counting or not), so a fully decided roster with nobody
+ // counting is a breach and a player nobody decided on is reported as undecided.
+ if(req.checked!==undefined){if(!Array.isArray(req.checked))fail('checked должен быть списком id.');league.whiteChecked=[...new Set([...req.checked.map(pid),...league.white.filter(v=>!String(v).startsWith('none:'))])];}
+ note=`✅ Белое правило: засчитываются ${league.white.length}${league.whiteChecked?`, решение принято по ${league.whiteChecked.length} игрокам`:''}.`;
 }else fail('Неизвестное действие.');
 fs.writeFileSync(FILE,JSON.stringify(league,null,2)+'\n');fs.writeFileSync('league-log-result.txt',note);console.log(note);

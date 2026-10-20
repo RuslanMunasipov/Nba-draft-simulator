@@ -388,7 +388,7 @@ function gamesView(ctx){
 function whiteList(){const shared=(league.white||[]).map(String),pending=readJson('fbl-white-pending',null);return pending?pending.map(String):shared;}
 function rulesView(ctx){
  const white=whiteList(),pending=readJson('fbl-white-pending',null),out=[];
- const checks=checkRules({rosters:ctx.rosters,byId,transfers:ctx.transfers,white,today:ctx.today,clubOf});
+ const checks=checkRules({rosters:ctx.rosters,byId,transfers:ctx.transfers,white,checked:(league.whiteChecked||[]).map(String),today:ctx.today,clubOf});
  out.push(el('h3','Правила лиги'),el('p',`Минимум один новичок (rookie) · минимум один игрок по «белому правилу» (засчитывается по отцу; кто засчитывается — решает лига) · не больше двух игроков одного клуба NBA · не больше ${checks[0].transfers.limit} трансферов за неделю лиги (пн–вс; первая неделя — от драфта до ${ddmm(checks[0].transfers.week.end)}, предсезонные трансферы входят в неё). Нарушения разбирает ${LAWYER.name}, ${LAWYER.role}.`,'muted'));
  const unmarked=checks.filter(c=>c.whiteState==='unmarked').length;
  if(unmarked)out.push(el('p',`⚠ Белое правило: выбери по одному игроку у ${unmarked} команд — кто у них закрывает правило. Дальше приложение само следит за продажами этих игроков.`,'warning'));
@@ -403,7 +403,8 @@ function rulesView(ctx){
   const cell=el('td'),select=el('select');select.setAttribute('aria-label','Белое правило: '+c.label);
   for(const [value,label] of [['','— не выбран —'],...c.roster.map(p=>[String(p.id),p.name]),[`none:${c.team}`,'❌ нет такого игрока']]){const o=el('option',label);o.value=value;select.append(o);}
   select.value=c.whites[0]?String(c.whites[0].id):marks.has(`none:${c.team}`)?`none:${c.team}`:'';select.onchange=()=>pick(c,select.value);
-  cell.append(c.whiteState==='ok'?'✅ ':c.whiteState==='unmarked'?'· ':'❌ ',select);tr.append(cell);
+  cell.append(c.whiteState==='ok'?'✅ ':c.whiteState==='unmarked'?'· ':'❌ ',select);
+  if(c.undecided.length)cell.append(el('small',` нет решения лиги: ${c.undecided.map(p=>p.name).join(', ')}`,'muted'));tr.append(cell);
   for(const v of [bad('club')?'❌ больше двух':'✅',`${t.left}/${t.limit} осталось · обновление ${ddmm(t.resetOn)}${bad('transfers')?' · ❌ превышение':''}`])tr.append(el('td',v));
   table.append(tr);
  }
