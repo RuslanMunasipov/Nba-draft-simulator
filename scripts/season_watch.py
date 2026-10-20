@@ -26,7 +26,9 @@ def journals(config):
 def changed_teams(snapshot,fresh):
     """Teams whose journal differs from the published snapshot. A shorter journal is a failed parse, not a reversal."""
     old=snapshot.get('teams',{})
-    return [t for t,rows in fresh.items() if rows!=old.get(t,{}).get('journal') and len(rows)>=len(old.get(t,{}).get('journal') or [])]
+    # The stored rows carry seenAt (when the watcher first saw them); Sports.ru rows do not.
+    bare=lambda rows:[{k:v for k,v in r.items() if k!='seenAt'} for r in rows or []]
+    return [t for t,rows in fresh.items() if bare(rows)!=bare(old.get(t,{}).get('journal')) and len(rows)>=len(old.get(t,{}).get('journal') or [])]
 def apply(snapshot,fresh,teams,config):
     for t in teams:
         entry=dict(snapshot.setdefault('teams',{}).get(t) or {'sportsTeamId':config[t]})
@@ -37,7 +39,7 @@ def apply(snapshot,fresh,teams,config):
             if roster:entry['roster']=sports.parse_roster(roster)
         except Exception as e:  # noqa: BLE001
             print(f'team {t}: {e}',flush=True)
-        entry['journal']=fresh[t];snapshot['teams'][t]=entry
+        entry['journal']=sports.stamp_journal((snapshot['teams'].get(t) or {}).get('journal'),fresh[t]);snapshot['teams'][t]=entry
     snapshot['teamsCheckedAt']=now()
     return snapshot
 
@@ -45,6 +47,8 @@ def telegram(text):
     """A plain service message to the FBL chat; silently skipped without the secrets."""
     token,chat=os.environ.get('TELEGRAM_BOT_TOKEN'),os.environ.get('TELEGRAM_CHAT_ID')
     if not token or not chat:return
+    from datetime import datetime,timedelta,timezone
+    text+=f"\n\n🕒 Отправлено: {datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y, %H:%M')} МСК"
     import urllib.request
     try:
         req=urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage',data=json.dumps({'chat_id':chat,'text':text}).encode(),headers={'content-type':'application/json'})

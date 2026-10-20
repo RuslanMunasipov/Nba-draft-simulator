@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {checkRules,LAWYER} from '../src/rules.js';
 import {teamLabel} from '../src/teams.js';
-import {esc,message,sender} from './telegram-format.mjs';
+import {esc,message,sender,moscow} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -41,6 +41,8 @@ function checkLines(c){
 }
 // LEAGUE_FEED_PREVIEW=N: post the last N protocols as a test (wherever the chat points), remember nothing.
 const preview=Number(process.env.LEAGUE_FEED_PREVIEW)||0,firstPreview=groups.size-preview;
+// When the transfer happened: the watcher's first sight of the journal row (within a minute), in Moscow time.
+const when=moves=>{const at=moves.map(m=>m.seenAt).filter(Boolean).sort().pop();return at?`🕒 Трансфер зафиксирован: ${moscow(at)}`:'🕒 Время трансфера: не зафиксировано (до начала наблюдения)';};
 let number=0;
 for(const idx of groups.values()){
  number++;
@@ -52,7 +54,7 @@ for(const idx of groups.values()){
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
  const conclusion=c.violations.length?`🔏 <b>Заключение:</b> выявлено нарушение — ${c.violations.map(v=>esc(v.text)).join('; ')}. Материалы направлены юристу лиги ${esc(LAWYER.name)} для рассмотрения.`
   :'🔏 <b>Заключение:</b> состав соответствует регламенту.';
- const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,'',
+ const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c),'',conclusion,`<i>Юрист лиги: ${esc(LAWYER.name)}</i>`);

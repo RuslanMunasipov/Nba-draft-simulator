@@ -278,6 +278,23 @@ def parse_journal(page):
     return rows[::-1]
 
 
+def stamp_journal(old, new, now=None):
+    """Sports.ru journals give only the date of a transfer. A row first seen by this collection gets seenAt, the UTC
+    time it appeared (the watcher reads journals every minute, so within a minute of the transfer); rows already known
+    keep theirs. Without a previous journal nothing is stamped: the time of those rows is unknown."""
+    if not old:
+        return new
+    now = now or datetime.now(timezone.utc).isoformat(timespec='seconds')
+    same = lambda a, b: (a.get('date'), a.get('buy'), a.get('sell')) == (b.get('date'), b.get('buy'), b.get('sell'))
+    out = []
+    for i, row in enumerate(new):
+        if i < len(old) and same(old[i], row):
+            out.append({**row, **({'seenAt': old[i]['seenAt']} if old[i].get('seenAt') else {})})
+        else:
+            out.append({**row, 'seenAt': now})
+    return out
+
+
 def parse_roster(raw):
     """Sports.ru team roster JSON: the exact player ids, so names never have to be guessed."""
     out = []
@@ -314,6 +331,7 @@ def collect_teams(previous=None, errors=None):
         if old and len(entry['journal']) < len(old.get('journal') or []):
             errors.append({'team': team, 'error': f"journal shrank from {len(old['journal'])} to {len(entry['journal'])} rows; kept the previous one"})
             entry['journal'] = old['journal']
+        entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'])
         if 'balance' not in entry or 'transfersLeft' not in entry:
             errors.append({'team': team, 'error': 'team profile without balance or transfers; layout changed?'})
             for key in ('balance', 'transfersLeft', 'value'):

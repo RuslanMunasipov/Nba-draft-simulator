@@ -120,3 +120,15 @@ class InjuryHistoryTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class JournalStampTests(unittest.TestCase):
+    def test_new_rows_get_the_time_they_were_first_seen_and_known_rows_keep_theirs(self):
+        a = {'date': '2026-10-19', 'buy': {'name': 'A', 'price': 1}, 'sell': None}
+        b = {'date': '2026-10-20', 'buy': {'name': 'B', 'price': 2}, 'sell': {'name': 'C', 'price': 3}}
+        self.assertEqual(collector.stamp_journal(None, [a]), [a])  # first sight: time unknown
+        first = collector.stamp_journal([a], [a, b], now='2026-10-20T10:00:00+00:00')
+        self.assertNotIn('seenAt', first[0])
+        self.assertEqual(first[1]['seenAt'], '2026-10-20T10:00:00+00:00')
+        again = collector.stamp_journal(first, [a, b], now='2026-10-20T11:00:00+00:00')
+        self.assertEqual(again[1]['seenAt'], '2026-10-20T10:00:00+00:00')
