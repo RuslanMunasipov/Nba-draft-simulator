@@ -31,6 +31,7 @@ jobs:
           git fetch -q origin data/season-live:refs/remotes/origin/data/season-live || exit 0
           git show origin/data/season-live:sports-current.json > out/sports-current.json || rm -f out/sports-current.json
           git show origin/data/season-live:notify-state.json > out/notify-state.json || rm -f out/notify-state.json
+          git show origin/data/season-live:injury-history.json > out/injury-history.json || rm -f out/injury-history.json
       - name: Watch transfers and collect Sports.ru data
         env:
           GH_TOKEN: ${{ github.token }}

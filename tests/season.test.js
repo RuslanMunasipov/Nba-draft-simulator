@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {gameWeeks,weekOf,horizons,withMarket,seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition,playRate,clockMinutes,CALIBRATION} from '../src/season.js';
+import {gameWeeks,weekOf,horizons,withMarket,seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition,playRate,newsInjuries,clockMinutes,CALIBRATION} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -270,4 +270,10 @@ test('a healthy player is expected in the next games more often than his season 
  assert.equal(expectedPoints(p,hurt,'2026-10-21','2026-10-27').games,0);
  // After the return he starts healthy again: the first week back is worth the same as a healthy week now.
  assert.ok(Math.abs(expectedPoints(p,hurt,'2026-10-29','2026-11-04').games-expectedPoints(p,base,'2026-10-21','2026-10-27').games)<1e-9);
+});
+
+test('injuries named in ESPN news are summarised by body part with first and last mention',()=>{
+ const feed=[{headline:'Zubac (ankle) is questionable',published:'2026-03-16T10:00Z'},{headline:'x',story:'<p>Zubac (ankle) will play</p>',published:'2026-03-12T10:00Z'},
+  {headline:'Zubac (ribs) collected 24 points',published:'2026-07-07T10:00Z'},{headline:'Zubac (personal) is out',published:'2026-01-01T10:00Z'}];
+ assert.deepEqual(newsInjuries(feed),[{part:'голеностоп',mentions:2,first:'2026-03-12',last:'2026-03-16'},{part:'рёбра',mentions:1,first:'2026-07-07',last:'2026-07-07'}]);
 });

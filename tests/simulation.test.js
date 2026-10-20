@@ -48,3 +48,9 @@ test('bot does not occupy the last PG slot when every available rookie is PG',()
  assert.notEqual(next.picks.at(-1).playerId,21);
  assert.equal(next.picks.length,9);
 });
+
+test('a scenario season adds the replacement points of the player\'s long absences',async()=>{
+ const {scenarioSeasonScore}=await import('../src/simulation.js');
+ const f={seasonFloor:1000,meanSeason:2000,seasonCeiling:2800};
+ for(const z of [-1.3,0,1.3])assert.equal(scenarioSeasonScore({forecast:{...f,transfer:{value:150}}},z),scenarioSeasonScore({forecast:f},z)+150);
+});

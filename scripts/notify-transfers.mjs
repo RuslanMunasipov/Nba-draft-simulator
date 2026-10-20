@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
+import {fblTransfers,checkRules,appeal} from '../src/rules.js';
 import {esc,gains,moveLines,details,message,plainText} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
@@ -22,7 +23,9 @@ const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p]))
 const {transfers,warnings}=allTransfers(players,live,league);
 const ctx={players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers)};
 const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
-const leftOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));};
+// Both limits bind: Sports.ru's own weekly count and the FBL week (pre-season moves count against the first one).
+const leftOf=t=>{const x=live.teams?.[t],sports=Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));
+ return Math.min(sports,fblTransfers(transfers,t,today).left);};
 const money=bankOf(team),left=leftOf(team);
 for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
@@ -124,6 +127,14 @@ for(const x of rival){
   details([...mineNow.why,...briefs,
    ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
    `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>state.transfers.push(transferKey(x)));
+}
+// League rules (rookie, «белое правило», two per NBA club, the FBL transfer limit): each new breach by another team is
+// reported once, with the appeal to the league's lawyer ready to forward to the league.
+const checks=checkRules({rosters:ctx.rosters,byId,transfers,white:league.white||[],today,clubOf:p=>live.players?.[p.sportsId]?.club||p.sportsClub});
+for(const c of checks.filter(c=>c.team!==team)){
+ const freshRules=c.violations.filter(v=>!(previous.rules||[]).includes(v.key));if(!freshRules.length)continue;
+ await report(message(`⚖️ <b>Нарушение правил: ${esc(c.label)}</b>`,...freshRules.map(v=>'• '+esc(v.text)),'','Обращение к юристу лиги — перешли в лигу:',`<pre>${esc(appeal(c,today,team))}</pre>`),
+  ()=>{state.rules=[...new Set([...(state.rules||[]),...freshRules.map(v=>v.key)])];});
 }
 // Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;

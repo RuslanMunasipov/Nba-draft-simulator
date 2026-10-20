@@ -340,3 +340,4 @@ body:not([data-tab=season]) #season{display:none}
 .sp-side p{font-size:12px;margin:4px 0;color:var(--muted)}.sp-side details>summary{font-size:12px;min-height:34px;padding:6px 0}
 .sp-news-item{border-top:1px solid var(--line);padding:6px 0}.sp-news-item strong{display:block;font-size:12px}.sp-news-item p{font-size:12px}
 .sp-package.doubtful{opacity:.8;border-style:dashed}
+.sp-appeal{border:1px solid var(--line,#ccc);border-radius:8px;padding:8px 12px;margin:12px 0}.sp-appeal textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.85em;margin:6px 0}

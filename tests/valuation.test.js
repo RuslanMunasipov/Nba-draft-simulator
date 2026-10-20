@@ -32,3 +32,9 @@ test('source-projected games update the availability index without erasing chron
  assert.equal(availabilityEvidence(p).weight,54/82);assert.equal(severeRisk(p),true);
  assert.equal(availabilityEvidence({...p,espnContext:{projectedGames:0}}).espnGames,null);
 });
+
+test('draft value is the roster slot: own season plus the replacement in long absences',()=>{
+ const f={metric:'FBL_FULL_FORMULA_ESTIMATE',meanPerGame:40,games:55,meanSeason:2200,slotSeason:2400,transfer:{value:200}};
+ assert.equal(draftValue({forecast:f}),2400/82);
+ assert.equal(draftValue({forecast:{...f,slotSeason:undefined}}),2200/82);
+});

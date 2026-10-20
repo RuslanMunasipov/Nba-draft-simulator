@@ -101,5 +101,22 @@ class SportsCurrentTest(unittest.TestCase):
             {'date': '2026-10-25', 'buy': {'name': 'Зайон', 'price': 2000}, 'sell': {'name': 'Рэндл', 'price': 1800}}])
 
 
+
+class InjuryHistoryTests(unittest.TestCase):
+    def feed(self, kind='Ankle', detail='Sprain', ret='2026-11-01'):
+        return {'injuries': [{'injuries': [{'status': 'Out', 'shortComment': 'x', 'date': '2026-10-19T10:00Z',
+            'athlete': {'displayName': 'A B', 'links': [{'href': 'https://www.espn.com/nba/player/_/id/4017837/a-b'}]},
+            'details': {'type': kind, 'detail': detail, 'side': 'Left', 'location': 'Leg', 'returnDate': ret}}]}]}
+
+    def test_the_same_injury_extends_one_episode_and_a_new_one_starts_another(self):
+        h = collector.update_injury_history(None, self.feed(), '2026-10-19T10:00:00+00:00')
+        h = collector.update_injury_history(h, self.feed(ret='2026-11-05'), '2026-10-22T10:00:00+00:00')
+        e = h['players']['4017837']['episodes']
+        self.assertEqual(len(e), 1)
+        self.assertEqual((e[0]['firstSeen'], e[0]['lastSeen'], e[0]['returnDate']), ('2026-10-19', '2026-10-22', '2026-11-05'))
+        h = collector.update_injury_history(h, self.feed('Knee', 'Surgery'), '2026-10-23T10:00:00+00:00')
+        h = collector.update_injury_history(h, self.feed(), '2026-12-20T10:00:00+00:00')  # a month later: a new ankle episode
+        self.assertEqual([x['type'] for x in h['players']['4017837']['episodes']], ['Ankle', 'Knee', 'Ankle'])
+
 if __name__ == '__main__':
     unittest.main()
