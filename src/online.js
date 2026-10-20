@@ -21,10 +21,10 @@ export function onlinePanel(player){
    for(const season of (evidence.college?.seasons||[]).slice(-2)){const s=season.perGame;content.append(text('p',`NCAA ${season.season}: ${season.games} игр · ${s.minutes.toFixed(1)} мин · PTS ${s.pts.toFixed(1)} · REB ${s.reb.toFixed(1)} · AST ${s.ast.toFixed(1)} · TOV ${s.tov.toFixed(1)}. Уровень NCAA, не NBA-прогноз.`));}
    const groups=new Map();
    for(const game of evidence.recentGames||[]){const rows=groups.get(game.competition)||[];rows.push(game);groups.set(game.competition,rows);}
-   for(const [competition,rows] of groups){const mean=k=>rows.reduce((sum,r)=>sum+r.stats[k],0)/rows.length;content.append(text('p',`${competition==='nba'?'Свежие NBA-матчи':'Summer League'}: ${rows.length} игр · ${mean('minutes').toFixed(1)} мин · PTS ${mean('pts').toFixed(1)} · REB ${mean('reb').toFixed(1)} · AST ${mean('ast').toFixed(1)} · TOV ${mean('tov').toFixed(1)}. Соревнования хранятся раздельно.`));}
-   if(!seasons.length&&!groups.size)content.append(text('p','Основа оценки этого игрока указана в прогнозе ниже.'));
+   for(const [competition,rows] of groups){const mean=k=>rows.reduce((sum,r)=>sum+r.stats[k],0)/rows.length;content.append(text('p',`${competition==='nba'?'Свежие NBA-матчи':'Летняя лига'}: ${rows.length} игр · ${mean('minutes').toFixed(1)} мин · PTS ${mean('pts').toFixed(1)} · REB ${mean('reb').toFixed(1)} · AST ${mean('ast').toFixed(1)} · TOV ${mean('tov').toFixed(1)}. Соревнования хранятся раздельно.`));}
+   if(!seasons.length&&!groups.size)content.append(text('p','Основа оценки этого игрока указана в прогнозе выше.'));
    if(player.espnId)addLive(content,player);
-  }catch{content.textContent='Сейчас история не загрузилась. Прогноз и выбор игрока доступны.';loaded=false;}
+  }catch{content.textContent='Не удалось загрузить карьеру игрока. Прогноз и выбор работают.';loaded=false;}
  };
  return box;
 }
@@ -33,7 +33,7 @@ function addLive(content,player){
  const year=document.createElement('input');year.type='number';year.min='1947';year.max=String(new Date().getFullYear()+1);year.value=year.max;year.setAttribute('aria-label','Онлайн-сезон '+player.name);label.append(year);
  const type=document.createElement('select');type.setAttribute('aria-label','Турнир '+player.name);
  for(const [value,title] of [['2','NBA · регулярный сезон'],['1','NBA · предсезонка'],['3','NBA · плей-офф']]){const option=text('option',title);option.value=value;type.append(option);}
- const button=text('button','Обновить онлайн'),status=text('p','Прямой запрос ESPN по выбранному сезону.'),output=document.createElement('div');status.setAttribute('role','status');
+ const button=text('button','Загрузить матчи ESPN'),status=text('p','Прямой запрос ESPN по выбранному сезону.'),output=document.createElement('div');status.setAttribute('role','status');
  button.onclick=async()=>{
   const season=Number(year.value);if(!Number.isInteger(season)||season<1947||season>new Date().getFullYear()+1){status.textContent='Укажи корректный год окончания сезона.';return;}
   button.disabled=true;status.textContent='Загружаю матчи ESPN…';

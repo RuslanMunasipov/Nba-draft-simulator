@@ -8,7 +8,7 @@ export function reportElement(p){
  const box=document.createElement('div');box.className='scouting-report';
  function paragraph(title,value){const group=document.createElement('div'),h=document.createElement('h4'),body=document.createElement('p');h.textContent=title;body.textContent=value;group.append(h,body);box.append(group);}
  paragraph('Главное',r[1]);paragraph('Что даёт в фэнтези',r[2]);paragraph('Роль и минуты · оценка автора',r[3]);paragraph('На что смотреть',r[4]);
- paragraph('Вывод для FBL · наш анализ','Сопоставляй пользу с потерями и промахами: высокий набор очков сам по себе не гарантирует высокий ФО. Место в списке ниже определяется отдельным прогнозом ESPN, а не рейтингом автора репорта.');
+ paragraph('Вывод для FBL','Высокий набор очков сам по себе не гарантирует много ФО — смотри на потери и промахи. Место в рейтинге задаёт наш прогноз, а не мнение автора обзора.');
  const source=document.createElement('a');source.href=r[7];source.target='_blank';source.rel='noopener noreferrer';source.textContent=r[5]+' · '+r[6];box.append(source);
  return box;
 }

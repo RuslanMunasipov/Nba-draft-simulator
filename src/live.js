@@ -18,7 +18,9 @@ async function getJson(url){const r=await fetch(url,{cache:'no-cache'});if(!r.ok
 // Yesterday and today (US Eastern) with running points for games that have started.
 export async function fetchLiveGames(wantedTeams){
  const days=[usDate(Date.now(),-1),usDate()],events=[];
- for(const d of days){try{events.push(...((await getJson(API+'scoreboard?dates='+d)).events||[]));}catch{}}
+ let failed=0;for(const d of days){try{events.push(...((await getJson(API+'scoreboard?dates='+d)).events||[]));}catch{failed++;}}
+ // Every day failed: ESPN is unreachable, which the screen must not present as "no games today".
+ if(failed===days.length)throw Error('ESPN scoreboard unavailable');
  const games=[];
  await Promise.all(events.map(async e=>{
   const info=eventInfo(e);games.push(info);
