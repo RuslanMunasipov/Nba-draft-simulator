@@ -58,5 +58,20 @@
   "weeks": {
     "authority": "Sports.ru calendar week numbers",
     "note": "Monday-Sunday by US game day per the rules page; Moscow-dated calendar shows Tuesday-Monday. Pre-season transfers are not counted."
+  },
+  "fblTransfers": {
+    "perWeek": 3,
+    "weekStartsOn": "Monday (Moscow date)",
+    "firstWeekFrom": "2026-10-18",
+    "firstWeekTo": "2026-10-25",
+    "source": "League owner, 2026-10-20: the FBL limit is 3 transfers a week; transfers since the draft count against the first week, which ends on Sunday 25.10; the next weeks run Monday to Sunday. Sports.ru counts its own weeks separately."
+  },
+  "whiteRule": {
+    "min": 1,
+    "definition": "At least one player per roster who counts for the «белое правило»; a player counts by his father. The league decides who counts: the list is data/fbl-league.json \"white\" (league log action \"white\"); the app does not classify players itself."
+  },
+  "lawyer": {
+    "name": "Зак Онн",
+    "role": "юрист лиги FBL: разбирает нарушения регламента"
   }
 }

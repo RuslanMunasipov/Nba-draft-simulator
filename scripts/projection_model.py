@@ -611,10 +611,9 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
         games=(model_games+espn['games'])/2 if espn else model_games
         share=games/82
         if x:with_games(p,chain,pid,TARGET,games,healthy)
-        replaced=None
-        if chain:
-            # Rookies have no record: the chain runs on their age group's hazards, healthy unless the report says otherwise.
-            replaced=p['availability']['replacedGames'] if x else chain.distribution(pid,TARGET,mean=games,L=82,healthy=not player.get('injuries'))[1]['replacedGames']
+        # Replacement credit only for players with an NBA record (the held-out check covers them). A rookie's missing games
+        # are mostly a rotation question, and the rookie rule keeps one on every roster, so he is not simply swapped out.
+        replaced=p['availability']['replacedGames'] if x and chain else None
         lo,hi,short=ranges.interval(dict(p,rate=rate,share=share),x) if x else rookies.interval(rate,share)
         health=None
         if x and p.get('gamesPmf') is not None:

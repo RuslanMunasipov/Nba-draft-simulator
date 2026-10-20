@@ -15,12 +15,15 @@ try{
  await page.getByRole('button',{name:'Трансферы'}).first().click();await page.waitForTimeout(2000);
  const why=page.locator('.sp-why').first();
  if(await why.count()){await why.locator('summary').click();await page.waitForTimeout(300);assert.match(await why.innerText(),/Уверенность/);}
+ // The rules screen checks all eight teams.
+ await page.getByRole('button',{name:'Правила'}).first().click();await page.waitForTimeout(1500);
+ const ruleRows=await page.locator('.sp-table tr').count();assert.ok(ruleRows>=9,'rules table has eight teams: '+ruleRows);
  await page.getByRole('button',{name:'Драфт'}).first().click();await page.waitForTimeout(2000);
  await page.locator('input[type=checkbox]').first().check();await page.waitForTimeout(1500);
  const found=Number((await page.evaluate(()=>document.body.innerText)).match(/Найдено (\d+)/)?.[1]);
  assert.ok(found>=8,'rookie filter shows rookies: '+found);
  const toggles=page.locator('.player-toggle');for(let i=0;i<Math.min(5,await toggles.count());i++){await toggles.nth(i).click();await page.waitForTimeout(150);}
  assert.deepEqual(errors,[],'no script errors');
- console.log(`Browser smoke passed: ${found} rookies listed, transfer explanation and player cards render without errors`);
+ console.log(`Browser smoke passed: ${found} rookies listed, rules for 8 teams, transfer explanation and player cards render without errors`);
  await browser.close();
 }finally{server?.kill();}

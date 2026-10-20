@@ -1,6 +1,7 @@
 // Applies one league-log request (an issue opened by the repository owner) to data/fbl-league.json.
 // The issue body carries a fenced JSON payload: {"action":"transfer",team,outId,inId,date,outPrice,inPrice},
-// {"action":"undo"} (drops the latest transfer) or {"action":"bank",team,value}.
+// {"action":"undo"} (drops the latest transfer), {"action":"bank",team,value} or {"action":"white",players:[ids]} (the
+// full list of players the league counts for the «белое правило»; it replaces the previous list).
 import fs from 'node:fs';
 import {seasonRosters,TEAM_COUNT} from '../src/season.js';
 const FILE=new URL('../data/fbl-league.json',import.meta.url);
@@ -29,5 +30,8 @@ if(req.action==='transfer'){
  const team=int(req.team);if(team<0||team>=TEAM_COUNT)fail('Неверная команда.');
  if(req.value===null)delete league.banks[team];else league.banks[team]=int(req.value);
  note=`✅ Банк команды ${team+1}: ${req.value??'расчётный'}.`;
+}else if(req.action==='white'){
+ if(!Array.isArray(req.players))fail('Нужен список players.');
+ league.white=[...new Set(req.players.map(pid))];note=`✅ Белое правило: в списке лиги ${league.white.length} игрок(ов).`;
 }else fail('Неизвестное действие.');
 fs.writeFileSync(FILE,JSON.stringify(league,null,2)+'\n');fs.writeFileSync('league-log-result.txt',note);console.log(note);
