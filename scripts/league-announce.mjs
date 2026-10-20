@@ -14,5 +14,5 @@ if(token&&(token===process.env.TELEGRAM_BOT_TOKEN||(chat&&chat===process.env.TEL
 // cannot be resolved is not sent to the league.
 const {text,missing}=fillHandles(fs.readFileSync(file,'utf8').trim(),loadHandles());
 const {configured,send}=sender(token,chat);
-if(configured&&missing.length){console.error(`Announcement refused: no username for ${missing.join(', ')} (is LEAGUE_HANDLES_KEY set?).`);process.exit(1);}
+if(configured&&missing.length){console.error(`Announcement refused: no username for ${missing.join(', ')} (was data/telegram-handles.enc.json encrypted with the current league bot token?).`);process.exit(1);}
 await send(text,{photo:fileURLToPath(new URL(`./assets/zak-onn/${mood}.jpg`,import.meta.url))});
