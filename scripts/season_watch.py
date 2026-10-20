@@ -3,7 +3,7 @@ A new journal row triggers the Telegram notifier and a publish within about a mi
 so a player released by a rival is reported before the next full collection.
 Usage: season_watch.py <sports-current.json> <notify-state.json> [--minutes 345] [--every 60] [--full-every 120]
 """
-import argparse,json,os,subprocess,sys,time
+import argparse,json,os,signal,subprocess,sys,time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timezone
 from pathlib import Path
@@ -87,14 +87,19 @@ class Watch:
         except subprocess.TimeoutExpired:print('full collection timed out',flush=True);return False
         return result.returncode==0 and self.live.exists()
     def notify(self):
-        # The notifier remembers what it reported in the state file; a failure must not stop the watch, but is logged.
-        try:result=subprocess.run(['node','scripts/notify-transfers.mjs',str(self.live),str(self.state)],timeout=10*60)
-        except subprocess.TimeoutExpired:print('notifier timed out',flush=True);return
-        if result.returncode:print(f'notifier failed with exit code {result.returncode}',flush=True)
+        """The league feed first, saved to GitHub at once (it is what must never repeat), then the personal advice."""
+        self.feed();self.publish(f'League feed state {now()}')
+        self.personal()
+    def feed(self):
         # The league chat's feed: every transfer with the rules check, remembered in its own state file.
         try:result=subprocess.run(['node','scripts/league-feed.mjs',str(self.live),str(self.live.parent/'league-state.json')],timeout=10*60)
         except subprocess.TimeoutExpired:print('league feed timed out',flush=True);return
         if result.returncode:print(f'league feed failed with exit code {result.returncode}',flush=True)
+    def personal(self):
+        # The notifier remembers what it reported in the state file; a failure must not stop the watch, but is logged.
+        try:result=subprocess.run(['node','scripts/notify-transfers.mjs',str(self.live),str(self.state)],timeout=10*60)
+        except subprocess.TimeoutExpired:print('notifier timed out',flush=True);return
+        if result.returncode:print(f'notifier failed with exit code {result.returncode}',flush=True)
     def publish(self,message):
         token=os.environ.get('GH_TOKEN');repo=os.environ.get('GITHUB_REPOSITORY')
         if not token or not repo:print('publish skipped: no GH_TOKEN/GITHUB_REPOSITORY',flush=True);return
@@ -107,13 +112,24 @@ class Watch:
         for name in ('injury-history.json','league-state.json'):
             if (folder/name).exists():git('add',name)
         git('commit','-qm',message,'--allow-empty')
-        pushed=subprocess.run(['git','-C',str(folder),'push','-qf',f'https://x-access-token:{token}@github.com/{repo}.git','data/season-live'],check=False)
-        if pushed.returncode:print(f'publish failed with exit code {pushed.returncode}',flush=True)
+        # What was posted must reach GitHub: the next run starts from it, and a lost state would post again.
+        for attempt in range(4):
+            pushed=subprocess.run(['git','-C',str(folder),'push','-qf',f'https://x-access-token:{token}@github.com/{repo}.git','data/season-live'],check=False)
+            if not pushed.returncode:return True
+            print(f'publish failed with exit code {pushed.returncode} (attempt {attempt+1})',flush=True);time.sleep(2**attempt*3)
+        return False
 
 def main():
     a=argparse.ArgumentParser();a.add_argument('live');a.add_argument('state')
     a.add_argument('--minutes',type=float,default=345);a.add_argument('--every',type=float,default=60);a.add_argument('--full-every',type=float,default=120)
     args=a.parse_args();w=Watch(args.live,args.state);config=teams_config()
+    # A cancelled run (GitHub sends SIGINT, then SIGTERM) saves what was posted before it goes, so the next run never
+    # posts it again.
+    def leave(sig,frame):
+        print(f'stopping on signal {sig}: saving state',flush=True)
+        try:w.publish(f'Watch stopped {now()}')
+        finally:sys.exit(0)
+    signal.signal(signal.SIGINT,leave);signal.signal(signal.SIGTERM,leave)
     stop=time.time()+args.minutes*60;next_full=0
     while time.time()<stop:
         left=stop-time.time()
@@ -136,5 +152,7 @@ def main():
                 # Nothing new: only the time of this read is kept (locally; it is published with the next change).
                 w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
         time.sleep(max(0,min(args.every,stop-time.time())))
+    # The run hands over to the next one: everything posted is saved first.
+    w.publish(f'Watch run ended {now()}')
 
 if __name__=='__main__':main()

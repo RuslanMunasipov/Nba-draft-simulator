@@ -27,3 +27,9 @@ class WatchTests(unittest.TestCase):
  def test_reordered_rows_of_one_date_are_not_a_change(self):
   a,b={**row('A'),'seenAt':'x'},row('B')
   self.assertEqual(changed_teams({'teams':{'0':{'journal':[a,b]}}},{'0':[row('B'),row('A')]}),[])
+ def test_league_feed_goes_first_and_is_saved_at_once(self):
+  import scripts.season_watch as sw
+  calls=[];w=sw.Watch('a','b')
+  w.feed=lambda:calls.append('feed');w.personal=lambda:calls.append('personal');w.publish=lambda m:calls.append('publish')
+  w.notify()
+  self.assertEqual(calls,['feed','publish','personal'])
