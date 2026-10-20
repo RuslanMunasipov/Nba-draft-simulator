@@ -66,14 +66,16 @@ export function availabilityProfile(state,{runs=50,team=0}={}){
 export function planValue(p,adjust={}){return riskAdjustedValue(p)*82*(1+(Number(adjust[p.id])||0)/100);}
 const subsets=Array.from({length:31},(_,m)=>POSITIONS.filter((_,i)=>(m+1)>>i&1));
 // Exact best completion of our ten: budget, two slots per position (Hall's condition over position sets),
-// at least one rookie, and pick deadlines (a player may fill round r only if he survives to it with probability >= threshold).
-export function planRoster(state,profile,{threshold=0.8,team=0,force=null,adjust={}}={}){
+// at least one rookie, at least one player of the league's «белое правило» list (when the list is given), and pick
+// deadlines (a player may fill round r only if he survives to it with probability >= threshold).
+export function planRoster(state,profile,{threshold=0.8,team=0,force=null,adjust={},white=[]}={}){
  const {picks,availability}=profile,R=picks.length;if(!R)return null;
- const mine=teamRoster(state,team),priced=state.priceMode==='ON';
+ const mine=teamRoster(state,team),priced=state.priceMode==='ON',whiteSet=new Set(white.map(String));
  const budget=priced?state.cap-mine.reduce((s,p)=>s+p.price,0):Infinity;
  const model={optimize:'value',opType:'max',constraints:{count:{equal:R}},variables:{},ints:{}};
  if(priced)model.constraints.budget={max:budget};
  if(!mine.some(p=>p.isRookie===true))model.constraints.rookie={min:1};
+ if(whiteSet.size&&!mine.some(p=>whiteSet.has(String(p.id))))model.constraints.white={min:1};
  subsets.forEach((T,i)=>{model.constraints['pos'+i]={max:2*T.length-mine.filter(p=>p.positions.every(x=>T.includes(x))).length};});
  for(let r=1;r<R;r++)model.constraints['round'+r]={max:r};
  const candidates=[];
@@ -83,7 +85,7 @@ export function planRoster(state,profile,{threshold=0.8,team=0,force=null,adjust
   let deadline=-1;odds.forEach((a,r)=>{if(a>=threshold)deadline=r;});
   if(force!==null&&p.id===force){if(odds[0]<1-1e-9)return null;deadline=0;}
   if(deadline<0)continue;
-  const v={value:planValue(p,adjust),count:1};if(priced)v.budget=p.price;if(p.isRookie===true)v.rookie=1;
+  const v={value:planValue(p,adjust),count:1};if(priced)v.budget=p.price;if(p.isRookie===true)v.rookie=1;if(whiteSet.has(String(p.id)))v.white=1;
   subsets.forEach((T,i)=>{if(p.positions.every(x=>T.includes(x)))v['pos'+i]=1;});
   const club=clubOf(p);
   if(club!==null&&CLUB_LIMIT!==Infinity){const key='club:'+club;v[key]=1;model.constraints[key]??={max:CLUB_LIMIT-mine.filter(q=>clubOf(q)===club).length};}
@@ -99,20 +101,20 @@ export function planRoster(state,profile,{threshold=0.8,team=0,force=null,adjust
  // Never present a solver answer that breaks a draft rule.
  const roster=[...mine,...chosen.map(c=>c.player)];
  if(chosen.length!==R||candidates.some(c=>Math.abs(result[c.key]??0)>1e-6&&Math.abs((result[c.key]??0)-1)>1e-6)||!rosterFits(roster)||!clubsFit(roster)||
-  (priced&&roster.reduce((s,p)=>s+p.price,0)>state.cap)||!roster.some(p=>p.isRookie===true)||chosen.some((c,r)=>c.deadline<r))return null;
+  (priced&&roster.reduce((s,p)=>s+p.price,0)>state.cap)||!roster.some(p=>p.isRookie===true)||(whiteSet.size&&!roster.some(p=>whiteSet.has(String(p.id))))||chosen.some((c,r)=>c.deadline<r))return null;
  return {value:result.result,spent:mine.reduce((s,p)=>s+(p.price||0),0)+chosen.reduce((s,c)=>s+(c.player.price||0),0),
   plan:chosen.map((c,r)=>({pick:picks[r],player:c.player,survival:c.odds[r],nextSurvival:c.odds[r+1]??null})),now:chosen[0]?.player??null};
 }
 // The best plan plus the best plan after each strong alternative taken now, so the cost of every choice is explicit.
-export function planAdvice(state,{runs=50,threshold=0.8,alternatives=8,team=0,adjust={}}={}){
+export function planAdvice(state,{runs=50,threshold=0.8,alternatives=8,team=0,adjust={},white=[]}={}){
  const profile=availabilityProfile(state,{runs,team});
- const best=planRoster(state,profile,{threshold,team,adjust});if(!best)return {profile:{picks:profile.picks,runs},best:null,options:[]};
+ const best=planRoster(state,profile,{threshold,team,adjust,white});if(!best)return {profile:{picks:profile.picks,runs},best:null,options:[]};
  const nowPick=profile.picks[0],onTheClock=nowPick===state.picks.length+1;
  const pool=state.players.filter(p=>profile.availability.get(p.id)?.[0]===1&&Number.isFinite(draftValue(p))&&(state.priceMode!=='ON'||p.priceStatus==='VERIFIED'))
   .sort((a,b)=>planValue(b,adjust)-planValue(a,adjust)).slice(0,alternatives);
  const options=[];
  for(const p of [best.now,...pool.filter(p=>p.id!==best.now.id)]){
-  const plan=p.id===best.now.id?best:planRoster(state,profile,{threshold,team,force:p.id,adjust});
+  const plan=p.id===best.now.id?best:planRoster(state,profile,{threshold,team,force:p.id,adjust,white});
   if(plan)options.push({player:p,value:plan.value,delta:plan.value-best.value,nextSurvival:profile.availability.get(p.id)?.[1]??null});
  }
  options.sort((a,b)=>b.value-a.value);

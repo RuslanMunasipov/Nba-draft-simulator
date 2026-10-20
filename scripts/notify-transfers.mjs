@@ -23,7 +23,7 @@ const league=await json(RAW+'main/data/fbl-league.json').catch(()=>JSON.parse(fs
 const previous=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
 const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p])),today=moscowToday();
 const {transfers,warnings}=allTransfers(players,live,league);
-const ctx={players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers)};
+const ctx={players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers),white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
 const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
 // Both limits bind: Sports.ru's own weekly count and the FBL week (pre-season moves count against the first one).
 const leftOf=t=>{const x=live.teams?.[t],sports=Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));

@@ -194,12 +194,16 @@ function selling(ctx,team,outId,bankMoney,byId){
  const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),leaving=roster.find(p=>p.id===outId);
  if(!leaving)return null;
  const rest=roster.filter(p=>p.id!==outId);
- return {leaving,rest,money:bankMoney+leaving.price,needRookie:!rest.some(p=>p.isRookie===true),base:playerOutlook(leaving,ctx)};
+ const white=whiteOf(ctx);
+ return {leaving,rest,money:bankMoney+leaving.price,needRookie:!rest.some(p=>p.isRookie===true),
+  white,needWhite:Boolean(white)&&!rest.some(p=>white.has(String(p.id))),base:playerOutlook(leaving,ctx)};
 }
+// The league's «белое правило» list (ctx.white: ids of players who count); without a list the rule is not enforced.
+const whiteOf=ctx=>ctx.white?.size?ctx.white:null;
 const onMarket=(raw,ctx)=>raw.sportsId&&(ctx.live?.players?.[raw.sportsId]||raw.priceStatus==='VERIFIED');
 // Sports.ru allows at most two players of one NBA club. One already over the limit after an NBA trade may stay, but no purchase may add to it.
 export const clubRoom=(rest,p)=>!p.club||rest.filter(q=>q.club===p.club).length<CLUB_LIMIT;
-const fits=(sale,p)=>Number.isFinite(p.price)&&p.price<=sale.money&&(!sale.needRookie||p.isRookie===true)&&clubRoom(sale.rest,p)&&rosterFits([...sale.rest,p]);
+const fits=(sale,p)=>Number.isFinite(p.price)&&p.price<=sale.money&&(!sale.needRookie||p.isRookie===true)&&(!sale.needWhite||sale.white.has(String(p.id)))&&clubRoom(sale.rest,p)&&rosterFits([...sale.rest,p]);
 function swap(sale,p,ctx){
  const outlook=playerOutlook(p,ctx),gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-sale.base[k].points;
  return {outId:sale.leaving.id,player:p,outlook,gain,bankAfter:sale.money-p.price};
@@ -253,7 +257,8 @@ export function parseInjuries(feed){
 }
 
 // Exact best package of up to k transfers this week (integer programming over the roster and the strongest free agents):
-// keep or sell each player, buy free agents, two per Sports.ru position, at least one rookie, money within the bank.
+// keep or sell each player, buy free agents, two per Sports.ru position, at least one rookie, at least one player of the
+// league's «белое правило» list (when there is one), money within the bank.
 // By default the package may not lower the rest-of-season expectation: short-term gains never cost the season.
 export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat());
@@ -270,7 +275,8 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  if(include!=null&&!must)return null;
  if(must)pool.push({p:must,v:value(must)});
  const unique=[...new Map(pool.map(x=>[x.p.id,x])).values()];
- const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1},...(must?{must:{min:1}}:{})},variables:{},ints:{}};
+ const white=whiteOf(ctx),counts=p=>Boolean(white?.has(String(p.id)));
+ const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1},...(white?{white:{min:1}}:{}),...(must?{must:{min:1}}:{})},variables:{},ints:{}};
  const subsets=Array.from({length:31},(_,m)=>POSITIONS.filter((_,i)=>(m+1)>>i&1));
  subsets.forEach((T,i)=>{model.constraints['pos'+i]={max:2*T.length};});
  const items=[...roster.map(p=>({p,v:value(p),own:true})),...unique.map(x=>({...x,own:false}))];
@@ -278,12 +284,12 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  clubs.forEach((c,i)=>{model.constraints['club'+i]={max:Math.max(CLUB_LIMIT,roster.filter(p=>p.club===c).length)};});
  const seasonOf=new Map(items.map(x=>[x.p.id,playerOutlook(x.p,ctx).season.points]));
  if(protectSeason&&sort!=='season')model.constraints.season={min:roster.reduce((s,p)=>s+seasonOf.get(p.id),0)-1e-6};
- items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;if(x.p.id===must?.id)v.must=1;if(x.p.club)v['club'+clubs.indexOf(x.p.club)]=1;
+ items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;if(counts(x.p))v.white=1;if(x.p.id===must?.id)v.must=1;if(x.p.club)v['club'+clubs.indexOf(x.p.club)]=1;
   subsets.forEach((T,j)=>{if(x.p.positions.every(q=>T.includes(q)))v['pos'+j]=1;});
   model.constraints['one'+i]={max:1};model.variables['x'+i]=v;model.ints['x'+i]=1;});
  const result=solver.Solve(model);if(!result.feasible)return null;
  const chosen=items.filter((_,i)=>result['x'+i]>0.5),next=chosen.map(x=>x.p);
- if(next.length!==10||!rosterFits(next)||!next.some(p=>p.isRookie===true)||next.reduce((s,p)=>s+p.price,0)>wealth)return null;
+ if(next.length!==10||!rosterFits(next)||!next.some(p=>p.isRookie===true)||(white&&!next.some(counts))||next.reduce((s,p)=>s+p.price,0)>wealth)return null;
  if(clubs.some(c=>next.filter(p=>p.club===c).length>Math.max(CLUB_LIMIT,roster.filter(p=>p.club===c).length)))return null;
  const sold=items.filter((x,i)=>x.own&&!(result['x'+i]>0.5)),bought=chosen.filter(x=>!x.own);
  if(sold.length>k)return null;

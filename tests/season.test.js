@@ -277,3 +277,12 @@ test('injuries named in ESPN news are summarised by body part with first and las
   {headline:'Zubac (ribs) collected 24 points',published:'2026-07-07T10:00Z'},{headline:'Zubac (personal) is out',published:'2026-01-01T10:00Z'}];
  assert.deepEqual(newsInjuries(feed),[{part:'голеностоп',mentions:2,first:'2026-03-12',last:'2026-03-16'},{part:'рёбра',mentions:1,first:'2026-07-07',last:'2026-07-07'}]);
 });
+
+test('the only player counting for the white rule leaves only for another who counts, in swaps and packages',()=>{
+ const c=ctx({white:new Set(['1','81'])});
+ const opts=transferOptions(c,{team:0,outId:1,bankMoney:5000,limit:50,sort:'season'});
+ assert.ok(opts.length>0&&opts.every(o=>o.player.id===81),'only the listed free player replaces him');
+ assert.ok(transferOptions(ctx(),{team:0,outId:1,bankMoney:5000,limit:50,sort:'season'}).length>1,'without a list every slot fit is offered');
+ const pack=bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'season'});
+ if(pack){const ids=new Set(c.rosters[0]);for(const x of pack.pairs){ids.delete(x.out.id);ids.add(x.in.id);}assert.ok(ids.has(1)||ids.has(81));}
+});

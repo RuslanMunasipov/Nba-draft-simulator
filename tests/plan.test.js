@@ -39,3 +39,12 @@ test('GM adjustments change our plan value and choice',()=>{
  const base=planRoster(state,profile,{threshold:.8}),cut=planRoster(state,profile,{threshold:.8,adjust:{[base.now.id]:-90}});
  assert.ok(cut.value<base.value);assert.notEqual(cut.now.id,base.now.id);
 });
+test('the plan keeps one player of the league white-rule list when a list is given',()=>{
+ // Everyone survives to every pick, so only the rule decides who is in the plan.
+ const state=newDraft(players,20000,'ON'),profile={picks,availability:new Map(players.map(p=>[p.id,picks.map(()=>1)]))};
+ const free=planRoster(state,profile,{threshold:.8}),ids=new Set(free.plan.map(x=>x.player.id));
+ const outside=players.find(p=>!ids.has(p.id)&&p.positions.length===1);
+ const ruled=planRoster(state,profile,{threshold:.8,white:[outside.id]});
+ assert.ok(ruled&&ruled.plan.some(x=>x.player.id===outside.id));
+ assert.ok(ruled.value<=free.value+1e-9);
+});
