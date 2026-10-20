@@ -10,7 +10,8 @@
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
-import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED} from '../src/rules.js';
+import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST} from '../src/rules.js';
+import {HEADINGS,remark,signature} from './zak-voice.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow} from './telegram-format.mjs';
@@ -58,21 +59,26 @@ function checkLines(c,moves){
 // the reasons behind it; each verdict has its photo of Зак Онн.
 function reasons(c){
  const v=verdict(c);
- const doubts=[...v.doubts.map(x=>esc(x.text)),...(v.unmarked?[`нет решения лиги по «белому правилу» для: ${names(c.undecided)||'игроков состава'}`]:[])];
- return {kind:v.kind,items:v.kind==='violation'?v.breaches.map(x=>esc(x.text)):doubts,doubts};
+ // Short names in the conclusion: the check lines above already carry the details.
+ const label=r=>r.rule==='rookie'?'правило новичка':r.rule==='white'?(c.whiteState==='sold'?'белое правило — продан засчитываемый игрок, замена не отмечена':'белое правило')
+  :r.rule==='club'?'лимит клуба NBA':r.rule==='transfers'?'лимит трансферов':r.rule==='time'?(r.certain?'время сделки — вне 08:00–22:00 МСК':'время сделки — на границе 08:00–22:00 МСК'):esc(r.text);
+ const doubts=[...v.doubts.map(label),...(v.unmarked?[`белое правило — нет решения лиги по ${names(c.undecided)||'игрокам состава'}`]:[])];
+ return {kind:v.kind,items:v.kind==='violation'?[...new Set(v.breaches.map(label))]:doubts,doubts};
 }
 const photo=kind=>fileURLToPath(new URL(`./assets/zak-onn/${kind}.jpg`,import.meta.url));
 // The lawyer and the commissioner by their Telegram usernames (Telegram then notifies them personally), decrypted for
 // this run only; without the key they are named, not tagged.
 const handles=loadHandles();
-const lawyer=at(handles.lawyer)?`${at(handles.lawyer)} (${esc(LAWYER.name)})`:esc(LAWYER.name);
 const commissioner=at(handles.commissioner)?`👔 ${at(handles.commissioner)} (${esc(COMMISSIONER.role)}) — к сведению.`:null;
 // The team's general manager is tagged too, so the one who made the deal hears of it first.
 const gmLine=team=>at(handles.managers[team])?`📣 GM команды: ${at(handles.managers[team])}`:null;
-const HEAD={violation:team=>['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`⚖️ ${lawyer}, вы вызываетесь для расследования.`,commissioner,gmLine(team),''],
- check:team=>['🔎 <b>ТРЕБУЕТСЯ ПРОВЕРКА ЮРИСТА</b>',`⚖️ ${lawyer}, прошу проверить состав.`,commissioner,gmLine(team),''],approved:()=>[]};
-const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> выявлено нарушение — ${items.join('; ')}.${doubts.length?` Также требует проверки: ${doubts.join('; ')}.`:''} Юрист лиги ${esc(LAWYER.name)} вызван для расследования.`,
- check:items=>`🔏 <b>Заключение:</b> явных нарушений нет, требуется проверка — ${items.join('; ')}. Состав передан юристу лиги.`,
+// The bot speaks as Зак Онн; the member who answers for him is tagged to take the case.
+const operator=at(handles.lawyer);
+const HEAD={violation:team=>[HEADINGS.violation,`🚨 Нарушение регламента. Зак Онн открывает дело.${operator?` ${operator} — к расследованию.`:''}`,commissioner,gmLine(team),''],
+ check:team=>[HEADINGS.check,`🔎 Есть сомнение. Зак Онн сверяет факты.${operator?` ${operator} — к проверке.`:''}`,commissioner,gmLine(team),''],approved:()=>[]};
+const watched=team=>WATCHLIST.find(w=>Number(w.team)===Number(team));
+const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> нарушено — ${items.join('; ')}.${doubts.length?` На проверке: ${doubts.join('; ')}.`:''} Дело открыто.`,
+ check:items=>`🔏 <b>Заключение:</b> явных нарушений нет. На проверке: ${items.join('; ')}.`,
  approved:()=>'🔏 <b>Заключение:</b> состав соответствует регламенту.'};
 // LEAGUE_FEED_PREVIEW=N: the last N protocols as a test (printed, or posted to the league chat), remembering nothing.
 const firstPreview=groups.size-preview;
@@ -92,10 +98,12 @@ for(const idx of groups.values()){
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
  const v=reasons(c);
  const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
-  `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,...deals,'',
+  `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
-  '<b>Проверка регламента</b>',...checkLines(c,moves),'',CONCLUSION[v.kind](v.items,v.doubts),
-  v.kind==='approved'?`<i>✅ Одобрено: ${esc(LAWYER.name)}, юрист лиги</i>`:`<i>Юрист лиги: ${esc(LAWYER.name)}</i>`);
+  '<b>Проверка регламента</b>',...checkLines(c,moves),'',CONCLUSION[v.kind](v.items,v.doubts),'',
+  // Зак Онн's own word on it, then his signature (the facts above are the rules check's).
+  remark(v.kind,[...new Set(c.violations.filter(r=>v.kind==='violation'&&!(r.rule==='white'&&c.whiteState==='sold')&&(r.rule!=='time'||r.certain)).map(r=>r.rule))],Boolean(watched(x.team)),key(moves[0])),
+  v.kind==='approved'?`<i>✅ Одобрено. ${signature(key(moves[0]))}</i>`:`<i>${signature(key(moves[0]))}</i>`);
  if(await send(text,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');
