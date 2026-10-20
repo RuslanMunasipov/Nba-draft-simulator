@@ -132,3 +132,7 @@ class JournalStampTests(unittest.TestCase):
         self.assertEqual(first[1]['seenAt'], '2026-10-20T10:00:00+00:00')
         again = collector.stamp_journal(first, [a, b], now='2026-10-20T11:00:00+00:00')
         self.assertEqual(again[1]['seenAt'], '2026-10-20T10:00:00+00:00')
+        # The previous read without the row bounds the transfer from below (FBL transfer hours).
+        bounded = collector.stamp_journal([a], [a, b], now='2026-10-20T10:00:00+00:00', after='2026-10-20T09:59:00+00:00')
+        self.assertEqual(bounded[1]['seenAfter'], '2026-10-20T09:59:00+00:00')
+        self.assertEqual(collector.stamp_journal(bounded, [a, b], now='2026-10-20T11:00:00+00:00', after='2026-10-20T10:59:00+00:00')[1]['seenAfter'], '2026-10-20T09:59:00+00:00')

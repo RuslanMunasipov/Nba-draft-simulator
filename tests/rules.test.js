@@ -61,3 +61,27 @@ test('verdict: an obvious breach summons the lawyer, a doubt asks for his check,
  const breach=verdict(at([6],{white:[3],transfers:[{team:0,outId:3,inId:6,date:'2026-10-27'}]}));
  assert.equal(breach.kind,'violation');assert.deepEqual(breach.breaches.map(v=>v.rule),['rookie']);
 });
+test('transfer hours: inside 08:00–22:00 Moscow is fine, outside is a breach, a window across the edge needs a check',async()=>{
+ const {transferTime,timeLabel}=await import('../src/rules.js');
+ // Moscow is UTC+3: 14:32 МСК is 11:32Z.
+ assert.equal(transferTime({seenAt:'2026-10-20T11:32:00Z',seenAfter:'2026-10-20T11:31:00Z'}).state,'ok');
+ assert.equal(transferTime({seenAt:'2026-10-20T20:14:00Z',seenAfter:'2026-10-20T20:13:00Z'}).state,'breach'); // 23:14
+ assert.equal(transferTime({seenAt:'2026-10-21T04:30:00Z',seenAfter:'2026-10-21T04:29:00Z'}).state,'breach'); // 07:30
+ assert.equal(transferTime({seenAt:'2026-10-20T19:00:00Z',seenAfter:'2026-10-20T18:59:00Z'}).state,'doubt'); // 22:00 sharp
+ const edge=transferTime({seenAt:'2026-10-20T19:01:00Z',seenAfter:'2026-10-20T18:58:00Z'});
+ assert.equal(edge.state,'doubt');assert.equal(timeLabel(edge),'между 21:58 и 22:01 (20.10)');
+ // A watcher outage overnight: seen at 09:00 after a read at 21:00 — it may have been made at night.
+ assert.equal(transferTime({seenAt:'2026-10-21T06:00:00Z',seenAfter:'2026-10-20T18:00:00Z'}).state,'doubt');
+ // No seenAfter: the two minutes before seenAt.
+ assert.equal(transferTime({seenAt:'2026-10-20T05:01:00Z'}).state,'doubt');assert.equal(transferTime({seenAt:'2026-10-20T05:03:00Z'}).state,'ok');
+ assert.equal(transferTime({}).state,'unknown');assert.equal(timeLabel(transferTime({})),'не зафиксировано');
+});
+test('a night transfer is an obvious breach, one at the edge of the hours a check',()=>{
+ const byId=new Map([[1,{id:1,name:'Rookie',isRookie:true}],[3,{id:3,name:'Marked'}],[6,{id:6,name:'Newcomer'}]]);
+ const run=x=>checkRules({rosters:[[1,3,6],...Array(7).fill([])],byId,white:[3],today:'2026-10-20',transfers:[{team:0,outId:9,inId:6,date:'2026-10-20',...x}]})[0];
+ const night=run({seenAt:'2026-10-20T20:14:00Z',seenAfter:'2026-10-20T20:13:00Z'});
+ assert.equal(verdict(night).kind,'violation');assert.match(night.violations[0].text,/23:14 \(20\.10\) МСК — трансферы разрешены только с 08:00 до 22:00/);
+ assert.equal(verdict(run({seenAt:'2026-10-20T19:01:00Z',seenAfter:'2026-10-20T18:58:00Z'})).kind,'check');
+ assert.equal(verdict(run({seenAt:'2026-10-20T11:32:00Z',seenAfter:'2026-10-20T11:31:00Z'})).kind,'approved');
+ assert.equal(verdict(run({})).kind,'approved');
+});
