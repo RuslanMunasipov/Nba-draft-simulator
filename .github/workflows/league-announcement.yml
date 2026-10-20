@@ -25,6 +25,7 @@ jobs:
         env:
           LEAGUE_TELEGRAM_BOT_TOKEN: ${{ secrets.LEAGUE_TELEGRAM_BOT_TOKEN }}
           LEAGUE_TELEGRAM_CHAT_ID: ${{ secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          LEAGUE_HANDLES_KEY: ${{ secrets.LEAGUE_HANDLES_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FILE: ${{ github.event.inputs.file }}

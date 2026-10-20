@@ -10,7 +10,8 @@
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
-import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,MANAGERS} from '../src/rules.js';
+import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED} from '../src/rules.js';
+import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
@@ -61,12 +62,13 @@ function reasons(c){
  return {kind:v.kind,items:v.kind==='violation'?v.breaches.map(x=>esc(x.text)):doubts,doubts};
 }
 const photo=kind=>fileURLToPath(new URL(`./assets/zak-onn/${kind}.jpg`,import.meta.url));
-// The lawyer and the commissioner by their Telegram usernames (Telegram then notifies them personally).
-const tag=u=>u?`@${String(u).replace(/^@/,'')}`:null;
-const lawyer=tag(LAWYER.telegram)?`${tag(LAWYER.telegram)} (${esc(LAWYER.name)})`:esc(LAWYER.name);
-const commissioner=tag(COMMISSIONER.telegram)?`👔 ${tag(COMMISSIONER.telegram)} (${esc(COMMISSIONER.role)}) — к сведению.`:null;
+// The lawyer and the commissioner by their Telegram usernames (Telegram then notifies them personally), decrypted for
+// this run only; without the key they are named, not tagged.
+const handles=loadHandles();
+const lawyer=at(handles.lawyer)?`${at(handles.lawyer)} (${esc(LAWYER.name)})`:esc(LAWYER.name);
+const commissioner=at(handles.commissioner)?`👔 ${at(handles.commissioner)} (${esc(COMMISSIONER.role)}) — к сведению.`:null;
 // The team's general manager is tagged too, so the one who made the deal hears of it first.
-const gmLine=team=>tag(MANAGERS[team])?`📣 GM команды: ${tag(MANAGERS[team])}`:null;
+const gmLine=team=>at(handles.managers[team])?`📣 GM команды: ${at(handles.managers[team])}`:null;
 const HEAD={violation:team=>['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`⚖️ ${lawyer}, вы вызываетесь для расследования.`,commissioner,gmLine(team),''],
  check:team=>['🔎 <b>ТРЕБУЕТСЯ ПРОВЕРКА ЮРИСТА</b>',`⚖️ ${lawyer}, прошу проверить состав.`,commissioner,gmLine(team),''],approved:()=>[]};
 const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> выявлено нарушение — ${items.join('; ')}.${doubts.length?` Также требует проверки: ${doubts.join('; ')}.`:''} Юрист лиги ${esc(LAWYER.name)} вызван для расследования.`,

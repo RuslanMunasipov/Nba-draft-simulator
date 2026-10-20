@@ -80,30 +80,18 @@
   "lawyer": {
     "name": "Зак Онн",
     "role": "юрист лиги FBL: разбирает нарушения регламента",
-    "telegram": "tikhanovm",
-    "note": "telegram: the username (without @) of the league member responsible for Зак Онн; the league feed tags him on every breach and on every roster that needs his check."
+    "note": "His Telegram username is kept only encrypted (data/telegram-handles.enc.json, key in the LEAGUE_HANDLES_KEY secret); the league feed tags him on every breach and check."
   },
   "commissioner": {
     "role": "комиссионер лиги FBL",
-    "telegram": "startedfromthe64",
-    "note": "Tagged with the lawyer on every breach and on every roster that needs a check."
+    "note": "Tagged with the lawyer on every breach and check; the username is kept only encrypted (data/telegram-handles.enc.json)."
   },
   "leagueFeed": {
     "since": "2026-10-20T07:00:00Z",
     "note": "The league chat gets protocols only for transfers the watcher saw from this moment on (league owner, 20.10: no protocols for the transfers made before the bot joined the chat). Protocol numbers count from here."
   },
   "managers": {
-    "telegram": {
-      "0": "ruslandamirovich23",
-      "1": "SM8248",
-      "2": "tikhanovm",
-      "3": "drrobertkh",
-      "4": "startedfromthe64",
-      "5": "lemaadi",
-      "6": "vartansagian",
-      "7": "isseynoway"
-    },
-    "source": "League owner, 2026-10-20: the Telegram username of each team's general manager (team index as in src/teams.js).",
+    "source": "League owner, 2026-10-20: the Telegram username of each team's general manager (team index as in src/teams.js), kept only encrypted in data/telegram-handles.enc.json.",
     "note": "The league feed tags the team's GM on a breach or a check of its roster."
   }
 }

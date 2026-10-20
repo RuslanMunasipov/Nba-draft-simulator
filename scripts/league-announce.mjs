@@ -4,10 +4,15 @@
 import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {sender} from './telegram-format.mjs';
+import {loadHandles,fillHandles} from './handles.mjs';
 const [file,mood='check']=process.argv.slice(2);
 if(!['check','approved','violation'].includes(mood))throw Error('photo: check, approved or violation');
 const token=process.env.LEAGUE_TELEGRAM_BOT_TOKEN,chat=process.env.LEAGUE_TELEGRAM_CHAT_ID;
 if(token&&(token===process.env.TELEGRAM_BOT_TOKEN||(chat&&chat===process.env.TELEGRAM_CHAT_ID))){
  console.error('Announcement refused: the league bot and chat must differ from the personal ones.');process.exit(1);}
-const {send}=sender(token,chat);
-await send(fs.readFileSync(file,'utf8').trim(),{photo:fileURLToPath(new URL(`./assets/zak-onn/${mood}.jpg`,import.meta.url))});
+// Usernames are written as {@lawyer}, {@commissioner}, {@gm:<team>} and decrypted only here; a statement whose tags
+// cannot be resolved is not sent to the league.
+const {text,missing}=fillHandles(fs.readFileSync(file,'utf8').trim(),loadHandles());
+const {configured,send}=sender(token,chat);
+if(configured&&missing.length){console.error(`Announcement refused: no username for ${missing.join(', ')} (is LEAGUE_HANDLES_KEY set?).`);process.exit(1);}
+await send(text,{photo:fileURLToPath(new URL(`./assets/zak-onn/${mood}.jpg`,import.meta.url))});
