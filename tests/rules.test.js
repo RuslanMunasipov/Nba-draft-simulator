@@ -12,8 +12,9 @@ test('pre-season transfers are free; from the first game the FBL week counts thr
  // 18–20.10 Sports.ru showed ∞ transfers: nothing counts, whatever the number.
  const pre=[{team:7,date:'2026-10-18'},{team:7,date:'2026-10-19'},{team:7,date:'2026-10-19'},{team:7,date:'2026-10-20'}];
  assert.equal(fblTransfers(pre,7,'2026-10-20').left,3);assert.deepEqual(fblTransfers(pre,7,'2026-10-20').over,[]);
- // A transfer the watcher saw while Sports.ru still showed ∞ is free on any date.
- assert.ok(isFreeTransfer({team:0,date:'2026-10-21',free:true}));assert.ok(!isFreeTransfer({team:0,date:'2026-10-21'}));
+ // The first-round deadline (20.10, 21:30 Moscow) ends the pre-season, to the minute the watcher saw the transfer.
+ assert.ok(isFreeTransfer({team:0,date:'2026-10-20',seenAt:'2026-10-20T18:29:00Z'}));assert.ok(!isFreeTransfer({team:0,date:'2026-10-20',seenAt:'2026-10-20T18:31:00Z'}));
+ assert.ok(isFreeTransfer({team:0,date:'2026-10-20'}));assert.ok(!isFreeTransfer({team:0,date:'2026-10-21'}));
  const t=[...pre,{team:7,date:'2026-10-21'},{team:7,date:'2026-10-22'},{team:6,date:'2026-10-22'}];
  assert.equal(fblTransfers(t,7,'2026-10-22').left,1);assert.equal(fblTransfers(t,6,'2026-10-22').left,2);
  assert.equal(fblTransfers(t,7,'2026-10-22').resetOn,'2026-10-26');assert.equal(fblTransfers(t,7,'2026-10-26').left,3);
@@ -90,4 +91,13 @@ test('a night transfer is an obvious breach, one at the edge of the hours a chec
  assert.equal(verdict(run({seenAt:'2026-10-20T19:01:00Z',seenAfter:'2026-10-20T18:58:00Z'})).kind,'check');
  assert.equal(verdict(run({seenAt:'2026-10-20T11:32:00Z',seenAfter:'2026-10-20T11:31:00Z'})).kind,'approved');
  assert.equal(verdict(run({})).kind,'approved');
+});
+test('a player another team already holds: the later buyer is in breach, the first holder is not',()=>{
+ const byId=new Map([[1,{id:1,name:'Rookie',isRookie:true}],[2,{id:2,name:'Rookie2',isRookie:true}],[3,{id:3,name:'Shared'}],[4,{id:4,name:'Other'}]]);
+ const rosters=[[1,3],[2,3],...Array(6).fill([])];
+ const transfers=[{team:1,outId:4,inId:3,date:'2026-10-20'}];
+ const checks=checkRules({rosters,byId,transfers,white:[1,2],today:'2026-10-20'});
+ assert.ok(!checks[0].violations.some(v=>v.rule==='duplicate'));
+ const dup=checks[1].violations.find(v=>v.rule==='duplicate');assert.match(dup.text,/Shared уже в составе/);
+ assert.equal(verdict(checks[1]).kind,'violation');assert.match(dup.text,/только в одной команде/);
 });

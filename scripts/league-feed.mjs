@@ -8,10 +8,10 @@
 // chat must not share a bot or a chat with the personal advice). Without them nothing is
 // marked as posted, so the feed starts complete once the chat is set.
 import fs from 'node:fs';
-import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
+import {seasonRosters,allTransfers,withMarket,bank,unreported} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
-import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST,isFreeTransfer} from '../src/rules.js';
-import {HEADINGS,remark,circumstances,joke,signature} from './zak-voice.mjs';
+import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST,isFreeTransfer,FBL_TRANSFERS} from '../src/rules.js';
+import {HEADINGS,remarkLines,circumstances,joke,signature} from './zak-voice.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow,plainText,CAPTION_LIMIT} from './telegram-format.mjs';
@@ -37,6 +37,8 @@ const day=d=>`${d.slice(8,10)}.${d.slice(5,7)}.${d.slice(0,4)}`,ddmm=d=>`${d.sli
 const name=id=>{const p=byId.get(id);return live.players?.[p?.sportsId]?.fullName||p?.name||String(id);};
 const names=list=>list.map(p=>esc(name(p.id))).join(', ');
 const key=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,done=new Set(state.reported||[]);
+// Deals not yet published, matched by their sale and purchase (Sports.ru re-pairs a day's rows).
+const pending=unreported(transfers,[...done]);
 // Transfers grouped by team and day in the order they happened; a group's place in that order is its protocol number.
 // The league chat starts at leagueFeed.since: transfers the watcher saw before it (or never timed) get no protocol and
 // no number. A preview shows every transfer since the draft.
@@ -53,6 +55,7 @@ function checkLines(c,moves){
  return [`├ Новичок в составе — ${bad('rookie')?'❌ нет':'✅ '+names(c.rookies)}`,`├ Белое правило — ${white}`,
   `├ Лимит клуба NBA (2) — ${bad('club')?'❌ '+esc(c.violations.find(v=>v.rule==='club').text):'✅'}`,
   moves.every(m=>isFreeTransfer(m))?'├ Лимит трансферов — ✅ предсезонье, без лимита':`├ Лимит трансферов — ${bad('transfers')?'❌':'✅'} ${t.used}/${t.limit}`,
+  `├ Уникальность игроков — ${bad('duplicate')?'❌ '+c.violations.filter(r=>r.rule==='duplicate').map(r=>esc(r.text.split(' — ')[0])).join('; '):'✅'}`,
   `└ Время сделки (${TRANSFER_HOURS.from}–${TRANSFER_HOURS.to} МСК) — ${[...new Set(moves.map(m=>{const x=transferTime(m);return `${{ok:'✅',breach:'❌',doubt:'⏳',unknown:'❔'}[x.state]} ${timeLabel(x)}`;}))].join(', ')}`];
 }
 // The protocol's verdict (an obvious breach summons the lawyer, a doubt asks for his check, otherwise he approves) and
@@ -61,7 +64,7 @@ function reasons(c,blame=new Map()){
  const v=verdict(c);
  // Short names in the conclusion: the check lines above already carry the details.
  const label=r=>r.rule==='rookie'?'правило новичка':r.rule==='white'?(c.whiteState==='sold'?'белое правило — продан засчитываемый игрок, замена не отмечена':'белое правило')
-  :r.rule==='club'?'лимит клуба NBA':r.rule==='transfers'?'лимит трансферов':r.rule==='time'?(r.certain?'время сделки — вне 08:00–22:00 МСК':'время сделки — на границе 08:00–22:00 МСК'):esc(r.text);
+  :r.rule==='club'?'лимит клуба NBA':r.rule==='transfers'?'лимит трансферов':r.rule==='duplicate'?'уникальность игроков':r.rule==='time'?(r.certain?'время сделки — вне 08:00–22:00 МСК':'время сделки — на границе 08:00–22:00 МСК'):esc(r.text);
  const doubts=[...v.doubts.map(label),...(v.unmarked?[`белое правило — нет решения лиги по ${names(c.undecided)||'игрокам состава'}`]:[])];
  // Which deal of the package broke it, when there are several.
  const by=r=>blame.has(r.rule)?`${label(r)} (${blame.get(r.rule)})`:label(r);
@@ -98,9 +101,10 @@ function rulesOf(v,c){
 // His remark, then the extra lines (circumstances, a joke), which are dropped again when the protocol would not fit
 // under his photo (the caption holds 1024 visible characters, including the sending time).
 function voice(v,c,moves,team,money,t){
- const seed=key(moves[0]),lines=[remark(v.kind,rulesOf(v,c),Boolean(watched(team)),seed)];
+ const seed=key(moves[0]),[main,...more]=remarkLines(v.kind,rulesOf(v,c),Boolean(watched(team)),seed);
  const extra=[circumstances({left:t.left,used:t.used,bank:money,moves:moves.length,maxPrice:Math.max(...moves.map(m=>m.inPrice||0))},seed),joke(seed)].filter(Boolean);
- return [...lines,...extra.map(l=>`<i>${esc(l)}</i>`)];
+ // Dropped from the end when too long: the joke first, then the circumstances, then the second remark line.
+ return [main,...more,...extra.map(l=>`<i>${esc(l)}</i>`)];
 }
 // Protocol numbers count posted messages (kept in the state): a day's package is posted again, with a new number,
 // when the same team adds a deal that day. Before the count was kept, every reported team-day was one protocol.
@@ -109,10 +113,10 @@ let number=0;
 for(const idx of groups.values()){
  number++;
  const moves=idx.map(i=>transfers[i]);
- if(preview?number<=firstPreview:moves.every(m=>done.has(key(m))))continue;
+ if(preview?number<=firstPreview:moves.every(m=>!pending.has(m)))continue;
  // Only the deals not yet published are shown (a day's earlier deals had their protocol); the rules are checked on the
  // roster after the whole day's package, since Sports.ru confirms a day's transfers as one.
- const news=preview?moves:moves.filter(m=>!done.has(key(m))),fresh=m=>news.includes(m);
+ const news=preview?moves:moves.filter(m=>pending.has(m)),fresh=m=>news.includes(m);
  const last=idx[idx.length-1],x=moves[0],after=transfers.slice(0,last+1),rosters=seasonRosters(after);
  const all=checkRules({rosters,byId,transfers:after,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:moves[moves.length-1].date,clubOf,nameOf:p=>p&&name(p.id)})[x.team];
  // The hours are judged per transfer: this protocol carries those of its own deals, earlier ones had theirs.
@@ -134,7 +138,7 @@ for(const idx of groups.values()){
  // Each player is marked when he counts for a rule: «новичок» (rookie) and «белый» (the league's white list).
  const whiteSet=new Set((league.white||[]).map(String));
  const who=id=>`${esc(name(id))}${byId.get(id)?.isRookie===true?' <i>[новичок]</i>':''}${whiteSet.has(String(id))?' <i>[белый]</i>':''}`;
- const ruleName={rookie:'правило новичка',white:'белое правило',club:'лимит клуба NBA',transfers:'лимит трансферов',time:'время сделки'};
+ const ruleName={rookie:'правило новичка',white:'белое правило',club:'лимит клуба NBA',transfers:'лимит трансферов',time:'время сделки',duplicate:'уникальность игроков'};
  const deals=moves.map((m,i)=>[m,i]).filter(([m])=>fresh(m)).map(([m,i],n)=>`<b>Сделка${news.length>1?' '+(n+1):''}:</b> ${who(m.outId)} (${m.outPrice}) ⟶ ${who(m.inId)} (${m.inPrice})${broke.has(i)?` — ❌ ${broke.get(i).map(r=>ruleName[r]).join(', ')}`:''}${doubted.has(i)?` — ⏳ ${doubted.get(i).map(r=>ruleName[r]).join(', ')}`:''}`);
  // A breach left by the day's earlier deals that the new ones repair is said so.
  const prior=idx.filter(i=>!fresh(transfers[i])).pop();
@@ -147,7 +151,7 @@ for(const idx of groups.values()){
  const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team,v),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(news),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,repaired,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,
-  news.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит FBL (${t.limit} в неделю) — с первой игры сезона`
+  news.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит ${t.limit}/нед. — с ${moscow(FBL_TRANSFERS.countFrom).replace(/\.\d{4},/,',')}`
    :`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c,news),'',CONCLUSION[v.kind](v.items,v.doubts),'',
   // Зак Онн's own word on it (the facts above are the rules check's): his remark on the verdict, then, while the
@@ -158,6 +162,6 @@ for(const idx of groups.values()){
  let fitted=text;
  for(const l of voice(v,c,news,x.team,money,t).slice(1).reverse())
   if(plainText(fitted).length+45>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
- if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
+ if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);}issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');
