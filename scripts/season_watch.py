@@ -27,8 +27,17 @@ def changed_teams(snapshot,fresh):
     """Teams whose journal differs from the published snapshot. A shorter journal is a failed parse, not a reversal."""
     old=snapshot.get('teams',{})
     # The stored rows carry seenAt (when the watcher first saw them); Sports.ru rows do not.
-    bare=lambda rows:[{k:v for k,v in r.items() if k!='seenAt'} for r in rows or []]
+    bare=lambda rows:[{k:v for k,v in r.items() if k not in ('seenAt','seenAfter')} for r in rows or []]
     return [t for t,rows in fresh.items() if bare(rows)!=bare(old.get(t,{}).get('journal')) and len(rows)>=len(old.get(t,{}).get('journal') or [])]
+def mark_read(snapshot,fresh):
+    """Remember when each journal was last read unchanged: a row that appears later was made after that read, which
+    bounds the time of the transfer (FBL allows transfers only from 08:00 to 22:00 Moscow time)."""
+    bare=lambda rows:[{k:v for k,v in r.items() if k not in ('seenAt','seenAfter')} for r in rows or []]
+    stamp=now()
+    for t,rows in fresh.items():
+        entry=snapshot.get('teams',{}).get(t)
+        if entry and bare(rows)==bare(entry.get('journal')):entry['journalReadAt']=stamp
+    return snapshot
 def apply(snapshot,fresh,teams,config):
     for t in teams:
         entry=dict(snapshot.setdefault('teams',{}).get(t) or {'sportsTeamId':config[t]})
@@ -39,7 +48,9 @@ def apply(snapshot,fresh,teams,config):
             if roster:entry['roster']=sports.parse_roster(roster)
         except Exception as e:  # noqa: BLE001
             print(f'team {t}: {e}',flush=True)
-        entry['journal']=sports.stamp_journal((snapshot['teams'].get(t) or {}).get('journal'),fresh[t]);snapshot['teams'][t]=entry
+        stamp=now();previous=snapshot['teams'].get(t) or {}
+        entry['journal']=sports.stamp_journal(previous.get('journal'),fresh[t],now=stamp,after=previous.get('journalReadAt'))
+        entry['journalReadAt']=stamp;snapshot['teams'][t]=entry
     snapshot['teamsCheckedAt']=now()
     return snapshot
 
@@ -115,11 +126,14 @@ def main():
             next_full=time.time()+(args.full_every if ok else 10)*60
         elif w.live.exists():
             snapshot=json.loads(w.live.read_text(encoding='utf-8'))
-            fresh=journals(config);teams=changed_teams(snapshot,fresh)
+            fresh=journals(config);teams=changed_teams(snapshot,fresh);mark_read(snapshot,{t:r for t,r in fresh.items() if t not in teams})
             if teams:
                 print(f'{now()} new journal rows: teams {teams}',flush=True)
                 w.live.write_text(json.dumps(apply(snapshot,fresh,teams,config),ensure_ascii=False,separators=(',',':')),encoding='utf-8')
                 w.notify();w.publish(f'FBL transfer journals {now()} (teams {",".join(teams)})')
+            else:
+                # Nothing new: only the time of this read is kept (locally; it is published with the next change).
+                w.live.write_text(json.dumps(snapshot,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
         time.sleep(max(0,min(args.every,stop-time.time())))
 
 if __name__=='__main__':main()

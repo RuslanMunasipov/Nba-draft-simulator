@@ -1,6 +1,6 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
-import {fblTransfers,checkRules,appeal,LAWYER} from './rules.js';
+import {fblTransfers,checkRules,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
 import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from './season.js';
 import {fetchLiveGames,moscowDate} from './live.js';
 
@@ -390,7 +390,7 @@ function whiteList(){const shared=(league.white||[]).map(String),pending=readJso
 function rulesView(ctx){
  const white=whiteList(),pending=readJson('fbl-white-pending',null),out=[];
  const checks=checkRules({rosters:ctx.rosters,byId,transfers:ctx.transfers,white,checked:(league.whiteChecked||[]).map(String),today:ctx.today,clubOf});
- out.push(el('h3','Правила лиги'),el('p',`Минимум один новичок (rookie) · минимум один игрок по «белому правилу» (засчитывается по отцу; кто засчитывается — решает лига) · не больше двух игроков одного клуба NBA · не больше ${checks[0].transfers.limit} трансферов за неделю лиги (пн–вс; первая неделя — от драфта до ${ddmm(checks[0].transfers.week.end)}, предсезонные трансферы входят в неё). Нарушения разбирает ${LAWYER.name}, ${LAWYER.role}.`,'muted'));
+ out.push(el('h3','Правила лиги'),el('p',`Минимум один новичок (rookie) · минимум один игрок по «белому правилу» (засчитывается по отцу; кто засчитывается — решает лига) · не больше двух игроков одного клуба NBA · не больше ${checks[0].transfers.limit} трансферов за неделю лиги (пн–вс; первая неделя — от драфта до ${ddmm(checks[0].transfers.week.end)}, предсезонные трансферы входят в неё) · трансферы только с ${TRANSFER_HOURS.from} до ${TRANSFER_HOURS.to} МСК (время сделки — по наблюдателю, с точностью до его чтения журнала). Нарушения разбирает ${LAWYER.name}, ${LAWYER.role}.`,'muted'));
  const unmarked=checks.filter(c=>c.whiteState==='unmarked').length;
  if(unmarked)out.push(el('p',`⚠ Белое правило: выбери по одному игроку у ${unmarked} команд — кто у них закрывает правило. Дальше приложение само следит за продажами этих игроков.`,'warning'));
  const marks=new Set(white),pick=(c,value)=>{for(const p of c.roster)marks.delete(String(p.id));marks.delete(`none:${c.team}`);if(value)marks.add(value);

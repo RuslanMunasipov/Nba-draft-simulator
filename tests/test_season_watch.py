@@ -1,5 +1,5 @@
 import unittest
-from scripts.season_watch import changed_teams
+from scripts.season_watch import changed_teams,mark_read
 row=lambda n:{'date':'2026-10-19','buy':{'name':n,'price':1500},'sell':{'name':'X','price':1500}}
 class WatchTests(unittest.TestCase):
  def test_new_row_is_detected(self):
@@ -20,3 +20,7 @@ class WatchTests(unittest.TestCase):
    for ok in [False,False,False,False,False,True,True]:w.collected(ok)
   finally:sw.telegram=real
   self.assertEqual(len(sent),2);self.assertIn('⚠️',sent[0]);self.assertIn('✅',sent[1])
+ def test_an_unchanged_read_is_remembered_and_a_changed_one_is_not(self):
+  snapshot={'teams':{'0':{'journal':[{**row('A'),'seenAt':'x','seenAfter':'y'}]},'1':{'journal':[row('A')]}}}
+  mark_read(snapshot,{'0':[row('A')],'1':[row('A'),row('B')]})
+  self.assertIn('journalReadAt',snapshot['teams']['0']);self.assertNotIn('journalReadAt',snapshot['teams']['1'])
