@@ -173,6 +173,64 @@ def parse_games(page, season_start='2026-10-01'):
     return games
 
 
+def parse_score(text):
+    """A calendar score as two numbers in the order written ('112:104', an overtime mark ignored); None before the game."""
+    m = re.search(r'(\d+)\s*:\s*(\d+)', text or '')
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def score_orientation(clubs):
+    """How club calendars write a score: 'own' (the club's points first) or 'home' (the home side first). Each finished
+    game is in both clubs' calendars: written the same way in both it is home-first, mirrored it is own-first. None until
+    games are played."""
+    votes = {'own': 0, 'home': 0}
+    for club, games in clubs.items():
+        for g in games:
+            mine = parse_score(g.get('score'))
+            other = next((x for x in clubs.get(g['opponent'], []) if x['date'] == g['date'] and x['opponent'] == club), None)
+            theirs = parse_score((other or {}).get('score'))
+            if not mine or not theirs or mine[0] == mine[1]:
+                continue
+            if theirs == mine[::-1]:
+                votes['own'] += 1
+            elif theirs == mine:
+                votes['home'] += 1
+    return max(votes, key=votes.get) if any(votes.values()) else None
+
+
+def result_bonus(home, won):
+    """Sports.ru's team result bonus: +2/+3 for a home/away win, -3/-2 for a home/away loss."""
+    return (2 if home else 3) if won else (-3 if home else -2)
+
+
+def fbl_points(players, clubs):
+    """FBL points of every played game. FBL scores on Yahoo with Sports.ru's formula but without the team result bonus
+    (league owner, 20.10.2026): Sports.ru's points of the game keep their own minutes rule, minus the bonus of the result,
+    read from the score in the club's calendar (the club that met that opponent that day, home or away as the game row
+    says, so a traded player is matched too). Sports.ru's own number stays as sportsPoints; a game whose result is not in
+    the calendars yet keeps Sports.ru's number, without a result."""
+    orientation = score_orientation(clubs)
+    index = {(g['date'], g['opponent'], bool(g.get('home'))): g for games in clubs.values() for g in games}
+    scored = 0
+    for info in players.values():
+        for g in info.get('games') or []:
+            if not g.get('played'):
+                continue
+            base = g.get('sportsPoints', g.get('points'))
+            score = parse_score((index.get((g['date'], g.get('opponent'), bool(g.get('home')))) or {}).get('score'))
+            if orientation is None or not score or score[0] == score[1]:
+                g['points'] = base
+                g.pop('result', None)
+                continue
+            a, b = score
+            won = a > b if orientation == 'own' or g.get('home') else b > a
+            g['sportsPoints'] = base
+            g['points'] = round(base - result_bonus(bool(g.get('home')), won), 2)
+            g['result'] = 'W' if won else 'L'
+            scored += 1
+    return orientation, scored
+
+
 def collect(player):
     pid = player['sportsId']
     page = fetch(BASE_URL.format(t=TOURNAMENT, pid=pid))
@@ -515,9 +573,12 @@ def main():
         raise SystemExit(f'Only {collected:.0%} of {len(pool)} Sports.ru players collected and {priced:.0%} with a price and position; '
                          'refusing to publish.')
     out_injuries = espn_injuries()
+    orientation, scored = fbl_points(players, clubs)
     out = {'source': BASE_URL.format(t=TOURNAMENT, pid='<sportsId>'), 'season': SEASON_LABEL,
            'collectedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-           'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'teams': teams, 'errors': errors}
+           'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'teams': teams, 'errors': errors,
+           # Game points are FBL's (Sports.ru's minus the team result bonus); sportsPoints keeps Sports.ru's.
+           'gamePoints': {'formula': 'FBL: Sports.ru without the team result bonus', 'scoreOrientation': orientation, 'gamesWithResult': scored}}
     if out_injuries:
         out['espnInjuries'] = out_injuries
         archive = OUT.parent / 'injury-history.json'
