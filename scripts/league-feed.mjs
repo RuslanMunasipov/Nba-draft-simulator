@@ -11,10 +11,10 @@ import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
 import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST} from '../src/rules.js';
-import {HEADINGS,remark,signature} from './zak-voice.mjs';
+import {HEADINGS,remark,circumstances,joke,signature} from './zak-voice.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
-import {esc,message,sender,moscow} from './telegram-format.mjs';
+import {esc,message,sender,moscow,plainText,CAPTION_LIMIT} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -84,6 +84,19 @@ const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> �
 const firstPreview=groups.size-preview;
 // When the transfer happened: the watcher's first sight of the journal row (within a minute), in Moscow time.
 const when=moves=>{const at=moves.map(m=>m.seenAt).filter(Boolean).sort().pop();return at?`🕒 Трансфер зафиксирован: ${moscow(at)}`:'🕒 Время трансфера: не зафиксировано (до начала наблюдения)';};
+// The rules his remark speaks to: the broken ones for a breach, the doubtful ones for a check.
+function rulesOf(v,c){
+ if(v.kind==='violation')return [...new Set(c.violations.filter(r=>!(r.rule==='white'&&c.whiteState==='sold')&&(r.rule!=='time'||r.certain)).map(r=>r.rule))];
+ if(v.kind==='check')return [...c.violations.filter(r=>(r.rule==='time'&&!r.certain)||(r.rule==='white'&&c.whiteState==='sold')).map(r=>r.rule),...(c.whiteState==='unmarked'?['unmarked']:[])];
+ return [];
+}
+// His remark, then the extra lines (circumstances, a joke), which are dropped again when the protocol would not fit
+// under his photo (the caption holds 1024 visible characters, including the sending time).
+function voice(v,c,moves,team,money,t){
+ const seed=key(moves[0]),lines=[remark(v.kind,rulesOf(v,c),Boolean(watched(team)),seed)];
+ const extra=[circumstances({left:t.left,used:t.used,bank:money,moves:moves.length,maxPrice:Math.max(...moves.map(m=>m.inPrice||0))},seed),joke(seed)].filter(Boolean);
+ return [...lines,...extra.map(l=>`<i>${esc(l)}</i>`)];
+}
 let number=0;
 for(const idx of groups.values()){
  number++;
@@ -101,9 +114,14 @@ for(const idx of groups.values()){
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c,moves),'',CONCLUSION[v.kind](v.items,v.doubts),'',
-  // Зак Онн's own word on it, then his signature (the facts above are the rules check's).
-  remark(v.kind,[...new Set(c.violations.filter(r=>v.kind==='violation'&&!(r.rule==='white'&&c.whiteState==='sold')&&(r.rule!=='time'||r.certain)).map(r=>r.rule))],Boolean(watched(x.team)),key(moves[0])),
+  // Зак Онн's own word on it (the facts above are the rules check's): his remark on the verdict, then, while the
+  // protocol still fits under his photo, a word on the circumstances and now and then a joke; then his signature.
+  ...voice(v,c,moves,x.team,money,t),
   v.kind==='approved'?`<i>✅ Одобрено. ${signature(key(moves[0]))}</i>`:`<i>${signature(key(moves[0]))}</i>`);
- if(await send(text,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
+ // Extra lines (circumstances, joke) go first when the protocol would not fit under the photo.
+ let fitted=text;
+ for(const l of voice(v,c,moves,x.team,money,t).slice(1).reverse())
+  if([...plainText(fitted)].length+40>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
+ if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');
