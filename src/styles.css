@@ -615,3 +615,7 @@ body[data-tab=season] #startup-banner.notice--error{display:none}
 .standings-table th.team{white-space:normal;font-size:var(--fs-sm);font-weight:700;color:var(--text);letter-spacing:0}
 .standings-table td.team{min-width:120px}
 .sp-injury-item>button{justify-self:start;margin-top:2px}
+.sp-games-controls{align-items:end}
+.sp-controls label.check{display:inline-flex;align-items:center;gap:10px;min-height:var(--control-h);font-size:var(--fs-sm);color:var(--text)}
+.sp-controls label.check input[type=checkbox]{width:22px;min-width:22px;flex:none}
+.sp-day li small.team-players{color:var(--accent-text);font-weight:600}
