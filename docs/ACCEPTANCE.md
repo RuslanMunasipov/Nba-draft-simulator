@@ -206,3 +206,4 @@ Do not convert historical averages into a season prediction, invent missing pric
 - A breach or a doubt too old to post (`maxAgeMinutes`) is told to the owner once by the personal bot («🔕 Не опубликовано в лиге»), never posted late in the league chat.
 - A player new to the Sports.ru market is known from the team's roster until the next full collection lists him, so his purchase is posted at once.
 - The Actions log is public: Telegram usernames in printed messages are masked (`@•••`).
+- Not white (league owner, 20.10): Asa Newell, Gui Santos, Malevy Leons, Zaccharie Risacher, Isaiah Joe, Chaz Lanier, Ben Sheppard, Tyrese Proctor, Tristan da Silva, Dennis Schröder — off the white-rule list (100 left), still decided. No FBL roster held any of them.
