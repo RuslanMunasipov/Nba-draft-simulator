@@ -93,5 +93,12 @@
   "managers": {
     "source": "League owner, 2026-10-20: the Telegram username of each team's general manager (team index as in src/teams.js), kept only encrypted in data/telegram-handles.enc.json.",
     "note": "The league feed tags the team's GM on a breach or a check of its roster."
-  }
+  },
+  "watchlist": [
+    {
+      "team": 7,
+      "since": "2026-10-20",
+      "reason": "Два нарушения до начала сезона: белое правило на драфте (18.10) и трансфер после 22:00 МСК (19.10). Лига простила, Зак Онн взял команду под прицел."
+    }
+  ]
 }
