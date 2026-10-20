@@ -23,9 +23,9 @@ const state=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8'
 const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p]));
 const {transfers}=allTransfers(players,live,league);
 // The league feed posts only through the league's own bot into the league's own chat. The personal bot or chat in its
-// place is refused, so no message ever crosses between the two (a preview to the personal chat is the one exception).
+// place is refused, even for a test, so no league message ever reaches the personal chat.
 const leagueToken=process.env.LEAGUE_TELEGRAM_BOT_TOKEN,leagueChat=process.env.LEAGUE_TELEGRAM_CHAT_ID;
-if(!Number(process.env.LEAGUE_FEED_PREVIEW)&&leagueToken&&(leagueToken===process.env.TELEGRAM_BOT_TOKEN||(leagueChat&&leagueChat===process.env.TELEGRAM_CHAT_ID))){
+if(leagueToken&&(leagueToken===process.env.TELEGRAM_BOT_TOKEN||(leagueChat&&leagueChat===process.env.TELEGRAM_CHAT_ID))){
  console.error('League feed refused: the league bot and chat must differ from the personal ones.');process.exit(1);}
 const {configured,send}=sender(leagueToken,leagueChat);
 const clubOf=p=>live.players?.[p.sportsId]?.club||p.sportsClub;
@@ -65,7 +65,7 @@ const HEAD={violation:['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`�
 const CONCLUSION={violation:items=>`🔏 <b>Заключение:</b> выявлено нарушение — ${items.join('; ')}. Юрист лиги ${esc(LAWYER.name)} вызван для расследования.`,
  check:items=>`🔏 <b>Заключение:</b> явных нарушений нет, требуется проверка — ${items.join('; ')}. Состав передан юристу лиги.`,
  approved:()=>'🔏 <b>Заключение:</b> состав соответствует регламенту.'};
-// LEAGUE_FEED_PREVIEW=N: post the last N protocols as a test (wherever the chat points), remember nothing.
+// LEAGUE_FEED_PREVIEW=N: the last N protocols as a test (printed, or posted to the league chat), remembering nothing.
 const preview=Number(process.env.LEAGUE_FEED_PREVIEW)||0,firstPreview=groups.size-preview;
 // When the transfer happened: the watcher's first sight of the journal row (within a minute), in Moscow time.
 const when=moves=>{const at=moves.map(m=>m.seenAt).filter(Boolean).sort().pop();return at?`🕒 Трансфер зафиксирован: ${moscow(at)}`:'🕒 Время трансфера: не зафиксировано (до начала наблюдения)';};
