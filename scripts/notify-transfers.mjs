@@ -130,7 +130,13 @@ for(const x of rival){
 }
 // League rules (rookie, «белое правило», two per NBA club, the FBL transfer limit): each new breach by another team is
 // reported once, with the appeal to the league's lawyer ready to forward to the league.
-const checks=checkRules({rosters:ctx.rosters,byId,transfers,white:league.white||[],today,clubOf:p=>live.players?.[p.sportsId]?.club||p.sportsClub});
+const checks=checkRules({rosters:ctx.rosters,byId,transfers,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today,clubOf:p=>live.players?.[p.sportsId]?.club||p.sportsClub});
+// A player bought by a team without a counting player, on whom the league has not decided: ask for the decision once.
+for(const c of checks.filter(c=>c.whiteState!=='ok'))for(const p of c.undecided){
+ const key=`undecided:${c.team}:${p.id}`;if((previous.rules||[]).includes(key))continue;
+ await report(message(`❔ <b>Белое правило: ${esc(c.label)}</b>`,`В составе ${esc(p.name)}, по нему нет решения лиги, а засчитываемого игрока у команды нет.`,'Внеси решение заявкой «FBL: белое правило» — и проверка закончится сама.'),
+  ()=>{state.rules=[...new Set([...(state.rules||[]),key])];});
+}
 for(const c of checks.filter(c=>c.team!==team)){
  const freshRules=c.violations.filter(v=>!(previous.rules||[]).includes(v.key));if(!freshRules.length)continue;
  await report(message(`⚖️ <b>Нарушение правил: ${esc(c.label)}</b>`,...freshRules.map(v=>'• '+esc(v.text)),'','Обращение к юристу лиги — перешли в лигу:',`<pre>${esc(appeal(c,today,team))}</pre>`),

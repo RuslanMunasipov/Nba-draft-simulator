@@ -38,3 +38,13 @@ test('selling the only marked white-rule player is reported with who came in',()
  // Marking the newcomer settles it.
  assert.equal(checkRules({rosters:[[1,6],...Array(7).fill([])],byId,transfers,white:[3,6],today:'2026-10-27'})[0].whiteState,'ok');
 });
+test('with every decision on record, a team decided without a counting player is a breach and an undecided one is listed',()=>{
+ const byId=new Map([1,2,3,4].map(id=>[id,{id,name:'P'+id,isRookie:id===1}]));
+ const rosters=[[1,2],[3,4],...Array(6).fill([])];
+ const c=checkRules({rosters,byId,white:[2],checked:['1','2','3'],today:'2026-10-20'});
+ assert.equal(c[0].whiteState,'ok');assert.deepEqual(c[0].undecided,[]);
+ // Team 1: player 3 decided (not counting), player 4 undecided: not a breach yet, 4 is listed.
+ assert.equal(c[1].whiteState,'unmarked');assert.deepEqual(c[1].undecided.map(p=>p.id),[4]);
+ const full=checkRules({rosters,byId,white:[2],checked:['1','2','3','4'],today:'2026-10-20'})[1];
+ assert.equal(full.whiteState,'none');assert.ok(full.violations.some(v=>v.rule==='white'));
+});
