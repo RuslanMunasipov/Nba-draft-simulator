@@ -55,7 +55,7 @@ export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=
   // Rookies are only reserved when they run short; otherwise a rookie is taken when his forecast earns it (the completion
   // check below keeps a legal rookie slot). The 2026 FBL draft took its rookies between picks 32 and 79.
   if(rookies.length<=teamsNeedingRookie)candidates=needsRookie?rookies:candidates.filter(p=>p.isRookie!==true);
-  if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверьте позиции, новичков и справочник');
+  if(!candidates.length) throw Error('Нет допустимых игроков для бота: проверь позиции, rookie и базу игроков');
   // Only explicitly supplied projections are usable. Never synthesize fantasy points.
   const allowed=new Set(candidates.map(p=>p.id));
   const ranked=(ranking||rankingFor(state,style)).filter(p=>allowed.has(p.id));

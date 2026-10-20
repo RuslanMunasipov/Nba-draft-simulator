@@ -1,8 +1,9 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
-import {fblTransfers,checkRules,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
+import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
 import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from './season.js';
 import {fetchLiveGames,moscowDate} from './live.js';
+import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 
 const $=id=>document.getElementById(id);
 const REPO='RuslanMunasipov/Nba-draft-simulator';
@@ -10,18 +11,21 @@ const LIVE_URLS=[`https://raw.githubusercontent.com/${REPO}/data/season-live/spo
 const LEAGUE_URL=`https://raw.githubusercontent.com/${REPO}/main/data/fbl-league.json`;
 const INJURY_URL='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries';
 const SPORTS_URL=id=>`https://www.sports.ru/fantasy/basketball/player/info/150/${id}.html`;
+const TEAM_URL=id=>`https://www.sports.ru/fantasy/basketball/team/${id}.html`;
 const VIEWS=[['overview','Обзор'],['teams','Команды'],['transfers','Трансферы'],['injuries','Травмы'],['games','Матчи'],['rules','Правила']];
-const fmt=n=>Math.round(n).toLocaleString('ru-RU'),signed=n=>(n>=0?'+':'−')+fmt(Math.abs(n));
-const ddmm=d=>d?`${d.slice(8,10)}.${d.slice(5,7)}`:'';
+const PERIOD={week:'До вс',month:'4 нед.',season:'Сезон'},PERIOD_LONG={week:'до конца недели',month:'за 4 недели',season:'до конца сезона'};
 const addDaysIso=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
 const symbol=t=>teamName(t).split(' ')[0];
 function el(tag,value,cls){const e=document.createElement(tag);if(value!=null)e.textContent=value;if(cls)e.className=cls;return e;}
 function link(textValue,href,cls){const a=el('a',textValue,cls);a.href=href;a.target='_blank';a.rel='noopener';return a;}
+function button(label,onclick,cls='btn-secondary btn-sm'){const b=el('button',label,cls);b.type='button';b.onclick=onclick;return b;}
 
 let basePlayers=[],players=[],byId=new Map(),live=null,injuries=new Map(),league={transfers:[],banks:{}},games=[],card=()=>el('div');
-let notes={live:'',injuries:'',games:'',league:''},loading=null,liveTimer=null;
+// What each source did on the last refresh: the screens say so instead of showing zeros or "no injuries".
+let src={live:'idle',injuries:'idle',games:'idle',injuriesAt:null},loading=null,attempted=false,liveTimer=null,dbState='loading',dbRetry=null;
 let view=readStored('fbl-season-view')||'overview',team=Number(readStored('fbl-season-team')||0),horizon=readStored('fbl-season-horizon')||'month';
-let replacing=null,query='',onlyFbl=true;
+let replacing=null,query='',injuryScope='league',onlyMine=true;
+const openRows=new Set();
 const tab=()=>document.body.dataset.tab;
 const readJson=(key,fallback)=>{try{return JSON.parse(readStored(key)||'null')??fallback;}catch{return fallback;}};
 // Transfers recorded on this device but not yet confirmed in the shared league log.
@@ -53,31 +57,32 @@ function issueUrl(title,payload){
  const body='Запись для общего журнала FBL. Нажми «Submit new issue» — бот проверит правила и добавит.\n\n```json\n'+JSON.stringify(payload)+'\n```';
  return `https://github.com/${REPO}/issues/new?title=${encodeURIComponent('FBL: '+title)}&body=${encodeURIComponent(body)}`;
 }
+const teamOption=t=>teamName(t)+(t===0?' — моя':'');
+const liveAgeHours=()=>live?(Date.now()-Date.parse(live.collectedAt))/36e5:0;
 
+// ---------- Data ----------
 async function fetchJson(url,opts){const r=await fetch(url,opts);if(!r.ok)throw Error(String(r.status));return r.json();}
 async function fetchLive(){for(const url of LIVE_URLS){try{const d=await fetchJson(url,{cache:'no-cache'});if(d?.players&&d?.clubs)return d;}catch{}}return null;}
-const stamp=d=>new Date(d).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 export async function refreshSeason(){
  if(loading)return loading;
- $('season-status').textContent='Обновляю Sports.ru, травмы и матчи…';
+ const refresh=$('season-refresh');refresh.disabled=true;refresh.setAttribute('aria-busy','true');
  loading=Promise.all([fetchLive(),fetchJson(INJURY_URL).catch(()=>null),fetchJson(LEAGUE_URL,{cache:'no-cache'}).catch(()=>null)]).then(async([l,inj,lg])=>{
-  // Older than a missed collection cycle or two: say so instead of showing old prices and points as current.
-  if(l){live=l;const age=(Date.now()-Date.parse(l.collectedAt))/36e5;notes.live=`Sports.ru ${stamp(l.collectedAt)}${age>6?` ⚠️ данные устарели на ${Math.floor(age)} ч`:''}`;addMarket();}else notes.live='Sports.ru недоступен, цены драфта';
-  if(inj){injuries=parseInjuries(inj);notes.injuries=`травмы ESPN ${stamp(Date.now())}`;}
-  else if(live?.espnInjuries){injuries=parseInjuries(live.espnInjuries);notes.injuries=`травмы ESPN ${stamp(live.espnInjuries.fetchedAt)}`;}
-  else notes.injuries='травмы недоступны';
+  if(l){live=l;src.live='ok';addMarket();}else src.live=live?'stale':'error';
+  if(inj){injuries=parseInjuries(inj);src.injuries='ok';src.injuriesAt=new Date().toISOString();}
+  else if(live?.espnInjuries){injuries=parseInjuries(live.espnInjuries);src.injuries='ok';src.injuriesAt=live.espnInjuries.fetchedAt;}
+  else src.injuries=injuries.size?'stale':'error';
   if(lg?.transfers)league=lg;
-  const connected=merged().connected.size;notes.league=`команд подключено: ${connected}/8`;
   await refreshGames();
- }).finally(()=>{loading=null;renderSeason();});
+ }).finally(()=>{loading=null;attempted=true;refresh.disabled=false;refresh.removeAttribute('aria-busy');renderSeason();});
+ if(tab()==='season'&&!live)renderSeason(true);else $('season-status').textContent='Обновляю данные…';
  return loading;
 }
 async function refreshGames(){
  const ctx=players.length?context():null,wanted=ctx?new Set(ctx.rosters.flat().map(id=>byId.get(id)?.team).filter(Boolean)):null;
- try{games=await fetchLiveGames(wanted);notes.games=`матчи ESPN ${stamp(Date.now())}`;}catch{notes.games='матчи ESPN недоступны';}
+ try{games=await fetchLiveGames(wanted);src.games=games.length?'ok':'empty';}catch{src.games='error';}
  // Poll once a minute while a game is running and the season page is open.
  clearTimeout(liveTimer);
- if(games.some(g=>g.state==='in'))liveTimer=setTimeout(async()=>{if(tab()==='season'&&document.visibilityState!=='hidden'){await refreshGames();renderSeason();}},60000);
+ if(games.some(g=>g.state==='in'))liveTimer=setTimeout(async()=>{if(tab()==='season'&&document.visibilityState!=='hidden'&&!document.activeElement?.closest?.('#season-body input')){await refreshGames();renderSeason();}},60000);
 }
 export function setSeasonPlayers(list,cardFn){
  if(cardFn)card=cardFn;
@@ -85,10 +90,21 @@ export function setSeasonPlayers(list,cardFn){
  basePlayers=list;addMarket();
  if(tab()==='season')renderSeason();
 }
+// The draft tab reports how its player database is doing; without it the season tab has nothing to show.
+export function setSeasonDatabaseState(state,retry=null){dbState=state;dbRetry=retry;if(tab()==='season'&&!players.length)renderSeason();}
 // Database players plus Sports.ru market players the database does not know yet.
 function addMarket(){if(!basePlayers.length)return;players=withMarket(basePlayers,live);byId=new Map(players.map(p=>[p.id,p]));}
 function currentWeek(today){const w=weekOf(today,gameWeeks(live));return w?.n?w:null;}
-function injuryText(p){const i=injuries.get(String(p.espnId));if(!i)return '';return i.status+(i.fantasyStatus==='OFS'?' · вне сезона':i.returnDate?` до ${ddmm(i.returnDate)}`:'');}
+// ESPN's English injury words, in Russian. A return date is shown only for players who are out, never for day-to-day.
+const BODY={hamstring:'бицепс бедра',knee:'колено',ankle:'голеностоп',foot:'стопа',back:'спина',groin:'пах',shoulder:'плечо',hip:'бедро',calf:'икроножная',achilles:'ахиллово сухожилие',wrist:'запястье',hand:'кисть',finger:'палец',thumb:'большой палец',toe:'палец стопы',elbow:'локоть',illness:'болезнь',concussion:'сотрясение',personal:'личные причины',rest:'отдых',neck:'шея',quadriceps:'квадрицепс',abdomen:'пресс',oblique:'косые мышцы',shin:'голень',leg:'нога',chest:'грудь',rib:'ребро',head:'голова',eye:'глаз',face:'лицо',lower_leg:'голень',heel:'пятка',undisclosed:'не раскрыто','not injury related':'не травма'};
+const bodyPart=t=>t?BODY[String(t).toLowerCase()]||t:'';
+function injuryInfo(p){
+ const i=injuries.get(String(p.espnId));if(!i)return null;const s=injuryStatus(i.status);
+ const until=i.fantasyStatus==='OFS'?'до конца сезона':s.level==='out'&&i.returnDate?`до ~${ddmm(i.returnDate)}`:'';
+ return {...s,until,text:[s.label,until].filter(Boolean).join(' '),raw:i};
+}
+const injuryText=p=>injuryInfo(p)?.text||'';
+function injuryChip(p){const i=injuryInfo(p);return i?el('span',i.text,'chip '+(i.level==='out'?'chip--danger':'chip--warn')):null;}
 // Running points from ESPN box scores for games Sports.ru has not counted yet.
 function livePoints(){
  const out=new Map();
@@ -99,6 +115,21 @@ function livePoints(){
  return out;
 }
 
+// ---------- States ----------
+function skeleton(rows=6){const s=el('div',null,'skeleton');s.setAttribute('aria-hidden','true');for(let i=0;i<rows;i++)s.append(el('span'));return s;}
+function loadingBlock(title){const box=el('div');box.setAttribute('aria-busy','true');if(title)box.append(el('h3',title));box.append(el('p','Загружаю данные Sports.ru…','muted'),skeleton());return box;}
+function errorBlock(title,line,retry=()=>refreshSeason()){const s=el('div',null,'state state--error');s.append(el('strong',title),el('p',line),button('Повторить',retry));return s;}
+// Views that need Sports.ru rosters and prices: a skeleton while loading, an honest error when it never came.
+function needsLive(title){
+ if(live)return null;
+ if(loading||!attempted)return [loadingBlock(title)];
+ return [errorBlock('Нет данных Sports.ru','Составы, цены и очки появятся, когда Sports.ru ответит. Проверь интернет и повтори.')];
+}
+const confidenceWord={CONFIDENT:['стоит делать','chip--accent'],MODERATE:['на грани','chip--warn'],DOUBTFUL:['не стоит','chip--danger']};
+// The level follows the rounded-down percent, so a badge never prints "70%" next to "на грани".
+function level(why){const p=Math.floor(why.confidence*100);return p>=Math.round(CONFIDENT*100)?'CONFIDENT':p>=Math.round(DOUBTFUL*100)?'MODERATE':'DOUBTFUL';}
+function confidenceBadge(why){const [word,cls]=confidenceWord[level(why)];const b=el('span',`${word} · ${Math.floor(why.confidence*100)}%`,'chip sp-confidence '+cls);b.title='Вероятность, что обмен даст плюс за выбранный период';return b;}
+
 // ---------- Overview ----------
 function standingsTable(ctx,running){
  const official=teamPoints(ctx,ctx.transfers),h=horizons(ctx);
@@ -107,44 +138,84 @@ function standingsTable(ctx,running){
   let rest=0,week=0;for(const id of ids){const p=byId.get(id);if(!p)continue;const o=playerOutlook(p,{...ctx,running});rest+=o.season.points;week+=o.week.games;}
   return {t,official:official[t],now,rest,week,total:official[t]+now+rest};
  }).sort((a,b)=>(b.official+b.now)-(a.official+a.now)||b.total-a.total);
- const table=el('table',null,'standings-table'),head=el('tr');
- for(const x of ['#','Команда','ФО','Сейчас','Матчей до конца недели','Прогноз итога'])head.append(el('th',x));table.append(head);
- rows.forEach((r,i)=>{const tr=el('tr');if(r.t===0)tr.className='mine';
-  for(const c of [String(i+1),teamName(r.t),fmt(r.official),r.now?signed(r.now):'—',r.week.toFixed(1),fmt(r.total)])tr.append(el('td',c));
-  tr.onclick=()=>{team=r.t;writeStored('fbl-season-team',String(team));setView('teams');};table.append(tr);});
- const box=el('div');box.append(table,el('small',`ФО — официальные очки Sports.ru (игрок считается, только пока он в команде). «Сейчас» — матчи, которые Sports.ru ещё не засчитал: протоколы ESPN по формуле Sports.ru. «Матчей до конца недели» — ожидаемые игры состава с учётом травм. Прогноз итога добавляет ожидание до ${ddmm(h.season.to)}. Нажми на команду, чтобы открыть состав.`,'muted'));
+ const started=rows.some(r=>r.official||r.now),anyLive=rows.some(r=>r.now);
+ const table=el('table',null,'standings-table'),head=el('tr'),week=currentWeek(ctx.today);
+ const cols=[['#',''],['Команда',''],...(started?[['Очки','num']]:[]),...(anyLive?[['В игре','num']]:[]),[`Игр до ${ddmm(week?.end||h.week.to)}`,'num wide-only'],[started?'Прогноз':'Прогноз сезона','num']];
+ for(const [x,c] of cols){const th=el('th',x,c);th.scope='col';head.append(th);}table.append(head);
+ rows.forEach((r,i)=>{const tr=el('tr',null,'clickable'+(r.t===0?' mine':''));
+  const name=el('td',null,'team');name.append(teamName(r.t));if(r.t===0)name.append(' ',el('span','ты','chip chip--accent'));
+  tr.append(el('td',String(i+1)),name);
+  if(started)tr.append(el('td',int(r.official),'num'));
+  if(anyLive)tr.append(el('td',r.now?signed(r.now):'—','num'));
+  tr.append(el('td',dec(r.week),'num wide-only'),el('td',int(r.total),'num total'));
+  tr.tabIndex=0;tr.setAttribute('aria-label',`${teamName(r.t)}: открыть состав`);
+  const open=()=>{team=r.t;writeStored('fbl-season-team',String(team));setView('teams');};
+  tr.onclick=open;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};table.append(tr);});
+ const box=el('div',null,'sp-block');const head2=el('div',null,'sp-block-head');head2.append(el('h3',started?'Таблица лиги':'Прогноз сезона'));box.append(head2);
+ const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap,el('p','Нажми на команду, чтобы открыть состав.','sp-note'));
  return box;
 }
+// "Сезон стартует 21.10" from the Sports.ru calendar, never a hard-coded date.
+function seasonStart(){const days=Object.values(live?.clubs||{}).flat().map(g=>g.date).filter(Boolean).sort();return days[0]||null;}
 function topPlayers(ctx){
  const own=owners(ctx),rows=[];
  for(const p of players){const g=(live?.players?.[p.sportsId]?.games||[]).filter(x=>x.played);if(g.length)rows.push({p,total:g.reduce((s,x)=>s+x.points,0),games:g.length});}
- const box=el('div',null,'sp-top'),owner=p=>own.has(p.id)?teamName(own.get(p.id)):'свободен';
- const list=(items,line)=>{const ol=el('ol');for(const r of items){const li=el('li');li.append(el('strong',r.p.name),el('span',line(r)));ol.append(li);}return ol;};
+ const box=el('div',null,'sp-block sp-top');
+ const list=(items,line,value)=>{const ol=el('ol');for(const r of items){const li=el('li'),who=el('div');who.append(el('strong',r.p.name),el('small',line(r)));li.append(who,el('span',value(r),'val'));ol.append(li);}return ol;};
+ const free=(p)=>!own.has(p.id);
  if(rows.length){
-  box.append(el('h3','Топ-5 по ФО сезона'),list(rows.sort((a,b)=>b.total-a.total).slice(0,5),r=>`${fmt(r.total)} ФО · ${r.games} м. · ${(r.total/r.games).toFixed(1)} за матч · ${owner(r.p)}`));
-  const fa=rows.filter(r=>!own.has(r.p.id)&&r.games>=2).sort((a,b)=>b.total/b.games-a.total/a.games).slice(0,5);
-  if(fa.length)box.append(el('h3','Лучшие свободные агенты (ФО за матч)'),list(fa,r=>`${(r.total/r.games).toFixed(1)} за матч · ${r.games} м. · ${current(r.p,ctx).price} · ${current(r.p,ctx).positions.join('/')}`));
+  const fa=rows.filter(r=>free(r.p)&&r.games>=2).sort((a,b)=>b.total/b.games-a.total/a.games).slice(0,5);
+  if(fa.length)box.append(el('h3','Лучшие свободные'),list(fa,r=>`${current(r.p,ctx).positions.join('/')} · ${int(current(r.p,ctx).price)} · ${count(r.games,'матч','матча','матчей')}`,r=>dec(r.total/r.games)+' за матч'));
+  box.append(el('h3','Лучшие в сезоне'),list(rows.sort((a,b)=>b.total-a.total).slice(0,5),r=>`${own.has(r.p.id)?teamName(own.get(r.p.id)):'свободен'} · ${dec(r.total/r.games)} за матч`,r=>int(r.total)+' ФО'));
  }else{
-  box.append(el('h3','Топ-5 по прогнозу'),el('p','Сезон ещё не начался: официальные ФО Sports.ru появятся после первых матчей (старт 21.10).','muted'));
-  box.append(list([...players].filter(p=>p.sportsId).map(p=>({p,v:perGame(p).value})).sort((a,b)=>b.v-a.v).slice(0,5),r=>`${r.v.toFixed(1)} за матч · ${owner(r.p)}`));
+  const start=seasonStart(),fa=[...players].filter(p=>p.sportsId&&free(p)&&live?.players?.[p.sportsId]).map(p=>({p,v:perGame(p).value})).sort((a,b)=>b.v-a.v).slice(0,5);
+  box.append(el('h3','Лучшие свободные по прогнозу'));
+  if(start)box.append(el('p',start<=ctx.today?'Сезон начался: официальные очки появятся после первых матчей.':`Сезон стартует ${ddmm(start)}: пока сравниваем прогнозы.`,'muted'));
+  if(fa.length)box.append(list(fa,r=>`${current(r.p,ctx).positions.join('/')} · ${r.p.team||'—'} · ${int(current(r.p,ctx).price)}`,r=>dec(r.v)+' за матч'));
  }
  return box;
 }
-function liveGamesBlock(ctx){
- const own=owners(ctx),box=el('div',null,'sp-live');box.append(el('h3','Матчи сегодня'));
- const shown=games.filter(g=>g.state!=='post'||moscowDate(g.date)>=addDaysIso(ctx.today,-1));
- if(!shown.length){box.append(el('p','Сейчас матчей нет или ESPN недоступен. Ближайшие — во вкладке «Матчи».','muted'));return box;}
- for(const g of shown){
-  const item=el('div',null,'sp-game'+(g.state==='in'?' is-live':''));
-  const score=g.state==='pre'?new Date(g.date).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):`${g.away.score} : ${g.home.score}`;
-  const head=el('div',null,'sp-game-head');head.append(el('strong',`${g.away.abbr} @ ${g.home.abbr}`),el('span',score),el('small',g.state==='in'?'● '+g.detail:g.detail));
-  item.append(head);
-  const ours=players.filter(p=>own.has(p.id)&&(p.team===g.home.abbr||p.team===g.away.abbr));
-  if(ours.length){const ul=el('ul');for(const p of ours){const x=g.points?.[String(p.espnId)];
-   ul.append(el('li',`${symbol(own.get(p.id))} ${p.name}: ${x?`${fmt(x.points)} ФО${x.final?'':' (идёт, без бонуса результата)'} · ${x.minutes} мин`:g.state==='pre'?'не начался':'не играл'}`));}
-   item.append(ul);}
-  box.append(item);
- }
+// ESPN's game status in Russian, in Moscow time.
+function gameStatus(g){
+ if(g.state==='pre')return `${timeMsk(g.date)} МСК`;
+ if(g.state==='post')return /OT/.test(g.detail)?'Финал, ОТ':'Финал';
+ const d=String(g.detail||'');let m;
+ if(/half/i.test(d))return 'Перерыв';
+ if((m=d.match(/^End of (\d)/i)))return `Конец ${m[1]}-й четв.`;
+ if((m=d.match(/^Q(\d)\s+(.+)/i)))return `${m[1]}-я четв. · ${m[2]}`;
+ if(/OT/.test(d))return 'Овертайм '+d.replace(/.*OT\s*/,'');
+ return d;
+}
+function gameCard(g,own){
+ const item=el('div',null,'sp-game'+(g.state==='in'?' is-live':'')),head=el('div',null,'sp-game-head');
+ head.append(el('strong',`${g.away.abbr} — ${g.home.abbr}`));
+ if(g.state!=='pre')head.append(el('span',`${g.away.score} : ${g.home.score}`,'score'));
+ head.append(g.state==='in'?el('span',gameStatus(g),'chip chip--live'):el('small',gameStatus(g)));item.append(head);
+ const ours=players.filter(p=>own.has(p.id)&&(p.team===g.home.abbr||p.team===g.away.abbr));
+ if(!ours.length)return item;
+ const pts=p=>g.points?.[String(p.espnId)];
+ ours.sort((a,b)=>(own.get(a.id)===0?-1:0)-(own.get(b.id)===0?-1:0)||(pts(b)?.points||0)-(pts(a)?.points||0));
+ const ul=el('ul');
+ if(g.state!=='pre'&&!g.points)item.append(el('p','Протокол ESPN пока недоступен.','sp-note'));
+ const mine=ours.filter(p=>own.get(p.id)===0),others=ours.filter(p=>own.get(p.id)!==0);
+ const row=p=>{const x=pts(p),li=el('li',null,own.get(p.id)===0?'mine-player':'');
+  li.append(el('span',`${symbol(own.get(p.id))} ${p.name}`,'who'),el('span',x?`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'):g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','pts'));return li;};
+ if(g.state==='pre'){for(const p of mine)ul.append(row(p));if(others.length)ul.append(el('li',`ещё ${count(others.length,'игрок','игрока','игроков')} FBL`,'muted'));}
+ else for(const p of ours)ul.append(row(p));
+ if(ul.children.length)item.append(ul);
+ return item;
+}
+function gamesToday(ctx,compact){
+ const own=owners(ctx),box=el('div',null,'sp-block sp-live'),head=el('div',null,'sp-block-head');head.append(el('h3','Матчи сегодня'));box.append(head);
+ const order={in:0,pre:1,post:2};
+ const shown=games.filter(g=>g.state!=='post'||moscowDate(g.date)>=addDaysIso(ctx.today,-1)).sort((a,b)=>order[a.state]-order[b.state]||a.date.localeCompare(b.date));
+ if(src.games==='error'){box.append(el('p',compact?'Счёт ESPN сейчас недоступен. Расписание — во вкладке «Матчи».':'Счёт ESPN сейчас недоступен. Расписание по календарю Sports.ru — ниже.','muted'));return box;}
+ if(!shown.length){box.append(el('p','Сегодня матчей нет.','muted'));return box;}
+ const list=compact?shown.filter(g=>g.state==='in'||players.some(p=>owners(ctx).get(p.id)===0&&(p.team===g.home.abbr||p.team===g.away.abbr))):shown;
+ for(const g of list.slice(0,compact?4:99))box.append(gameCard(g,own));
+ if(compact&&shown.length>Math.min(list.length,4)){const more=button(`Все матчи (${shown.length})`,()=>setView('games'),'btn-ghost btn-sm');head.append(more);}
+ if(compact&&!list.length)box.append(el('p',`Сегодня ${count(shown.length,'матч','матча','матчей')}, твоих игроков в них нет.`,'muted'));
+ if(shown.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки без бонуса за результат.','sp-note'));
  return box;
 }
 function alertsBlock(ctx){
@@ -152,56 +223,73 @@ function alertsBlock(ctx){
  const alerts=marketAlerts(ctx,{team:0,bankMoney:money,sort:'month',minGain:20});
  const hurt=ctx.rosters[0].map(id=>byId.get(id)).filter(p=>p&&injuries.get(String(p.espnId)));
  if(!alerts.length&&!hurt.length)return box;
- box.append(el('h3','Для тебя'));
- for(const a of alerts.slice(0,3)){const out=byId.get(a.outId);const p=el('p');p.append(el('strong','📈 Усиление на рынке: '),document.createTextNode(`${out.name} → ${a.player.name}: ${signed(a.gain.month)} ФО за 4 недели, ${signed(a.gain.season)} за сезон · уверенность ${Math.round(a.why.confidence*100)}%.`));box.append(p);}
- for(const p of hurt)box.append(el('p',`🩹 ${p.name}: ${injuryText(p)}`));
- const go=el('button','Открыть помощника по трансферам');go.onclick=()=>{team=0;writeStored('fbl-season-team','0');setView('transfers');};box.append(go);
+ const head=el('div',null,'sp-block-head');head.append(el('h3','Для тебя'));box.append(head);
+ for(const a of alerts.slice(0,3)){const out=byId.get(a.outId),p=el('p',null,'sp-alert');const body=el('span');
+  body.append(el('strong',`Продай ${out.name} → купи ${a.player.name}`),document.createTextNode(` · ${signed(a.gain.month)} ФО за 4 недели, ${signed(a.gain.season)} за сезон · `),confidenceBadge(a.why));
+  p.append(el('span','📈','sp-alert-icon'),body);box.append(p);}
+ for(const p of hurt){const row=el('p',null,'sp-alert'),body=el('span');body.append(el('strong',p.name),document.createTextNode(' — '+injuryText(p)+' '));
+  body.append(button('Найти замену',()=>{team=0;writeStored('fbl-season-team','0');replacing=p.id;openRows.add(p.id);setView('teams');},'btn-ghost btn-sm'));
+  row.append(el('span','🩹','sp-alert-icon'),body);box.append(row);}
+ if(alerts.length)box.append(button('Открыть помощника по трансферам',()=>{team=0;writeStored('fbl-season-team','0');setView('transfers');},'btn-primary'));
  return box;
 }
-function overview(ctx){const running=livePoints();return [alertsBlock(ctx),el('h3','Таблица Лиги'),standingsTable(ctx,running),liveGamesBlock(ctx),topPlayers(ctx)];}
+function overview(ctx){
+ const wait=needsLive('Таблица лиги');
+ const grid=el('div',null,'sp-overview'),left=el('div'),right=el('div');
+ if(wait){left.append(...wait);}else{const running=livePoints();left.append(alertsBlock(ctx),standingsTable(ctx,running));}
+ right.append(gamesToday(ctx,true));if(live)right.append(topPlayers(ctx));
+ grid.append(left,right);return [grid];
+}
 
 // ---------- Teams ----------
 function playerRow(p,ctx,running){
- const live1=live?.players?.[p.sportsId],c=current(p,ctx),o=playerOutlook(p,{...ctx,running}),g=perGame(p,live1),inj=injuryText(p),now=running?.get(p.id);
- const box=el('details',null,'season-player');if(replacing===p.id)box.open=true;
+ const live1=live?.players?.[p.sportsId],c=current(p,ctx),o=playerOutlook(p,{...ctx,running}),g=perGame(p,live1),inj=injuryInfo(p),now=running?.get(p.id);
+ const box=el('details',null,'season-player');box.open=openRows.has(p.id)||replacing===p.id;
  const sum=el('summary'),row=el('div',null,'sp-row');
- const name=el('span',null,'sp-name');name.append(el('strong',p.name),el('small',`${c.positions.join('/')} · ${p.team||'—'}${p.isRookie?' · rookie':''}`));
- const price=el('span',null,'sp-price');const delta=Number.isFinite(live1?.price)&&Number.isFinite(live1?.initialPrice)?live1.price-live1.initialPrice:0;
- price.append(el('strong',String(c.price??'—')),el('small',delta?signed(delta):'цена'));
- const form=el('span',null,'sp-form');const last=(live1?.games||[]).filter(x=>x.played).slice(-3).map(x=>x.points);
- form.append(el('strong',g.average==null?'—':g.average.toFixed(1)),el('small',now?`сейчас ${fmt(now.points)}`:last.length?last.join(' · '):`прогноз ${g.prior.toFixed(1)}`));
- const next=el('span',null,'sp-next');next.append(el('strong',`${o.week.games.toFixed(1)} м.`),el('small',`${fmt(o[horizon].points)} ФО`));
- row.append(name,price,form,next);if(inj)row.append(el('span',inj,'sp-injury'));sum.append(row);box.append(sum);
+ const name=el('span',null,'sp-name'),meta=el('small',`${c.positions.join('/')} · ${p.team||'—'}${p.isRookie?' · rookie':''}`);name.append(el('strong',p.name),meta);
+ const price=el('span',null,'sp-price'),delta=Number.isFinite(live1?.price)&&Number.isFinite(live1?.initialPrice)?live1.price-live1.initialPrice:0;
+ price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
+ const form=el('span',null,'sp-form'),last=(live1?.games||[]).filter(x=>x.played).slice(-3).map(x=>int(x.points));
+ form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
+ const next=el('span',null,'sp-next'),wk=el('small',`${dec(o.week.games)} до вс`);wk.title='Ожидаемых матчей до конца недели';next.append(el('strong',int(o[horizon].points)),wk);
+ row.append(name,price,form,next);
+ if(inj){const line=el('span',null,'sp-injury'+(inj.level==='out'?' out':''));line.append(`🩹 ${inj.text}`);row.append(line);}
+ sum.append(row);box.append(sum);
  const actions=el('div',null,'sp-actions');
- const find=el('button',replacing===p.id?'Скрыть замены':'Найти замену');find.onclick=e=>{e.preventDefault();replacing=replacing===p.id?null:p.id;query='';renderSeason();};
- actions.append(find,link('Sports.ru ↗',SPORTS_URL(p.sportsId)));box.append(actions);
+ actions.append(button(replacing===p.id?'Скрыть замены':'Найти замену',e=>{e.preventDefault();replacing=replacing===p.id?null:p.id;query='';openRows.add(p.id);renderSeason();}),link('Sports.ru ↗',SPORTS_URL(p.sportsId)));
+ box.append(actions);
  if(replacing===p.id)box.append(replacementPanel(p,ctx));
- box.addEventListener('toggle',()=>{if(box.open&&!box.querySelector('.player-card'))box.append(card(p,null,true));});
+ const dossier=el('details',null,'inline');dossier.append(el('summary','Досье с драфта'));dossier.addEventListener('toggle',()=>{if(dossier.open&&!dossier.querySelector('.player-card'))dossier.append(card(p,null,true));});box.append(dossier);
+ box.addEventListener('toggle',()=>{if(box.open)openRows.add(p.id);else openRows.delete(p.id);});
  return box;
 }
 function gainCells(gain){
  const gains=el('span',null,'sp-gains');
- for(const [k,label] of [['week','неделя'],['month','4 нед.'],['season','сезон']]){const s=el('span',null,k===horizon?'on':'');s.append(el('strong',signed(gain[k])),el('small',label));if(gain[k]<0)s.classList.add('neg');gains.append(s);}
+ for(const k of [horizon,...['week','month','season'].filter(k=>k!==horizon)]){const s=el('span',null,k===horizon?'on':'');s.append(el('strong',signed(gain[k])),el('small',k===horizon?'ФО '+PERIOD_LONG[k]:PERIOD[k].toLowerCase()));if(gain[k]<0)s.classList.add('neg');gains.append(s);}
  return gains;
 }
-function optionRow(o,outId,ctx,title){
+// Connected teams make their moves on Sports.ru; the app follows them there instead of recording them itself.
+function takeAction(moves,ctx,label){
+ const st=sportsTeam(team);
+ if(st)return link('Сделать на Sports.ru ↗',TEAM_URL(st.sportsTeamId),'btn-secondary btn-sm sp-take');
+ const b=button(label,()=>record(moves,ctx));b.setAttribute('aria-label',`${label}: ${moves.map(m=>`${byId.get(m.outId)?.name} → ${m.player.name}`).join(', ')}`);return b;
+}
+function optionRow(o,outId,ctx,title,withAction=!sportsTeam(team)){
  const li=el('li',null,'sp-option'),inj=injuryText(o.player),why=explainSwap(ctx,outId,o.player.id,horizon);
- const name=el('span',null,'sp-name');name.append(el('strong',title||o.player.name),el('small',`${o.player.positions.join('/')} · ${o.player.team||'—'} · ${o.player.price} · банк после ${o.bankAfter}${inj?' · '+inj:''}`),confidenceBadge(why));
- const take=el('button','Записать');take.onclick=()=>record([{outId,player:o.player}],ctx);
- li.append(name,gainCells(o.gain),take,whyBox(why,ctx));return li;
+ const name=el('span',null,'sp-name');name.append(el('strong',title||o.player.name),el('small',`${o.player.positions.join('/')} · ${o.player.team||'—'} · ${int(o.player.price)} · банк после ${int(o.bankAfter)}${inj?' · '+inj:''}`),confidenceBadge(why));
+ li.append(name,gainCells(o.gain));if(withAction)li.append(takeAction([{outId,player:o.player}],ctx,'Записать'));li.append(whyBox(why,ctx));return li;
 }
 
 // ---------- Why a move, and the players behind it ----------
-const LEVELS={CONFIDENT:['уверенно','ok'],MODERATE:['умеренно','mid'],DOUBTFUL:['сомнительно','low']};
-function confidenceBadge(why){const [word,cls]=LEVELS[why.level];return el('span',`${word} · ${Math.round(why.confidence*100)}%`,'sp-confidence '+cls);}
-const horizonName=()=>({week:'до конца недели',month:'за 4 недели',season:'до конца сезона'})[horizon];
+const EARLY='Сезон только начался';
 function whyBox(why,ctx){
  const box=el('details',null,'sp-why');box.append(el('summary','Почему и об игроках'));
  box.addEventListener('toggle',()=>{if(!box.open||box.dataset.filled)return;box.dataset.filled='1';
   const p=why.parts,part=(v,t)=>`${signed(v)} ${t}`;
-  box.append(el('p',`Разница ${horizonName()}: ${signed(why.gain)} ФО = ${part(p.perGame,'за счёт ФО за матч')}, ${part(p.availability,'за счёт доли сыгранных матчей (здоровье, роль)')}, ${part(p.schedule,'за счёт календаря клубов')}.`));
-  box.append(el('p',`Уверенность ${Math.round(why.confidence*100)}%: столько шансов, что обмен действительно даст плюс ${horizonName()}, по разбросу прогнозов обоих игроков (диапазоны проверены на прошлых сезонах). Совет «делать» — от ${Math.round(CONFIDENT*100)}%, ниже ${Math.round(DOUBTFUL*100)}% трансфер лучше сберечь.`,'muted'));
-  if(why.flags.length){const ul=el('ul',null,'sp-flags');for(const f of why.flags)ul.append(el('li','⚠️ '+f));box.append(ul);}
+  box.append(el('p',`Разница ${PERIOD_LONG[horizon]}: ${signed(why.gain)} ФО = ${part(p.perGame,'за счёт ФО за матч')}, ${part(p.availability,'за счёт доли сыгранных матчей')}, ${part(p.schedule,'за счёт календаря клубов')}.`));
+  box.append(el('p',`Уверенность ${Math.floor(why.confidence*100)}%: столько шансов, что обмен действительно даст плюс ${PERIOD_LONG[horizon]}. Делать стоит от ${Math.round(CONFIDENT*100)}%, ниже ${Math.round(DOUBTFUL*100)}% трансфер лучше сберечь.`,'muted'));
+  const flags=why.flags.filter(f=>!f.startsWith(EARLY)).map(f=>f.replace(/: (Out|Day-To-Day|Questionable|Doubtful|Suspension)\b/,(_,s)=>': '+injuryStatus(s).label.toLowerCase()));
+  if(flags.length){const ul=el('ul',null,'sp-flags');for(const f of flags)ul.append(el('li','⚠ '+f));box.append(ul);}
   for(const side of why.sides){const pair=el('div',null,'sp-pair');pair.append(sideBlock('Отдаёшь',side.out),sideBlock('Получаешь',side.in));box.append(pair);}
  });
  return box;
@@ -209,21 +297,27 @@ function whyBox(why,ctx){
 // The forecast's own numbers: career model, ESPN, the draft-pick model, and the result.
 function sourcesLine(f){
  const m=f.sources?.model,e=f.sources?.espn,t=f.sources?.teamResult;if(!m)return f.basis||'';
- const team=t&&Number.isFinite(t.bpiWins)?` Бонус команды ${t.value>=0?'+':''}${t.value.toFixed(1)} за матч (прогноз ESPN BPI ${Math.round(t.bpiWins)} побед и прошлый сезон).`:'';
+ const teamBonus=t&&Number.isFinite(t.bpiWins)?` Бонус команды ${t.value>0?'+':''}${dec(t.value)} за матч (ESPN BPI: ${Math.round(t.bpiWins)} побед).`:'';
  const own=f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных':'модель по карьере';
- return `Прогноз до сезона: ${own} ${m.perGame.toFixed(1)} × ${Math.round(m.games)} м.${e?`, ESPN ${e.perGame.toFixed(1)} × ${Math.round(e.games)} м. → итог ${f.meanPerGame.toFixed(1)} × ${Math.round(f.games)} м.`:''}${team}`;
+ return `Прогноз до сезона: ${own} ${dec(m.perGame)} × ${Math.round(m.games)}${e?`, ESPN ${dec(e.perGame)} × ${Math.round(e.games)} → итог ${dec(f.meanPerGame)} × ${Math.round(f.games)}`:''} матчей.${teamBonus}`;
 }
 function sideBlock(label,x){
  const p=x.player,f=p.forecast||{},box=el('div',null,'sp-side'),hist=Object.entries(p.sportsHistory||{}).slice(-2);
- box.append(el('small',label),el('strong',`${p.name} · ${x.price??'—'}${x.priceChange?` (${signed(x.priceChange)})`:''}`));
- const lines=[`${x.perGame.toFixed(1)} ФО/матч сейчас (прогноз до сезона ${x.prior.toFixed(1)}${x.played?`, в сезоне ${x.average.toFixed(1)} за ${x.played} м.`:''})`,
-  `в периоде ${x.expectedGames.toFixed(1)} из ${x.clubGames} матчей клуба${x.clubGames?` (шанс сыграть ${Math.round(x.expectedGames/x.clubGames*100)}%)`:''} · за сезон играет ${Math.round(x.playRate*100)}% матчей`,
+ box.append(el('small',label),el('strong',`${p.name} · ${int(x.price)}${x.priceChange?` (${signed(x.priceChange)})`:''}`));
+ const lines=[`${dec(x.perGame)} ФО за матч сейчас (прогноз до сезона ${dec(x.prior)}${x.played?`, в сезоне ${dec(x.average)} за ${count(x.played,'матч','матча','матчей')}`:''})`,
+  `в периоде ${dec(x.expectedGames)} из ${x.clubGames} матчей клуба${x.clubGames?` (шанс сыграть ${Math.round(x.expectedGames/x.clubGames*100)}%)`:''}`,
   p.depth?`состав ESPN: ${p.depth.rank===1?'стартер':'№'+p.depth.rank} на ${p.depth.position}`:'',
-  x.injury?`🩹 ${x.injury.status}${x.injury.returnDate?' до '+ddmm(x.injury.returnDate):''}${x.injury.comment?' — '+x.injury.comment:''}`:'травм в отчёте ESPN нет',
-  sourcesLine(f),f.availability?`история пропусков: ${f.availability.shortSpellsPer82.toFixed(1)} коротких и ${f.availability.longSpellsPer82.toFixed(1)} длинных за 82 матча (у ровесников ${f.availability.leagueShortSpellsPer82.toFixed(1)} и ${f.availability.leagueLongSpellsPer82.toFixed(1)}) · до сезона 80%: ${f.availability.gamesRange[0]}–${f.availability.gamesRange[1]} матчей`:'',hist.length?'Sports.ru: '+hist.map(([k,v])=>`${k} ${v.perGame} × ${v.games} м.`).join(' · '):''];
+  x.injury?`🩹 ${injuryStatus(x.injury.status).label}${injuryStatus(x.injury.status).level==='out'&&x.injury.returnDate?' до ~'+ddmm(x.injury.returnDate):''}`:'травм в отчёте ESPN нет',
+  hist.length?'Sports.ru: '+hist.map(([k,v])=>`${k.replace(/^20(\d\d)-(\d\d)$/,'$1/$2')} — ${dec(v.perGame)} × ${v.games}`).join(' · '):''];
  for(const l of lines.filter(Boolean))box.append(el('p',l));
- box.append(newsBlock(p));
- const more=el('details');more.append(el('summary','Полная карточка игрока'));more.addEventListener('toggle',()=>{if(more.open&&!more.querySelector('.player-card'))more.append(card(p,null,true));});box.append(more);
+ const more=el('details');more.append(el('summary','Подробнее о прогнозе'));
+ more.addEventListener('toggle',()=>{if(!more.open||more.dataset.filled)return;more.dataset.filled='1';
+  const src2=sourcesLine(f);if(src2)more.append(el('p',src2));
+  if(f.availability)more.append(el('p',`История пропусков: ${dec(f.availability.shortSpellsPer82)} коротких и ${dec(f.availability.longSpellsPer82)} длинных за 82 матча (у ровесников ${dec(f.availability.leagueShortSpellsPer82)} и ${dec(f.availability.leagueLongSpellsPer82)}).`));
+  more.append(newsBlock(p));
+  const full=el('details');full.append(el('summary','Полная карточка игрока'));full.addEventListener('toggle',()=>{if(full.open&&!full.querySelector('.player-card'))full.append(card(p,null,true));});more.append(full);
+ });
+ box.append(more);
  return box;
 }
 // Latest ESPN fantasy news of a player (CORS-open feed), loaded when the block is opened and cached for the session.
@@ -233,210 +327,324 @@ let archiveLoad=null;const injuryArchive=()=>archiveLoad??=fetchJson(`https://ra
 function newsBlock(p){
  const box=el('details',null,'sp-news');box.append(el('summary','Новости ESPN'));
  if(!p.espnId){box.append(el('p','Нет ESPN id — новостей нет.','muted'));return box;}
- box.addEventListener('toggle',async()=>{if(!box.open||box.dataset.filled)return;box.dataset.filled='1';const wait=el('p','Загружаю…','muted');box.append(wait);
+ const fill=async()=>{if(!box.open||box.dataset.filled)return;box.dataset.filled='1';const wait=el('p','Загружаю…','muted');box.append(wait);
   try{if(!newsCache.has(p.espnId))newsCache.set(p.espnId,fetchJson(NEWS_URL(p.espnId)));const feed=(await newsCache.get(p.espnId)).feed||[];wait.remove();
    if(!feed.length)box.append(el('p','Свежих новостей нет.','muted'));
    const hurt=newsInjuries(feed);
-   if(hurt.length)box.append(el('p',`Травмы в новостях ESPN за последние месяцы: ${hurt.map(x=>`${x.part} (${ddmm(x.first)}${x.last!==x.first?'–'+ddmm(x.last):''}, упоминаний ${x.mentions})`).join('; ')}. Это описание, а не множитель прогноза.`,'muted'));
+   if(hurt.length)box.append(el('p',`Травмы в новостях за последние месяцы: ${hurt.map(x=>`${bodyPart(x.part)} (${ddmm(x.first)}${x.last!==x.first?'–'+ddmm(x.last):''})`).join('; ')}.`,'muted'));
    const archive=await injuryArchive().catch(()=>null),episodes=archive?.players?.[String(p.espnId)]?.episodes||[];
-   if(episodes.length)box.append(el('p',`Архив отчётов ESPN: ${episodes.map(e=>`${e.type||'травма'}${e.detail?' · '+e.detail:''} ${ddmm(e.firstSeen)}–${ddmm(e.lastSeen)}`).join('; ')}.`,'muted'));
+   if(episodes.length)box.append(el('p',`Архив отчётов ESPN: ${episodes.map(e=>`${bodyPart(e.type)||'травма'}${e.detail?' · '+e.detail:''} ${ddmm(e.firstSeen)}${e.lastSeen!==e.firstSeen?'–'+ddmm(e.lastSeen):''}`).join('; ')}.`,'muted'));
    for(const n of feed.slice(0,3)){const item=el('div',null,'sp-news-item');item.append(el('small',new Date(n.published||n.lastModified).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})),el('strong',n.headline||''));if(n.story||n.description)item.append(el('p',String(n.story||n.description).replace(/<[^>]+>/g,'').slice(0,420)));box.append(item);}
-  }catch{wait.textContent='ESPN недоступен.';}});
+  }catch{newsCache.delete(p.espnId);delete box.dataset.filled;wait.replaceChildren('Новости ESPN не загрузились. ',button('Повторить',()=>{wait.remove();fill();},'btn-ghost btn-sm'),' ',link('Открыть на ESPN ↗',`https://www.espn.com/nba/player/_/id/${p.espnId}`));}};
+ box.addEventListener('toggle',fill);
  return box;
 }
 function replacementPanel(p,ctx){
- const box=el('div',null,'sp-replace'),money=teamBank(team,ctx.transfers);
- box.append(el('p',`Банк ${money} + продажа ${current(p,ctx).price} = до ${money+current(p,ctx).price} на нового игрока · трансферов осталось ${transfersLeft(ctx,team)}/${WEEKLY_TRANSFERS}. Выигрыш — ожидаемые ФО новичка минус ФО ${p.name} за период.`,'muted'));
- const search=el('input');search.placeholder='Найти любого свободного игрока на эту позицию…';search.value=query;
- const list=el('ol',null,'sp-options');
+ const box=el('div',null,'sp-replace'),money=teamBank(team,ctx.transfers),price=current(p,ctx).price,st=sportsTeam(team);
+ box.append(el('h4',`Замена для ${p.name}`),el('p',`Бюджет до ${int(money+price)} (банк ${int(money)} + продажа ${int(price)}) · трансферов: ${transfersLeft(ctx,team)===Infinity?'без лимита':transfersLeft(ctx,team)+' из '+WEEKLY_TRANSFERS}. Цифры — сколько ФО ты получишь (+) или потеряешь (−) по сравнению с ${p.name}.`));
+ if(st)box.append(el('p','Команда подключена к Sports.ru: трансфер делается там, здесь он появится сам примерно через минуту.','muted'));
+ const search=el('input');search.type='search';search.enterKeyHint='search';search.placeholder='Найти свободного игрока';search.value=query;search.setAttribute('aria-label','Поиск замены для '+p.name);
+ const list=el('ol',null,'sp-options'),verdictLine=el('p');
  const fill=()=>{const all=transferOptions(ctx,{team,outId:p.id,bankMoney:money,limit:query?1000:12,sort:horizon});
   const q=query.trim().toLowerCase(),shown=q?all.filter(o=>[o.player.name,o.player.sportsName,o.player.team].join(' ').toLowerCase().includes(q)).slice(0,12):all;
-  list.replaceChildren(...shown.map(o=>optionRow(o,p.id,ctx)));if(!shown.length)list.append(el('li','Нет допустимых замен: позиция, бюджет или правило rookie.','muted'));};
+  list.replaceChildren(...shown.map(o=>optionRow(o,p.id,ctx)));
+  const best=all[0]?.gain?.[horizon];verdictLine.className=best>0?'muted':'warning';
+  verdictLine.textContent=!all.length?'Нет допустимых замен: не подходит позиция, банк или правила состава (rookie, клуб NBA).':best>0?'':`Замен лучше, чем ${p.name}, ${PERIOD_LONG[horizon]} нет — держи его.`;
+  verdictLine.hidden=!verdictLine.textContent||Boolean(q);
+  if(q&&!shown.length)list.append(el('li',`Никого не нашлось по «${query}» среди доступных ${p.positions.join('/')} до ${int(money+price)}.`,'muted'));};
  search.oninput=()=>{query=search.value;fill();};
- box.append(search,list);fill();return box;
+ if(st)box.append(link(`Открыть команду на Sports.ru ↗`,TEAM_URL(st.sportsTeamId),'btn-secondary btn-sm'));
+ box.append(search,verdictLine,list);fill();return box;
 }
 function controls(ctx){
- const head=el('div',null,'sp-controls'),h=horizons(ctx);
- const pickTeam=el('select');for(let t=0;t<8;t++){const o=el('option',teamLabel(t));o.value=String(t);pickTeam.append(o);}pickTeam.value=String(team);
+ const head=el('div',null,'sp-controls');
+ const pickTeam=el('select');for(let t=0;t<8;t++){const o=el('option',teamOption(t));o.value=String(t);o.title=teamLabel(t);pickTeam.append(o);}pickTeam.value=String(team);
  pickTeam.onchange=()=>{team=Number(pickTeam.value);writeStored('fbl-season-team',String(team));replacing=null;renderSeason();};
- const pickH=el('select');for(const [k,v] of Object.entries(h)){const o=el('option',v.label);o.value=k;pickH.append(o);}pickH.value=horizon;
- pickH.onchange=()=>{horizon=pickH.value;writeStored('fbl-season-horizon',horizon);renderSeason();};
- const b=el('input');b.type='number';b.value=String(teamBank(team,ctx.transfers));b.title='Остаток на счету в Sports.ru';
- // A connected team's bank is read from Sports.ru on every update, so it is shown, not edited.
- if(Number.isFinite(sportsTeam(team)?.balance)){b.readOnly=true;b.title='Баланс Sports.ru, обновляется сам';}
- b.onchange=()=>{const o=readJson('fbl-bank',{}),v=Number(b.value);if(b.value===''||!Number.isFinite(v))delete o[team];else o[team]=v;writeStored('fbl-bank',JSON.stringify(o));renderSeason();};
+ const period=el('div',null,'segmented sp-period');period.setAttribute('role','group');period.setAttribute('aria-label','Период');
+ for(const k of ['week','month','season']){const b=button(PERIOD[k],()=>{horizon=k;writeStored('fbl-season-horizon',horizon);renderSeason();},'');b.setAttribute('aria-pressed',String(horizon===k));b.title=horizons(ctx)[k].label;period.append(b);}
  const labelled=(t,node)=>{const l=el('label');l.append(el('span',t),node);return l;};
- head.append(labelled('Команда',pickTeam),labelled('Горизонт',pickH),labelled('Банк',b));
+ const wrap=el('div',null,'sp-period-field');wrap.append(el('span','Период'),period);
+ head.append(labelled('Команда',pickTeam),wrap);
  return head;
 }
+function teamKpis(ctx,roster,running){
+ const st=sportsTeam(team),spent=roster.reduce((s,p)=>s+(current(p,ctx).price||0),0),left=transfersLeft(ctx,team),fbl=fblTransfers(ctx.transfers,team,ctx.today);
+ const points=roster.reduce((s,p)=>s+playerOutlook(p,{...ctx,running})[horizon].points,0);
+ const kpis=el('div',null,'kpis'),kpi=(label,value,title)=>{const k=el('div',null,'kpi');k.append(el('small',label),el('strong',value));if(title)k.title=title;kpis.append(k);return k;};
+ kpi('Стоимость',int(spent));
+ const bankKpi=kpi('Банк',int(teamBank(team,ctx.transfers)),st?'Баланс Sports.ru, обновляется сам':'');
+ if(!Number.isFinite(st?.balance)){
+  // A team Sports.ru does not show: its bank can be typed here, on this device.
+  const input=el('input');input.type='number';input.min='0';input.step='100';input.inputMode='numeric';input.value=String(teamBank(team,ctx.transfers));input.setAttribute('aria-label','Банк команды');
+  input.onchange=()=>{const o=readJson('fbl-bank',{}),v=Number(input.value);if(input.value===''||!Number.isFinite(v)||v<0)delete o[team];else o[team]=v;writeStored('fbl-bank',JSON.stringify(o));renderSeason();};
+  bankKpi.querySelector('strong').replaceWith(input);
+ }
+ kpi('Трансферы',left===Infinity?'∞':`${left} из ${WEEKLY_TRANSFERS}`,`Неделя лиги до ${ddmm(fbl.week.end)}`).append(el('small',`до ${ddmm(fbl.week.end)}`));
+ if(st?.place)kpi('Sports.ru',int(st.place)).append(el('small',`место из ${int(st.of)}`));
+ kpi('ФО '+PERIOD[horizon].toLowerCase(),int(points));
+ return kpis;
+}
 function teams(ctx){
- const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),spent=roster.reduce((s,p)=>s+(current(p,ctx).price||0),0),h=horizons(ctx);
- const st=sportsTeam(team),info=el('p',`Состав по текущим ценам ${spent} · банк ${teamBank(team,ctx.transfers)}${st?' (Sports.ru)':''} · трансферов осталось ${transfersLeft(ctx,team)}/${WEEKLY_TRANSFERS}${st?` · место на Sports.ru ${st.place??'—'} из ${st.of??'—'}`:''}`,'muted');
- if(st)info.append(document.createTextNode(' '),link('Команда на Sports.ru ↗',`https://www.sports.ru/fantasy/basketball/team/${st.sportsTeamId}.html`));
+ const wait=needsLive('Состав');if(wait)return [controls(ctx),...wait];
+ const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),running=livePoints(),st=sportsTeam(team);
+ const out=[controls(ctx),teamKpis(ctx,roster,running)];
+ if(st){const info=el('div',null,'sp-team-info');info.append(link('Команда на Sports.ru ↗',TEAM_URL(st.sportsTeamId)));out.push(info);}
  const list=el('div',null,'sp-roster'),header=el('div',null,'sp-header');
- for(const t of ['Игрок','Цена','ФО ср. · последние','Неделя · '+h[horizon].label.toLowerCase()])header.append(el('span',t));
- const running=livePoints();list.append(header,...roster.map(p=>playerRow(p,ctx,running)));
- return [controls(ctx),info,list];
+ for(const t of ['Игрок','Цена','За матч','ФО · '+PERIOD[horizon].toLowerCase()])header.append(el('span',t));
+ list.append(header,...roster.map(p=>playerRow(p,ctx,running)));out.push(list);
+ return out;
 }
 
 // ---------- Transfers assistant ----------
-function packageBlock(ctx){
- const money=teamBank(team,ctx.transfers),left=transfersLeft(ctx,team);
- const box=el('div',null,'sp-packages');box.append(el('h3','Лучшие пакеты трансферов'),el('p',`Точный перебор: кого продать и кого купить, чтобы набрать больше всего ФО за период «${horizons(ctx)[horizon].label.toLowerCase()}». Учтены банк ${money}, по 2 на позицию Sports.ru, минимум один rookie. На этой неделе осталось ${left} из ${WEEKLY_TRANSFERS}${sportsTeam(team)?' (по Sports.ru)':''}.`,'muted'));
- let previous=0;
- for(const k of [1,2,3]){
-  const p=bestPackage(ctx,{team,bankMoney:money,k,sort:horizon});
-  if(!p||!p.pairs.length||p.gain<=previous+1e-6)continue;previous=p.gain;
-  const item=el('div',null,'sp-package'+(p.pairs.length>left?' over-limit':''));
-  const head=el('div',null,'sp-package-head');head.append(el('strong',`${p.pairs.length} ${p.pairs.length===1?'трансфер':'трансфера'}`),gainCells(p.gains));
-  item.append(head);const ul=el('ul');for(const x of p.pairs)ul.append(el('li',`${x.out.name} (${x.out.price}) → ${x.in.name} (${x.in.price}, ${x.in.positions.join('/')})${injuryText(x.in)?' · '+injuryText(x.in):''}`));
-  const why=explainSwap(ctx,null,null,horizon,p.pairs.map(x=>[x.out.id,x.in.id]));head.querySelector('strong').after(confidenceBadge(why));
-  if(why.level==='DOUBTFUL')item.classList.add('doubtful');
-  item.append(ul,el('small',`Банк после: ${p.bankAfter}${p.pairs.length>left?' · больше, чем осталось на этой неделе':''}`,'muted'),whyBox(why,ctx));
-  const take=el('button','Записать пакет');take.onclick=()=>record(p.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx);item.append(take);
-  box.append(item);
- }
- if(previous<=0)box.append(el('p','Сейчас ни одна комбинация не добавляет ФО за этот период — держи состав.','muted'));
- return box;
+// The answer to "what should I do now": the best package that is confident, does not cost the season and fits the week.
+function recommendation(ctx,money,left){
+ const options=[];let previous=0;
+ for(const k of [1,2,3]){const p=bestPackage(ctx,{team,bankMoney:money,k,sort:horizon});if(!p||!p.pairs.length||p.gain<=previous+1e-6)continue;previous=p.gain;
+  const why=explainSwap(ctx,null,null,horizon,p.pairs.map(x=>[x.out.id,x.in.id]));options.push({...p,why,lvl:level(why)});}
+ const fits=options.filter(o=>o.lvl!=='DOUBTFUL'&&o.gains.season>=0&&o.pairs.length<=left&&o.gains[horizon]>0).sort((a,b)=>b.gains[horizon]-a.gains[horizon]);
+ // A transfer is a weekly resource: a bigger package wins only if each extra move adds at least 15 FP.
+ let best=fits[0]||null;
+ for(const f of fits)if(best&&f.pairs.length<best.pairs.length&&best.gains[horizon]-f.gains[horizon]<15*(best.pairs.length-f.pairs.length))best=f;
+ return {best,options};
+}
+function packageMoves(p){const ul=el('ul',null,'moves');for(const x of p.pairs){const li=el('li');li.append(el('span',x.out.name,'out'),el('span','→','arrow'),el('span',x.in.name,'in'),el('small',`${x.in.positions.join('/')} · ${int(x.in.price)}${injuryText(x.in)?' · '+injuryText(x.in):''}`));ul.append(li);}return ul;}
+function packageCard(p,ctx,left){
+ const item=el('div',null,'sp-package'+(p.pairs.length>left?' over-limit':'')+(p.lvl==='DOUBTFUL'?' doubtful':''));
+ const head=el('div',null,'sp-package-head'),title=el('div');title.append(el('strong',count(p.pairs.length,'трансфер','трансфера','трансферов')),confidenceBadge(p.why));
+ if(p.pairs.length>left)title.append(el('span',`осталось ${left}`,'chip chip--warn'));
+ head.append(title,gainCells(p.gains));item.append(head,packageMoves(p),el('small',`Банк после: ${int(p.bankAfter)}`),whyBox(p.why,ctx));
+ if(p.pairs.length<=left)item.append(takeAction(p.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx,'Записать пакет'));
+ return item;
 }
 function transfersView(ctx){
- const money=teamBank(team,ctx.transfers),alerts=marketAlerts(ctx,{team,bankMoney:money,sort:horizon==='season'?'season':'month',minGain:20});
- const alertBox=el('div',null,'sp-best');alertBox.append(el('h3','Усиления на рынке'));
- if(alerts.length){const ol=el('ol',null,'sp-options');for(const a of alerts)ol.append(optionRow(a,a.outId,ctx,`${byId.get(a.outId).name} → ${a.player.name}`));alertBox.append(ol);}
- else alertBox.append(el('p','Нет свободного игрока, который лучше твоего и за 4 недели (+20 ФО), и за сезон.','muted'));
- const best=bestTransfers(ctx,{team,bankMoney:money,sort:horizon});
- const singles=el('div',null,'sp-best');singles.append(el('h3','Лучшая замена для каждого игрока'));
- if(best.length){const ol=el('ol',null,'sp-options');for(const b of best)ol.append(optionRow(b,b.outId,ctx,`${byId.get(b.outId).name} → ${b.player.name}`));singles.append(ol);}
- else singles.append(el('p','Ни одна одиночная замена не даёт прироста за этот период.','muted'));
- const pick=el('div',null,'sp-best');pick.append(el('h3','Подобрать замену конкретному игроку'));
- const sel=el('select');sel.append(el('option','— выбери игрока —'));
- for(const id of ctx.rosters[team]){const p=byId.get(id);if(!p)continue;const c=current(p,ctx);const o=el('option',`${p.name} (${c.positions.join('/')}, ${c.price})${injuryText(p)?' · '+injuryText(p):''}`);o.value=String(id);sel.append(o);}
+ const wait=needsLive('Помощник по трансферам');if(wait)return [controls(ctx),...wait];
+ const money=teamBank(team,ctx.transfers),left=transfersLeft(ctx,team),fbl=fblTransfers(ctx.transfers,team,ctx.today),st=sportsTeam(team),out=[controls(ctx)];
+ const {best,options}=recommendation(ctx,money,left);
+ const pickCard=el('div',null,'sp-pick'+(best?'':' hold'));
+ if(left===0){pickCard.append(el('p','Нет трансферов','eyebrow'),el('h3','Трансферы на эту неделю закончились'),el('p',`Следующие — с ${ddmm(fbl.resetOn)}. Варианты ниже — на будущее.`,'muted'));}
+ else if(best){
+  pickCard.append(el('p','Рекомендация','eyebrow'),el('h3',best.pairs.length===1?'Сделай этот трансфер':`Сделай ${count(best.pairs.length,'трансфер','трансфера','трансферов')}`),packageMoves(best));
+  const kpis=el('div',null,'kpis'),kpi=(l,v)=>{const k=el('div',null,'kpi');k.append(el('small',l),el('strong',v));kpis.append(k);};
+  kpi('ФО '+PERIOD_LONG[horizon],signed(best.gains[horizon]));if(horizon!=='season')kpi('За сезон',signed(best.gains.season));kpi('Уверенность',Math.floor(best.why.confidence*100)+' %');kpi('Банк после',int(best.bankAfter));
+  const actions=el('div',null,'actions'),act=takeAction(best.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx,'Записать');act.classList.replace('btn-secondary','btn-primary');actions.append(act);
+  pickCard.append(kpis,actions,whyBox(best.why,ctx));
+ }else{
+  const top=options[0];pickCard.append(el('p','Рекомендация','eyebrow'),el('h3','Сейчас лучше не тратить трансферы'),
+   el('p',top?`Лучший вариант (${count(top.pairs.length,'трансфер','трансфера','трансферов')}) даёт ${signed(top.gains[horizon])} ФО ${PERIOD_LONG[horizon]}, но ${top.gains.season<0?'теряет '+int(-top.gains.season)+' ФО за сезон':top.pairs.length>left?'требует больше трансферов, чем осталось':'уверенность только '+Math.floor(top.why.confidence*100)+'%'}.`:'Ни одна замена не добавляет ФО за этот период.','muted'));
+ }
+ out.push(pickCard);
+ if(st)out.push(el('p',`${teamName(team)} подключена к Sports.ru: трансфер делается там, здесь он появится сам примерно через минуту.`,'sp-note'));
+ const early=options.some(o=>o.why.flags.some(f=>f.startsWith(EARLY)));
+ if(early)out.push(el('p','Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.','warning'));
+ const others=options.filter(o=>o!==best);
+ if(others.length){const d=el('details',null,'sp-block');d.append(el('summary',`Другие пакеты (${others.length})`));for(const p of others)d.append(packageCard(p,ctx,left));out.push(d);}
+ const singles=bestTransfers(ctx,{team,bankMoney:money,sort:horizon}).filter(b=>b.gain[horizon]>0);
+ const alerts=new Set(marketAlerts(ctx,{team,bankMoney:money,sort:horizon==='season'?'season':'month',minGain:20}).map(a=>a.outId+'>'+a.player.id));
+ const sb=el('details',null,'sp-block sp-best');sb.open=!best&&singles.length>0;sb.append(el('summary',`Лучшая замена для каждого игрока (${singles.length})`));
+ if(singles.length){const ol=el('ol',null,'sp-options');for(const b of singles){const row=optionRow(b,b.outId,ctx,`${byId.get(b.outId).name} → ${b.player.name}`);if(alerts.has(b.outId+'>'+b.player.id))row.querySelector('.sp-name').append(el('span','Рекомендуем','chip chip--accent'));ol.append(row);}sb.append(ol);}
+ else sb.append(el('p',`Ни одна одиночная замена не добавляет ФО ${PERIOD_LONG[horizon]}.`,'muted'));
+ out.push(sb);
+ const pick=el('div',null,'sp-block sp-best');pick.append(el('h3','Замена конкретному игроку'));
+ const sel=el('select');sel.setAttribute('aria-label','Игрок, которого заменить');sel.append(el('option','Выбери игрока'));sel.firstChild.value='';
+ for(const id of ctx.rosters[team]){const p=byId.get(id);if(!p)continue;const c=current(p,ctx);const o=el('option',`${p.name} (${c.positions.join('/')}, ${int(c.price)})${injuryText(p)?' · '+injuryText(p):''}`);o.value=String(id);sel.append(o);}
  if(replacing)sel.value=String(replacing);
  // Ids are NBA numbers or provider strings ("espn:…"): match the option to a roster id, never coerce it.
  sel.onchange=()=>{replacing=ctx.rosters[team].find(id=>String(id)===sel.value)??null;query='';renderSeason();};
  pick.append(sel);if(replacing&&ctx.rosters[team].includes(replacing))pick.append(replacementPanel(byId.get(replacing),ctx));
- return [controls(ctx),packageBlock(ctx),alertBox,singles,pick,transferLog(ctx)];
+ out.push(pick,transferLog(ctx));
+ return out;
 }
 function record(moves,ctx){
- if(sportsTeam(team)){alert(`${teamLabel(team)} подключена к Sports.ru: сделай трансфер на Sports.ru после одобрения Лиги — здесь он появится сам примерно через минуту.`);return;}
  const used=Math.max(transfersThisWeek(ctx.transfers,team,ctx.today,gameWeeks(live)),fblTransfers(ctx.transfers,team,ctx.today).used);
- if(used+moves.length>WEEKLY_TRANSFERS&&!confirm(`У ${teamLabel(team)} будет ${used+moves.length} трансфера на этой неделе при лимите ${WEEKLY_TRANSFERS}. Всё равно записать?`))return;
+ if(used+moves.length>WEEKLY_TRANSFERS&&!confirm(`У команды ${teamName(team)} будет ${count(used+moves.length,'трансфер','трансфера','трансферов')} на этой неделе при лимите ${WEEKLY_TRANSFERS}. Всё равно записать?`))return;
  const list=moves.map(m=>{const out=current(byId.get(m.outId),ctx);return {team,outId:m.outId,inId:m.player.id,date:ctx.today,outPrice:out.price,inPrice:m.player.price};});
- if(!confirm(list.map(x=>`${byId.get(x.outId).name} (${x.outPrice}) → ${byId.get(x.inId).name} (${x.inPrice})`).join('\n')+`\n\nЗаписать для ${teamLabel(team)} от ${ctx.today}? Затем отправь каждую запись в общий журнал Лиги.`))return;
+ if(!confirm(list.map(x=>`${byId.get(x.outId).name} (${int(x.outPrice)}) → ${byId.get(x.inId).name} (${int(x.inPrice)})`).join('\n')+`\n\nЗаписать для ${teamName(team)} от ${ddmm(ctx.today)}? Затем отправь каждую запись в общий журнал лиги.`))return;
  try{seasonRosters([...ctx.transfers,...list]);}catch(e){alert(e.message);return;}
- pending=[...pending,...list];writeStored('fbl-transfers',JSON.stringify(pending));replacing=null;setView('transfers');
+ pending=[...pending,...list];writeStored('fbl-transfers',JSON.stringify(pending));replacing=null;renderSeason();
+ document.querySelector('.sp-log')?.scrollIntoView({block:'start'});
 }
 function transferLog(ctx){
- const box=el('div',null,'sp-log');box.append(el('h3',`Журнал трансферов Лиги (${ctx.transfers.length})`));
+ const box=el('details',null,'sp-block sp-log');box.open=pending.length>0;box.append(el('summary',`Журнал трансферов лиги (${ctx.transfers.length})`));
  const list=el('ol');
- ctx.transfers.forEach((x,i)=>{
-  const isPending=!x.source,li=el('li',`${ddmm(x.date)} · ${teamName(x.team)}: ${byId.get(x.outId)?.name} (${x.outPrice}) → ${byId.get(x.inId)?.name} (${x.inPrice}) · ${x.source==='sports.ru'?'Sports.ru':x.source==='league'?'журнал Лиги':'не отправлено'}`);
-  if(isPending){li.classList.add('pending');li.append(link('Отправить в журнал ↗',issueUrl(`${teamName(x.team)}: ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`,{action:'transfer',...x}),'sp-send'));
-   const del=el('button','Удалить');del.onclick=()=>{pending=pending.filter(p=>!same(p,x));writeStored('fbl-transfers',JSON.stringify(pending));renderSeason();};li.append(del);}
+ [...ctx.transfers].reverse().forEach(x=>{
+  const isPending=!x.source,li=el('li',null,isPending?'pending':''),what=el('span',null,'what');
+  what.append(el('strong',`${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`),el('small',`${teamName(x.team)} · ${int(x.outPrice)} → ${int(x.inPrice)}${x.source==='league'?' · журнал лиги':''}`));
+  li.append(el('span',ddmm(x.date),'when'),what);
+  if(isPending){li.append(el('span','только на этом устройстве','chip chip--warn'),link('Отправить в журнал ↗',issueUrl(`${teamName(x.team)}: ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`,{action:'transfer',...x}),'btn-secondary btn-sm sp-send'));
+   li.append(button('Удалить',()=>{pending=pending.filter(p=>!same(p,x));writeStored('fbl-transfers',JSON.stringify(pending));renderSeason();},'btn-ghost btn-sm'));}
   else if(x.source==='league'&&same(x,league.transfers.at(-1)||{})&&!pending.length)li.append(link('Отменить в журнале ↗',issueUrl('отменить последний трансфер',{action:'undo'}),'sp-send'));
   list.append(li);});
- if(!ctx.transfers.length)list.append(el('li','Пока пусто. Записывай одобренные Лигой трансферы любой команды — составы, банк и свободные агенты пересчитаются.','muted'));
- const connected=[...ctx.connected].sort();
- box.append(el('p',connected.length?`Подключены автоматически (${connected.length}/8): ${connected.map(teamName).join(', ')}. Трансферы подтягиваются с Sports.ru примерно через минуту, цены и очки — каждые 2 часа.`:'Автоматический источник не подключён: трансферы берутся из журнала Лиги.','muted'));
- for(const w of ctx.warnings||[])box.append(el('p',`⚠️ ${w.team>=0?teamName(w.team):'Лига'}: ${w.message}`,'muted'));
- box.append(list,el('small','Записи с жёлтой меткой есть только на этом устройстве. «Отправить в журнал» открывает GitHub с готовой заявкой: после «Submit new issue» бот проверяет правила и добавляет её в общий журнал примерно за минуту. Уведомления в Telegram видят только общий журнал.','muted'));
+ if(!ctx.transfers.length)list.append(el('li','Пока пусто. Трансферы подключённых команд появятся сами; остальные записывай после одобрения лиги.','muted'));
+ const connected=ctx.connected.size;
+ box.append(el('p',connected?`Подключены к Sports.ru: ${connected} из 8 команд — их трансферы появляются примерно через минуту, цены и очки обновляются каждые 2 часа.`:'Автоматический источник не подключён: трансферы берутся из журнала лиги.','muted'));
+ for(const w of ctx.warnings||[])box.append(el('p',`⚠ ${w.team>=0?teamName(w.team):'Лига'}: ${w.message}`,'warning'));
+ box.append(list);
+ if(pending.length)box.append(el('p','«Отправить в журнал» открывает GitHub с готовой заявкой: после «Submit new issue» бот проверит правила и добавит её в общий журнал примерно за минуту. Уведомления в Telegram видят только общий журнал.','sp-note'));
  return box;
 }
 
 // ---------- Injuries ----------
 function injuriesView(ctx){
+ if(src.injuries==='idle'||(loading&&!injuries.size))return [loadingBlock(null)];
+ if(src.injuries==='error')return [errorBlock('Нет данных о травмах','ESPN не ответил. Список травм появится после обновления.')];
  const own=owners(ctx),byEspn=new Map(players.filter(p=>p.espnId).map(p=>[String(p.espnId),p]));
- const toggle=el('label'),cb=el('input');cb.type='checkbox';cb.checked=onlyFbl;cb.onchange=()=>{onlyFbl=cb.checked;renderSeason();};toggle.append(cb,el('span','Только игроки в составах FBL'));
- const rows=[...injuries.entries()].map(([id,i])=>({i,p:byEspn.get(id)})).filter(r=>!onlyFbl||(r.p&&own.has(r.p.id)));
- const group=r=>r.p&&own.has(r.p.id)?own.get(r.p.id):9;
+ const all=[...injuries.entries()].map(([id,i])=>({i,p:byEspn.get(id)}));
+ const league=all.filter(r=>r.p&&own.has(r.p.id)),market=all.filter(r=>r.p&&!own.has(r.p.id)&&live?.players?.[r.p.sportsId]);
+ const scope=el('div',null,'segmented sp-period');scope.setAttribute('role','group');scope.setAttribute('aria-label','Чьи травмы');
+ for(const [k,label] of [['league',`Лига (${league.length})`],['market',`Свободные (${market.length})`]]){const b=button(label,()=>{injuryScope=k;renderSeason();},'');b.setAttribute('aria-pressed',String(injuryScope===k));scope.append(b);}
+ const rows=injuryScope==='league'?league:market;
+ const group=r=>injuryScope==='league'?own.get(r.p.id):9;
  rows.sort((a,b)=>group(a)-group(b)||String(a.i.returnDate||'9').localeCompare(String(b.i.returnDate||'9')));
  const list=el('div',null,'sp-injuries');let last=null;
- for(const r of rows){const g=group(r);if(g!==last){list.append(el('h3',g<9?teamName(g):'Не в составах FBL'));last=g;}
-  const item=el('div',null,'sp-injury-item'+(/out/i.test(r.i.status)?' out':''));
-  const head=el('div');head.append(el('strong',r.p?.name||r.i.name||'—'),el('span',` ${r.p?.team||''} · ${r.i.status}${r.i.type?' · '+r.i.type:''}${r.i.fantasyStatus==='OFS'?' · вне сезона':r.i.returnDate?' · возвращение ~'+ddmm(r.i.returnDate):''}`));
-  item.append(head,el('small',`${r.i.comment} (${ddmm(String(r.i.date||'').slice(0,10))})`));list.append(item);}
- if(!rows.length)list.append(el('p',onlyFbl?'В составах FBL травмированных нет.':'Нет данных о травмах.','muted'));
- return [el('p',`${notes.injuries}. Даты возвращения — оценка ESPN.`,'muted'),toggle,list];
+ for(const r of rows){const g=group(r);
+  if(g!==last&&injuryScope==='league'){const h=el('h3',teamName(g));if(g===0)h.append(' ',el('span','ты','chip chip--accent'));list.append(h);last=g;}
+  const info=injuryInfo(r.p),item=el('div',null,'sp-injury-item'+(info.level==='out'?' out':'')),head=el('div',null,'head');
+  head.append(el('strong',r.p.name),el('span',info.text,'chip '+(info.level==='out'?'chip--danger':'chip--warn')));
+  item.append(head,el('small',[r.p.team,bodyPart(r.i.type),r.i.date?'отчёт '+ddmm(String(r.i.date).slice(0,10)):''].filter(Boolean).join(' · ')));
+  if(g===0){const o=playerOutlook(r.p,{...ctx,running:new Map()});const missed=Math.max(0,(live?.clubs?.[clubOf(r.p)]||[]).filter(x=>x.date>=ctx.today&&x.date<=horizons(ctx).week.to&&!x.score).length-o.week.games);
+   if(missed>=.5)item.append(el('p',`Пропустит ~${dec(missed)} матча до конца недели.`));
+   item.append(button('Найти замену',()=>{team=0;writeStored('fbl-season-team','0');replacing=r.p.id;openRows.add(r.p.id);setView('teams');},'btn-ghost btn-sm'));}
+  if(r.i.comment){const c=el('details',null,'inline');c.append(el('summary','Комментарий ESPN'),el('p',r.i.comment));c.lang='en';item.append(c);}
+  list.append(item);}
+ if(!rows.length)list.append(el('p',injuryScope==='league'?'В составах FBL травмированных нет.':'Среди свободных игроков травмированных нет.','muted'));
+ return [el('p',`Отчёт ESPN${src.injuriesAt?' от '+stampMsk(src.injuriesAt):''}. Даты возвращения — оценка ESPN.`,'muted'),scope,list];
 }
 
 // ---------- Upcoming games ----------
 function gamesView(ctx){
+ const out=[gamesToday(ctx,false)];
+ const wait=needsLive('Ближайшие 7 дней');if(wait)return [...out,...wait];
  const own=owners(ctx),byClub=new Map();
  for(const p of players){if(!own.has(p.id))continue;const c=clubOf(p);if(!byClub.has(c))byClub.set(c,[]);byClub.get(c).push(p);}
  const until=addDaysIso(ctx.today,6),days=new Map();
  for(const [club,cal] of Object.entries(live?.clubs||{}))for(const g of cal){if(g.date<ctx.today||g.date>until||!g.home)continue;if(!days.has(g.date))days.set(g.date,[]);days.get(g.date).push({home:club,away:g.opponent});}
- const week=currentWeek(ctx.today),out=[el('p',`Календарь Sports.ru (даты по Москве)${week?` · неделя ${week.n} до ${ddmm(week.end)}`:''}.`,'muted')];
- const counts=el('table',null,'standings-table'),hr=el('tr');for(const x of ['Команда','Матчей до конца недели','Матчей за 7 дней'])hr.append(el('th',x));counts.append(hr);
- ctx.rosters.forEach((ids,t)=>{let w=0,s=0;for(const id of ids){const p=byId.get(id);if(!p)continue;for(const g of live?.clubs?.[clubOf(p)]||[]){if(g.date>=ctx.today&&g.date<=until&&!g.score){s++;if(week&&g.date<=week.end)w++;}}}
-  const tr=el('tr');if(t===0)tr.className='mine';for(const c of [teamName(t),String(w),String(s)])tr.append(el('td',c));counts.append(tr);});
- out.push(counts);
+ const week=currentWeek(ctx.today),end=week?.end||horizons(ctx).week.to;
+ const block=el('div',null,'sp-block');block.append(el('h3',`Игры составов до ${ddmm(end)}`),el('p','Сколько матчей сыграют 10 игроков каждой команды по календарю Sports.ru и с учётом травм.','muted'));
+ const counts=el('table',null,'standings-table'),hr=el('tr');for(const [x,c] of [['Команда',''],['Матчей','num'],['С травмами','num']]){const th=el('th',x,c);th.scope='col';hr.append(th);}counts.append(hr);
+ const rows=ctx.rosters.map((ids,t)=>{let w=0,e=0;for(const id of ids){const p=byId.get(id);if(!p)continue;for(const g of live?.clubs?.[clubOf(p)]||[])if(g.date>=ctx.today&&g.date<=end&&!g.score)w++;e+=playerOutlook(p,{...ctx,running:new Map()}).week.games;}return {t,w,e};}).sort((a,b)=>b.e-a.e);
+ for(const r of rows){const tr=el('tr');if(r.t===0)tr.className='mine';tr.append(el('td',teamName(r.t),'team'),el('td',String(r.w),'num'),el('td',dec(r.e),'num total'));counts.append(tr);}
+ const wrap=el('div',null,'table-scroll');wrap.append(counts);block.append(wrap);out.push(block);
+ const sched=el('div',null,'sp-block');sched.append(el('h3','Расписание на 7 дней'));
+ const toggle=el('label',null,'check'),cb=el('input');cb.type='checkbox';cb.checked=onlyMine;cb.onchange=()=>{onlyMine=cb.checked;renderSeason();};toggle.append(cb,' Только матчи моих игроков');sched.append(toggle);
+ let any=false;
  for(const [day,list] of [...days].sort()){
-  out.push(el('h3',new Date(day+'T12:00:00Z').toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})));
   const ul=el('ul',null,'sp-day');
-  for(const g of list){const li=el('li');li.append(el('strong',`${g.away} — ${g.home}`));
-   const ours=[...(byClub.get(g.away)||[]),...(byClub.get(g.home)||[])];
-   if(ours.length)li.append(el('small',ours.map(p=>`${symbol(own.get(p.id))} ${p.name}${injuryText(p)?' ('+injuryText(p)+')':''}`).join(' · ')));
+  for(const g of list){const ours=[...(byClub.get(g.away)||[]),...(byClub.get(g.home)||[])].sort((a,b)=>(own.get(a.id)===0?-1:0)-(own.get(b.id)===0?-1:0));
+   const mine=ours.filter(p=>own.get(p.id)===0);if(onlyMine&&!mine.length)continue;
+   const li=el('li'),line=el('strong');line.append(el('span',`${g.away} — ${g.home}`));li.append(line);
+   if(ours.length){const s=el('small');ours.forEach((p,i)=>{if(i)s.append(' · ');const n=`${symbol(own.get(p.id))} ${p.name}${injuryText(p)?' ('+injuryText(p).toLowerCase()+')':''}`;s.append(own.get(p.id)===0?el('b',n):n);});li.append(s);}
    ul.append(li);}
-  out.push(ul);
+  if(ul.children.length){sched.append(el('p',weekday(day),'games-day'),ul);any=true;}
  }
- if(!days.size)out.push(el('p','Нет данных календаря.','muted'));
+ if(!any)sched.append(el('p',onlyMine?'На этой неделе у твоих игроков матчей нет.':'Нет данных календаря.','muted'));
+ out.push(sched);
  return out;
 }
 
+// ---------- Rules ----------
 // League rules for every team, the appeal to the league's lawyer for each breach, and the league's «белое правило» list.
 // The list is the league's decision (data/fbl-league.json "white"); marks made here wait on this device until the
-// league log has them.
-function whiteList(){const shared=(league.white||[]).map(String),pending=readJson('fbl-white-pending',null);return pending?pending.map(String):shared;}
+// league log has them, and a draft mark never turns into a breach before the league decides.
+function whiteList(){const shared=(league.white||[]).map(String),draft=readJson('fbl-white-pending',null);return draft?draft.map(String):shared;}
 function rulesView(ctx){
- const white=whiteList(),pending=readJson('fbl-white-pending',null),out=[];
- const checks=checkRules({rosters:ctx.rosters,byId,transfers:ctx.transfers,white,checked:(league.whiteChecked||[]).map(String),today:ctx.today,clubOf});
- out.push(el('h3','Правила лиги'),el('p',`Минимум один новичок (rookie) · минимум один игрок по «белому правилу» (засчитывается по отцу; кто засчитывается — решает лига) · не больше двух игроков одного клуба NBA · не больше ${checks[0].transfers.limit} трансферов за неделю лиги (пн–вс; первая неделя — от драфта до ${ddmm(checks[0].transfers.week.end)}, предсезонные трансферы входят в неё) · трансферы только с ${TRANSFER_HOURS.from} до ${TRANSFER_HOURS.to} МСК (время сделки — по наблюдателю, с точностью до его чтения журнала). Нарушения разбирает ${LAWYER.name}, ${LAWYER.role}.`,'muted'));
- const unmarked=checks.filter(c=>c.whiteState==='unmarked').length;
- if(unmarked)out.push(el('p',`⚠ Белое правило: выбери по одному игроку у ${unmarked} команд — кто у них закрывает правило. Дальше приложение само следит за продажами этих игроков.`,'warning'));
- const marks=new Set(white),pick=(c,value)=>{for(const p of c.roster)marks.delete(String(p.id));marks.delete(`none:${c.team}`);if(value)marks.add(value);
-  writeStored('fbl-white-pending',JSON.stringify([...marks]));renderSeason();};
- const table=el('table',null,'sp-table'),head=el('tr');for(const h of ['Команда','Rookie','Белое правило','Клубы NBA','Трансферы'])head.append(el('th',h));table.append(head);
- for(const c of checks){
-  const tr=el('tr');if(c.team===0)tr.className='mine';const bad=r=>c.violations.some(v=>v.rule===r);
-  const t=c.transfers;
-  for(const v of [c.label,bad('rookie')?'❌ нет':'✅ '+c.rookies.map(p=>p.name).join(', ')])tr.append(el('td',v));
+ const wait=needsLive('Правила лиги');if(wait)return wait;
+ const official=(league.white||[]).map(String),draft=readJson('fbl-white-pending',null),marks=new Set(draft?draft.map(String):official),out=[];
+ const args={rosters:ctx.rosters,byId,transfers:ctx.transfers,checked:(league.whiteChecked||[]).map(String),today:ctx.today,clubOf,nameOf:p=>p?.name};
+ const checks=checkRules({...args,white:official}),shown=draft?checkRules({...args,white:[...marks]}):checks;
+ const t0=checks[0].transfers;
+ const intro=el('ul',null,'sp-rules-intro');
+ for(const line of ['Минимум 1 rookie в составе.','Минимум 1 игрок по «белому правилу» — засчитывается по отцу, решает лига.','Не больше 2 игроков одного клуба NBA и ни одного игрока сразу в двух командах FBL.',`До ${t0.limit} трансферов за неделю лиги (пн–вс). Трансферы до старта сезона на Sports.ru бесплатны и в лимит не входят.`,`Трансферы только с ${TRANSFER_HOURS.from} до ${TRANSFER_HOURS.to} МСК.`])intro.append(el('li',line));
+ out.push(el('h3','Правила лиги'),intro,el('p',`Нарушения разбирает ${LAWYER.name}, юрист лиги.`,'muted'));
+ const unmarked=shown.filter(c=>c.whiteState==='unmarked').length;
+ if(unmarked)out.push(el('p',`Белое правило: отметь по одному игроку у ${count(unmarked,'команды','команд','команд')} — кто закрывает правило. Дальше приложение само следит за продажами этих игроков.`,'warning'));
+ const pickMark=(c,value)=>{for(const p of c.roster)marks.delete(String(p.id));marks.delete(`none:${c.team}`);if(value)marks.add(value);writeStored('fbl-white-pending',JSON.stringify([...marks]));renderSeason();};
+ const table=el('table',null,'sp-table'),head=el('tr');for(const h of ['Команда','Rookie','Белое правило','Клубы NBA',`Трансферы до ${ddmm(t0.week.end)}`,'Итог'])head.append(el('th',h));table.append(head);
+ for(const [i,c] of checks.entries()){
+  const d=shown[i],v=verdict(c),tr=el('tr');if(c.team===0)tr.className='mine';
+  const has=r=>c.violations.some(x=>x.rule===r);
+  // On phones each row becomes a card: the label comes from data-label and the content sits in one inner block.
+  const cell=(label,value,cls)=>{const td=el('td',null,cls),inner=el('div');td.dataset.label=label;if(value!=null)inner.append(value);td.append(inner);tr.append(td);return inner;};
+  const name=cell('Команда',teamName(c.team),'team');if(c.team===0)name.append(' ',el('span','ты','chip chip--accent'));
+  cell('Rookie',has('rookie')?'❌ нет':'✅ '+c.rookies.map(p=>p.name).join(', '),has('rookie')?'bad':'');
   // One player per team is enough: the select names who satisfies the rule for this team, or the league's finding of none.
-  const cell=el('td'),select=el('select');select.setAttribute('aria-label','Белое правило: '+c.label);
-  for(const [value,label] of [['','— не выбран —'],...c.roster.map(p=>[String(p.id),p.name]),[`none:${c.team}`,'❌ нет такого игрока']]){const o=el('option',label);o.value=value;select.append(o);}
-  select.value=c.whites[0]?String(c.whites[0].id):marks.has(`none:${c.team}`)?`none:${c.team}`:'';select.onchange=()=>pick(c,select.value);
-  cell.append(c.whiteState==='ok'?'✅ ':c.whiteState==='unmarked'?'· ':'❌ ',select);
-  if(c.undecided.length)cell.append(el('small',` нет решения лиги: ${c.undecided.map(p=>p.name).join(', ')}`,'muted'));tr.append(cell);
-  for(const v of [bad('club')?'❌ больше двух':'✅',`${t.left}/${t.limit} осталось · обновление ${ddmm(t.resetOn)}${bad('transfers')?' · ❌ превышение':''}`])tr.append(el('td',v));
+  const w=cell('Белое правило'),select=el('select');select.setAttribute('aria-label','Белое правило: '+teamName(c.team));
+  const decided=c.whites[0]||marks.has(`none:${c.team}`);
+  for(const [value,label] of [...(decided?[]:[['','не отмечен']]),...c.roster.map(p=>[String(p.id),p.name]),[`none:${c.team}`,'никто не подходит']]){const o=el('option',label);o.value=value;select.append(o);}
+  select.value=d.whites[0]?String(d.whites[0].id):marks.has(`none:${c.team}`)?`none:${c.team}`:'';select.onchange=()=>pickMark(c,select.value);
+  const state=d.whiteState==='ok'?['✅','ok']:d.whiteState==='unmarked'?['⏳','wait']:d.whiteState==='sold'?['⏳','wait']:['❌','bad'];
+  w.append(el('span',state[0]+' ',state[1]),select);
+  if(c.undecided.length)w.append(el('small',`нет решения лиги: ${c.undecided.map(p=>p.name).join(', ')}`));
+  cell('Клубы NBA',has('club')?'❌ больше двух':'✅',has('club')?'bad':'');
+  const tc=cell('Трансферы',`${c.transfers.left} из ${c.transfers.limit}`);tc.append(el('small',`осталось до ${ddmm(t0.week.end)}`));if(has('transfers'))tc.append(el('small','❌ превышение','bad'));
+  const other=c.violations.filter(x=>x.rule==='time'||x.rule==='duplicate');
+  const sum=cell('Итог',v.kind==='violation'?'❌ нарушение':v.kind==='check'?'⏳ проверить':'✅ в порядке',v.kind==='violation'?'bad':v.kind==='check'?'wait':'ok');
+  if(other.length)sum.append(el('small',other.map(x=>x.rule==='time'?'время сделки':'игрок в двух командах').join(', ')));
   table.append(tr);
  }
- out.push(table);
- if(pending){const save=el('a','Сохранить выбор в лиге (заявка)');save.href=issueUrl('белое правило',{action:'white',players:[...marks].map(x=>/^\d+$/.test(x)?Number(x):x)});save.target='_blank';save.rel='noopener';
-  const reset=el('button','Отменить');reset.onclick=()=>{writeStored('fbl-white-pending','');renderSeason();};
-  out.push(el('p','Выбор пока только на этом устройстве: чтобы его видели сторож и Telegram, сохрани его в лиге.','muted'),save,document.createTextNode(' '),reset);}
+ const wrap=el('div',null,'table-scroll');wrap.append(table);out.push(wrap);
+ if(draft){const bar=el('div',null,'white-pending notice notice--warn');
+  const send=link('Отправить в лигу ↗',issueUrl('белое правило',{action:'white',players:[...marks].map(x=>/^\d+$/.test(x)?Number(x):x)}),'btn-primary btn-sm');
+  bar.append(el('p','Черновик белого правила на этом устройстве. Чтобы его увидели бот лиги и Telegram, отправь заявку.'),send,button('Сбросить',()=>{writeStored('fbl-white-pending','');renderSeason();},'btn-ghost btn-sm'));out.push(bar);}
  for(const c of checks.filter(c=>c.violations.length)){
-  const box=el('div',null,'sp-appeal'),text=appeal(c,ctx.today,0),area=el('textarea');area.value=text;area.rows=12;area.readOnly=true;
-  const copy=el('button','Скопировать обращение');copy.onclick=async()=>{try{await navigator.clipboard.writeText(text);copy.textContent='Скопировано';}catch{area.select();}};
-  const share=el('a','Отправить в Telegram');share.href=`https://t.me/share/url?url=${encodeURIComponent(' ')}&text=${encodeURIComponent(text)}`;share.target='_blank';share.rel='noopener';
-  box.append(el('h4',`⚖️ ${c.label}: обращение к ${LAWYER.name}`),...c.violations.map(v=>el('p','• '+v.text)),area,copy,document.createTextNode(' '),share);out.push(box);
+  const v=verdict(c),items=[...v.breaches,...v.doubts];
+  if(c.team===0){const box=el('div',null,'sp-appeal');box.append(el('h4',v.breaches.length?'⚠ У тебя нарушение':'⏳ Проверь свой состав'),...items.map(x=>el('p','• '+x.text)));
+   box.append(button('Открыть мой состав',()=>{team=0;writeStored('fbl-season-team','0');setView('teams');}));out.push(box);continue;}
+  const box=el('div',null,'sp-appeal'),text=appeal(c,ctx.today,0),area=el('textarea');area.value=text;area.rows=10;area.readOnly=true;area.setAttribute('aria-label','Текст обращения');
+  box.append(el('h4',`${v.breaches.length?'⚖️':'⏳'} ${teamName(c.team)} — ${v.breaches.length?'обращение к юристу лиги':'нужна проверка'}`),...items.map(x=>el('p','• '+x.text)));
+  const letter=el('details',null,'inline');letter.append(el('summary','Текст обращения'),area);box.append(letter);
+  const copy=button('Скопировать обращение',async()=>{try{await navigator.clipboard.writeText(text);copy.textContent='Скопировано ✓';setTimeout(()=>{copy.textContent='Скопировать обращение';},2000);}catch{letter.open=true;area.select();copy.textContent='Выдели текст и скопируй';}});
+  const share=link('Отправить в Telegram ↗',`https://t.me/share/url?url=${encodeURIComponent(' ')}&text=${encodeURIComponent(text)}`,'btn-secondary btn-sm');
+  const actions=el('div',null,'actions');actions.append(copy,share);box.append(actions);out.push(box);
  }
  if(!checks.some(c=>c.violations.length))out.push(el('p','Нарушений не найдено.','muted'));
  return out;
 }
+
+// ---------- Page ----------
+const METHOD={
+ overview:['Очки — официальные фэнтези-очки Sports.ru: игрок приносит их, только пока он в команде.','«В игре» — матчи, которые Sports.ru ещё не засчитал: протоколы ESPN по формуле Sports.ru, без бонуса за результат.','Прогноз — очки сейчас плюс ожидание до конца сезона с учётом календаря и травм.'],
+ transfers:['ФО за матч — прогноз сезона по формуле Sports.ru, который с каждым сыгранным матчем сдвигается к официальным очкам (вес прогноза — 10 матчей).','Ожидаемые ФО = ФО за матч × доля матчей, которые игрок обычно играет × матчи клуба по календарю × шанс сыграть по отчёту ESPN (не играет — 0, под вопросом — 50%).',`Допустимость: позиция Sports.ru (по 2 на позицию), текущие цены, банк, минимум один rookie, лимит ${WEEKLY_TRANSFERS} трансфера за неделю лиги, бюджет ${int(CAP)}. Пакеты — точная оптимизация.`,'Sports.ru обновляется каждые 2 часа, травмы и матчи ESPN — при открытии, во время матчей — раз в минуту.']
+};
+METHOD.teams=METHOD.transfers;
+function statusLine(ctx){
+ const week=currentWeek(ctx.today),parts=[week?`Тур ${week.n} · ${ddmm(week.start)}–${ddmm(week.end)}`:`Сегодня ${ddmm(ctx.today)}`];
+ if(loading)parts.push('обновляю данные…');else if(live)parts.push(`данные Sports.ru на ${timeMsk(live.collectedAt)}`+(moscowDate(live.collectedAt)!==ctx.today?` ${ddmm(moscowDate(live.collectedAt))}`:''));
+ return parts.join(' · ');
+}
+function warnings(ctx){
+ const out=[],age=liveAgeHours();
+ if(live&&src.live==='stale')out.push(`Sports.ru не ответил — показаны данные от ${stampMsk(live.collectedAt)}.`);
+ else if(live&&age>6)out.push(`Данные Sports.ru устарели: последнее обновление ${stampMsk(live.collectedAt)}.`);
+ if(src.injuries==='error'&&view!=='injuries')out.push('Отчёт ESPN о травмах недоступен: шансы сыграть считаются без него.');
+ if(live&&ctx.connected.size<8)out.push(`К Sports.ru подключено ${ctx.connected.size} из 8 команд: остальные трансферы — из журнала лиги.`);
+ return out.map(w=>{const n=el('p',null,'notice notice--warn');n.append(el('p',w));return n;});
+}
 function setView(v){view=v;writeStored('fbl-season-view',v);renderSeason();window.scrollTo({top:0});}
-export function renderSeason(){
+export function renderSeason(busy=false){
  const root=$('season-body');if(!root||tab()!=='season')return;
- if(!players.length){root.replaceChildren(el('p','Загружаю базу игроков…','muted'));return;}
- if(!live&&!loading){refreshSeason();}
- const ctx=context(),week=currentWeek(ctx.today);
- $('season-status').textContent=[week?`Неделя ${week.n} (${ddmm(week.start)}–${ddmm(week.end)})`:`Сегодня ${ddmm(ctx.today)}`,notes.live,notes.injuries,notes.games,notes.league].filter(Boolean).join(' · ');
- const nav=el('nav',null,'season-nav');
- for(const [k,label] of VIEWS){const b=el('button',label);b.setAttribute('aria-pressed',String(view===k));b.onclick=()=>{replacing=null;setView(k);};nav.append(b);}
+ if(!players.length){
+  $('season-status').textContent='';
+  root.replaceChildren(dbState==='error'?errorBlock('Не удалось загрузить базу игроков','Проверь интернет и повтори.',()=>dbRetry?.()):loadingBlock('Загружаю базу игроков…'));
+  return;
+ }
+ // One automatic attempt per page: a failed source shows its error and a retry button instead of polling in a loop.
+ if(!live&&!loading&&!attempted&&!busy){refreshSeason();return;}
+ const ctx=context();
+ $('season-status').textContent=statusLine(ctx);
+ const nav=el('nav',null,'season-nav segmented');nav.setAttribute('aria-label','Разделы сезона');
+ for(const [k,label] of VIEWS){const b=el('button',label);b.type='button';b.setAttribute('aria-pressed',String(view===k));b.onclick=()=>{replacing=null;setView(k);};nav.append(b);}
  const content=view==='teams'?teams(ctx):view==='transfers'?transfersView(ctx):view==='injuries'?injuriesView(ctx):view==='games'?gamesView(ctx):view==='rules'?rulesView(ctx):overview(ctx);
- const method=el('details',null,'plan-method');method.append(el('summary','Как считается'),el('small',`ФО за матч: прогноз сезона по формуле Sports.ru, который с каждым сыгранным матчем сдвигается к официальным ФО Sports.ru (вес прогноза = 10 матчей). Ожидаемые ФО = ФО за матч × доля матчей, которые игрок обычно играет × матчи клуба по календарю Sports.ru × шанс сыграть по отчёту ESPN (Out до даты возвращения — 0, Day-To-Day — 50%). Допустимость: позиция Sports.ru (по 2 на позицию), текущие цены, банк, минимум один rookie, лимит ${WEEKLY_TRANSFERS} трансфера в неделю (с понедельника), бюджет ${CAP}. Пакеты — точная целочисленная оптимизация. Sports.ru обновляется каждые 2 часа, травмы и матчи ESPN — при открытии, во время матчей — раз в минуту.`));
- root.replaceChildren(nav,...content,method);
+ const parts=[nav,...warnings(ctx),...content];
+ if(METHOD[view]&&live){const method=el('details',null,'method');method.append(el('summary','Как считается'));const ul=el('ul');for(const l of METHOD[view])ul.append(el('li',l));method.append(ul);parts.push(method);}
+ // Keep the replacement search focused and its caret in place across a re-render.
+ const focused=document.activeElement,wasSearch=focused?.closest?.('#season-body')&&focused.type==='search',caret=wasSearch?focused.selectionStart:null;
+ root.replaceChildren(...parts);
+ if(wasSearch){const s=root.querySelector('.sp-replace input[type=search]');if(s){s.focus({preventScroll:true});try{s.setSelectionRange(caret,caret);}catch{}}}
 }
 export function initSeasonTabs(onDraft){
- const set=t=>{document.body.dataset.tab=t;writeStored('fbl-tab',t);for(const b of document.querySelectorAll('[data-tab-button]'))b.setAttribute('aria-pressed',String(b.dataset.tabButton===t));if(t==='season'){renderSeason();if(live)refreshSeason();}else onDraft?.();};
+ const set=t=>{document.body.dataset.tab=t;writeStored('fbl-tab',t);$('season').hidden=t!=='season';$('draft-view').hidden=t==='season';
+  for(const b of document.querySelectorAll('[data-tab-button]'))b.setAttribute('aria-pressed',String(b.dataset.tabButton===t));
+  if(t==='season'){renderSeason();if(live)refreshSeason();}else onDraft?.();};
  for(const b of document.querySelectorAll('[data-tab-button]'))b.onclick=()=>set(b.dataset.tabButton);
  $('season-refresh').onclick=()=>refreshSeason();
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tab()==='season'&&live)refreshSeason();});
