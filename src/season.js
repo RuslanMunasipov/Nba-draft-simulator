@@ -67,7 +67,8 @@ export function transfersThisWeek(transfers,team,today,weeks){
  return transfers.filter(x=>x.team===team&&x.date<=today&&transferWeek(x.date,weeks)?.start===week.start).length;
 }
 
-// Points per game: the pre-season full-formula forecast updated by official Sports.ru games as they arrive.
+// Points per game: the pre-season full-formula forecast updated by the games played, as they arrive (Sports.ru's points
+// of each game minus its team result bonus: FBL scores on Yahoo, without it).
 // Weights come from scripts/inseason_calibration.py (fitted 2023/24->2024/25, tested on 2025/26):
 // points per minute move slowly, minutes move faster and favour recent games, newcomers adapt fastest.
 export const PRIOR_GAMES=10;
@@ -241,7 +242,8 @@ export function bestTransfers(ctx,{team,bankMoney,sort='month',limit=10}){
  return ctx.rosters[team].map(outId=>{const [best]=transferOptions(ctx,{team,outId,bankMoney,limit:1,sort});return best?{outId,...best}:null;})
   .filter(x=>x&&x.gain[sort]>0).sort((a,b)=>b.gain[sort]-a.gain[sort]).slice(0,limit);
 }
-// Official Sports.ru points each team collected so far, counting a player only while he was on the team.
+// FBL points each team collected so far (Sports.ru's per game minus the team result bonus), counting a player only while
+// he was on the team.
 export function teamPoints(ctx,transfers,picks=DRAFT_PICKS){
  const totals=Array(TEAM_COUNT).fill(0),byId=new Map(ctx.players.map(p=>[p.id,p]));
  for(const s of stints(transfers,picks)){

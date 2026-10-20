@@ -12,7 +12,7 @@
   },
   "minimumRookies": 1,
   "positionAuthority": "Sports.ru",
-  "scoringAuthority": "Sports.ru",
+  "scoringAuthority": "Yahoo Fantasy",
   "draft": {
     "order": "LINEAR",
     "firstTeam": 0,
@@ -114,6 +114,44 @@
     "formula": "Sports.ru per-game formula without the team result bonus",
     "resultBonus": false,
     "decidedBy": "league owner, 2026-10-20",
-    "reason": "The league scores on Yahoo, which cannot award points for team wins or take them for losses."
+    "reason": "The league scores on Yahoo, which cannot award points for team wins or take them for losses.",
+    "gamePoints": "Sports.ru points of each played game minus its team result bonus (result read from the club calendar score)"
+  },
+  "yahoo": {
+    "role": "Scoring and standings of the league (Sports.ru: draft, transfers, prices and accounting)",
+    "checkedAt": "2026-10-20",
+    "source": "League settings screenshots from the league owner",
+    "statCategories": [
+      "GP",
+      "FGA",
+      "FGM",
+      "FTA",
+      "FTM",
+      "PTS",
+      "REB",
+      "AST",
+      "ST",
+      "BLK",
+      "TO",
+      "PF"
+    ],
+    "rosterPositions": [
+      "PG",
+      "PG",
+      "SG",
+      "SG",
+      "SF",
+      "SF",
+      "PF",
+      "PF",
+      "C",
+      "C"
+    ],
+    "bench": 0,
+    "rosterChanges": "Daily - Today",
+    "maxGamesPlayed": null,
+    "scoringStart": "2026-10-20",
+    "scoringEnd": "2027-04-11",
+    "scoringType": "Rotisserie (category totals; the league counts them with the FBL formula)"
   }
 }
