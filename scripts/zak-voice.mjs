@@ -56,9 +56,7 @@ const CHECK_BY={
   'Часы тикают. Зак Онн выясняет, на чьей они стороне.','Пограничное время. Пограничная сделка. Зак Онн на границе.'],
  white:['Засчитываемый игрок ушёл. Кто прикроет белое правило — решит лига. Зак Онн проследит.','Белое правило под вопросом. А вопросы здесь задаёт Зак Онн.',
   'Ключевой свидетель белого правила покинул состав. Зак Онн ищет замену в материалах дела.'],
- unmarked:['В составе есть игроки без решения лиги. Зак Онн ждёт заключения.','Личность не установлена. Лига, ваш ход.'],
- duplicate:['Один игрок — две команды? Зак Онн видел такое только в кино про близнецов.','Игрок числится в двух командах. Зак Онн выясняет, кто из них настоящий.',
-  'Двойное гражданство в лиге? Зак Онн поднимает регламент.']
+ unmarked:['В составе есть игроки без решения лиги. Зак Онн ждёт заключения.','Личность не установлена. Лига, ваш ход.']
 };
 // An obvious breach, by the rule that was broken.
 const BREACH={
@@ -77,7 +75,9 @@ const BREACH={
  time:['08:00–22:00 значит 08:00–22:00. Часы — не украшение.','Ночью лига спит. Зак Онн — нет.',
   'После 22:00 рынок закрыт. Закон работает круглосуточно.','Ночная сделка? Зак Онн видит в темноте.',
   'Комендантский час — с 22:00. Нарушителей ждёт разговор.','Сделки после отбоя? Не в смену Зака Онна.',
-  'Ночной рынок — это чёрный рынок. А чёрный рынок — это к Заку Онну.']
+  'Ночной рынок — это чёрный рынок. А чёрный рынок — это к Заку Онну.'],
+ duplicate:['Один игрок — одна команда. Это не обсуждается.','Чужой игрок в твоём составе? Это называется кража, GM.',
+  'Двух одинаковых игроков в лиге не бывает. Бывают нарушители.','Игрок уже занят. Зак Онн тоже — твоим делом.']
 };
 // More than one rule broken at once.
 const BREACH_MANY=['Несколько нарушений за раз? Это уже не ошибка. Это стиль.','Букет нарушений. Зак Онн приобщает его к делу целиком.',
@@ -147,17 +147,20 @@ export const LINES={APPROVED,APPROVED_WATCHED,CHECK,CHECK_BY,BREACH,BREACH_MANY,
 export const HEADINGS={violation:'⚖️ <b>ЗАК ОНН НЕДОВОЛЕН</b>',check:'🔎 <b>ЗАК ОНН ПРОВЕРЯЕТ</b>',approved:null};
 
 // remark(verdict, rules broken or in doubt, watched?, seed) → his line on the verdict.
-export function remark(kind,rules=[],watched=false,seed=''){
+export const remark=(...a)=>remarkLines(...a).join(' ');
+// His remark as lines: the first is his word on the verdict; a second (a watched team, or several rules broken at once)
+// may be left out when the protocol would not fit under his photo.
+export function remarkLines(kind,rules=[],watched=false,seed=''){
  if(kind==='violation'){
   // One line for the first broken rule (the protocol lists the rest), then one for a watched team or, otherwise, for
-  // several rules broken at once: two lines at most, so the protocol stays under his photo.
+  // several rules broken at once: two lines at most.
   const lines=rules.filter(r=>BREACH[r]).slice(0,1).map(r=>pick(BREACH[r],seed+r));
   if(rules.length>1&&!watched)lines.push(pick(BREACH_MANY,seed));
   if(watched)lines.push(pick(BREACH_WATCHED,seed));
-  return lines.join(' ')||pick(BREACH_WATCHED,seed);
+  return lines.length?lines:[pick(BREACH_WATCHED,seed)];
  }
- if(kind==='check'){const r=rules.find(r=>CHECK_BY[r]);return pick(r?CHECK_BY[r]:CHECK,seed+(r||''));}
- return pick(watched?APPROVED_WATCHED:APPROVED,seed);
+ if(kind==='check'){const r=rules.find(r=>CHECK_BY[r]);return [pick(r?CHECK_BY[r]:CHECK,seed+(r||''))];}
+ return [pick(watched?APPROVED_WATCHED:APPROVED,seed)];
 }
 // circumstances({left, used, bank, moves, maxPrice}, seed) → a word on the deal, or null.
 export function circumstances({left,used,bank,moves=1,maxPrice=0},seed=''){

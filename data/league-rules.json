@@ -104,8 +104,8 @@
     }
   ],
   "sharedPlayers": {
-    "source": "Sports.ru lets several fantasy teams hold the same player; whether the FBL allows it is the league's call (asked 20.10).",
-    "verdict": "check",
-    "note": "A team buying a player another FBL team already holds is flagged for the lawyer's check (the team that had him first is not)."
+    "source": "League owner, 2026-10-20: a player may be on only one FBL team; buying a player another FBL team holds is a direct breach (Sports.ru itself allows it).",
+    "verdict": "violation",
+    "note": "The team that bought him later is in breach; the team that had him first is not."
   }
 }

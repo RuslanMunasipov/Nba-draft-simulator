@@ -92,12 +92,12 @@ test('a night transfer is an obvious breach, one at the edge of the hours a chec
  assert.equal(verdict(run({seenAt:'2026-10-20T11:32:00Z',seenAfter:'2026-10-20T11:31:00Z'})).kind,'approved');
  assert.equal(verdict(run({})).kind,'approved');
 });
-test('a player another team already holds: the later buyer is flagged for the lawyer, the first holder is not',()=>{
+test('a player another team already holds: the later buyer is in breach, the first holder is not',()=>{
  const byId=new Map([[1,{id:1,name:'Rookie',isRookie:true}],[2,{id:2,name:'Rookie2',isRookie:true}],[3,{id:3,name:'Shared'}],[4,{id:4,name:'Other'}]]);
  const rosters=[[1,3],[2,3],...Array(6).fill([])];
  const transfers=[{team:1,outId:4,inId:3,date:'2026-10-20'}];
  const checks=checkRules({rosters,byId,transfers,white:[1,2],today:'2026-10-20'});
  assert.ok(!checks[0].violations.some(v=>v.rule==='duplicate'));
  const dup=checks[1].violations.find(v=>v.rule==='duplicate');assert.match(dup.text,/Shared уже в составе/);
- assert.equal(verdict(checks[1]).kind,'check');
+ assert.equal(verdict(checks[1]).kind,'violation');assert.match(dup.text,/только в одной команде/);
 });

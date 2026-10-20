@@ -97,13 +97,13 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
     text:t.state==='breach'?`трансфер ${deal} совершён в ${timeLabel(t)} МСК — трансферы разрешены только с ${TRANSFER_HOURS.from} до ${TRANSFER_HOURS.to} МСК`
      :`трансфер ${deal} совершён ${timeLabel(t)} МСК — на границе разрешённого времени (${TRANSFER_HOURS.from}–${TRANSFER_HOURS.to} МСК), сверьте время на Sports.ru`});
   }
-  // A player another FBL team already holds (Sports.ru allows it): the team that bought him later is flagged for the
-  // lawyer's check, the one that had him first is not.
+  // A player may be on only one FBL team (Sports.ru itself allows more): the team that bought a player another FBL team
+  // already held is in breach, the one that had him first is not.
   for(const p of roster){
    const others=rosters.map((r,t)=>t!==team&&r.includes(p.id)?t:-1).filter(t=>t>=0);if(!others.length)continue;
    const since=t=>{let at=-1;transfers.forEach((x,i)=>{if(x.team===t&&x.inId===p.id)at=i;});return at;};
    if(others.some(t=>since(t)<since(team)))violations.push({rule:'duplicate',key:`duplicate:${team}:${p.id}`,
-    text:`${nameOf(p)} уже в составе ${others.map(t=>`«${teamLabel(t).replace(/^\d+\.\s*/,'').replace(/ · GM .*/,'')}»`).join(', ')} — может ли игрок быть у двух команд лиги, решает лига`});
+    text:`${nameOf(p)} уже в составе ${others.map(t=>`«${teamLabel(t).replace(/^\d+\.\s*/,'').replace(/ · GM .*/,'')}»`).join(', ')} — игрок может быть только в одной команде лиги`});
   }
   const moves=fblTransfers(transfers,team,today);
   for(const w of moves.over)violations.push({rule:'transfers',key:`transfers:${team}:${w.start}:${w.count}`,
@@ -113,11 +113,11 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
 }
 
 // What a team's check asks of the league. An obvious breach (no rookie, the club or transfer limit, a team the league
-// found without a white player, a transfer outside the hours) is for the lawyer to investigate; a sold white player with
+// found without a white player, a transfer outside the hours, a player another team holds) is for the lawyer to investigate; a sold white player with
 // no other one marked, a roster the league has not decided on, or a transfer whose time window crosses 08:00 or 22:00
 // needs his check; otherwise the roster stands approved.
 export function verdict(check){
- const doubtful=v=>(v.rule==='white'&&check.whiteState==='sold')||(v.rule==='time'&&!v.certain)||v.rule==='duplicate';
+ const doubtful=v=>(v.rule==='white'&&check.whiteState==='sold')||(v.rule==='time'&&!v.certain);
  const breaches=check.violations.filter(v=>!doubtful(v)),doubts=check.violations.filter(doubtful);
  const unmarked=check.whiteState==='unmarked';
  return {kind:breaches.length?'violation':doubts.length||unmarked?'check':'approved',breaches,doubts,unmarked};
