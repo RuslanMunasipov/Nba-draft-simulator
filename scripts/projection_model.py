@@ -368,6 +368,42 @@ def with_games(p,chain,pid,t,games=None,healthy=False):
     """Prediction with the chain's games pmf, its mean set to the forecast games."""
     if chain:p['gamesPmf'],p['availability']=chain.distribution(pid,t,mean=games if games is not None else p['share']*season_length(t),healthy=healthy)
     return p
+def actual_replaced(o,n,delay=av.REPLACE_DELAY):
+    """Games a manager would have covered with a replacement in a season that happened: every absence of 4+ games after
+    the first `delay` (a season without games counts as one absence)."""
+    if not o:return max(0,n-delay)
+    spells=[g for g in o['gaps'] if g>av.SHORT]+[x for x in (o['start'],o['end']) if x>av.SHORT]
+    return sum(max(0,g-delay) for g in spells)
+def replacement_rate(rates,rostered=80,depth=16):
+    """Per-game value of the best players left after the league's 80 roster spots (ranks 81-96 by forecast)."""
+    v=sorted(rates,reverse=True)[rostered:rostered+depth];return statistics.mean(v) if v else 0.0
+def transfer_check(model,chain,test,history,bonus,beta):
+    """Held-out check of the slot value with replacements: on 2025/26, does adding the expected replacement points to a
+    player's own forecast predict (and rank) what his roster slot actually produced, own points plus a replacement's
+    over his actual long absences? The replacement level is the same on both sides, so only the absence model is tested."""
+    rows=[]
+    for e in test:
+        n=season_length(e['t']);p=model.predict(e['x']);last=next((q for q in e['x']['past'] if q and q['games']),None)
+        b=beta*bonus.get((e['t']-1,last['team']),0)
+        _,info=chain.distribution(e['pid'],e['t'],mean=p['share']*n,L=n)
+        rows.append(dict(rate=p['rate']+b,centre=(p['rate']+b)*p['share']*n,expected=info['replacedGames'],
+                         actual=((e['y']['rate'] or 0)+b)*e['y']['games'],replaced=actual_replaced(history.spells.get((e['pid'],e['t'])),n)))
+    R=replacement_rate([r['rate'] for r in rows])*(1-chain.short-chain.long)
+    for r in rows:r['slot']=r['actual']+R*r['replaced'];r['adjusted']=r['centre']+R*r['expected']
+    def top(key,k=80):return sum(r['slot'] for r in sorted(rows,key=lambda r:-r[key])[:k])
+    def ranks(key):
+        order=sorted(range(len(rows)),key=lambda i:rows[i][key]);out=[0]*len(rows)
+        for k,i in enumerate(order):out[i]=k
+        return out
+    def spearman(a,b):
+        ra,rb=ranks(a),ranks(b);ma=statistics.mean(ra);mb=statistics.mean(rb)
+        return sum((x-ma)*(y-mb) for x,y in zip(ra,rb))/math.sqrt(sum((x-ma)**2 for x in ra)*sum((y-mb)**2 for y in rb))
+    return dict(players=len(rows),replacementPerGame=R,delayGames=av.REPLACE_DELAY,
+                expectedReplacedGames=statistics.mean(r['expected'] for r in rows),actualReplacedGames=statistics.mean(r['replaced'] for r in rows),
+                slotMAE=dict(ownForecast=statistics.mean(abs(r['centre']-r['slot']) for r in rows),withReplacements=statistics.mean(abs(r['adjusted']-r['slot']) for r in rows)),
+                slotSpearman=dict(ownForecast=spearman('centre','slot'),withReplacements=spearman('adjusted','slot')),
+                top80SlotPoints=dict(ownForecast=top('centre'),withReplacements=top('adjusted')),
+                top40SlotPoints=dict(ownForecast=top('centre',40),withReplacements=top('adjusted',40)))
 def healthy_start_check(model,chain,test,history):
     """Held-out check of the healthy-start shift: players who played their club's first game of the test season."""
     rows=[]
@@ -497,7 +533,9 @@ def run(data=None):
     chain=availability(history,TEST)
     holdout=evaluate(frozen,ranges,test,bonus,beta,chain)
     holdout['errorSources']=error_sources(frozen,test,history)
-    if chain:holdout['healthyStart']=healthy_start_check(frozen,chain,test,history)
+    if chain:
+        holdout['healthyStart']=healthy_start_check(frozen,chain,test,history)
+        holdout['transferValue']=transfer_check(frozen,chain,test,history,bonus,beta)
     drafts=json.loads(DRAFTS.read_text())['drafts']
     league={y:league_seasons(p,y) for y,p in SEASON_FILES.items()}
     rookie_fit=rookie_rows(drafts,{2025:(league[2025],league[2024])})
@@ -573,6 +611,10 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
         games=(model_games+espn['games'])/2 if espn else model_games
         share=games/82
         if x:with_games(p,chain,pid,TARGET,games,healthy)
+        replaced=None
+        if chain:
+            # Rookies have no record: the chain runs on their age group's hazards, healthy unless the report says otherwise.
+            replaced=p['availability']['replacedGames'] if x else chain.distribution(pid,TARGET,mean=games,L=82,healthy=not player.get('injuries'))[1]['replacedGames']
         lo,hi,short=ranges.interval(dict(p,rate=rate,share=share),x) if x else rookies.interval(rate,share)
         health=None
         if x and p.get('gamesPmf') is not None:
@@ -604,8 +646,10 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
                          teamResult=dict(value=b,lastSeason=beta*bonus.get((TEST,team),0) if team else None,bpiWins=(teams.get(team) or {}).get('projectedWins'))),
             draftPick=p.get('pick'),rookieExtrapolation=not x,asOf=data['generatedAt'],
             previous=dict(origin=f.get('origin'),meanPerGame=f.get('meanPerGame'),games=f.get('games')) if f else None)
+        if replaced is not None:player['forecast']['_replaced']=replaced
         player['depth']=depth.get(str(player.get('espnId')))
         counts[origin]+=1
+    slot_values(data,chain)
     data['forecastNotes']=dict(rulesSource=RULES,
         rangeMeaning='Сезонный диапазон 10–90%: ошибки ФО за матч у похожих игроков и число матчей из цепи пропусков, каждая сторона '
                      'откалибрована отдельно (проверка на 2025/26). Риск короткого сезона — вероятность цепи сыграть меньше четверти матчей. '
@@ -621,6 +665,25 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
             player['projectedFP']=f['meanPerGame'];player['projectionMetric']='FBL_FULL_FORMULA_PER_GAME';player['projectionStatus']='FBL_FORECAST'
     return dict(counts)
 
+def slot_values(data,chain):
+    """Season value of a roster slot: the player's own points plus a replacement's in the games of his long absences
+    (after the reaction delay). The replacement is the best player left at the same Sports.ru position after the league's
+    16 starters there (ranks 17-24 by forecast per game), at a healthy player's chance to play."""
+    if not chain:return
+    pool=[p for p in data['players'] if (p.get('forecast') or {}).get('version')==4 and p.get('currentRosterStatus')=='SOURCE_REPORTED']
+    level={}
+    for pos in ('PG','SG','SF','PF','C'):
+        v=sorted((p['forecast']['meanPerGame'] for p in pool if pos in (p.get('positions') or [])),reverse=True)[16:24]
+        level[pos]=statistics.mean(v)*(1-chain.short-chain.long) if v else None
+    for p in data['players']:
+        f=p.get('forecast') or {};replaced=f.pop('_replaced',None)
+        levels=[level[x] for x in (p.get('positions') or []) if level.get(x) is not None]
+        if replaced is None or not levels:continue
+        r=statistics.mean(levels)
+        f['transfer']=dict(replacedGames=replaced,replacementPerGame=r,value=replaced*r,delayGames=av.REPLACE_DELAY)
+        f['slotSeason']=f['meanSeason']+replaced*r
+    data['replacementLevel']=dict(perGame=level,delayGames=av.REPLACE_DELAY,
+        method='Best players left after 16 starters per Sports.ru position (ranks 17-24 by forecast), times a healthy player\'s chance to play.')
 def terms(st):return st['pts']+st['reb']+st['ast']+st['stl']+st['blk']-(st['fga']-st['fgm'])-(st['fta']-st['ftm'])-2*st['tov']
 def stat_line(p,espn,player,rate,bonus):
     """Per-game box-score line of the forecast (model, or the mean of model and ESPN) and the Sports.ru components that

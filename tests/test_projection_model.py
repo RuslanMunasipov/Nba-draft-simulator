@@ -1,5 +1,6 @@
 import json
 import math
+import statistics
 import unittest
 from pathlib import Path
 from scripts import projection_model as pm
@@ -53,6 +54,17 @@ class RookieTests(unittest.TestCase):
         self.assertLessEqual(model.predict(1)['share'], 1)
 
 
+class SlotValueTests(unittest.TestCase):
+    def test_only_long_absences_after_the_delay_are_replaced(self):
+        o = dict(games=60, start=5, gaps=[1, 2, 3, 10, 0], end=4)
+        d = pm.av.REPLACE_DELAY
+        self.assertEqual(pm.actual_replaced(o, 82), (5 - d) + (10 - d) + (4 - d))
+        self.assertEqual(pm.actual_replaced(None, 82), 82 - d)  # a season without games
+
+    def test_replacement_level_is_the_best_left_after_the_roster_spots(self):
+        self.assertEqual(pm.replacement_rate(list(range(100)), rostered=80, depth=4), statistics.mean([19, 18, 17, 16]))
+
+
 class HeldOutModelTests(unittest.TestCase):
     """The committed career logs must keep the model ahead of persistence on the untouched season."""
     @classmethod
@@ -73,6 +85,11 @@ class HeldOutModelTests(unittest.TestCase):
         self.assertGreater(h['medianFloorShare'], .2)
         self.assertGreater(h['coverage80'], .65)
         self.assertLess(h['coverage80'], .92)
+
+    def test_slot_value_with_replacements_ranks_slots_better(self):
+        t = self.report['holdout']['transferValue']
+        self.assertGreater(t['slotSpearman']['withReplacements'], t['slotSpearman']['ownForecast'])
+        self.assertGreaterEqual(t['top40SlotPoints']['withReplacements'], t['top40SlotPoints']['ownForecast'])
 
     def test_rookie_draft_model_beats_a_flat_prior(self):
         for key in ('rate', 'minutes', 'share'):

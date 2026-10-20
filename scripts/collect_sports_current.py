@@ -206,10 +206,38 @@ def espn_injuries():
             rows.append({'status': i.get('status'), 'shortComment': i.get('shortComment', ''), 'date': i.get('date'),
                          'athlete': {'displayName': (i.get('athlete') or {}).get('displayName'),
                                      'links': [{'href': links[0].get('href')}] if links else []},
-                         'details': {'returnDate': details.get('returnDate'), 'type': details.get('type'),
+                         'details': {'returnDate': details.get('returnDate'), 'type': details.get('type'), 'detail': details.get('detail'),
+                                     'side': details.get('side'), 'location': details.get('location'),
                                      'fantasyStatus': {'abbreviation': (details.get('fantasyStatus') or {}).get('abbreviation', '')}}})
         teams.append({'displayName': team.get('displayName'), 'injuries': rows})
     return {'source': INJURY_URL, 'fetchedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'injuries': teams}
+
+
+def update_injury_history(history, feed, now):
+    """Archive of ESPN injury reports: one episode per player and injury (body part and kind), from the first report
+    that shows it to the last. ESPN keeps only the current report and about nine months of news, so this is the only way
+    to learn, season after season, which injuries cost how many games."""
+    history = history or {'source': INJURY_URL, 'note': 'Episodes from successive ESPN injury reports; lastSeen is the last report that listed it.', 'players': {}}
+    today = now[:10]
+    for team in (feed or {}).get('injuries', []):
+        for i in team.get('injuries', []):
+            athlete = i.get('athlete') or {};links = athlete.get('links') or []
+            m = re.search(r'/id/(\d+)', (links[0].get('href') if links else '') or '')
+            if not m:
+                continue
+            d = i.get('details') or {}
+            episodes = history['players'].setdefault(m.group(1), {'name': athlete.get('displayName'), 'episodes': []})['episodes']
+            key = (d.get('type'), d.get('detail'), d.get('side'))
+            last = episodes[-1] if episodes else None
+            # The same injury seen again within a week continues the episode; a new body part or kind starts another.
+            if last and (last['type'], last['detail'], last['side']) == key and (date.fromisoformat(today) - date.fromisoformat(last['lastSeen'])).days <= 7:
+                last.update(lastSeen=today, status=i.get('status'), returnDate=d.get('returnDate'))
+            else:
+                episodes.append({'type': key[0], 'detail': key[1], 'side': key[2], 'location': d.get('location'), 'status': i.get('status'),
+                                 'firstSeen': today, 'lastSeen': today, 'reported': (i.get('date') or '')[:10] or None,
+                                 'returnDate': d.get('returnDate'), 'comment': i.get('shortComment', '')[:300]})
+    history['updatedAt'] = now
+    return history
 
 
 def parse_team(page):
@@ -364,6 +392,9 @@ def main():
            'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'teams': teams, 'errors': errors}
     if out_injuries:
         out['espnInjuries'] = out_injuries
+        archive = OUT.parent / 'injury-history.json'
+        previous = json.loads(archive.read_text(encoding='utf-8')) if archive.exists() else None
+        archive.write_text(json.dumps(update_injury_history(previous, out_injuries, out['collectedAt']), ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     played = sum(1 for p in players.values() for g in p['games'] if g['played'])

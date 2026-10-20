@@ -14,9 +14,13 @@ export function severeRisk(player){
  return Boolean(player.forecast?.conditionalOnRoster||['GROUP_PRIOR','LIMITED_PERSONAL'].includes(player.forecast?.coverageTier)||player.isRookie||player.coverageStatus==='LOW_SAMPLE'||player.coverageStatus==='EARLIER_SEASON'||player.returnContext||
   player.injuries?.some(i=>/out|suspension/i.test(i.status||''))||evidence.repeatedAbsences||(evidence.recent!==null&&evidence.recent<40));
 }
+// A roster slot's season: the player's own points plus a replacement's in his long absences (Sports.ru allows three
+// transfers a week). Held out 2025/26 it ranks what slots actually produced better than own points alone (Spearman
+// 0.64 vs 0.55; the top 40 by it produced 1.8% more).
+export const slotSeason=f=>Number.isFinite(f?.slotSeason)?f.slotSeason:f?.meanSeason;
 export function draftValue(player){
  const forecast=player.forecast;
- if(forecast?.metric==='FBL_FULL_FORMULA_ESTIMATE'&&Number.isFinite(forecast.meanSeason))return forecast.meanSeason/82;
+ if(forecast?.metric==='FBL_FULL_FORMULA_ESTIMATE'&&Number.isFinite(forecast.meanSeason))return slotSeason(forecast)/82;
  const personal=player.espnContext?.individualProjection;
  if(personal?.metric==='FBL_COMPONENTS_EXCLUDING_PF_MINUTES_RESULT_BONUSES'&&Number.isFinite(personal.componentSeasonTotal))return personal.componentSeasonTotal/82;
  const evidence=availabilityEvidence(player);

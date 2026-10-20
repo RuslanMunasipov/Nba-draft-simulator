@@ -176,6 +176,7 @@ function forecastCard(p){
   const cell=document.createElement('div');cell.append(text('small',label),text('strong',String(value)));grid.append(cell);
  }
  if(f.version===4&&f.availability)box.append(text('p',healthLine(f.availability)));
+ if(f.transfer)box.append(text('p',`Ценность слота с заменами: ${Math.round(f.slotSeason)} ФО = ${Math.round(f.meanSeason)} своих + ${Math.round(f.transfer.value)} от замены. Длинные пропуски (4+ матча) после ${f.transfer.delayGames} матчей закрывает трансфер: в среднем ${f.transfer.replacedGames.toFixed(1)} матча по ${f.transfer.replacementPerGame.toFixed(1)} ФО (лучшие свободные на позиции после 16 стартеров лиги). По этой ценности строится рейтинг драфта.`));
  if(f.version===4)box.append(grid,text('p','Потолок матча — 90-й процентиль собственных матчей игрока за два сезона (у новичков — игроков того же уровня). Слабый и сильный сезон — 10-й и 90-й процентили, откалиброванные на прошлых сезонах; они учитывают и ФО за матч, и число матчей.'));
  else box.append(grid,text('p',f.sampleGames?'Потолок матча — сильная отдельная игра. Сильный сезон учитывает одновременно изменение результативности и числа матчей; он не равен потолку матча × 82.':'Ролевой ориентир сравнивает средние показатели исторических игроков. Это не индивидуальный P90 матча; сезонный диапазон для такой оценки не откалиброван.'));
  const c=f.components,formula=document.createElement('details');

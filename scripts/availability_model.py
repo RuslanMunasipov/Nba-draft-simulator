@@ -31,6 +31,11 @@ QUADRATURE=7
 # fewer games when healthy now (208 cases: 56.4 played, 52.8 unconditional, 62.1 healthy-start chain).
 # Held out 2025/26 (296 healthy starters): games MAE 13.36 vs 14.14, bias -0.7 vs -4.2.
 HEALTHY_SHIFT={'healthy':1.0,'endedOut':.3,'noGames':.2}
+# A long absence costs a fantasy team only until the player is replaced: Sports.ru allows three transfers a week, so a
+# manager swaps an injured player out once the absence is clear. Games of an absence of 4+ games after the first
+# REPLACE_DELAY are played by a replacement (the player is bought back on his return). The delay is a decision
+# assumption, not fitted: at a mean of 60 games the replaced games are about 13.5, 12.3, 11 and 9 at delays 1, 2, 3, 5.
+REPLACE_DELAY=2
 
 try:import numpy as np
 except ImportError:np=None
@@ -136,7 +141,7 @@ class Availability:
         L=L or season_games(t);_,info=self.distribution(pid,t,mean=mean,L=L,pmf=False);hs,hl,_=self.hazards(pid,t)
         p0=np.zeros(L+1);p0[0]=1;healthy=self._mean(hs*info['scale'],hl*info['scale'],p0,L)
         return mean+HEALTHY_SHIFT[info['start']]*(healthy-mean)
-    def distribution(self,pid,t,mean=None,L=None,healthy=False,pmf=True):
+    def distribution(self,pid,t,mean=None,L=None,healthy=False,pmf=True,delay=REPLACE_DELAY):
         """pmf of games played over a season of L team games; with `mean`, hazards are scaled to that expectation.
         `healthy`: the season starts in the available state (known healthy now)."""
         L=L or season_games(t);hs,hl,info=self.hazards(pid,t);c=1.0
@@ -159,12 +164,17 @@ class Availability:
         w=(a_s*self.fs[None,1:L+1,None]+a_l*self.fl[None,1:L+1,None])
         P=np.zeros((len(self.frailty),L+1,L+2));P[:,:,0]=p0[None]
         stay=(1-a_s-a_l)[:,:,0]
-        for _ in range(L):
+        # Replaced games: an absence already running at the start, and each long absence starting at game j, cut by the
+        # season's end, minus the delay before the replacement plays.
+        k=np.arange(L+1);replaced=float(sum(q*max(0,r-delay) for r,q in enumerate(p0) if r>SHORT))
+        cut=lambda m:float((self.fl[1:L+1]*np.maximum(0,np.minimum(k[1:],m)-delay)).sum())
+        for j in range(L):
             Q=np.zeros_like(P);Q[:,:-1]=P[:,1:];a=P[:,0].copy()
+            replaced+=float((a.sum(1)*a_l[:,0,0]).mean())*cut(L-j)
             Q[:,0,1:]+=a[:,:-1]*stay;Q[:,:L]+=w*a[:,None,:]
             P=Q
         out=P.sum(1).mean(0)[:L+1]
-        return out/out.sum(),info
+        return out/out.sum(),dict(info,replacedGames=replaced,delay=delay)
     def report(self):
         return dict(model='semi-Markov absence chain with Gamma frailty, anchored to the regression mean',shortSpellGames=[1,SHORT],
                     leagueShortSpellsPer82=self.short*82,leagueLongSpellsPer82=self.long*82,frailtyShape=FRAILTY,

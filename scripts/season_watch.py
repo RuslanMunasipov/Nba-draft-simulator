@@ -84,6 +84,7 @@ class Watch:
             git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
         git('add',self.live.name);
         if self.state.exists():git('add',self.state.name)
+        if (folder/'injury-history.json').exists():git('add','injury-history.json')
         git('commit','-qm',message,'--allow-empty')
         pushed=subprocess.run(['git','-C',str(folder),'push','-qf',f'https://x-access-token:{token}@github.com/{repo}.git','data/season-live'],check=False)
         if pushed.returncode:print(f'publish failed with exit code {pushed.returncode}',flush=True)

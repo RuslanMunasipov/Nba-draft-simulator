@@ -1,6 +1,6 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
-import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,parseInjuries,allTransfers,withMarket,explainSwap,CONFIDENT,DOUBTFUL} from './season.js';
+import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from './season.js';
 import {fetchLiveGames,moscowDate} from './live.js';
 
 const $=id=>document.getElementById(id);
@@ -223,14 +223,20 @@ function sideBlock(label,x){
  return box;
 }
 // Latest ESPN fantasy news of a player (CORS-open feed), loaded when the block is opened and cached for the session.
-const NEWS_URL=id=>`https://site.api.espn.com/apis/fantasy/v2/games/fba/news/players?limit=3&playerId=${id}`,newsCache=new Map();
+const NEWS_URL=id=>`https://site.api.espn.com/apis/fantasy/v2/games/fba/news/players?limit=50&playerId=${id}`,newsCache=new Map();
+// The watcher's archive of ESPN injury reports (data/season-live), loaded once.
+let archiveLoad=null;const injuryArchive=()=>archiveLoad??=fetchJson(`https://raw.githubusercontent.com/${REPO}/data/season-live/injury-history.json`);
 function newsBlock(p){
  const box=el('details',null,'sp-news');box.append(el('summary','Новости ESPN'));
  if(!p.espnId){box.append(el('p','Нет ESPN id — новостей нет.','muted'));return box;}
  box.addEventListener('toggle',async()=>{if(!box.open||box.dataset.filled)return;box.dataset.filled='1';const wait=el('p','Загружаю…','muted');box.append(wait);
   try{if(!newsCache.has(p.espnId))newsCache.set(p.espnId,fetchJson(NEWS_URL(p.espnId)));const feed=(await newsCache.get(p.espnId)).feed||[];wait.remove();
    if(!feed.length)box.append(el('p','Свежих новостей нет.','muted'));
-   for(const n of feed){const item=el('div',null,'sp-news-item');item.append(el('small',new Date(n.published||n.lastModified).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})),el('strong',n.headline||''));if(n.story||n.description)item.append(el('p',String(n.story||n.description).replace(/<[^>]+>/g,'').slice(0,420)));box.append(item);}
+   const hurt=newsInjuries(feed);
+   if(hurt.length)box.append(el('p',`Травмы в новостях ESPN за последние месяцы: ${hurt.map(x=>`${x.part} (${ddmm(x.first)}${x.last!==x.first?'–'+ddmm(x.last):''}, упоминаний ${x.mentions})`).join('; ')}. Это описание, а не множитель прогноза.`,'muted'));
+   const archive=await injuryArchive().catch(()=>null),episodes=archive?.players?.[String(p.espnId)]?.episodes||[];
+   if(episodes.length)box.append(el('p',`Архив отчётов ESPN: ${episodes.map(e=>`${e.type||'травма'}${e.detail?' · '+e.detail:''} ${ddmm(e.firstSeen)}–${ddmm(e.lastSeen)}`).join('; ')}.`,'muted'));
+   for(const n of feed.slice(0,3)){const item=el('div',null,'sp-news-item');item.append(el('small',new Date(n.published||n.lastModified).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})),el('strong',n.headline||''));if(n.story||n.description)item.append(el('p',String(n.story||n.description).replace(/<[^>]+>/g,'').slice(0,420)));box.append(item);}
   }catch{wait.textContent='ESPN недоступен.';}});
  return box;
 }

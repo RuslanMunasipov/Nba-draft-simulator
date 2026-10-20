@@ -144,7 +144,8 @@ export function scenarioSeasonScore(player,z) {
   // Median m with P10=floor and P90=ceiling has mean m+(ceiling+floor-2m)*HALF/Z90; solve for the given mean.
   const k=HALF/Z90,median=Math.min(ceiling,Math.max(floor,(mean-k*(ceiling+floor))/(1-2*k)));
   const low=(median-floor)/Z90,high=Math.max(0,(mean-median)/HALF+low);
-  return Math.max(0,median+z*(z<0?low:high));
+  // Plus the replacement's points in the player's long absences: what the roster slot scores with weekly transfers.
+  return Math.max(0,median+z*(z<0?low:high))+(Number.isFinite(player.forecast.transfer?.value)?player.forecast.transfer.value:0);
 }
 // Season errors of players of one NBA club move together by this measured correlation (projection model audit).
 const clubCorrelation=player=>Number.isFinite(player.forecast?.clubCorrelation)?player.forecast.clubCorrelation:0;

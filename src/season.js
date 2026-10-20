@@ -111,6 +111,23 @@ function chainCurve(h,share,n){
  }
  return Array.from({length:n},(_,j)=>c[Math.min(j,c.length-1)]);
 }
+// Injuries named in a player's ESPN fantasy news ("Zubac (ankle) will play…"): body part, how often, first and last
+// mention. Descriptive only: about nine months of news exist, too few seasons to fit a risk per body part.
+const BODY={ankle:'голеностоп',knee:'колено',achilles:'ахилл',foot:'стопа',toe:'палец ноги',hamstring:'бицепс бедра',calf:'икра',groin:'пах',hip:'бедро',
+ quadriceps:'квадрицепс',quad:'квадрицепс',thigh:'бедро',back:'спина','lower back':'поясница',neck:'шея',shoulder:'плечо',elbow:'локоть',wrist:'запястье',
+ hand:'кисть',finger:'палец',thumb:'большой палец',rib:'ребро',ribs:'рёбра',oblique:'косые мышцы',abdomen:'пресс',head:'голова',concussion:'сотрясение',
+ face:'лицо',nose:'нос',eye:'глаз',illness:'болезнь',shin:'голень',leg:'нога',chest:'грудь',heel:'пятка',plantar:'подошва'};
+export function newsInjuries(feed){
+ const out=new Map();
+ for(const n of feed||[]){
+  const text=`${n.headline||''} ${String(n.story||n.description||'').replace(/<[^>]+>/g,'')}`,day=String(n.published||n.lastModified||'').slice(0,10);
+  for(const m of text.matchAll(/\(([a-z ]{3,16})\)/gi)){
+   const part=BODY[m[1].toLowerCase().trim()];if(!part||!day)continue;
+   const x=out.get(part)||{part,mentions:0,first:day,last:day};x.mentions++;if(day<x.first)x.first=day;if(day>x.last)x.last=day;out.set(part,x);
+  }
+ }
+ return [...out.values()].sort((a,b)=>a.first<b.first?-1:1);
+}
 export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||/out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season/i.test(injury?.comment||'');
 // Chance to play a game on a date given the ESPN injury report.
 export function injuryFactor(injury,day,today){
