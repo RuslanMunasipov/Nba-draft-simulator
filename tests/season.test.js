@@ -310,3 +310,14 @@ test('a team that trades back to its exact draft roster keeps both transfers',as
  const r=journalTransfers(db.players,{players,teams:{0:{journal}}});
  assert.equal(r.transfers.filter(x=>x.team===0).length,2,JSON.stringify(r.warnings));
 });
+test('a deal counts as reported by its sale and purchase: Sports.ru re-pairs a day\'s rows',async()=>{
+ const {unreported}=await import('../src/season.js');
+ const t=(out,inn)=>({team:0,outId:out,inId:inn,date:'2026-10-20'});
+ // Reported as J→O and K→E; the journal now pairs them J→E and K→O, plus a new W→K.
+ const now=[t('J','E'),t('K','O'),t('W','K')];
+ const fresh=unreported(now,['0:J>O:2026-10-20','0:K>E:2026-10-20']);
+ assert.deepEqual([...fresh],[now[2]]);
+ // Ids with a colon (espn:…) are read whole.
+ assert.equal(unreported([t('espn:1','2')],['0:espn:1>2:2026-10-20']).size,0);
+ assert.equal(unreported([t('espn:1','2')],[]).size,1);
+});

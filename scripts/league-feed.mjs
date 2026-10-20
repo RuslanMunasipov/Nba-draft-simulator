@@ -8,7 +8,7 @@
 // chat must not share a bot or a chat with the personal advice). Without them nothing is
 // marked as posted, so the feed starts complete once the chat is set.
 import fs from 'node:fs';
-import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
+import {seasonRosters,allTransfers,withMarket,bank,unreported} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
 import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST,isFreeTransfer,FBL_TRANSFERS} from '../src/rules.js';
 import {HEADINGS,remark,circumstances,joke,signature} from './zak-voice.mjs';
@@ -37,6 +37,8 @@ const day=d=>`${d.slice(8,10)}.${d.slice(5,7)}.${d.slice(0,4)}`,ddmm=d=>`${d.sli
 const name=id=>{const p=byId.get(id);return live.players?.[p?.sportsId]?.fullName||p?.name||String(id);};
 const names=list=>list.map(p=>esc(name(p.id))).join(', ');
 const key=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,done=new Set(state.reported||[]);
+// Deals not yet published, matched by their sale and purchase (Sports.ru re-pairs a day's rows).
+const pending=unreported(transfers,[...done]);
 // Transfers grouped by team and day in the order they happened; a group's place in that order is its protocol number.
 // The league chat starts at leagueFeed.since: transfers the watcher saw before it (or never timed) get no protocol and
 // no number. A preview shows every transfer since the draft.
@@ -110,10 +112,10 @@ let number=0;
 for(const idx of groups.values()){
  number++;
  const moves=idx.map(i=>transfers[i]);
- if(preview?number<=firstPreview:moves.every(m=>done.has(key(m))))continue;
+ if(preview?number<=firstPreview:moves.every(m=>!pending.has(m)))continue;
  // Only the deals not yet published are shown (a day's earlier deals had their protocol); the rules are checked on the
  // roster after the whole day's package, since Sports.ru confirms a day's transfers as one.
- const news=preview?moves:moves.filter(m=>!done.has(key(m))),fresh=m=>news.includes(m);
+ const news=preview?moves:moves.filter(m=>pending.has(m)),fresh=m=>news.includes(m);
  const last=idx[idx.length-1],x=moves[0],after=transfers.slice(0,last+1),rosters=seasonRosters(after);
  const all=checkRules({rosters,byId,transfers:after,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:moves[moves.length-1].date,clubOf,nameOf:p=>p&&name(p.id)})[x.team];
  // The hours are judged per transfer: this protocol carries those of its own deals, earlier ones had theirs.
@@ -140,7 +142,7 @@ for(const idx of groups.values()){
  // A breach left by the day's earlier deals that the new ones repair is said so.
  const prior=idx.filter(i=>!fresh(transfers[i])).pop();
  const before=prior===undefined?new Set():new Set(checkRules({rosters:seasonRosters(transfers.slice(0,prior+1)),byId,transfers:transfers.slice(0,prior+1),
-  white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:transfers[prior].date,clubOf})[x.team].violations.filter(r=>r.rule!=='time').map(r=>r.rule));
+  white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:transfers[prior].date,clubOf})[x.team].violations.filter(r=>r.rule!=='time'&&r.rule!=='duplicate').map(r=>r.rule));
  const nowBroken=new Set(c.violations.map(r=>r.rule)),fixed=[...before].filter(r=>!nowBroken.has(r));
  const repaired=fixed.length?`♻️ <b>Нарушение устранено:</b> ${fixed.map(r=>ruleName[r]).join(', ')}`:null;
  // The heading says which deal only when it is not the protocol's single one.
@@ -159,6 +161,6 @@ for(const idx of groups.values()){
  let fitted=text;
  for(const l of voice(v,c,news,x.team,money,t).slice(1).reverse())
   if(plainText(fitted).length+45>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
- if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
+ if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);}issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');

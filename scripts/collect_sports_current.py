@@ -287,24 +287,32 @@ def parse_journal(page):
 def stamp_journal(old, new, now=None, after=None):
     """Sports.ru journals give only the date of a transfer. A row first seen by this collection gets seenAt, the UTC
     time it appeared, and seenAfter, the previous read of the same journal without it (after): the transfer was made
-    between the two (the watcher reads journals every minute). Rows already known keep theirs: they are matched by
-    content, since Sports.ru lists rows
-    of one date in no stable order. Without a previous journal nothing is stamped: the time of those rows is unknown."""
+    between the two (the watcher reads journals every minute). Rows already known keep theirs. Sports.ru lists rows of one
+    date in no stable order and even re-pairs a day's sales and purchases into other rows as the day goes on, so stamps
+    belong to the events, not the rows: a row's sale and its purchase are each matched against the earlier journal's
+    sales and purchases of that date. A row whose events were all seen before keeps their time (the later of the two);
+    a row with a new event is new. Without a previous journal nothing is stamped: the time of those rows is unknown."""
     if not old:
         return new
     now = now or datetime.now(timezone.utc).isoformat(timespec='seconds')
-    ident = lambda r: json.dumps([r.get('date'), r.get('buy'), r.get('sell')], ensure_ascii=False, sort_keys=True)
-    known = {}
+    ident = lambda side, r: json.dumps([r.get('date'), side, r.get(side)], ensure_ascii=False, sort_keys=True)
+    pool = {}
     for row in old:
-        known.setdefault(ident(row), []).append(row)
+        for side in ('sell', 'buy'):
+            if row.get(side):
+                pool.setdefault(ident(side, row), []).append({k: row[k] for k in ('seenAt', 'seenAfter') if row.get(k)})
     out = []
     for row in new:
-        match = known.get(ident(row))
-        if match:
-            prev = match.pop(0)
-            out.append({**row, **{k: prev[k] for k in ('seenAt', 'seenAfter') if prev.get(k)}})
-        else:
+        events = [pool[ident(side, row)].pop(0) if pool.get(ident(side, row)) else None for side in ('sell', 'buy') if row.get(side)]
+        if any(e is None for e in events):
             out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {})})
+            continue
+        seen = [e for e in events if e.get('seenAt')]
+        if not seen:
+            out.append(dict(row))
+            continue
+        latest = max(seen, key=lambda e: e['seenAt'])
+        out.append({**row, 'seenAt': latest['seenAt'], **({'seenAfter': max(e['seenAfter'] for e in seen if e.get('seenAfter'))} if any(e.get('seenAfter') for e in seen) else {})})
     return out
 
 

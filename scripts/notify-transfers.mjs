@@ -5,7 +5,7 @@
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,unreported,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers} from '../src/rules.js';
@@ -99,8 +99,9 @@ function decide(p){
  return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`${esc(p.name)} не влезает по позиции, бюджету или правилу rookie.`]};
 }
 // Every new transfer of the other teams, one message each: who moved, what it gives them, what I should do.
-const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,reported=new Set(previous.transfers||[]);
-const rival=transfers.filter(x=>x.team!==team&&!reported.has(transferKey(x)));
+// Not yet reported, matched by sale and purchase: Sports.ru re-pairs a day's journal rows.
+const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,pending=unreported(transfers,previous.transfers||[]);
+const rival=transfers.filter(x=>x.team!==team&&pending.has(x));
 for(const x of rival){
  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)}),mineNow=decision(out);
  const briefs=[...await brief(joined),...await brief(out)];
@@ -113,7 +114,7 @@ for(const x of rival){
 // My own transfers, once each, as the watcher saw them: what was done, when, what it gives by the model, and where the
 // bank and the week's transfers stand. Only those seen live (seenAt); older ones were never news.
 const leftLabel=t=>live.teams?.[t]?.transfersUnlimited?'∞ (предсезонье)':`${leftOf(t)}/${WEEKLY_TRANSFERS}`;
-for(const x of transfers.filter(x=>x.team===team&&x.seenAt&&!reported.has(transferKey(x)))){
+for(const x of transfers.filter(x=>x.team===team&&x.seenAt&&pending.has(x))){
  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:money});
  const effect=v?`${v.gain.season>=0?'📈':'📉'} По модели: ${gains(v.gain.season,v.gain.month)} · ${v.label}`:null;
  await report(message(`✅ <b>Твой трансфер зафиксирован</b> · ${moscow(x.seenAt)}`,`${esc(out?.name)} (${x.outPrice}) → <b>${esc(joined?.name)}</b> (${x.inPrice})`,effect,'',

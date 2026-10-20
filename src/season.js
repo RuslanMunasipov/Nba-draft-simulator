@@ -487,6 +487,20 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
  }
  return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
 }
+// Transfers not yet reported, given the keys (team:out>in:date) of those that were. Sports.ru re-pairs a day's sales and
+// purchases into other rows as the day goes on, so a transfer counts as reported when both its sale and its purchase
+// were in reported transfers of that team and date (each reported event covers one transfer).
+export function unreported(transfers,keys=[]){
+ const pool=new Map(),put=k=>pool.set(k,(pool.get(k)||0)+1);
+ for(const k of keys){const m=String(k).match(/^(\d+):(.+)>(.+):(\d{4}-\d{2}-\d{2})$/);if(!m)continue;put(`${m[1]}:${m[4]}:out:${m[2]}`);put(`${m[1]}:${m[4]}:in:${m[3]}`);}
+ const fresh=new Set();
+ for(const x of transfers){
+  const out=`${x.team}:${x.date}:out:${x.outId}`,inn=`${x.team}:${x.date}:in:${x.inId}`;
+  if((pool.get(out)||0)>0&&(pool.get(inn)||0)>0){pool.set(out,pool.get(out)-1);pool.set(inn,pool.get(inn)-1);}
+  else fresh.add(x);
+ }
+ return fresh;
+}
 // Sports.ru journals for every connected team, the shared league log for the rest.
 // Anything breaking a rule is dropped; every team's bank is replayed with Sports.ru prices and flagged when it goes negative.
 export function allTransfers(players,live,league={transfers:[]},picks=DRAFT_PICKS){

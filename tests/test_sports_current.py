@@ -142,6 +142,12 @@ class JournalStampTests(unittest.TestCase):
         moved = collector.stamp_journal(known, [c, b, a], now='2026-10-20T12:00:00+00:00')
         self.assertEqual([r.get('seenAt') for r in moved], [None, '2026-10-20T10:00:00+00:00', None])
 
+    def test_re_paired_rows_of_one_day_keep_their_time(self):
+        r = lambda s, b: {'date': '2026-10-20', 'sell': {'name': s, 'price': 1}, 'buy': {'name': b, 'price': 1}}
+        old = [{**r('J', 'O'), 'seenAt': 't1', 'seenAfter': 't0'}, {**r('K', 'E'), 'seenAt': 't1', 'seenAfter': 't0'}]
+        out = collector.stamp_journal(old, [r('J', 'E'), r('K', 'O'), r('W', 'K')], now='t2', after='t1b')
+        self.assertEqual([(x['seenAt'], x['seenAfter']) for x in out], [('t1', 't0'), ('t1', 't0'), ('t2', 't1b')])
+
     def test_unlimited_transfers_in_pre_season(self):
         team = collector.parse_team('<th>Баланс</th><td>200</td><th>Трансферы</th><td>∞</td>')
         self.assertEqual((team['balance'], team['transfersLeft'], team['transfersUnlimited']), (200, None, True))
