@@ -7,11 +7,17 @@ test('the first FBL week runs from the draft to Sunday 25.10, then Monday to Sun
  assert.deepEqual(fblWeek('2026-10-26'),{start:'2026-10-26',end:'2026-11-01'});
  assert.deepEqual(fblWeek('2026-11-01'),{start:'2026-10-26',end:'2026-11-01'});
 });
-test('pre-season transfers count against the first week (School Shooters 0/3, Karagali 1/3 on 20.10)',()=>{
- const t=[{team:7,date:'2026-10-18'},{team:7,date:'2026-10-19'},{team:7,date:'2026-10-19'},{team:6,date:'2026-10-19'},{team:6,date:'2026-10-19'}];
- assert.equal(fblTransfers(t,7,'2026-10-20').left,0);assert.equal(fblTransfers(t,6,'2026-10-20').left,1);
- assert.equal(fblTransfers(t,7,'2026-10-20').resetOn,'2026-10-26');assert.equal(fblTransfers(t,7,'2026-10-26').left,3);
- assert.deepEqual(fblTransfers([...t,{team:7,date:'2026-10-24'}],7,'2026-10-24').over,[{start:'2026-10-18',end:'2026-10-25',count:4}]);
+test('pre-season transfers are free; from the first game the FBL week counts three',async()=>{
+ const {isFreeTransfer}=await import('../src/rules.js');
+ // 18–20.10 Sports.ru showed ∞ transfers: nothing counts, whatever the number.
+ const pre=[{team:7,date:'2026-10-18'},{team:7,date:'2026-10-19'},{team:7,date:'2026-10-19'},{team:7,date:'2026-10-20'}];
+ assert.equal(fblTransfers(pre,7,'2026-10-20').left,3);assert.deepEqual(fblTransfers(pre,7,'2026-10-20').over,[]);
+ // A transfer the watcher saw while Sports.ru still showed ∞ is free on any date.
+ assert.ok(isFreeTransfer({team:0,date:'2026-10-21',free:true}));assert.ok(!isFreeTransfer({team:0,date:'2026-10-21'}));
+ const t=[...pre,{team:7,date:'2026-10-21'},{team:7,date:'2026-10-22'},{team:6,date:'2026-10-22'}];
+ assert.equal(fblTransfers(t,7,'2026-10-22').left,1);assert.equal(fblTransfers(t,6,'2026-10-22').left,2);
+ assert.equal(fblTransfers(t,7,'2026-10-22').resetOn,'2026-10-26');assert.equal(fblTransfers(t,7,'2026-10-26').left,3);
+ assert.deepEqual(fblTransfers([...t,{team:7,date:'2026-10-23'},{team:7,date:'2026-10-24'}],7,'2026-10-24').over,[{start:'2026-10-18',end:'2026-10-25',count:4}]);
 });
 test('missing rookie, white player or a third player of a club is a breach with an appeal to the league lawyer',()=>{
  const p=(id,club,extra={})=>({id,name:'P'+id,sportsClub:club,...extra});

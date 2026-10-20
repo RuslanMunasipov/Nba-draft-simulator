@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
-import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST} from '../src/rules.js';
+import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST,isFreeTransfer} from '../src/rules.js';
 import {HEADINGS,remark,circumstances,joke,signature} from './zak-voice.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
@@ -52,7 +52,7 @@ function checkLines(c,moves){
   :c.whiteState==='sold'?'⏳ продан засчитываемый игрок, другого не отмечено':'❌ нет засчитываемого игрока';
  return [`├ Новичок в составе — ${bad('rookie')?'❌ нет':'✅ '+names(c.rookies)}`,`├ Белое правило — ${white}`,
   `├ Лимит клуба NBA (2) — ${bad('club')?'❌ '+esc(c.violations.find(v=>v.rule==='club').text):'✅'}`,
-  `├ Лимит трансферов — ${bad('transfers')?'❌':'✅'} ${t.used}/${t.limit}`,
+  moves.every(m=>isFreeTransfer(m))?'├ Лимит трансферов — ✅ предсезонье, без лимита':`├ Лимит трансферов — ${bad('transfers')?'❌':'✅'} ${t.used}/${t.limit}`,
   `└ Время сделки (${TRANSFER_HOURS.from}–${TRANSFER_HOURS.to} МСК) — ${[...new Set(moves.map(m=>{const x=transferTime(m);return `${{ok:'✅',breach:'❌',doubt:'⏳',unknown:'❔'}[x.state]} ${timeLabel(x)}`;}))].join(', ')}`];
 }
 // The protocol's verdict (an obvious breach summons the lawyer, a doubt asks for his check, otherwise he approves) and
@@ -97,6 +97,9 @@ function voice(v,c,moves,team,money,t){
  const extra=[circumstances({left:t.left,used:t.used,bank:money,moves:moves.length,maxPrice:Math.max(...moves.map(m=>m.inPrice||0))},seed),joke(seed)].filter(Boolean);
  return [...lines,...extra.map(l=>`<i>${esc(l)}</i>`)];
 }
+// Protocol numbers count posted messages (kept in the state): a day's package is posted again, with a new number,
+// when the same team adds a deal that day. Before the count was kept, every reported team-day was one protocol.
+let issued=state.count??new Set((state.reported||[]).map(k=>`${k.split(':')[0]}:${k.slice(k.lastIndexOf(':')+1)}`)).size;
 let number=0;
 for(const idx of groups.values()){
  number++;
@@ -110,9 +113,11 @@ for(const idx of groups.values()){
  const money=bank(x.team,after,draftPrice),t=c.transfers;
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
  const v=reasons(c);
- const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
+ const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,'',
-  `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
+  `💰 <b>Баланс после трансферов:</b> ${money}`,
+  moves.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит FBL (${t.limit} в неделю) — с первой игры сезона`
+   :`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c,moves),'',CONCLUSION[v.kind](v.items,v.doubts),'',
   // Зак Онн's own word on it (the facts above are the rules check's): his remark on the verdict, then, while the
   // protocol still fits under his photo, a word on the circumstances and now and then a joke; then his signature.
@@ -122,6 +127,6 @@ for(const idx of groups.values()){
  let fitted=text;
  for(const l of voice(v,c,moves,x.team,money,t).slice(1).reverse())
   if([...plainText(fitted)].length+40>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
- if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
+ if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');

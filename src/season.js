@@ -447,9 +447,13 @@ function sameNames(a,b){if(a.length!==b.length)return false;const x=[...a].sort(
 export function journalTransfers(players,live,picks=DRAFT_PICKS){
  const byId=new Map(players.map(p=>[p.id,p])),rosters=seasonRosters([],picks),events=[],warnings=[];
  for(const [key,team] of Object.entries(live?.teams||{})){
-  const t=Number(key),draft=rosters[t].map(id=>shortName(byId.get(id),live)),journal=team.journal||[];
+  // Sports.ru lists rows of one date in no stable order: within a date, roster picks (no sale) come before transfers.
+  const t=Number(key),draft=rosters[t].map(id=>shortName(byId.get(id),live));
+  const journal=(team.journal||[]).map((row,i)=>({row,i})).sort((a,b)=>a.row.date.localeCompare(b.row.date)||(a.row.sell?1:0)-(b.row.sell?1:0)||a.i-b.i).map(x=>x.row);
+  // The draft is the first time the journal's roster equals the FBL draft; a team that later trades back to exactly its
+  // draft roster must not hide those transfers.
   let names=[],start=-1;
-  journal.forEach((row,i)=>{if(row.sell){const j=names.indexOf(row.sell.name);if(j>=0)names.splice(j,1);}if(row.buy)names.push(row.buy.name);if(sameNames(names,draft))start=i;});
+  journal.forEach((row,i)=>{if(row.sell){const j=names.indexOf(row.sell.name);if(j>=0)names.splice(j,1);}if(row.buy)names.push(row.buy.name);if(start<0&&sameNames(names,draft))start=i;});
   if(start<0){
    warnings.push({team:t,message:'Состав на Sports.ru ни разу не совпал с драфтом FBL: трансферы взяты по датам после драфта.'});
    start=journal.reduce((m,row,i)=>row.date<=DRAFT_DATE?i:m,-1);
@@ -472,7 +476,7 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
   if(ins.length>1&&score(ins[0])===score(ins[1]))warnings.push({team:t,message:`${row.date}: ${row.buy.name} неоднозначен, выбран ${ins[0].name} (${ins[0].team}).`});
   const joining=ins[0];
   roster[roster.indexOf(leaving.id)]=joining.id;taken.delete(leaving.id);taken.add(joining.id);
-  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',...(row.seenAt?{seenAt:row.seenAt}:{}),...(row.seenAfter?{seenAfter:row.seenAfter}:{})});
+  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',...(row.seenAt?{seenAt:row.seenAt}:{}),...(row.seenAfter?{seenAfter:row.seenAfter}:{}),...(row.free?{free:true}:{})});
  }
  return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
 }
