@@ -398,9 +398,9 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
   if(a.injury)flags.push(`${a.player.name}: ${a.injury.status} — это часть причины продажи.`);
   if(['DRAFT_PRIOR','GROUP_PRIOR','LIMITED_PERSONAL'].includes(f.coverageTier)||f.origin==='SPORTS_PRICE_PRIOR')flags.push(`${b.player.name}: прогноз почти без личной истории в NBA — высокая неопределённость.`);
   const e=fo.sources?.espn,m=fo.sources?.model;
-  if(e&&m&&Math.abs(e.games-m.games)>=12)flags.push(`${a.player.name}: модель ждёт ${Math.round(m.games)} матчей, ESPN — ${Math.round(e.games)}; итог ${Math.round(fo.games)}. Если он здоров, разница меньше.`);
+  if(e&&m&&Math.abs(e.games-m.games)>=12)flags.push(`${a.player.name}: в расчёте ${Math.round(fo.games)} матчей по ESPN; по истории пропусков модель ждала бы ${Math.round(m.games)}.`);
   const e2=f.sources?.espn,m2=f.sources?.model;
-  if(e2&&m2&&Math.abs(e2.games-m2.games)>=12)flags.push(`${b.player.name}: модель ждёт ${Math.round(m2.games)} матчей, ESPN — ${Math.round(e2.games)}; итог ${Math.round(f.games)}.`);
+  if(e2&&m2&&Math.abs(e2.games-m2.games)>=12)flags.push(`${b.player.name}: в расчёте ${Math.round(f.games)} матчей по ESPN; по истории пропусков модель ждала бы ${Math.round(m2.games)}.`);
   if(b.player.depth?.rank>=3)flags.push(`${b.player.name}: по составу ESPN №${b.player.depth.rank} на ${b.player.depth.position} — роль и минуты не гарантированы.`);
   if(b.played<5&&a.played<5&&ctx.today)flags.push('Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.');
  }
