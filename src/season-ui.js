@@ -1,7 +1,7 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
 import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
-import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from './season.js';
+import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,stints,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from './season.js';
 import {fetchLiveGames,moscowDate} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 
@@ -13,7 +13,7 @@ const INJURY_URL='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/i
 const SPORTS_URL=id=>`https://www.sports.ru/fantasy/basketball/player/info/150/${id}.html`;
 const TEAM_URL=id=>`https://www.sports.ru/fantasy/basketball/team/${id}.html`;
 const VIEWS=[['overview','Обзор'],['teams','Команды'],['transfers','Трансферы'],['injuries','Травмы'],['games','Матчи'],['rules','Правила']];
-const PERIOD={week:'До вс',month:'4 нед.',season:'Сезон'},PERIOD_LONG={week:'до конца недели',month:'за 4 недели',season:'до конца сезона'};
+const PERIOD={week:'Неделя',month:'4 недели',season:'Сезон'},PERIOD_LONG={week:'до конца недели',month:'за 4 недели',season:'до конца сезона'};
 const addDaysIso=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
 function el(tag,value,cls){const e=document.createElement(tag);if(value!=null)e.textContent=value;if(cls)e.className=cls;return e;}
 function link(textValue,href,cls){const a=el('a',textValue,cls);a.href=href;a.target='_blank';a.rel='noopener';return a;}
@@ -241,8 +241,35 @@ function overview(ctx){
 }
 
 // ---------- Teams ----------
+// Fact and forecast windows: the current Sports.ru tour, four tours from it, and the whole season.
+function windows(ctx){
+ const list=Object.entries(gameWeeks(live)).map(([n,w])=>({n:Number(n),...w})).sort((a,b)=>a.start.localeCompare(b.start)),h=horizons(ctx);
+ const i=list.findIndex(w=>ctx.today>=w.start&&ctx.today<=w.end),at=i>=0?i:list.findIndex(w=>w.start>ctx.today),cur=list[at]||null,start=cur?.start||ctx.today;
+ return {week:{from:start,to:cur?.end||h.week.to},month:{from:start,to:cur?(list[at+3]||list.at(-1)).end:addDaysIso(start,27)},season:{from:list[0]?.start||start,to:h.season.to}};
+}
+// Official points in a window, counting a player only while he was on the team — the rule of the league table.
+function teamFact(ctx,t,w){
+ let sum=0;
+ for(const s of stints(ctx.transfers)){if(s.team!==t)continue;
+  for(const g of live?.players?.[byId.get(s.playerId)?.sportsId]?.games||[])if(g.played&&g.date>=w.from&&g.date<=w.to&&g.date>=s.from&&(!s.to||g.date<s.to))sum+=g.points;}
+ return sum;
+}
+function playerFact(p,t,ctx,w){
+ const since=stints(ctx.transfers).find(x=>x.team===t&&x.playerId===p.id&&!x.to)?.from||w.from;let sum=0;
+ for(const g of live?.players?.[p.sportsId]?.games||[])if(g.played&&g.date>=w.from&&g.date<=w.to&&g.date>=since)sum+=g.points;
+ return sum;
+}
+// Still to come in a window: points of a game Sports.ru has not counted yet plus the expectation of the games ahead.
+function ahead(p,ctx,w,running){const e=expectedPoints(p,{...ctx,running},ctx.today,w.to);return {points:(running?.get(p.id)?.points||0)+e.points,games:e.games};}
+function factForecast(fact,forecast){const v=el('strong',null,'fact');v.append(int(fact),el('span',' / '+int(forecast),'fc'));v.title='Факт / прогноз';return v;}
+// The league race: official points plus games Sports.ru has not counted yet, as in the overview table.
+function leaguePlace(ctx,t,running){
+ const official=teamPoints(ctx,ctx.transfers),totals=ctx.rosters.map((ids,i)=>official[i]+ids.reduce((s,id)=>s+(running.get(id)?.points||0),0));
+ const order=[...totals.keys()].sort((a,b)=>totals[b]-totals[a]||a-b);
+ return {rank:order.indexOf(t)+1,total:totals[t],leader:totals[order[0]],second:totals[order[1]],started:totals.some(x=>x>0)};
+}
 function playerRow(p,ctx,running){
- const live1=live?.players?.[p.sportsId],c=current(p,ctx),o=playerOutlook(p,{...ctx,running}),g=perGame(p,live1),inj=injuryInfo(p),now=running?.get(p.id);
+ const live1=live?.players?.[p.sportsId],c=current(p,ctx),g=perGame(p,live1),inj=injuryInfo(p),now=running?.get(p.id);
  const box=el('details',null,'season-player');box.open=openRows.has(p.id)||replacing===p.id;
  const sum=el('summary'),row=el('div',null,'sp-row');
  const name=el('span',null,'sp-name'),meta=el('small',`${c.positions.join('/')} · ${p.team||'—'}${p.isRookie?' · rookie':''}`);name.append(el('strong',p.name),meta);
@@ -250,7 +277,8 @@ function playerRow(p,ctx,running){
  price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
  const form=el('span',null,'sp-form'),last=(live1?.games||[]).filter(x=>x.played).slice(-3).map(x=>int(x.points));
  form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
- const next=el('span',null,'sp-next'),wk=el('small',`${dec(o.week.games)} до вс`);wk.title='Ожидаемых матчей до конца недели';next.append(el('strong',int(o[horizon].points)),wk);
+ const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
+ left.title='Ожидаемых матчей до конца периода';next.append(factForecast(fact,fact+rest.points),left);
  row.append(name,price,form,next);
  if(inj){const line=el('span',null,'sp-injury'+(inj.level==='out'?' out':''));line.append(`🩹 ${inj.text}`);row.append(line);}
  sum.append(row);box.append(sum);
@@ -369,9 +397,11 @@ function controls(ctx){
 }
 function teamKpis(ctx,roster,running){
  const st=sportsTeam(team),spent=roster.reduce((s,p)=>s+(current(p,ctx).price||0),0),left=transfersLeft(ctx,team),fbl=fblTransfers(ctx.transfers,team,ctx.today);
- const points=roster.reduce((s,p)=>s+playerOutlook(p,{...ctx,running})[horizon].points,0);
- const kpis=el('div',null,'kpis'),kpi=(label,value,title)=>{const k=el('div',null,'kpi');k.append(el('small',label),el('strong',value));if(title)k.title=title;kpis.append(k);return k;};
- kpi('Стоимость',int(spent));
+ const w=windows(ctx)[horizon],fact=teamFact(ctx,team,w),forecast=fact+roster.reduce((s,p)=>s+ahead(p,ctx,w,running).points,0),race=leaguePlace(ctx,team,running);
+ // The league race and the period's points come first, money and transfers below them.
+ const main=el('div',null,'kpis kpis--main'),kpis=el('div',null,'kpis');let into=main;
+ const kpi=(label,value,title)=>{const k=el('div',null,'kpi');k.append(el('small',label),el('strong',value));if(title)k.title=title;into.append(k);return k;};
+ into=kpis;kpi('Стоимость',int(spent));
  const bankKpi=kpi('Банк',int(teamBank(team,ctx.transfers)),st?'Баланс Sports.ru, обновляется сам':'');
  if(!Number.isFinite(st?.balance)){
   // A team Sports.ru does not show: its bank can be typed here, on this device.
@@ -380,9 +410,11 @@ function teamKpis(ctx,roster,running){
   bankKpi.querySelector('strong').replaceWith(input);
  }
  kpi('Трансферы',left===Infinity?'∞':`${left} из ${WEEKLY_TRANSFERS}`,`Неделя лиги до ${ddmm(fbl.week.end)}`).append(el('small',`до ${ddmm(fbl.week.end)}`));
- if(st?.place)kpi('Sports.ru',int(st.place)).append(el('small',`место из ${int(st.of)}`));
- kpi('ФО '+PERIOD[horizon].toLowerCase(),int(points));
- return kpis;
+ into=main;const place=kpi('Место в лиге',race.started?`${race.rank} из 8`:'—','Место среди 8 команд FBL по официальным ФО Sports.ru');
+ place.append(el('small',!race.started?'очков пока нет':race.rank===1?`${int(race.total)} ФО · ${race.total>race.second?'+'+int(race.total-race.second)+' к 2-му':'вровень со 2-м'}`:`${int(race.total)} ФО · −${int(race.leader-race.total)} до 1-го`,race.started&&race.rank===1?'lead':''));
+ const fo=kpi('ФО · '+PERIOD[horizon].toLowerCase(),'','Факт — официальные очки Sports.ru за период; прогноз — факт плюс ожидаемые очки до конца периода');
+ fo.querySelector('strong').replaceWith(factForecast(fact,forecast));fo.append(el('small',`факт / прогноз · ${ddmm(w.from)}–${ddmm(w.to)}`));
+ const box=el('div');box.append(main,kpis);return box;
 }
 function teams(ctx){
  const wait=needsLive('Состав');if(wait)return [controls(ctx),...wait];
@@ -390,7 +422,7 @@ function teams(ctx){
  const out=[controls(ctx),teamKpis(ctx,roster,running)];
  if(st){const info=el('div',null,'sp-team-info');info.append(link('Команда на Sports.ru ↗',TEAM_URL(st.sportsTeamId)));out.push(info);}
  const list=el('div',null,'sp-roster'),header=el('div',null,'sp-header');
- for(const t of ['Игрок','Цена','За матч','ФО · '+PERIOD[horizon].toLowerCase()])header.append(el('span',t));
+ for(const t of ['Игрок','Цена','За матч','Факт / прогноз'])header.append(el('span',t));
  list.append(header,...roster.map(p=>playerRow(p,ctx,running)));out.push(list);
  return out;
 }
@@ -607,7 +639,7 @@ const METHOD={
  overview:['Очки — официальные фэнтези-очки Sports.ru: игрок приносит их, только пока он в команде.','«В игре» — матчи, которые Sports.ru ещё не засчитал: протоколы ESPN по формуле Sports.ru, без бонуса за результат.','Прогноз — очки сейчас плюс ожидание до конца сезона с учётом календаря и травм.'],
  transfers:['ФО за матч — прогноз сезона по формуле Sports.ru, который с каждым сыгранным матчем сдвигается к официальным очкам (вес прогноза — 10 матчей).','Ожидаемые ФО = ФО за матч × доля матчей, которые игрок обычно играет × матчи клуба по календарю × шанс сыграть по отчёту ESPN (не играет — 0, под вопросом — 50%).',`Допустимость: позиция Sports.ru (по 2 на позицию), текущие цены, банк, минимум один rookie, лимит ${WEEKLY_TRANSFERS} трансфера за неделю лиги, бюджет ${int(CAP)}. Пакеты — точная оптимизация.`,'Sports.ru обновляется каждые 2 часа, травмы и матчи ESPN — при открытии, во время матчей — раз в минуту.']
 };
-METHOD.teams=METHOD.transfers;
+METHOD.teams=['Факт — официальные очки Sports.ru за период; игрок считается, только пока он в команде. Прогноз — факт плюс очки матчей, которые Sports.ru ещё не засчитал, плюс ожидаемые очки до конца периода.','Неделя — текущий тур Sports.ru, 4 недели — четыре тура начиная с текущего, сезон — от первого тура до последнего.','Место в лиге — среди 8 команд FBL по официальным очкам, как в таблице на «Обзоре».',...METHOD.transfers];
 function statusLine(ctx){
  const week=currentWeek(ctx.today),parts=[week?`Тур ${week.n} · ${ddmm(week.start)}–${ddmm(week.end)}`:`Сегодня ${ddmm(ctx.today)}`];
  if(loading)parts.push('обновляю данные…');else if(live)parts.push(`данные Sports.ru на ${timeMsk(live.collectedAt)}`+(moscowDate(live.collectedAt)!==ctx.today?` ${ddmm(moscowDate(live.collectedAt))}`:''));
