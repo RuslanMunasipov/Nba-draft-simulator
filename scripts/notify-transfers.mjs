@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
-import {fblTransfers,checkRules,appeal} from '../src/rules.js';
+import {fblTransfers} from '../src/rules.js';
 import {esc,gains,moveLines,details,message,sender,moscow} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
@@ -108,22 +108,6 @@ for(const x of rival){
   details([...mineNow.why,...briefs,
    ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
    `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>state.transfers.push(transferKey(x)));
-}
-// League rules (rookie, «белое правило», two per NBA club, the FBL transfer limit): each new breach by another team is
-// reported once, with the appeal to the league's lawyer ready to forward to the league.
-const checks=checkRules({rosters:ctx.rosters,byId,transfers,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today,clubOf:p=>live.players?.[p.sportsId]?.club||p.sportsClub});
-// A player bought by a team without a counting player, on whom the league has not decided: ask for the decision once.
-for(const c of checks.filter(c=>c.whiteState!=='ok'))for(const p of c.undecided){
- const key=`undecided:${c.team}:${p.id}`;if((previous.rules||[]).includes(key))continue;
- await report(message(`❔ <b>Белое правило: ${esc(c.label)}</b>`,`В составе ${esc(p.name)}, по нему нет решения лиги, а засчитываемого игрока у команды нет.`,'Внеси решение заявкой «FBL: белое правило» — и проверка закончится сама.'),
-  ()=>{state.rules=[...new Set([...(state.rules||[]),key])];});
-}
-for(const c of checks){
- const freshRules=c.violations.filter(v=>!(previous.rules||[]).includes(v.key));if(!freshRules.length)continue;
- // My own roster: a warning to fix it before the league sees it; another team: the appeal to forward.
- const text=c.team===team?message(`🚨 <b>Твой состав нарушает правила</b>`,...freshRules.map(v=>'• '+esc(v.text)),'','Исправь трансфером до того, как это заметит лига.')
-  :message(`⚖️ <b>Нарушение правил: ${esc(c.label)}</b>`,...freshRules.map(v=>'• '+esc(v.text)),'','Обращение к юристу лиги — перешли в лигу:',`<pre>${esc(appeal(c,today,team))}</pre>`);
- await report(text,()=>{state.rules=[...new Set([...(state.rules||[]),...freshRules.map(v=>v.key)])];});
 }
 // Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
