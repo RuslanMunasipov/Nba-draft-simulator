@@ -15,7 +15,6 @@ const TEAM_URL=id=>`https://www.sports.ru/fantasy/basketball/team/${id}.html`;
 const VIEWS=[['overview','Обзор'],['teams','Команды'],['transfers','Трансферы'],['injuries','Травмы'],['games','Матчи'],['rules','Правила']];
 const PERIOD={week:'До вс',month:'4 нед.',season:'Сезон'},PERIOD_LONG={week:'до конца недели',month:'за 4 недели',season:'до конца сезона'};
 const addDaysIso=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
-const symbol=t=>teamName(t).split(' ')[0];
 function el(tag,value,cls){const e=document.createElement(tag);if(value!=null)e.textContent=value;if(cls)e.className=cls;return e;}
 function link(textValue,href,cls){const a=el('a',textValue,cls);a.href=href;a.target='_blank';a.rel='noopener';return a;}
 function button(label,onclick,cls='btn-secondary btn-sm'){const b=el('button',label,cls);b.type='button';b.onclick=onclick;return b;}
@@ -186,36 +185,36 @@ function gameStatus(g){
  if(/OT/.test(d))return 'Овертайм '+d.replace(/.*OT\s*/,'');
  return d;
 }
-function gameCard(g,own){
+// One game with the players of one FBL team in it: the team chosen in the season tab (my own on the overview).
+const inGame=(p,g)=>p.team===g.home.abbr||p.team===g.away.abbr;
+function teamInGame(g,focus,own){return players.filter(p=>own.get(p.id)===focus&&inGame(p,g));}
+function gameCard(g,focus,own){
  const item=el('div',null,'sp-game'+(g.state==='in'?' is-live':'')),head=el('div',null,'sp-game-head');
  head.append(el('strong',`${g.away.abbr} — ${g.home.abbr}`));
  if(g.state!=='pre')head.append(el('span',`${g.away.score} : ${g.home.score}`,'score'));
  head.append(g.state==='in'?el('span',gameStatus(g),'chip chip--live'):el('small',gameStatus(g)));item.append(head);
- const ours=players.filter(p=>own.has(p.id)&&(p.team===g.home.abbr||p.team===g.away.abbr));
+ const ours=teamInGame(g,focus,own);
  if(!ours.length)return item;
  const pts=p=>g.points?.[String(p.espnId)];
- ours.sort((a,b)=>(own.get(a.id)===0?-1:0)-(own.get(b.id)===0?-1:0)||(pts(b)?.points||0)-(pts(a)?.points||0));
- const ul=el('ul');
+ ours.sort((a,b)=>(pts(b)?.points||0)-(pts(a)?.points||0));
  if(g.state!=='pre'&&!g.points)item.append(el('p','Протокол ESPN пока недоступен.','sp-note'));
- const mine=ours.filter(p=>own.get(p.id)===0),others=ours.filter(p=>own.get(p.id)!==0);
- const row=p=>{const x=pts(p),li=el('li',null,own.get(p.id)===0?'mine-player':'');
-  li.append(el('span',`${symbol(own.get(p.id))} ${p.name}`,'who'),el('span',x?`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'):g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','pts'));return li;};
- if(g.state==='pre'){for(const p of mine)ul.append(row(p));if(others.length)ul.append(el('li',`ещё ${count(others.length,'игрок','игрока','игроков')} FBL`,'muted'));}
- else for(const p of ours)ul.append(row(p));
- if(ul.children.length)item.append(ul);
+ const ul=el('ul');
+ for(const p of ours){const x=pts(p),li=el('li',null,'mine-player'),inj=injuryText(p);
+  li.append(el('span',p.name+(g.state==='pre'&&inj?` (${inj.toLowerCase()})`:''),'who'),el('span',x?`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'):g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','pts'));ul.append(li);}
+ item.append(ul);
  return item;
 }
-function gamesToday(ctx,compact){
+function gamesToday(ctx,compact,focus){
  const own=owners(ctx),box=el('div',null,'sp-block sp-live'),head=el('div',null,'sp-block-head');head.append(el('h3','Матчи сегодня'));box.append(head);
- const order={in:0,pre:1,post:2};
+ const order={in:0,pre:1,post:2},whose=focus===0?'твоих игроков':`игроков ${teamName(focus)}`;
  const shown=games.filter(g=>g.state!=='post'||moscowDate(g.date)>=addDaysIso(ctx.today,-1)).sort((a,b)=>order[a.state]-order[b.state]||a.date.localeCompare(b.date));
  if(src.games==='error'){box.append(el('p',compact?'Счёт ESPN сейчас недоступен. Расписание — во вкладке «Матчи».':'Счёт ESPN сейчас недоступен. Расписание по календарю Sports.ru — ниже.','muted'));return box;}
  if(!shown.length){box.append(el('p','Сегодня матчей нет.','muted'));return box;}
- const list=compact?shown.filter(g=>g.state==='in'||players.some(p=>owners(ctx).get(p.id)===0&&(p.team===g.home.abbr||p.team===g.away.abbr))):shown;
- for(const g of list.slice(0,compact?4:99))box.append(gameCard(g,own));
+ const withTeam=shown.filter(g=>teamInGame(g,focus,own).length),list=compact?shown.filter(g=>g.state==='in'||withTeam.includes(g)):onlyMine?withTeam:shown;
+ for(const g of list.slice(0,compact?4:99))box.append(gameCard(g,focus,own));
  if(compact&&shown.length>Math.min(list.length,4)){const more=button(`Все матчи (${shown.length})`,()=>setView('games'),'btn-ghost btn-sm');head.append(more);}
- if(compact&&!list.length)box.append(el('p',`Сегодня ${count(shown.length,'матч','матча','матчей')}, твоих игроков в них нет.`,'muted'));
- if(shown.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки без бонуса за результат.','sp-note'));
+ if(!list.length)box.append(el('p',`Сегодня ${count(shown.length,'матч','матча','матчей')}, ${whose} в них нет.`,'muted'));
+ if(list.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки без бонуса за результат.','sp-note'));
  return box;
 }
 function alertsBlock(ctx){
@@ -237,7 +236,7 @@ function overview(ctx){
  const wait=needsLive('Таблица лиги');
  const grid=el('div',null,'sp-overview'),left=el('div'),right=el('div');
  if(wait){left.append(...wait);}else{const running=livePoints();left.append(alertsBlock(ctx),standingsTable(ctx,running));}
- right.append(gamesToday(ctx,true));if(live)right.append(topPlayers(ctx));
+ right.append(gamesToday(ctx,true,0));if(live)right.append(topPlayers(ctx));
  grid.append(left,right);return [grid];
 }
 
@@ -356,15 +355,17 @@ function replacementPanel(p,ctx){
  if(st)box.append(link(`Открыть команду на Sports.ru ↗`,TEAM_URL(st.sportsTeamId),'btn-secondary btn-sm'));
  box.append(search,verdictLine,list);fill();return box;
 }
-function controls(ctx){
- const head=el('div',null,'sp-controls');
+function teamSelect(){
  const pickTeam=el('select');for(let t=0;t<8;t++){const o=el('option',teamOption(t));o.value=String(t);o.title=teamLabel(t);pickTeam.append(o);}pickTeam.value=String(team);
  pickTeam.onchange=()=>{team=Number(pickTeam.value);writeStored('fbl-season-team',String(team));replacing=null;renderSeason();};
+ const l=el('label');l.append(el('span','Команда'),pickTeam);return l;
+}
+function controls(ctx){
+ const head=el('div',null,'sp-controls');
  const period=el('div',null,'segmented sp-period');period.setAttribute('role','group');period.setAttribute('aria-label','Период');
  for(const k of ['week','month','season']){const b=button(PERIOD[k],()=>{horizon=k;writeStored('fbl-season-horizon',horizon);renderSeason();},'');b.setAttribute('aria-pressed',String(horizon===k));b.title=horizons(ctx)[k].label;period.append(b);}
- const labelled=(t,node)=>{const l=el('label');l.append(el('span',t),node);return l;};
  const wrap=el('div',null,'sp-period-field');wrap.append(el('span','Период'),period);
- head.append(labelled('Команда',pickTeam),wrap);
+ head.append(teamSelect(),wrap);
  return head;
 }
 function teamKpis(ctx,roster,running){
@@ -511,33 +512,35 @@ function injuriesView(ctx){
 }
 
 // ---------- Upcoming games ----------
+// Games of the team chosen above: today's scores and the 7-day schedule list only that team's players.
 function gamesView(ctx){
- const out=[gamesToday(ctx,false)];
+ const head=el('div',null,'sp-controls sp-games-controls'),toggle=el('label',null,'check'),cb=el('input');
+ cb.type='checkbox';cb.checked=onlyMine;cb.onchange=()=>{onlyMine=cb.checked;renderSeason();};toggle.append(cb,' Только матчи с игроками команды');
+ head.append(teamSelect(),toggle);
+ const out=[head,gamesToday(ctx,false,team)];
  const wait=needsLive('Ближайшие 7 дней');if(wait)return [...out,...wait];
  const own=owners(ctx),byClub=new Map();
- for(const p of players){if(!own.has(p.id))continue;const c=clubOf(p);if(!byClub.has(c))byClub.set(c,[]);byClub.get(c).push(p);}
+ for(const p of players){if(own.get(p.id)!==team)continue;const c=clubOf(p);if(!byClub.has(c))byClub.set(c,[]);byClub.get(c).push(p);}
  const until=addDaysIso(ctx.today,6),days=new Map();
  for(const [club,cal] of Object.entries(live?.clubs||{}))for(const g of cal){if(g.date<ctx.today||g.date>until||!g.home)continue;if(!days.has(g.date))days.set(g.date,[]);days.get(g.date).push({home:club,away:g.opponent});}
  const week=currentWeek(ctx.today),end=week?.end||horizons(ctx).week.to;
  const block=el('div',null,'sp-block');block.append(el('h3',`Игры составов до ${ddmm(end)}`),el('p','Сколько матчей сыграют 10 игроков каждой команды по календарю Sports.ru и с учётом травм.','muted'));
  const counts=el('table',null,'standings-table'),hr=el('tr');for(const [x,c] of [['Команда',''],['Матчей','num'],['С травмами','num']]){const th=el('th',x,c);th.scope='col';hr.append(th);}counts.append(hr);
  const rows=ctx.rosters.map((ids,t)=>{let w=0,e=0;for(const id of ids){const p=byId.get(id);if(!p)continue;for(const g of live?.clubs?.[clubOf(p)]||[])if(g.date>=ctx.today&&g.date<=end&&!g.score)w++;e+=playerOutlook(p,{...ctx,running:new Map()}).week.games;}return {t,w,e};}).sort((a,b)=>b.e-a.e);
- for(const r of rows){const tr=el('tr');if(r.t===0)tr.className='mine';tr.append(el('td',teamName(r.t),'team'),el('td',String(r.w),'num'),el('td',dec(r.e),'num total'));counts.append(tr);}
- const wrap=el('div',null,'table-scroll');wrap.append(counts);block.append(wrap);out.push(block);
+ for(const r of rows){const tr=el('tr');if(r.t===team)tr.className='mine';tr.append(el('td',teamName(r.t),'team'),el('td',String(r.w),'num'),el('td',dec(r.e),'num total'));counts.append(tr);}
+ const wrap=el('div',null,'table-scroll');wrap.append(counts);block.append(wrap);
  const sched=el('div',null,'sp-block');sched.append(el('h3','Расписание на 7 дней'));
- const toggle=el('label',null,'check'),cb=el('input');cb.type='checkbox';cb.checked=onlyMine;cb.onchange=()=>{onlyMine=cb.checked;renderSeason();};toggle.append(cb,' Только матчи моих игроков');sched.append(toggle);
  let any=false;
  for(const [day,list] of [...days].sort()){
   const ul=el('ul',null,'sp-day');
-  for(const g of list){const ours=[...(byClub.get(g.away)||[]),...(byClub.get(g.home)||[])].sort((a,b)=>(own.get(a.id)===0?-1:0)-(own.get(b.id)===0?-1:0));
-   const mine=ours.filter(p=>own.get(p.id)===0);if(onlyMine&&!mine.length)continue;
+  for(const g of list){const ours=[...(byClub.get(g.away)||[]),...(byClub.get(g.home)||[])];if(onlyMine&&!ours.length)continue;
    const li=el('li'),line=el('strong');line.append(el('span',`${g.away} — ${g.home}`));li.append(line);
-   if(ours.length){const s=el('small');ours.forEach((p,i)=>{if(i)s.append(' · ');const n=`${symbol(own.get(p.id))} ${p.name}${injuryText(p)?' ('+injuryText(p).toLowerCase()+')':''}`;s.append(own.get(p.id)===0?el('b',n):n);});li.append(s);}
+   if(ours.length)li.append(el('small',ours.map(p=>`${p.name}${injuryText(p)?' ('+injuryText(p).toLowerCase()+')':''}`).join(' · '),'team-players'));
    ul.append(li);}
   if(ul.children.length){sched.append(el('p',weekday(day),'games-day'),ul);any=true;}
  }
- if(!any)sched.append(el('p',onlyMine?'На этой неделе у твоих игроков матчей нет.':'Нет данных календаря.','muted'));
- out.push(sched);
+ if(!any)sched.append(el('p',onlyMine?`На этой неделе у игроков ${teamName(team)} матчей нет.`:'Нет данных календаря.','muted'));
+ out.push(sched,block);
  return out;
 }
 
