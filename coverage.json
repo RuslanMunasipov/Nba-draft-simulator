@@ -1,0 +1,375 @@
+{
+ "transfer-optimizer": {
+  "verifiedCorrect": [
+   "bestPackage integer programme is exact: 60 random brute-force instances (10-man roster, 25 free agents, random prices/banks/rookies/white lists/clubs, k=1..3) matched the enumerated optimum to 1e-6 (scratch t10.mjs); 'one'+i caps and model.ints give binary choices; kept>=10-k bounds sales at k.",
+   "Position constraints are Hall's condition (31 subsets, ≤2|T| players whose positions ⊆ T), correct for single and multi-position players, and post-checked with rosterFits.",
+   "All 16,178 single-swap options on live data (8 teams × 10 sold players × banks 0/actual/3000) are legal: 2 per Sports.ru position, ≥1 rookie, ≥1 white-list player, no third player of a club, no player held by any FBL team, price ≤ bank + current sale price, player on the live market (t20.mjs).",
+   "Every package recommendation() produced for all 8 teams × week/month/season on live data passed the same legality check (t2.mjs).",
+   "clubRoom() in single swaps correctly forbids adding to a club already at 2 and frees the place when one of its two players is sold (tests and t11.mjs).",
+   "The white rule binds swaps (needWhite) and packages (white ≥1); every live team currently has ≥1 listed player, so needWhite never blocks all swaps.",
+   "transfersLeft = min(Sports.ru counter, FBL week) and fblTransfers' free pre-season accounting (seenAt < countFrom) agree with the journals: used=0, left=3 for all teams on 20.10.",
+   "normalCdf is Abramowitz-Stegun 26.2.17 (|error| < 7.5e-8) with the correct sign handling; level() floors before thresholding, so the UI badge never shows 70% next to 'на грани'.",
+   "The selling price is Sports.ru's current price (journal sell prices equal live prices, e.g. Уайт 1800) and the bank is Sports.ru's own balance for connected teams.",
+   "No db player with a VERIFIED price is missing from the live market, so onMarket never offers stale-priced players today.",
+   "Derived rosters match the Sports.ru roster JSON for all 8 teams (t22.mjs); allTransfers gave no warnings on the current data.",
+   "Optimizer's curse is mild in the 2025/26 simulation: executed healthy-for-healthy swaps realized 21.8 vs 25.8 predicted 4-week FP (85%); replacements of absent players realized more than predicted (curse.py)."
+  ],
+  "notChecked": [
+   "Calibration of explainSwap's P(gain>0) against outcomes: no archived 2025/26 forecasts with seasonFloor/Ceiling/gameFloor exist. A crude proxy predictor (scratch calib.py) gave z-SD 1.6-2.2, which is inconclusive because the proxy is far weaker than the real forecast.",
+   "Sports.ru mechanics not documented in the repo: whether its own pre-season transfers are truly unlimited (inferred from team 0 making 8 transfers with the counter still at 3), when its weekly counter resets relative to the FBL Monday reset, and whether selling always happens at the current price.",
+   "How Yahoo's mirror dates a transfer (relevant to the transfer-day attribution finding): assumed effective after the Moscow-dated games already played that morning.",
+   "The policy simulation is stylised: one active team against static rivals, 2026-27 db positions and prices as proxies, no in-season price dynamics, no competition for free agents, a simple predictor. Absolute numbers are indicative; the threshold ranking is the robust part.",
+   "Browser rendering of season-ui.js was not run; UI behaviour was reproduced by re-implementing recommendation() and the notify logic in scratch scripts, since notify-transfers.mjs must not be executed.",
+   "Price-momentum value (buying players whose Sports.ru price will rise) could not be measured: live prices still equal initial prices on day 1."
+  ]
+ },
+ "season-expected-points": {
+  "verifiedCorrect": [
+   "Sports.ru calendar is Moscow-dated: ESPN BOS@DET 2026-10-20T19:00Z (22:00 MSK) is filed as 2026-10-20 and PHI@NY 23:00Z as 2026-10-21; moscowToday() = UTC+3 with no DST is correct.",
+   "splitProduct is exact for positive factors: perGame × (expectedGames/clubGames) × clubGames = value × games = points, and the log-mean parts sum to the gain (the season.test.js:259 check passes; synthetic partial-injury case: -89.9 + 149.2 = 59.3).",
+   "Chain restarts as healthy at the ESPN return date: the 'healthy' index advances only on games with factor > 0 (season.js:159-160; test at season.test.js:266-277).",
+   "The JS chainCurve matches an independent numpy port to 6 decimals (0.938317 0.909189 0.890765 … for h=[.05,.015], share .8).",
+   "normalCdf (Abramowitz-Stegun 26.2.17, error < 7.5e-8) gives Phi(0) = 0.5; the 10-90% range to sd conversion uses z = 1.2816 correctly.",
+   "Running games are not double counted: ahead() = running points + expectedPoints, which excludes the running day; the standings use the same running map.",
+   "Pre-season (no games) swap confidence on held-out 2025-26 random pairs is calibrated in the middle range (bin [.7,.8): pred .747 vs obs .748 for week, month and season horizons).",
+   "Adding game-to-game noise on top of the season range is not a material double count: it widens the season sd by about 3.5%, and the max-likelihood sd multiplier pre-season was 1.1, i.e. the sd is not too wide.",
+   "Independence of the two players is acceptable: clubCorrelation in the DB is -0.002.",
+   "Every live Sports.ru player's club matches a calendar key (0 mismatches), so no player gets 0 expected points from a missing calendar.",
+   "The in-season per-game estimator is unbiased in aggregate for healthy top-250 players: per-game predicted/actual 0.98-1.01 from Nov to Feb 2025-26 (0.946 in March).",
+   "Published Sports.ru weeks equal the gameWeeks() derivation; the only mismatch is 6 MLK-day games dated 2027-01-18 labelled week 14 that fall in week 13 by date (week-horizon boundary only).",
+   "All 482 market DB players have forecast.minutes, so none fall back to the uncalibrated 10-game shrink.",
+   "playRate's 'finished club games' guard (team = max(rows, finished, on)) handles players for whom Sports.ru lists only appearances; this matches the test."
+  ],
+  "notChecked": [
+   "How quickly Sports.ru posts calendar scores and player game rows after a game ends: no 2026-27 games are played yet, so the window in which a finished night game still counts as 'ahead' (especially in the Telegram bot, which has no ESPN running map) could not be measured.",
+   "Whether ESPN's projected games include each current injury is inferred from the data (Sharpe and DiVincenzo yes, Furphy no); ESPN's methodology was not verified.",
+   "Yahoo's exact lock and effective time for FBL daily roster changes; the stint finding relies on the domain description and the 08:00-22:00 MSK transfer window.",
+   "Whether the live GitHub Pages DB was rebuilt after #84/#86; only the provided copy (generatedAt 12:18Z) was inspected.",
+   "The confidence backtest covers veterans only, with model-unconditional games (no ESPN games, no healthy shift, no injury report, no rookies or market-price priors) and a simplified 'healthy' proxy (played the club's last game), so the real tool's calibration can differ. Selection used random 40-player pools rather than real position pools and money/rookie/club constraints.",
+   "The live-game UI path (livePoints, the 60-second polling, the ESPN final cache) was not run against real in-progress games.",
+   "npm test and the Python unit tests were not run: audit only, nothing was changed."
+  ]
+ },
+ "team-totals-standings": {
+  "verifiedCorrect": [
+   "Calendar and game rows use Moscow dates: ESPN tip-off times BOS@DET 22:00 MSK → '2026-10-20', PHI@NY 02:00 MSK → '2026-10-21', matching the Sports.ru calendar; livePoints' moscowDate() is consistent with that.",
+   "result_bonus values (+2 home win, +3 away win, −3 home loss, −2 away loss) are exact: 113/113 played games on two 2025/26 Sports.ru pages, including 34 games under 10 minutes.",
+   "fbl_points handles traded players: the (date, opponent, home) index finds the club of that day (synthetic: Atlanta home loss 17→20, Chicago away win 33→30), and overtime marks are ignored by parse_score.",
+   "Club calendars are symmetric: all 2400 entries have a mirror with the opposite home flag, so neutral-site games carry a designated home and away; all 30 opponent names in the 2025/26 game table equal the calendar's club keys.",
+   "A same-day sale and buy-back does not double count: the Sabonis stints are [10-18, 10-20) and [10-20, …).",
+   "All 88 roster and transfer ids resolve to live Sports.ru entries, and the app's journal-replayed rosters equal Sports.ru's roster JSON for all 8 teams (no diff), with 0 allTransfers warnings.",
+   "The season window 2026-10-20..2027-04-12 (Moscow) equals Yahoo's scoring 20.10–11.04 (US dates); no calendar game falls outside it.",
+   "No double counting in the standings forecast: expectedPoints skips games with a score, past dates, games listed for the player and the running ESPN game, so official + now + rest counts each game once.",
+   "leaguePlace is a deterministic rank with no probability, so the 'P(place) sums to 1' check does not apply. My Monte Carlo place matrix has rows and columns summing to 1.00.",
+   "windows() handles pre-season (today before tour 1 gives tour 1) and the end of the season (cur null, falls back to horizons)."
+  ],
+  "notChecked": [
+   "How the Sports.ru calendar writes a finished score (own-first or home-first), and whether it keeps past games: no 2026/27 game is played yet, and the current calendar shows ' : ' placeholders.",
+   "Whether Sports.ru lists the NBA Cup final in player game tables. The app would count it while Yahoo, like NBA regular-season stats, does not.",
+   "When and how the league mirrors Sports.ru transfers onto Yahoo, and Yahoo's day rollover hour: this decides the exact attribution of evening games on a transfer day.",
+   "Which per-game constant (1 or 2 per GP) the league applies to Yahoo totals: needs the league owner.",
+   "Full-season tip-time distribution: the ESPN date-range request was refused (HTTP 400), so only 7 dates were sampled; the 5-8% share of Moscow-evening games is an estimate.",
+   "Whether ESPN's integer MIN for live points rounds differently from Sports.ru's mm:ss at the 10-minute threshold.",
+   "capEvents, reportedEvents and unreported were read but not fuzzed; they deduplicate notifications and do not affect totals.",
+   "No full collector run or model refit; tests were not re-run (audit only, CPU-shared)."
+  ]
+ },
+ "live-collection-bank": {
+  "verifiedCorrect": [
+   "Result bonus mapping confirmed: season sums 2023-24/2024-25/2025-26 vs formula with +2 home win/+3 away win/−3 home loss/−2 away loss match exactly for 86/200, 75/221 and 163/338 players (mean |Δ| 0.86/1.2/0.85 FP per season); swapped home/away 2.75/3.4/2.9; no bonus 46.8/38.2/44.5. Per game, Jokic 2025-26 matches 65/65 with the home-first score.",
+   "fbl_points is correct for both score orientations and never subtracts the bonus twice: 65/65 exact on real Sports.ru rows with own-first and home-first calendars; each collection re-parses ФО, so sportsPoints is never stacked.",
+   "Sports.ru calendar and journal dates are the Moscow date of tip-off: ESPN BOS@DET 19:00Z→10-20, PHI@NY 23:00Z→10-21, OKC@SA 01:30Z→10-21, ATL@ORL 21.10 23:00Z→10-22 all match the calendar; live.js moscowDate uses the same convention.",
+   "Bank replay (20000 − initial prices of the FBL draft + Σ journal sale − buy) equals Sports.ru's balance for all 8 teams (200, 0, 100, 100, 100, 200, 400, 1000); sales use the journal's sale price, and selling()/bestPackage use the current Sports.ru price, which matches how Sports.ru sells.",
+   "Live journal replay: 20 transfers, 0 warnings, replayed rosters equal the Sports.ru roster JSON; Coby White and Derrick White are now resolved by exact price (1500 vs 1800).",
+   "boxScorePoints/liveGamePoints on a real ESPN summary (event 401898406): 33/33 athletes with stats match an independent FBL formula; DNP rows (didNotPlay, empty stats) excluded; label order handled by name. Lead (1): no name matching happens for live points, which are keyed by ESPN athlete id; sameNames is used only for detecting the draft in the journal.",
+   "fblWeek/fblTransfers boundaries: 10-25 belongs to the first week 18.10-25.10, 10-26 starts 26.10-01.11; used/left/resetOn correct on Sunday and Monday; moscowToday turns at 21:00:00Z.",
+   "transferTime boundaries: 21:58:30-21:59:30 ok; windows containing 22:00 or 08:00 are doubt; 22:00-22:01 breach; 08:00-08:01 ok; an outage window over the night is doubt. freeState: 21:28-21:29 free, 21:29-21:30 doubt, 21:30-21:31 counted; untimed 20.10 free, untimed 21.10 counted.",
+   "Calendars are consistent: every game appears in both clubs' calendars with opposite home flags and the same week (0 asymmetric of 1200); every opponent name and player club is a calendar key, so the fbl_points index (date, opponent, home) is unique.",
+   "merge_full keeps players missing from a full collection (setdefault), so a failed player page does not wipe his games in the watcher flow; collect_teams keeps a failed or shrunk journal and its journalReadAt.",
+   "Watcher timing is conservative: seenAfter is the start of the previous read and seenAt comes after the read that saw the row, so the true time lies inside (seenAfter, seenAt].",
+   "format.js and rules.js use fixed MSK (UTC+3) or Europe/Moscow consistently; Moscow has no DST.",
+   "online.js and online-gamelog.js are display-only: no scoring or forecast input; parseOnlineGames removes duplicate events and All-Star games."
+  ],
+  "notChecked": [
+   "Whether Sports.ru's current-season calendar keeps scores of played games: no 2026/27 game has been played yet and every calendar score is empty. The past-season page fetched shows only the 2026/27 fixture list.",
+   "Whether the Sports.ru journal page paginates once it has many rows: the team-0 page has 18 rows and no pager markup.",
+   "Whether Sports.ru journal dates are Moscow or UTC for deals made 00:00-03:00 MSK: every observed deal was in daytime.",
+   "How Yahoo or the league applies the participation term (GP vs the 10-minute rule), and how ESPN rounds minutes near 10 (affects provisional live points only).",
+   "Sports.ru's real week 7/8 boundaries and its handling of postponed games (week number kept or renumbered).",
+   "The origin of the seenAt stamps on team 0's 18.10 draft rows: the data/season-live branch is force-pushed with only 3 commits, so there is no history.",
+   "Live Telegram and league-feed output were not run (forbidden); their paths were checked only by reading the code."
+  ]
+ },
+ "projection-ranges-rookies-slots": {
+  "verifiedCorrect": [
+   "Conformal scales reproduce exactly (low 1.1982, high 0.7782 from exp1.py). The finite-sample (n+1) correction is negligible at n=2218: rank 1998 gives 1.1997 / 0.7840.",
+   "The per-tail split is valid under exchangeability. Within the 2020-2025 pool, LOSO gives per-season coverage of 78-84% after scaling.",
+   "No fit/test leakage in the holdout ranges: pool seasons 2020-2025 come from models and chains fitted only on earlier seasons, and the 2026 chain is fitted on seasons before 2026.",
+   "For drafting-relevant players (top 160 by centre, unconditional construction) held-out coverage is 79.4% (below 11.3%, above 9.4%).",
+   "The game-ceiling additive shift is well calibrated given the true mean. Next-season P90 MAE: additive 1.98 against multiplicative 2.42 (n=348). Above the shifted ceiling 10.1%, below the shifted floor 11.2%.",
+   "short_risk uses the same threshold as evaluate(): ceil(.25·82) = 21, i.e. P(games ≤ 20), against actual < 20.5.",
+   "On players who played the opener, the healthy-start chain's 80% games range covers 82.4% (unconditional 86.8%). The chain itself is fine; the weak point is the ESPN anchor.",
+   "Value units are consistent: draftValue = slotSeason/82, riskAdjustedValue width = (meanSeason - seasonFloor)/82, insights ×82/price, roster-value ×82 are all season FP/82. In apply(), seasonFloor/Ceiling and the Ranges centre both equal rate·games.",
+   "Rookie flags are consistent: 53 of the 60 2026 picks are in the catalog and all are isRookie. No isRookie player has NBA history games, and no rostered player with nbaExperience 0 is unflagged.",
+   "No Sports.ru player has more than one position, so per-position replacement ranks are not double counted.",
+   "Expected against actual replaced games reproduces at 20.32 vs 23.22 (the doc's 23.3 is a rounding). Slot Spearman reproduces at 0.554 -> 0.639, and with tie-aware ranks excluding the 8 zero-game seasons at 0.549 -> 0.642.",
+   "The rookie holdout claims reproduce (rate MAE 2.956 vs 3.286, share 0.199 vs 0.283). With corrected rows the model still beats the flat prior (3.03 vs 3.28; 0.174 vs 0.288).",
+   "The log(pick) functional form holds up: cross-class MAE for drafted players is comparable to sqrt(pick) and to log plus a second-round dummy, with no consistent winner.",
+   "ACCEPTANCE:156 says 2025-26 had a p90 rate error of +37% against +19-26% earlier. Computed p90 relative rate error: 0.349 for 2026 against 0.182-0.260 for 2020-2025, so the claim roughly holds.",
+   "Rookie intervals pair each player's rate and share residuals from the same player, so the dependence is kept (unlike the veteran ranges)."
+  ],
+  "notChecked": [
+   "ESPN projected games and rates cannot be validated: there is no archive of ESPN projections. The +8.8-game gap is evidence of optimism only if the validated model is correct.",
+   "The production Ranges (LOSO over 2021-2026, run(data)) were not refit, to save CPU. Production effects were measured on the deployed database and through the holdout reproduction.",
+   "The deployed default-draft.json was built by the previous main, which still had the team-result bonus. Slot-market and ESPN-gap magnitudes use those values, which are offset by about ±0.1-0.3 FP/G. The rookie and Ranges numbers were recomputed with current code.",
+   "Real-market effects on the slot value were not simulated: transfer-limit binding, other teams buying back a dropped injured player, and Sports.ru in-season price changes.",
+   "No live 2026-27 games have been played yet, so the in-season updating of ranges (season.js) could not be checked against data.",
+   "The survivor-selection mechanism behind the level bias (share regression trained on pre-2024 career-log seasons) is inferred, not proven by a refit."
+  ]
+ },
+ "projection-core": {
+  "verifiedCorrect": [
+   "counting() + (2 if minutes>=10 else 1) matches src/fbl-scoring.js points() exactly. History.target rate = (counting + 2·games − short)/games is the per-game FBL formula with no result bonus (tests and code read).",
+   "Participation expectation 2 − P(min<10) is the correct mean of the +2/+1 bonus; only the calibration of P is off (see finding).",
+   "No 2025/26 outcome reaches the frozen model's features. Features use seasons < t; Veteran(fit) uses t ≤ 2025; chain = availability(history, 2026) uses seasons < 2026; Ranges pool is forward 2020-2025; the rookie fit is the 2024 class only. The production refit is the same code on fit+test and gives the same weights [1,.25,0], k=250/5.",
+   "Marcel grid: optimum is interior except w3=0 at its lower bound. A fine grid (w step .05, k step 25 or 1) moves the fit objective by 0.1% and the test per-minute MAE from 0.0576 to 0.0575, and w3=0.1 gives 0.0573. The third season is negligible, not mis-fitted (e11_grid.py). An L2 objective for minutes does worse (e24_l2.py).",
+   "Jensen/covariance: per-minute and minutes are fitted games- and minutes-weighted, so rate × games ≈ E[R·G]. Games-weighted per-game bias is −0.18/−0.22 against −0.80 unweighted; corr(relative rate error, relative games error) = +0.26; the +23 FP cross term is absorbed by the weighting (e2_bias.py, e2b.py).",
+   "Paired 95% gain: every test player appears once, so iid player bootstrap equals a player-clustered bootstrap. Reproduced 25.3 [13.6, 36.7]. The model also beats a crude Marcel-like baseline by 12.5 [4.3, 20.3] and last-two-seasons persistence by 24.3 [12.5, 36.2] (e10_baselines.py).",
+   "persistencePerGameMAE uses a slightly smaller subset (423 vs 430); on the same subset the model is 2.533 vs 2.693, so the comparison holds.",
+   "error_sources reproduced: 249.7 / 116.8 / 158.6 / 37.2. The doc claim 117/158/37 and 'more than half the error is availability' (250→117 = −53%) are consistent. The luck floor σ·√G·√(2/π) is the correct normal mean absolute deviation of a sum with a known mean.",
+   "Holdout population: 484 test players reproduced. Only about 9 veterans in 2023-24 lack career logs; 2 test players have truncated histories. So the career-log catalog covers nearly the whole 2024 population (not survivor-truncated in features).",
+   "Age definition (age at 22 Oct before the season, 365.25-day years) is correct. Production age-curve sample is 15-141 players per bucket (37+ pooled: 33); kernel [.5,1,.5] smoothing plus 0.1×mean-weight shrink.",
+   "Short-season risk definition matches the outcome: pmf[:21] = P(G≤20) vs actualGames < 20.5. Conformal per-tail scaling formula and LOSO procedure are correct (low 1.198, high 0.778 reproduced as 1.199/0.781).",
+   "minute_encoding.normalize_minutes: MM.SS conversion (including 60-second carries and patched decimals) is correct; modes TRUNCATED (2024), MM_SS (2025, 2026) are detected correctly.",
+   "No division by zero or NaN paths for zero-minute or zero-game seasons. Zero-minute rows are dropped in league_rows. Traded players use their main club for share, and share is capped at 1. Minutes are clamped to 1-42. apply() checks isFinite before projectedFP.",
+   "Doc claims verified against the current report: season MAE 250 vs 275, paired gain 13–37, games MAE 17.1 vs 18.9, gamesCoverage80 79.75%, healthy-start 296 players MAE 13.36 vs 14.14 and bias −0.66 vs −4.24, short-season Brier 0.1325 vs 0.1578, 2025/26 p90 rate error +35% vs +18–26% earlier (doc +37%)."
+  ],
+  "notChecked": [
+   "ESPN projection accuracy itself (games or per game): the repository has no archive of past ESPN projections. The ESPN-games finding uses the model's validated healthy-start games and actual 2025/26 games of comparable players as the reference.",
+   "The full production pipeline (projection_model.py without --report-only) was not run, because it writes into public/. Production impacts were measured with scratch refits of Veteran on the same examples, without the availability chain where the chain does not enter the quantity.",
+   "Availability-chain internals (Kaplan-Meier lengths, frailty quadrature, HEALTHY_SHIFT weights, the (1−short−long) replacement availability factor in slot_values/transfer_check, and future-dependent selection of zero-game seasons in start-state groups) were left to the availability dimension.",
+   "Real birth dates were not fetched (that needs network GETs). The imputation from draft year or debut is approximate, so the production −0.21 FP/g effect is an estimate.",
+   "No full hyperparameter re-selection on seasons up to 2025 to quantify the optimism from reusing the holdout.",
+   "Rookie college-to-NBA model (rookie_model.py), career_model.py and complete_forecasts.py fallbacks for the 3 current players without a version-4 forecast (Hezonja, Kaluma, Tacko Fall) were not audited."
+  ]
+ },
+ "availability-chain": {
+  "verifiedCorrect": [
+   "JS chainCurve is an exact numerical twin of the Python chain without frailty: max abs difference 0.0 over 6 hazard/share cases (curve.py + curve.mjs). shortLengths[k]/longLengths[k] -> q[k-1] matches Python w[:, k-1]; 'stay' = 1-hs-hl; the cache key to 3 decimals of share gives errors of 0.04 games or less; bisection over [-6,6] converges; n>82 clamps to the last value; h=[0,0] would give a curve of all 1s but cannot come from the Python posterior (priors > 0).",
+   "Kaplan-Meier length_pmf handles censoring correctly: on simulated data the long-spell mean is 15.18 vs true 14.94, P(>=20) 0.1889 vs 0.1876, median 7 = 7; treating censored spells as complete would give 11.88.",
+   "Gamma-Poisson posterior (ns + k*80*p_age)/(e + k*80) is the conjugate posterior mean; decay 0.6^(lag-1) over 5 seasons is applied as documented.",
+   "Python DP matches simulation and the anchored pmf mean matches the target: the 6 unit tests pass; 798 of 800 production players have pmf mean within 0.5 games of the published games (exceptions: Podziemski, Knueppel).",
+   "replacedGames = sum_j E_f[P_f(available at j) * hl_f] * sum_k fl[k]*max(0, min(k, L-j) - delay), plus start spells: correct expectation.",
+   "short_risk = P(G<=20) is consistent with the outcome actualGames < 20.5 used in the Brier score.",
+   "Start-out claims 26%/38%/74% reproduce from the TEST chain (26.0/38.5/74.4); production chain 27.3/39.1/74.6 (but see the COVID finding for 38%).",
+   "Rebuilt season length on complete seasons: 82.04 (2024), 81.56 (2025), 82.01 (2026), consistent with the 81.9 claim.",
+   "Holdout Brier 0.1325 vs base-rate Brier 0.1578, healthy-start MAE 13.36 vs 14.14 (bias -0.66 vs -4.24) and games coverage 79.75% are reproduced from the current code.",
+   "The unanchored chain loses to the regression on 2025/26 (games MAE 19.4 vs 17.07), consistent with the documented direction (18.4 vs 15.4 over 2020-2026).",
+   "HEALTHY_SHIFT healthy=1.0 and endedOut=0.3 are reproduced as MAE-optimal weights on 2021-2025 (1160 and 170 cases), but endedOut is contaminated by the 2020 artefact.",
+   "In-season chain shape helps vs a flat share under a non-leaky anchor: next-7 MAE 0.178 vs 0.209 for players who played their club's last game (2025/26).",
+   "US vs Moscow date of ESPN returnDate for Out players: no current case has a game on the Moscow date equal to returnDate (0 of 30), so no present off-by-one error for Out entries."
+  ],
+  "notChecked": [
+   "Whether each ESPN games projection was issued before or after the player's injury (no ESPN projection archive), so the size of the pre-season ESPN double count is shown only for players whose ESPN games clearly include the absence.",
+   "Sports.ru semantics of live.players[].games (whether DNP rows and pre-trade games are listed): no regular-season games are played yet, so playRate was tested on synthetic data and on 2024-2026 logs.",
+   "The original fitting code for HEALTHY_SHIFT, FRAILTY=2.5 and the prior weights 2400/640 (not in the repo); recomputed approximately only for HEALTHY_SHIFT.",
+   "Full end-to-end re-run of projection_model.py with the proposed fixes (CPU budget); effects were measured on isolated components.",
+   "Effect of the fixes on the deployed draft board: the draft is already over (18.10), so it was not ranked again."
+  ]
+ },
+ "inseason-updating": {
+  "verifiedCorrect": [
+   "JS perGame implements exactly the Python split estimator: rate prior weight rateGames x priorMinutes in minute units, minuteGames prior with half-life weights in played games. 300 random identical sequences give max |diff| 2.8e-14 (cmp.mjs).",
+   "python3 scripts/inseason_calibration.py --check only reads and compares (no write when --check); it passes and reproduces the JSON exactly in 8.8 s (exit 0).",
+   "Fallback PRIOR_GAMES=10 is the MAE-optimal simple shrink for established players (fit-optimal k=10, test 2.3444) (lead 2).",
+   "Lead 5, better prior: with a Marcel prior (projection-model weights 1/.25, 250-min and 5-game shrink, age curves; n0 MAE 2.52 vs 2.64) the fit-optimal weights move 20->30 rate games, but test MAE is 2.1773 vs 2.1808 for the shipped (20,5,20), gain CI [-0.009, 0.016]. The shipped weights are robust.",
+   "Established weights also hold for the low-sample players the calibration excludes (<20 games or <10 mpg last season, 614 cases): refit (20,8,5) 2.4023 vs shipped 2.4020.",
+   "Newcomer weights are robust to a better rookie prior: with a log(draft pick) prior fitted on the previous class, refit (20,2,5) 2.5205 vs shipped (30,2,5) 2.5170.",
+   "Availability k=20 is both MAE- and MSE-optimal on the fit pair (MSE 0.06148). Emulating a perfect injury report (target = share after the current absence spell) gives k=20 test MAE 0.1873 vs 0.1883 at fit-optimal 40, bias -0.008 for currently-out players. The playRate update is not a second penalty for the current spell.",
+   "Counting misses from season start (club calendar) beats counting from the first appearance: 0.1896 vs 0.2036 MAE; late-debut subset bias 0.008 vs 0.233. The calendar denominator is supported for mid-season joiners in this population.",
+   "maeGain95 bootstrap is player-clustered (resamples player ids, 1000 draws, seed 17); the percentile indices 25/974 are approximately 2.5/97.5%.",
+   "Sports.ru calendar dates are Moscow dates (lead 4 date semantics). ESPN scoreboard: BOS@DET tips 19:00Z = 22:00 MSK and is dated 10-20; PHI@NY 23:00Z and OKC@SA 01:30Z are dated 10-21. So moscowToday comparisons are consistent.",
+   "Calendar end 2027-04-12 MSK matches Yahoo scoringEnd 2027-04-11 (US).",
+   "Before any game, every one of the 482 live players has games: [], so future fixtures are never listed as rows and the done/rows filters cannot drop unplayed games.",
+   "season_accuracy.py: finite-sample split-conformal index ceil((n+1)*0.8)-1 is correct, scores are grouped by player id, and fit and calibration are split by id%4. Its unit tests pass (8 Python tests OK), and the JS season tests pass (39/39).",
+   "A robust (winsorised) minutes average gives no gain (best lower bound 0.3, CI [-0.005, 0.007])."
+  ],
+  "notChecked": [
+   "Live in-season behaviour on real 2026/27 games: no game had been played at collection time (12:34Z). Not verified: whether fbl_points' (date, opponent, home) key matches the club calendars for every game (neutral-site NBA Cup and Global Games), whether Sports.ru lists DNP rows (00:00) for every club game, and the exact minutes string format.",
+   "Whether ESPN's projected games price each injury absence: inferred only from totals that are impossible as healthy shares (Butler 39, Sharpe 27, DiVincenzo 4, Moody 12). Shorter injuries are ambiguous.",
+   "The production projection-model forecast as the in-season backtest prior: approximated with a Marcel prior using the model's frozen weights and age curves, not the full model with ESPN averaging.",
+   "How the league turns Yahoo totals (no MIN category) into the FBL participation bonus (+2 at 10+ minutes vs +1). If the league applies a flat bonus per GP, the in-season target differs by 1 FP for short games. That belongs to the scoring dimension.",
+   "The deployed default-draft.json (12:18Z) predates #84 and still carries a teamResult component in meanPerGame (e.g. +0.13, Hezonja +0.70) while live points exclude the bonus. It should clear on the next build (scoring/pipeline dimension).",
+   "pointsSpread / explainSwap confidence calibration (use of season-range relative width and established rateGames for all players): transfer-advice dimension, not tested numerically."
+  ]
+ },
+ "completion-solver": {
+  "verifiedCorrect": [
+   "Singleton fast path (completion.js:15-36) is exact without the club rule: the problem separates by position, and min over positions of (cheapest rookie - dearest chosen) is the optimal single rookie exchange. 0 oracle mismatches on singleton cases with clubs removed.",
+   "Club-aware greedy accepted only when its cost <= the unconstrained optimum (line 41-42) is sound: the result is rechecked with clubsFit, includes a rookie, and reaches a valid lower bound.",
+   "flowSelect lower-bound circulation (ss/tt transformation, sink->source [10,10], position->sink [2,2]) plus successive shortest paths with SPFA on non-negative costs is a correct min-cost feasible circulation; with the forced-rookie fix, 0 mismatches in about 7,000 brute-force checks.",
+   "Exchange-argument pruning by (positions, club, rookie) keeping min(2|S|, CLUB_LIMIT) cheapest is valid. White, price and value do not enter the completion objective, so they are not needed in the key.",
+   "Eight-cheapest-clubs pruning for singleton classes is valid: at most 4 full clubs among the other 9 players plus at most 1 club whose cheapest is already rostered, so 6 clubs suffice. The code comment's reason ('a roster of ten fills at most five clubs') is wrong but harmless; the wide-class fuzz (fuzz4p) gives 0 mismatches.",
+   "Cap equality is consistent: pick() refuses cost>cap, completion refuses minimumCost>cap+1e-9; cap set to the exact minimum passes in the fuzz.",
+   "Missing prices: ON mode excludes unverified candidates and refuses unverified fixed picks; OFF mode treats cost as 0 and minimumCost as null; budgetSummary returns null spent, shown as '—'.",
+   "rosterFits (Kuhn augmenting paths) agrees with an independent Hall-condition check over the 31 position subsets in every fuzz case.",
+   "The completion witness is never shown as a value plan: the UI shows only 'добор от minimumRemainingCost'. analyzeRecommendations and recommendations() are not used by the UI (only verify-build; recommendations() is dead code).",
+   "The real 2026 draft replays cleanly: all 80 picks pass pickCompletion, and all 8 final rosters are legal (cost 19500-20000, rookie, clubs, positions).",
+   "Performance: Sports.ru DB about 2 ms per completion and at most 105 ms for 30 cards; Yahoo multi-position DB worst 821 ms for 30 cards late in the draft; a full bot draft takes 220 ms (sports) and 1.2 s (multi); enforceBudget about 64 ms per undo. No exponential path.",
+   "planRoster (plan.js:71-107) encodes Hall's condition correctly over position subsets, the club caps net of the existing roster and white>=1 when a list exists, with a post-solve legality recheck.",
+   "importDraft revalidates players (newDraft/validatePlayer), straight order (team/number) and every pick through pick(). restoreBudgetDraft keeps legacy saves without priceMode capped. enforceBudget keeps illegal legacy picks visible with a pricingIssue instead of dropping them.",
+   "installDatabase applies Sports.ru positions and prices to picked players under positionAuthority 'Sports.ru' (test confirmed), and the DB price/position source is the static 17.10 snapshot, so there is no false cap breach from price drift."
+  ],
+  "notChecked": [
+   "Whether the owner's device actually holds a recorded LIVE draft (localStorage 'fbl-draft'). This decides whether the snapshot-staleness finding is critical in practice; I cannot read device storage.",
+   "Exact draft-day (18.10) forecasts could not be rebuilt without checking out old pipeline code, so the staleness magnitude is shown only through the team-result component (±1 FP/game) and the list of model commits since 18.10.",
+   "Browser UI not run (no Playwright run); the card-button and confirm behaviour was traced from code.",
+   "plan.js availability/deadline model, adpDraft and the MILP solver's numerical robustness belong to another dimension; only white/club/Hall encoding was checked.",
+   "rookie-timing study correctness beyond its reuse of completion witnesses (it is not exposed in the UI)."
+  ]
+ },
+ "simulation-gametheory": {
+  "verifiedCorrect": [
+   "scenarioSeasonScore two-piece normal: the median solves mean = m + (c+f-2m)*k with k = HALF/Z90. Sampled P10/P90 match the published floor/ceiling within 19 FP and the mean within 21 FP for all 80 rostered players (20k draws each, t17.mjs). Zero truncation inflates means by at most 21 FP; only 25 of 874 players need the median clamp.",
+   "seasonSensitivitySimulations requires all 80 picks and fully legal rosters, and uses every rostered player. Wins and places split ties correctly; first-place shares sum to 100%.",
+   "wilsonInterval formula is correct (z = 1.95996); it handles fractional tie wins and the 0/100 endpoints.",
+   "rolloutTie / studentT975: t quantiles for df 1-20 are exact. 2.042 for df 21-30 and 1.96 above that are slightly anticonservative, but only n = 3 is ever used (dead code anyway).",
+   "The KM bookkeeping (interval from our previous pick, censoring at our own pick, loss only to opponents) is correct. Only the model-mixture issue biases it: 38 of 40 players match the counterfactual within 0.04.",
+   "planRoster: the 31 Hall-condition subset constraints combined with the existing roster are necessary and sufficient for the exact 2-per-position assignment. The round constraints count(deadline < r) <= r make the earliest-deadline-first schedule valid. The final rosterFits / clubsFit / budget / rookie / white checks guard the solver output.",
+   "The plan's now-pick is stable to Monte Carlo noise: it is the same across 3 independent seed sets at 7 of 8 real picks; the 8th was an exact value tie, 7317 vs 7317 (t12.mjs).",
+   "Replacement level / positional scarcity: the exact MILP plan handles the opportunity cost of positions and of later picks endogenously, so no separate VORP is needed for the plan. Only the bots ignore position need, which is part of the calibration finding.",
+   "Units: no per-game/season mixing in live code. draftValue = slotSeason/82 and the width (mean - floor)/82 are consistent. All 874 players carry the full-formula season forecast, so the MILP never mixes metrics.",
+   "The Box-Muller transform on the LCG within one stream is fine: P(z < -1.2816) = 0.0997, P(|z| > 3) = 0.00273, var 1.0005 over 2M draws.",
+   "Omitting a league-wide swing barely matters for places or team ranges: league FBL points per team-game were 120.63 / 119.33 / 119.73 in 2023-24 / 2024-25 / 2025-26. Club correlation is measured at -0.002, so clamping to 0 and drawing independently is consistent.",
+   "observedRookieRounds = [4,5,5,5,6,9,10,10] matches the real draft (rookies at picks 32, 35, 36, 38, 42, 65, 77, 79, one per FBL team). No accuracy claim is evaluated on this same draft, so there is no reported in-sample metric to deflate.",
+   "The valuation.js comment numbers (Spearman 0.64 vs 0.55; top-40 slots +1.8%) match projection-model-audit transferValue (0.642 / 0.552; 59929 vs 58896 = +1.75%).",
+   "The insights.js Sports.ru trend uses ascending season order; all 371 multi-season players are stored ascending, so the 'Рост' / 'Спад' direction is correct.",
+   "The 35 tests in simulation, rollout-tie, valuation, acceptance and uncertainty-regression pass (node --test, 24 s)."
+  ],
+  "notChecked": [
+   "The draft-day (18.10) database and forecasts are not available. The backtest replays the real picks on the 20.10 database, whose forecasts and ESPN ADP may have shifted after the draft, which may flatter or hurt the models.",
+   "Only one real FBL draft exists: 70 opponent picks, 333 dependent survival observations. Calibration numbers carry wide uncertainty, and the base-rate comparator and shrink weight are in-sample.",
+   "The replacement-coupling experiment uses a proxy that treats all own-season deviation as games. The exact effect needs the absence-chain model (forecast.availability hazards), which was not re-run.",
+   "The user's actual browser-saved draft snapshot (which forecasts the device holds) could not be inspected. The snapshot finding is proven on the code path only.",
+   "javascript-lp-solver MILP optimality was not independently verified by brute force on the full 874-player instance. Only the feasibility guards and plan stability were checked.",
+   "The prize structure of FBL (top-1 only vs top-3 payouts) is unknown, so the exact objective (P(first) vs expected prize) could not be fixed. Both P(first) and expected place were analysed.",
+   "Season-tab standings and transfer advice (season.js / season-ui.js) were not audited (other dimension). Neither was the in-season value of leftover budget (bank) for draft valuation, a possible blind spot."
+  ]
+ },
+ "plan-rookies": {
+  "verifiedCorrect": [
+   "planRoster MILP is exact: 541 feasible and 920 infeasible random instances built from real priced players (5-6 per position incl. a rookie, 0-3 owned players, cap 15000-24000, random white lists, thresholds 0.5/0.8/0.9, random monotone survival) match brute-force enumeration exactly, with no value mismatch and no false null (t2.mjs, 7.9 min).",
+   "On real draft states k=0, 8, 24, 40, 56 at thresholds 0.8 and 0.5, the solver's plan admits no improving 1-swap or 2-swap (over the top 60 candidates); recomputed value equals result.result; solve time 12-115 ms (t8.mjs).",
+   "javascript-lp-solver 0.4.24: the model sets no tolerance or timeout (Model.js:310-340 defaults to 0, no deadline), so branch-and-cut runs to proven optimality. ints plus the per-player 'one' cap make the variables binary, and plan.js:103-104 rejects any non-integral or rule-breaking answer.",
+   "Position constraints (Hall's condition over 31 position subsets with owned players subtracted) and pick-deadline constraints (number with deadline < r <= r, i.e. EDF feasibility) are the correct necessary and sufficient conditions; club constraints subtract owned players of the club; budget = cap - owned spend; rookie and white constraints are added only when the owned roster does not already satisfy them.",
+   "ownPicks (r*8+team+1, future picks only) matches data/league-rules.json draft.picks [1,9,...,73] for the linear draft.",
+   "availabilityProfile's Kaplan-Meier censoring is coded correctly: our own pick at picks[r] breaks before interval r+1; interval 0 is empty when we are on the clock, so S0=1; only opponents' picks count as losses.",
+   "No unpriced or position-less players are in the top 200 by riskAdjustedValue, so the +-5 neighbour pooled hazard is not diluted by undraftable players.",
+   "rookie-timing reserveRookies is a correct Kuhn augmenting-path bipartite matching of teams needing a rookie to distinct eligible rookies; the per-team compatibility cache is invalidated when that team picks.",
+   "Lead 4 (partial vs full metric mixing): all 874 database players carry the FBL_FULL_FORMULA_ESTIMATE metric, so scoringMetric is FULL and rookie-timing, rookies.js and rookie-watch use full-formula forecasts consistently; the partial ESPN component score is used only for imported databases without full forecasts.",
+   "The real 80-pick draft replays legally through engine.pick (positions, club limit, cap 20000, rookie on every roster).",
+   "The ACCEPTANCE claim that simulated bot rookies now go at picks 25-76 is roughly reproduced (observed 25-79 over 12 bot drafts from the empty state).",
+   "All 23 tests in plan, rookie-timing, rookies and rookie-watch test files pass."
+  ],
+  "notChecked": [
+   "Browser rendering was not run; the fresh-device behaviour of the 'Реальный драфт' tab is inferred from the code paths plus a planAdvice run in node.",
+   "The realised value of following the receding-horizon planner against alternatives under a calibrated opponent model would need about 10 planAdvice calls (about 5 s each) per simulated draft, many drafts; it is proposed as an experiment, not run.",
+   "Calibration rests on a single real draft (63 correlated loss events); the logit coefficients carry wide uncertainty and the rookie subsample has n=7.",
+   "Rookie season ranges (P90 about 2.1x the mean) and the teamResult component still present in the deployed public database belong to the forecast dimension and were only noted.",
+   "White-rule semantics belong to the rules dimension: with the current list, team 7 had 0 white players in its drafted roster.",
+   "The historical ACCEPTANCE claim 'Durant to pick 25: 0.18 instead of 0.44' needs the old draft state and code, which cannot be reproduced."
+  ]
+ },
+ "database-invariants": {
+  "verifiedCorrect": [
+   "Identity: 874 DB players with no duplicate id/nbaId/espnId/sportsId/name; id==nbaId for all integer ids; data/sports-player-map.json has 481 rows, unique by sportsId/espnId/nbaId, and 0 mismatches against DB (espnId, nbaId, English name, sportsName).",
+   "Russian vs English names: transliteration similarity check of all 480 market players; the lowest-scoring pairs (Эйс Бэйли/Ace Bailey, Дин Уэйд/Dean Wade, ...) are all correct identities.",
+   "Forecast arithmetic (deployed DB): meanSeason = meanPerGame*games within 2% for all 874; gameFloor<=mean<=gameCeiling and seasonFloor<=meanSeason<=seasonCeiling for all; components and scoringBreakdown sum to meanPerGame within 0.05; games in [0,82], minutes in [0,48], shortSeasonRisk in [0,1]; fgm<=fga, ftm<=fta; pts consistent with makes; participation in [1,2] and consistent with minutes (0 cases of <10 min with >1.8, or >25 min with <1.5); gamesMedian inside gamesRange.",
+   "Combined forecasts: for all 313 ESPN_MODEL_COMBINED, meanPerGame = (model+ESPN)/2 (to 3-decimal rounding) and games = ESPN games; previous.origin = ESPN_INDIVIDUAL.",
+   "Deployed DB has no teamResult component (0 of 874). Forecasts do not depend on the bonus: OLS of (forecast - 2025-26 FBL per game) on team win% has slope 0.03 (CAREER_MODEL, n=111) and -0.02 (combined, n=279).",
+   "Draft: all 80 DRAFT_PICKS exist in DB with sportsId, no duplicates, and every id matches the name in its source comment; each draft roster fits 2/2/2/2/2, has no club >2 and has one rookie.",
+   "Live rosters and banks: allTransfers on the live journals gives 20 transfers and 0 warnings; the replayed rosters equal the Sports.ru rosters for all 8 teams; the replayed bank equals the Sports.ru balance for all 8 (200/0/100/100/100/200/400/1000); value+balance = 20000 for every team.",
+   "Live roster legality: all 8 rosters 2 PG/2 SG/2 SF/2 PF/2 C by Sports.ru position, no NBA club >2, every team has ≥1 isRookie; checkRules+verdict = approved for all 8 (white rule ok).",
+   "Prices: DB price = live Sports.ru price for all 480; price = initialPrice for all 482 (no changes since 17.10); positions identical; Sports.ru short names unchanged; only 2 live players are missing from DB (Bates, A. Antetokounmpo), and withMarket covers both.",
+   "White rule lists: 100 'white' ⊂ 482 'whiteChecked', no duplicates, every id resolves, every market player is decided.",
+   "Rookies: all 53 members of the 2026 draft class present in DB are isRookie; all 71 isRookie have ESPN experience 0; no experience-0 player is non-rookie; 7 unsigned 2026 second-rounders are absent (expected).",
+   "Club calendars: 30 clubs x 80 scheduled games (82 minus the 2 NBA Cup games still to be set); every game is mirrored by the opponent with the opposite home flag and the same week; dates are Moscow (checked against the ESPN scoreboard: BOS@DET 19:00Z 20.10 = 22:00 MSK, after the 21:30 deadline).",
+   "ESPN injuries: 89 of 90 injured players match DB injuries by espnId (exception Furphy, reported); no injured player is missing from the DB.",
+   "ESPN depth chart team equals ESPN team for all 510 players with depth; no positional anomalies.",
+   "The playRate floor of 0.5 is empirically justified for a raw previous-season prior: on the 2024-25 -> 2025-26 backtest MAE is 0.1896 with the clamp vs 0.1928 without (n=2552). The problem is applying it to forecast games (reported).",
+   "Rankings vs price: Spearman(model season rank, Sports.ru price rank) = 0.912 on 480 market players. The largest disagreements come down to the reported causes: injuries (DiVincenzo, Moody, Sharpe, Butler), the missing-stat parser bug (Robinson, Poeltl, Hartenstein) and rookies (Lendeborg, Wagler)."
+  ],
+  "notChecked": [
+   "Two-way contracts: no contract field exists in the ESPN roster data stored in the DB or in live data, so the 50-game two-way cap could not be checked.",
+   "Sports.ru rookie mark: live player records carry no rookie field, so isRookie could only be checked against ESPN experience and data/nba-drafts.json.",
+   "Played-game points (Sports.ru minus bonus, ESPN box scores, teamPoints): no 2026-27 games are played yet. I did not build synthetic box-score cases, because that belongs to the scoring dimension.",
+   "The 'budget: ... банк -100' alert recorded in live-notify-state.json for 20.10 (Sabonis -> Coby White): the earlier journal pairing is gone, so I could not reconstruct whether it was a false alarm. Today's replay shows bank 200 and no warning.",
+   "ESPN's own bias on 2026-27 games: there is no archive of ESPN pre-season projections, so finding 5 infers ESPN's optimism from the model's healthy-start holdout and has not been measured directly.",
+   "The slotSeason replacement credit (e.g. DiVincenzo meanSeason 45 -> slotSeason 836) and whether it is valid for draft ranking: left to the valuation/draft dimension.",
+   "Full ESPN feed coverage: I fetched only the 28 players needed (4 + 24) from ESPN, not the full 1500-player feed."
+  ]
+ },
+ "scoring-rules-grey": {
+  "verifiedCorrect": [
+   "FBL formula and the Sports.ru result-bonus values match Sports.ru's own rules page (fetched once) and Sports.ru's official season totals: 302/354 clean player-seasons within ±2 FP/season, mean residual +0.29, with formula + bonus (+2 home win, +3 away win, -3 home loss, -2 away loss) on ESPN logs. So collect_sports_current.result_bonus subtracts the correct amounts.",
+   "FGA includes 3PA and PF excludes technicals consistently: Sports.ru's 2PA+3PA = FGA, and reconciliation residuals show no foul-heavy outliers.",
+   "Negative game totals are preserved in every path (fblPoints test 'negative total' -25; audit counts 7,697 negative games).",
+   "DNP handling: parse_games marks '00:00' as not played with points 0, and teamPoints/perGame filter g.played. The kaggle logs have no rows with minutes<=0. boxScorePoints skips didNotPlay and empty stat lines.",
+   "2023/24 truncated integer minutes do not distort the 10-minute threshold, since floor(m)>=10 iff m>=10.",
+   "No code path still adds a team result bonus: grep finds only result_bonus subtraction in collect_sports_current, metric-name strings, and the labelled Sports.ru history panel ('с бонусом за результат команды; в FBL его нет').",
+   "Score orientation logic in fbl_points: won = a>b if 'own' or home, else b>a, is correct for both own-first and home-first formats; live calendars are symmetric (0 asymmetric entries of 2,400) and opponent names all match club keys.",
+   "Sports.ru does not list preseason games (live data has 0 games for all 482 players after the October 2026 preseason, and 2025/26 tables start at the regular season), so preseason rows cannot pollute averages.",
+   "Identity crosswalk data/sports-player-map.json: 481 entries, no duplicate sportsId, espnId or nbaId; every transliteration flagged by a first-letter heuristic is a valid rendering (Адетокумбо, Пелтль, Убре, Кэррингтон, ...); data/verified-identities.json has 864 VERIFIED_NAME_DOB_NBA_ID mappings with no duplicates.",
+   "Rookie flags in the database: all 71 rookies have ESPN experience 0 and no NBA regular-season games in career logs; no experience-0 player is marked non-rookie; each of the 8 FBL rosters has exactly one rookie (Morez Johnson Jr., Darryn Peterson, Caleb Wilson, AJ Dybantsa, Brayden Burries, Yaxel Lendeborg, Keaton Wagler, Cameron Boozer). The draft (engine.js), completion, advice (season.js fits) and rules check all use the same isRookie===true test.",
+   "maxGamesPlayed null: nothing in the season advice caps games (chainCurve indexes beyond 82 safely; expectedPoints counts calendar games). The only 82 clamps are in forecast scenarios, and just 1 player in 3 seasons exceeded 82 GP (Buddy Hield 84).",
+   "Including the +2/+1 participation inside the per-minute rate in perGame causes no measurable error: separating it gave test MAE 2.2848 vs 2.2833 (bootstrap gain 95% CI [-0.017, 0.014]) on the 2024/25->2025/26 holdout (inseason_part.py).",
+   "All 8 current rosters (draft plus 20 journal transfers) can be placed on Yahoo's 10 fixed slots using the published Yahoo positions (bipartite matching 10/10).",
+   "auditedGames 78,901 = 26,095+26,158+26,648 rows with minutes>0 matches the ACCEPTANCE claim for the current code."
+  ],
+  "notChecked": [
+   "Which participation constant the league actually applies to Yahoo GP, Yahoo's own transaction limits, and when the commissioner mirrors Sports.ru transfers on Yahoo: these are not in the repo; they are questions for the league owner.",
+   "Real 2026/27 played games: none exist yet in live data, so the off-by-one and fallback findings rely on synthetic cases and 2025/26 Sports.ru and ESPN data.",
+   "Actual Yahoo platform eligibility (only the analyst-published table is available).",
+   "Whether Sports.ru will add play-in or playoff games to the 2026/27 calendars (it lists them in player tables with ФО=0).",
+   "I did not re-run the full projection model, npm test or the Python tests (CPU sharing). The post-#84 forecasts were approximated as deployed meanPerGame minus components.teamResult.",
+   "The exact ESPN-UTC vs Moscow date mapping for 7:30 pm ET games in the stint simulation is approximate; it affects only the share of transfer days with games, not the existence of the bug."
+  ]
+ },
+ "hallucination-hunt": {
+  "verifiedCorrect": [
+   "Held-out season MAE 250 vs 275, paired 95% gain 13–37: report-only 249.7 vs 275.1, [13.6, 36.7]",
+   "Error sources 117/158/37: report-only gamesKnownMAE 116.8, perGameKnownMAE 158.6, gameLuckFloorMAE 37.2",
+   "Healthy start, 296 players: MAE 13.4 vs 14.1, bias -0.7 vs -4.2 (report-only 13.36/14.14, -0.66/-4.24)",
+   "Rookie draft-pick model: 113 players; FP/game 2.96 vs 3.29; share 0.199 vs 0.283; matches report-only",
+   "Season-start out frequencies 26%/38%/74%, frailty shape 2.5, priors 2400/640: availability block in report-only",
+   "Slot Spearman 0.64 vs 0.55 and expected replaced games 20.3 vs actual 23.2: report-only 0.639/0.554, 20.32/23.22",
+   "Scoring audit '78,901 games, 0 mismatches': normalize_minutes on the three league seasons gives exactly 78,901 games with minutes > 0; audit_scoring.py raises on any mismatch, so 0 holds by construction (an internal arithmetic cross-check, not an external validation)",
+   "'Forecasts move by -1.0 to +1.0, +0.004 on average': the deployed DB's teamResult component ranges -1.03 to +0.95, mean +0.0023",
+   "'Median gap of 1–2 FP per season' (Sports.ru formula on career logs vs official Sports.ru totals, 2018/19–2025/26): my recomputation gives medians of 1.0–2.0 FP for every season (with the bonus)",
+   "'3,000 random brute-force cases agree; 400 in the test suite': I reran the club-limited generator for seeds 1..3000 and all agreed (3000 checked, 0 bad); tests/completion.test.js runs 400 seeds (the budget never binds in that generator, only min-cost is exercised)",
+   "'The build fails if the lower end of the gain falls to zero': projection_model.py:701 raises SystemExit when pairedGain95[0] <= 0 (production path only, not --report-only)",
+   "80% games range coverage 79.6% (report 79.75%) and short-season Brier 0.133 vs base 0.158: consistent",
+   "In-season calibration weights (established 20/5/20, newcomer 30/2/5, availability 20) and positive bootstrap gains: match data/inseason-calibration.json",
+   "League-feed bank replay equals the Sports.ru balance for all 8 teams on the live snapshot (200/0/100/100/100/200/400/1000)",
+   "plan.js availabilityProfile is a valid product-limit (Kaplan–Meier) estimator: own picks censor, neighbour hazards are pooled when fewer than 5 at risk",
+   "availability_model.length_pmf is a discrete Kaplan–Meier estimator with end-of-season spells censored; the 20,000-run simulation test exists (tests/test_availability_model.py:72-77)",
+   "Rollout tie critical value 4.303 for 3 runs: studentT975(2) = 4.303",
+   "'Rookies taken at picks 32–79 in the real draft': the first-year rookies in DRAFT_PICKS sit at picks 32, 35, 36, 38, 42, 65, 77, 79",
+   "Rookie scouting reports' team context matches the database teams for all 13 players",
+   "Season scenario two-piece normal preserves the mean and hits P10/P90 (algebra of simulation.js:142-148 checked)",
+   "Wilson interval for first-place share is a correct Monte Carlo CI and is labelled as a model share, not a win probability",
+   "Game ceiling 'P90 of own games over two seasons' matches projection_model.py:604-607 (logs of 2025-26 and 2024-25, shifted to the forecast level)"
+  ],
+  "notChecked": [
+   "Week/month-horizon confidence calibration: needs in-season checkpoints, and the 2026/27 season has no played games yet",
+   "Whether Yahoo/FBL applies a Sports.ru transfer to the same or the next US game day (only league-rules 'Daily - Today' is available); this sets the exact size of the stint finding",
+   "Opponent-name and date matching between Sports.ru player-game rows and club calendars for the bonus subtraction: no played games in the live snapshot",
+   "How the league computes the participation bonus from Yahoo totals (no access to the league)",
+   "ESPN news, the Telegram caption-length claims and the timing claims ('~2 s', '5–15 seconds', '~1 minute'): network- or runtime-dependent, not executed",
+   "The in-season chain backtest, HEALTHY_SHIFT fit and other ad hoc experiments: no generating code in the repo, so not reproduced",
+   "Coverage and accuracy of the ESPN-combined forecasts: no archive of past ESPN projections (projection-archive-audit REQUEST_FAILED)",
+   "League-feed and rules verdict logic beyond the bank replay and weekly counts (left to the rules/feed dimension)",
+   "A small discrepancy: rerunning the projection model's holdout evaluation with identical code gave coverage 0.7479 vs 0.7459 in projection-report-only.json (one player at the boundary); the source of the nondeterminism was not investigated"
+  ]
+ }
+}

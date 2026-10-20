@@ -1,0 +1,786 @@
+[
+ {
+  "key": "transfer-day-credit",
+  "title": "Games of a transfer's Moscow date are credited to the buyer although played before transfers open",
+  "ids": [
+   "F007",
+   "F017",
+   "F030",
+   "F042",
+   "F149",
+   "F167"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "injury-double-count",
+  "title": "In-season value of injured players counts the reported absence twice (ESPN games already exclude it, plus injuryFactor/playRate)",
+  "ids": [
+   "F016",
+   "F080",
+   "F096",
+   "F137"
+  ],
+  "severity": "critical",
+  "status": null
+ },
+ {
+  "key": "playrate-clamp",
+  "title": "playRate prior clamped to [0.5,0.97] of 82 games inflates low-games forecasts",
+  "ids": [
+   "F018",
+   "F085",
+   "F095"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "espn-games-unvalidated",
+  "title": "Season games are ESPN projection alone for 313 players (+8.9 vs model), unvalidated; UI/docs say \"average\"",
+  "ids": [
+   "F055",
+   "F069",
+   "F092",
+   "F138",
+   "F161"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "chain-anchor-degenerate",
+  "title": "Anchoring the absence chain to high ESPN games collapses games distribution (degenerate ranges, ~0% short-season risk)",
+  "ids": [
+   "F083"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "health-by-logs",
+  "title": "\"Здоровье по логам\" shows hazards scaled to forecast games, not logged history",
+  "ids": [
+   "F082",
+   "F140",
+   "F162"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "confidence-calibration",
+  "title": "Transfer confidence P(gain>0) is over-confident in-season and for advised moves (optimizer's curse); level sd misuse",
+  "ids": [
+   "F015",
+   "F170",
+   "F066"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "verdict-band",
+  "title": "Transfer verdicts use fixed ±15 FP band ignoring uncertainty",
+  "ids": [
+   "F003",
+   "F021"
+  ],
+  "severity": "high",
+  "status": "DISPUTED"
+ },
+ {
+  "key": "acquisition-attribution",
+  "title": "acquisition() calls a player worth buying because the package contains unrelated good moves",
+  "ids": [
+   "F001"
+  ],
+  "severity": "critical",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "preseason-cap3",
+  "title": "Pre-season unlimited transfers capped at 3 in recommendations",
+  "ids": [
+   "F002"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "ui-telegram-packages",
+  "title": "UI and Telegram give different packages; 15 FP per extra move rule ignores horizon units",
+  "ids": [
+   "F004"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "myopic-policy",
+  "title": "Myopic transfer policy ignores option value of weekly transfers",
+  "ids": [
+   "F005"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "same-targets-gametheory",
+  "title": "All GMs get the same targets; uniqueness rule creates breaches; externality",
+  "ids": [
+   "F006"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "return-alerts",
+  "title": "\"скоро вернётся\" alerts fire for DTD, ignore confidence, repeat",
+  "ids": [
+   "F008"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "injury-feed-outage",
+  "title": "ESPN injury-feed outage makes injured players look healthy / false \"вернулся\"",
+  "ids": [
+   "F009",
+   "F046"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "transfer-hours-advice",
+  "title": "Advice ignores FBL transfer hours and last window of week",
+  "ids": [
+   "F010"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "package-legs-verdict",
+  "title": "Verdicts judge each leg of a same-day package separately with final bank; \"Лучше было\" horizon mismatch",
+  "ids": [
+   "F011"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "package-club-swap",
+  "title": "bestPackage lets a team keep 3 of one club via an intra-club swap",
+  "ids": [
+   "F012"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "season-ui-stale-text",
+  "title": "Stale/false method texts in season UI, Telegram and docs (10-game prior, official Sports.ru points, 70% vs 60%)",
+  "ids": [
+   "F013",
+   "F024",
+   "F034",
+   "F047",
+   "F099",
+   "F152",
+   "F171"
+  ],
+  "severity": "medium",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "replacement-shared-bank",
+  "title": "Best replacement lists the same free agent for several players, each assuming the full bank",
+  "ids": [
+   "F014"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "chain-overpredicts-healthy",
+  "title": "Absence chain over-predicts healthy availability; next-3/7/28 backtest not reproducible",
+  "ids": [
+   "F019",
+   "F091"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "gain-split-zero",
+  "title": "Log-mean gain split assigns 100% to per-game when a factor is zero",
+  "ids": [
+   "F020",
+   "F166"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "season-ending-regex",
+  "title": "seasonEnding misses \"remainder of the season\"/\"season-ending\" (Furphy torn ACL)",
+  "ids": [
+   "F022",
+   "F090"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "preseason-known-absence",
+  "title": "Known long absences ignored pre-season for model-only players; healthy-start flag from roster endpoint",
+  "ids": [
+   "F084",
+   "F136",
+   "F142"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "zero-hazards",
+  "title": "Hazards rounded to 3 decimals; zero hazards give 100% availability",
+  "ids": [
+   "F023",
+   "F040"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "return-date-tz",
+  "title": "ESPN US return dates compared with Moscow-dated games",
+  "ids": [
+   "F025",
+   "F144"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "nba-cup-80-games",
+  "title": "Club calendars have 80 of 82 games (NBA Cup TBD), season horizons ~2.4% low; standings forecast no-transfer",
+  "ids": [
+   "F026",
+   "F103",
+   "F156",
+   "F035"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "advice-threshold-wording",
+  "title": "Advice wording vs thresholds: \"Сделай\" for 60-69% while text says 70%; 70% printed as \"умеренно\"",
+  "ids": [
+   "F027",
+   "F165"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "objective-pfirst",
+  "title": "Objective is expected FP; the prize is rank: P(1st), variance value; standings place probabilities missing",
+  "ids": [
+   "F029",
+   "F113",
+   "F036",
+   "F123"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "shared-player-both",
+  "title": "A player held by two FBL teams counted in full for both",
+  "ids": [
+   "F031"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "game-points-calendar",
+  "title": "FBL game points depend on calendar orientation vote; fallback keeps Sports.ru bonus; box score available",
+  "ids": [
+   "F032",
+   "F043",
+   "F155",
+   "F172"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "yahoo-minutes-grey",
+  "title": "Yahoo has no minutes category: +2/+1 participation term not computable from Yahoo; ESPN minutes rounding",
+  "ids": [
+   "F033",
+   "F052",
+   "F076",
+   "F150",
+   "F173",
+   "F157"
+  ],
+  "severity": "medium",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "ties-display",
+  "title": "Ties broken differently in Overview vs Teams; \"−0 до 1-го\"",
+  "ids": [
+   "F037"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "four-weeks-label",
+  "title": "\"4 недели\" means 4 tours vs 28 days in the same rows",
+  "ids": [
+   "F038"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "week-windows-mlk",
+  "title": "Week windows by Moscow date misplace MLK-day matinees; weeks from last game date",
+  "ids": [
+   "F039",
+   "F145",
+   "F049"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "arrival-missed-games",
+  "title": "Mid-season trades/signings charged with club games before arrival; market-only players default share; Timme wrong calendar",
+  "ids": [
+   "F041",
+   "F086",
+   "F146"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "quality-guard-games",
+  "title": "Collection quality guard does not see a broken game table or calendar",
+  "ids": [
+   "F044"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "merge-overwrites",
+  "title": "Merging the 2-hour collection overwrites watcher's newer balance/roster/transfer count",
+  "ids": [
+   "F045"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "sportsru-week-free",
+  "title": "Sports.ru-week fallback counts free pre-season transfers; ∞ flag never clears",
+  "ids": [
+   "F048",
+   "F051"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "journal-short-names",
+  "title": "Journal identity rests on Sports.ru short names; rename re-stamps old deals",
+  "ids": [
+   "F050"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "range-coverage",
+  "title": "Season 80% range under-covers (74.6%), not exchangeable; \"в 8 сезонах из 10\" label overstates; MC pairing noise",
+  "ids": [
+   "F053",
+   "F077",
+   "F089",
+   "F121",
+   "F163",
+   "F065"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "rookie-ranges",
+  "title": "Rookie season ranges use one pooled relative-error set (ceilings 2.1-2.5x mean)",
+  "ids": [
+   "F054"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "earlier-drafted-debutants",
+  "title": "Earlier-drafted debutants (Sorber #15) get the undrafted-rookie model",
+  "ids": [
+   "F056",
+   "F072",
+   "F141"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "rookie-training-rows",
+  "title": "Rookie training rows contaminated by name mismatches; #1 pick 82 games; unstable slope",
+  "ids": [
+   "F057",
+   "F073",
+   "F062"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "slot-value-math",
+  "title": "Slot/replacement value: one-game probability as health, ranks 17-24 mismatch, constant credit, rookies none; metric/label mixing",
+  "ids": [
+   "F058",
+   "F059",
+   "F117",
+   "F064",
+   "F128",
+   "F164",
+   "F119",
+   "F168",
+   "F127"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "centre-bias",
+  "title": "Season totals over-predicted (-41 FP holdout); share regression survivor seasons + U-shaped age; per-game ranks 50-250 high",
+  "ids": [
+   "F060",
+   "F068",
+   "F070"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "missing-birthdates",
+  "title": "222 players lack birth dates: age effect removed, veterans pushed up",
+  "ids": [
+   "F067"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "holdout-selection",
+  "title": "The \"untouched\" 2025/26 holdout was used for model selection",
+  "ids": [
+   "F071"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "teammate-corr-grouping",
+  "title": "teammate_correlation groups by last season's club",
+  "ids": [
+   "F074"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "doc-number-drift",
+  "title": "Docs/comments/DB limitation texts state numbers or features the code no longer produces",
+  "ids": [
+   "F061",
+   "F075",
+   "F175",
+   "F176",
+   "F174",
+   "F147",
+   "F111",
+   "F122",
+   "F132"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "raw-data-defects",
+  "title": "2023-24 minutes floor-truncated, cameo games missing; 7 games missing 2024-25; newcomer rateGames unstable",
+  "ids": [
+   "F079",
+   "F100"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "availability-estimator",
+  "title": "Hazard estimator vs chain mismatch; COVID 2019/20 rebuild; frailty quadrature; start-out rate mixing",
+  "ids": [
+   "F087",
+   "F088",
+   "F093",
+   "F094"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "gtd-never-fires",
+  "title": "In-season chain always starts \"available now\"; GTD 0.5 branch never fires",
+  "ids": [
+   "F081"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "inseason-rate-low",
+  "title": "In-season FP/game estimate runs 0.3-0.48 low after 5+ games; participation bonus scaled by minutes; fallback; no JS-Py pin test",
+  "ids": [
+   "F097",
+   "F098",
+   "F102",
+   "F104"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "season-accuracy-dead",
+  "title": "season_accuracy.py validates a model whose forecasts are overwritten",
+  "ids": [
+   "F101"
+  ],
+  "severity": "info",
+  "status": null
+ },
+ {
+  "key": "completion-forced-rookie",
+  "title": "Completion solver: forced rookie becomes 3rd player of a full club; fixed sets breaking club rule accepted",
+  "ids": [
+   "F105",
+   "F109"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "stale-snapshots",
+  "title": "Draft-state player snapshots never refresh: season tab/standings use draft-day forecasts",
+  "ids": [
+   "F106",
+   "F116"
+  ],
+  "severity": "high",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "repick-no-completion",
+  "title": "Re-picking an earlier pick can leave a team with no legal completion",
+  "ids": [
+   "F107"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "live-override-dead",
+  "title": "LIVE-mode override for a rival's real pick is dead code",
+  "ids": [
+   "F108"
+  ],
+  "severity": "low",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "white-rule-gate",
+  "title": "White rule enforced in the plan MILP but not in pick gate/completion/bots",
+  "ids": [
+   "F110"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "survival-odds",
+  "title": "\"Шанс дожить\" survival odds have no skill vs the real draft; KM informative censoring; ADP noise/censoring",
+  "ids": [
+   "F112",
+   "F124",
+   "F114",
+   "F125",
+   "F143",
+   "F126"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "plan-best-case",
+  "title": "Plan headline value assumes every planned player survives (joint survival 30-54%)",
+  "ids": [
+   "F115",
+   "F129"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "draft-illegal-after-price",
+  "title": "Completed real draft becomes \"illegal\" after a later price/position update, hiding standings",
+  "ids": [
+   "F118"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "lcg-seeding",
+  "title": "LCG seeded with consecutive integers gives nearly identical first draws",
+  "ids": [
+   "F120"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "real-draft-not-seeded",
+  "title": "After the draft, \"Реальный драфт\" mode is not seeded from DRAFT_PICKS",
+  "ids": [
+   "F130"
+  ],
+  "severity": "medium",
+  "status": null
+ },
+ {
+  "key": "rookie-warnings",
+  "title": "Rookie slot warnings check positions only",
+  "ids": [
+   "F131"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "rookie-timing-stats",
+  "title": "Rookie-timing statistics weak; skewed mean; comonotone sensitivity",
+  "ids": [
+   "F133"
+  ],
+  "severity": "low",
+  "status": null
+ },
+ {
+  "key": "espn-parser-missing-stat",
+  "title": "ESPN projection parser drops the whole projection when a 0-valued stat is omitted",
+  "ids": [
+   "F134"
+  ],
+  "severity": "critical",
+  "status": null
+ },
+ {
+  "key": "espn-free-agents",
+  "title": "23 ESPN free agents on the Sports.ru market get 15-62 projected games without warning",
+  "ids": [
+   "F135"
+  ],
+  "severity": "high",
+  "status": null
+ },
+ {
+  "key": "sports-bonus-compare",
+  "title": "Forecast vs Sports.ru history checks/insights compare bonus-free FP with bonus-including Sports.ru FP",
+  "ids": [
+   "F139",
+   "F151",
+   "F169"
+  ],
+  "severity": "medium",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "market-only-rookie",
+  "title": "Market-only players are always non-rookies: false rookie-rule breach",
+  "ids": [
+   "F154"
+  ],
+  "severity": "low",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "scoring-audit-self",
+  "title": "Scoring audit compares the formula with itself",
+  "ids": [
+   "F153"
+  ],
+  "severity": "low",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "yahoo-slot-fit",
+  "title": "No check that a roster fits Yahoo's 10 fixed slots",
+  "ids": [
+   "F159"
+  ],
+  "severity": "info",
+  "status": "CONFIRMED"
+ },
+ {
+  "key": "playin-labels",
+  "title": "career_games play-in/Cup final labelled REGULAR",
+  "ids": [
+   "F158"
+  ],
+  "severity": "low",
+  "status": "REFUTED"
+ },
+ {
+  "key": "deployed-predates",
+  "title": "Deployed DB predates bonus removal",
+  "ids": [
+   "F028",
+   "F078",
+   "F148",
+   "F160"
+  ],
+  "severity": "info",
+  "status": "REFUTED"
+ },
+ {
+  "key": "role-prior-floors",
+  "title": "Game floor/ceiling of 12 rostered players come unshifted from an old role prior, UI calls them own 90th percentile",
+  "ids": [
+   "F063"
+  ],
+  "severity": "low",
+  "status": null
+ }
+]
