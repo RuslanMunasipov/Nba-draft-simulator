@@ -72,6 +72,8 @@
   },
   "lawyer": {
     "name": "Зак Онн",
-    "role": "юрист лиги FBL: разбирает нарушения регламента"
+    "role": "юрист лиги FBL: разбирает нарушения регламента",
+    "telegram": null,
+    "note": "telegram: the lawyer's Telegram username (without @); with it the league feed tags him on every breach."
   }
 }
