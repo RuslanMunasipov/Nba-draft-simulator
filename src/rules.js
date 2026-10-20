@@ -6,6 +6,7 @@ import {teamLabel} from './teams.js';
 
 export const FBL_TRANSFERS=RULES.fblTransfers;
 export const LAWYER=RULES.lawyer;
+export const COMMISSIONER=RULES.commissioner||{role:'комиссионер лиги FBL',telegram:null};
 const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
 const monday=day=>addDays(day,-((new Date(day+'T00:00:00Z').getUTCDay()+6)%7));
 const ddmm=d=>d?`${d.slice(8,10)}.${d.slice(5,7)}`:'';
@@ -56,6 +57,16 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
    text:`${w.count} трансфера за неделю ${ddmm(w.start)}–${ddmm(w.end)} при лимите ${moves.limit}`});
   return {team,label:teamLabel(team),roster,rookies,whites,whiteState,undecided,transfers:moves,violations};
  });
+}
+
+// What a team's check asks of the league. An obvious breach (no rookie, the club or transfer limit, a team the league
+// found without a white player) is for the lawyer to investigate; a sold white player with no other one marked, or a
+// roster nobody of which the league has decided on, needs his check; otherwise the roster stands approved.
+export function verdict(check){
+ const doubtful=v=>v.rule==='white'&&check.whiteState==='sold';
+ const breaches=check.violations.filter(v=>!doubtful(v)),doubts=check.violations.filter(doubtful);
+ const unmarked=check.whiteState==='unmarked';
+ return {kind:breaches.length?'violation':doubts.length||unmarked?'check':'approved',breaches,doubts,unmarked};
 }
 
 // The appeal the league owner sends to the league's lawyer about one team's breaches.

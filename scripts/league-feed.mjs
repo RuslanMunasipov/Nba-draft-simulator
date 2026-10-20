@@ -8,7 +8,8 @@
 // marked as posted, so the feed starts complete once the chat is set.
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
-import {checkRules,LAWYER} from '../src/rules.js';
+import {fileURLToPath} from 'node:url';
+import {checkRules,verdict,LAWYER,COMMISSIONER} from '../src/rules.js';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
@@ -40,11 +41,30 @@ transfers.forEach((x,i)=>{const g=`${x.team}:${x.date}`;if(!groups.has(g))groups
 const draftPrice=id=>live.players?.[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0;
 function checkLines(c){
  const bad=r=>c.violations.some(v=>v.rule===r),t=c.transfers;
- const white=c.whiteState==='ok'?`✅ ${names(c.whites)}`:c.whiteState==='unmarked'?`⏳ нет решения лиги по ${names(c.undecided)||'игрокам состава'}`:'❌ нет засчитываемого игрока';
+ const white=c.whiteState==='ok'?`✅ ${names(c.whites)}`:c.whiteState==='unmarked'?`⏳ нет решения лиги по ${names(c.undecided)||'игрокам состава'}`
+  :c.whiteState==='sold'?'⏳ продан засчитываемый игрок, другого не отмечено':'❌ нет засчитываемого игрока';
  return [`├ Новичок в составе — ${bad('rookie')?'❌ нет':'✅ '+names(c.rookies)}`,`├ Белое правило — ${white}`,
   `├ Лимит клуба NBA (2) — ${bad('club')?'❌ '+esc(c.violations.find(v=>v.rule==='club').text):'✅'}`,
   `└ Лимит трансферов — ${bad('transfers')?'❌':'✅'} ${t.used}/${t.limit}`];
 }
+// The protocol's verdict (an obvious breach summons the lawyer, a doubt asks for his check, otherwise he approves) and
+// the reasons behind it; each verdict has its photo of Зак Онн.
+function reasons(c){
+ const v=verdict(c);
+ const items=v.kind==='violation'?v.breaches.map(x=>esc(x.text)):[...v.doubts.map(x=>esc(x.text)),
+  ...(v.unmarked?[`нет решения лиги по «белому правилу» для: ${names(c.undecided)||'игроков состава'}`]:[])];
+ return {kind:v.kind,items};
+}
+const photo=kind=>fileURLToPath(new URL(`./assets/zak-onn/${kind}.jpg`,import.meta.url));
+// The lawyer and the commissioner by their Telegram usernames (Telegram then notifies them personally).
+const tag=u=>u?`@${String(u).replace(/^@/,'')}`:null;
+const lawyer=tag(LAWYER.telegram)?`${tag(LAWYER.telegram)} (${esc(LAWYER.name)})`:esc(LAWYER.name);
+const commissioner=tag(COMMISSIONER.telegram)?`👔 ${tag(COMMISSIONER.telegram)} (${esc(COMMISSIONER.role)}) — к сведению.`:null;
+const HEAD={violation:['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`⚖️ ${lawyer}, вы вызываетесь для расследования.`,commissioner,''],
+ check:['🔎 <b>ТРЕБУЕТСЯ ПРОВЕРКА ЮРИСТА</b>',`⚖️ ${lawyer}, прошу проверить состав.`,commissioner,''],approved:[]};
+const CONCLUSION={violation:items=>`🔏 <b>Заключение:</b> выявлено нарушение — ${items.join('; ')}. Юрист лиги ${esc(LAWYER.name)} вызван для расследования.`,
+ check:items=>`🔏 <b>Заключение:</b> явных нарушений нет, требуется проверка — ${items.join('; ')}. Состав передан юристу лиги.`,
+ approved:()=>'🔏 <b>Заключение:</b> состав соответствует регламенту.'};
 // LEAGUE_FEED_PREVIEW=N: post the last N protocols as a test (wherever the chat points), remember nothing.
 const preview=Number(process.env.LEAGUE_FEED_PREVIEW)||0,firstPreview=groups.size-preview;
 // When the transfer happened: the watcher's first sight of the journal row (within a minute), in Moscow time.
@@ -58,16 +78,12 @@ for(const idx of groups.values()){
  const c=checkRules({rosters,byId,transfers:after,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:moves[moves.length-1].date,clubOf})[x.team];
  const money=bank(x.team,after,draftPrice),t=c.transfers;
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
- // An obvious breach summons the league's lawyer at once: on top of the protocol, and by his Telegram username when the
- // rules give one (Telegram then notifies him personally).
- const lawyer=LAWYER.telegram?`@${String(LAWYER.telegram).replace(/^@/,'')} (${esc(LAWYER.name)})`:esc(LAWYER.name);
- const summons=c.violations.length?['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`⚖️ ${lawyer}, вы вызываетесь для расследования.`,'']:[];
- const conclusion=c.violations.length?`🔏 <b>Заключение:</b> выявлено нарушение — ${c.violations.map(v=>esc(v.text)).join('; ')}. Юрист лиги ${lawyer} вызван для расследования.`
-  :'🔏 <b>Заключение:</b> состав соответствует регламенту.';
- const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),...summons,`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
+ const v=reasons(c);
+ const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),...HEAD[v.kind],`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
-  '<b>Проверка регламента</b>',...checkLines(c),'',conclusion,`<i>Юрист лиги: ${esc(LAWYER.name)}</i>`);
- if(await send(text)&&!preview){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
+  '<b>Проверка регламента</b>',...checkLines(c),'',CONCLUSION[v.kind](v.items),
+  v.kind==='approved'?`<i>✅ Одобрено: ${esc(LAWYER.name)}, юрист лиги</i>`:`<i>Юрист лиги: ${esc(LAWYER.name)}</i>`);
+ if(await send(text,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');

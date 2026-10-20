@@ -73,7 +73,12 @@
   "lawyer": {
     "name": "Зак Онн",
     "role": "юрист лиги FBL: разбирает нарушения регламента",
-    "telegram": null,
-    "note": "telegram: the lawyer's Telegram username (without @); with it the league feed tags him on every breach."
+    "telegram": "tikhanovm",
+    "note": "telegram: the username (without @) of the league member responsible for Зак Онн; the league feed tags him on every breach and on every roster that needs his check."
+  },
+  "commissioner": {
+    "role": "комиссионер лиги FBL",
+    "telegram": "startedfromthe64",
+    "note": "Tagged with the lawyer on every breach and on every roster that needs a check."
   }
 }

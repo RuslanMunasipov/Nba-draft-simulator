@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {fblWeek,fblTransfers,checkRules,appeal,LAWYER} from '../src/rules.js';
+import {fblWeek,fblTransfers,checkRules,verdict,appeal,LAWYER} from '../src/rules.js';
 
 test('the first FBL week runs from the draft to Sunday 25.10, then Monday to Sunday',()=>{
  assert.deepEqual(fblWeek('2026-10-18'),{start:'2026-10-18',end:'2026-10-25'});
@@ -47,4 +47,17 @@ test('with every decision on record, a team decided without a counting player is
  assert.equal(c[1].whiteState,'unmarked');assert.deepEqual(c[1].undecided.map(p=>p.id),[4]);
  const full=checkRules({rosters,byId,white:[2],checked:['1','2','3','4'],today:'2026-10-20'})[1];
  assert.equal(full.whiteState,'none');assert.ok(full.violations.some(v=>v.rule==='white'));
+});
+test('verdict: an obvious breach summons the lawyer, a doubt asks for his check, otherwise he approves',()=>{
+ const byId=new Map([[1,{id:1,name:'Rookie',isRookie:true}],[3,{id:3,name:'Marked'}],[6,{id:6,name:'Newcomer'}]]);
+ const at=(rosters,o={})=>checkRules({rosters:[rosters,...Array(7).fill([])],byId,today:'2026-10-27',...o})[0];
+ assert.equal(verdict(at([1,3],{white:[3]})).kind,'approved');
+ // The only marked player sold, nobody else marked: the lawyer checks, it is not an obvious breach.
+ const sold=verdict(at([1,6],{white:[3],transfers:[{team:0,outId:3,inId:6,date:'2026-10-27'}]}));
+ assert.equal(sold.kind,'check');assert.equal(sold.doubts[0].rule,'white');
+ // Players the league has not decided on, nobody marked: a check.
+ const open=verdict(at([1,6],{white:[3],checked:[3]}));assert.equal(open.kind,'check');assert.ok(open.unmarked);
+ // No rookie is obvious, whatever else is in doubt.
+ const breach=verdict(at([6],{white:[3],transfers:[{team:0,outId:3,inId:6,date:'2026-10-27'}]}));
+ assert.equal(breach.kind,'violation');assert.deepEqual(breach.breaches.map(v=>v.rule),['rookie']);
 });
