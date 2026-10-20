@@ -79,7 +79,7 @@ for(const idx of groups.values()){
  const money=bank(x.team,after,draftPrice),t=c.transfers;
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
  const v=reasons(c);
- const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),...HEAD[v.kind],`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
+ const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind],`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c),'',CONCLUSION[v.kind](v.items),
