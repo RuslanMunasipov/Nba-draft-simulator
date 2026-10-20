@@ -39,20 +39,23 @@ function checkLines(c){
   `├ Лимит клуба NBA (2) — ${bad('club')?'❌ '+esc(c.violations.find(v=>v.rule==='club').text):'✅'}`,
   `└ Лимит трансферов — ${bad('transfers')?'❌':'✅'} ${t.used}/${t.limit}`];
 }
+// LEAGUE_FEED_PREVIEW=N: post the last N protocols as a test (wherever the chat points), remember nothing.
+const preview=Number(process.env.LEAGUE_FEED_PREVIEW)||0,firstPreview=groups.size-preview;
 let number=0;
 for(const idx of groups.values()){
  number++;
- const moves=idx.map(i=>transfers[i]);if(moves.every(m=>done.has(key(m))))continue;
+ const moves=idx.map(i=>transfers[i]);
+ if(preview?number<=firstPreview:moves.every(m=>done.has(key(m))))continue;
  const last=idx[idx.length-1],x=moves[0],after=transfers.slice(0,last+1),rosters=seasonRosters(after);
  const c=checkRules({rosters,byId,transfers:after,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:moves[moves.length-1].date,clubOf})[x.team];
  const money=bank(x.team,after,draftPrice),t=c.transfers;
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
  const conclusion=c.violations.length?`🔏 <b>Заключение:</b> выявлено нарушение — ${c.violations.map(v=>esc(v.text)).join('; ')}. Материалы направлены юристу лиги ${esc(LAWYER.name)} для рассмотрения.`
   :'🔏 <b>Заключение:</b> состав соответствует регламенту.';
- const text=message(`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,'',
+ const text=message(...(preview?['🧪 <i>Тест ленты лиги: так протокол увидит чат FBL</i>','']:[]),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c),'',conclusion,`<i>Юрист лиги: ${esc(LAWYER.name)}</i>`);
- if(await send(text)){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
+ if(await send(text)&&!preview){for(const m of moves)done.add(key(m));if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');

@@ -45,7 +45,8 @@ function transfersLeft(ctx,t){const x=sportsTeam(t)?.transfersLeft,sports=Number
 const draftPrice=id=>{const p=byId.get(id);return live?.players?.[p?.sportsId]?.initialPrice??p?.price??0;};
 // Sports.ru's own balance wins: a number typed on this device only stands in for a team Sports.ru does not show.
 function teamBank(t,list=transfers()){const sports=sportsTeam(t)?.balance;if(Number.isFinite(sports))return sports;const local=readJson('fbl-bank',{})[t];if(Number.isFinite(local))return local;const shared=league.banks?.[t];if(Number.isFinite(shared))return shared;return bank(t,list,draftPrice);}
-function context(){const m=merged(),list=m.transfers;return {players,live,injuries,today:moscowToday(),rosters:seasonRosters(list),transfers:list,warnings:m.warnings,connected:m.connected};}
+function context(){const m=merged(),list=m.transfers;return {players,live,injuries,today:moscowToday(),rosters:seasonRosters(list),transfers:list,warnings:m.warnings,connected:m.connected,
+ white:new Set(whiteList().filter(x=>!x.startsWith('none:')))};}
 function owners(ctx){const m=new Map();ctx.rosters.forEach((ids,t)=>ids.forEach(id=>m.set(id,t)));return m;}
 const clubOf=p=>live?.players?.[p.sportsId]?.club||p.sportsClub;
 function issueUrl(title,payload){

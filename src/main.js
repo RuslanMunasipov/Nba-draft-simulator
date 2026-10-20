@@ -14,6 +14,9 @@ import './history.js';
 import {newDraft,pick,undo,replacePick,exportDraft,importDraft,recommendations,riskPriority,DEFAULT_CAP,safeUrl} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
 import {setSeasonPlayers,initSeasonTabs} from './season-ui.js';
+import LEAGUE from '../data/fbl-league.json' with {type:'json'};
+// The league's «белое правило» list (players who count; "none:<team>" entries are findings about rosters, not players).
+const WHITE=(LEAGUE.white||[]).filter(x=>!String(x).startsWith('none:'));
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {analyzeRecommendations,riskProfile} from './analysis.js';
 import {renderTiming} from './timing-ui.js';
@@ -272,7 +275,7 @@ function renderPlan(){
   planWorker.terminate();planWorker=null;box.replaceChildren(text('h3','Оптимальный план десятки'));
   if(data.error){box.append(text('p','Не удалось построить план: '+data.error));return;}
   const a=data.advice,live=id=>state.players.find(p=>p.id===id);
-  if(!a.best){box.append(text('p','Нет допустимого плана при текущем бюджете, позициях и rookie.'));return;}
+  if(!a.best){box.append(text('p','Нет допустимого плана при текущем бюджете, позициях, rookie и белом правиле.'));return;}
   const pct=x=>x==null?'—':Math.round(x*100)+'%',fp=p=>Math.round(riskAdjustedValue(p)*82*(1+(adjust[p.id]||0)/100))+(adjust[p.id]?` (поправка ${adjust[p.id]>0?'+':''}${adjust[p.id]}%)`:'');
   box.append(text('p',(a.onTheClock?`Бери сейчас: ${a.best.now.name}. `:`К твоему пику #${a.profile.picks[0]}: лучший вариант ${a.best.now.name}. `)+`План десятки: ${Math.round(a.best.value)} ФО с учётом риска, бюджет ${a.best.spent} / ${state.cap}.`));
   const cell=(cls,value)=>{const node=text('span',value);node.className=cls;return node;};
@@ -291,10 +294,10 @@ function renderPlan(){
    options.append(row);
   }
   box.append(options);
-  const method=document.createElement('details');method.className='plan-method';method.append(text('summary','Как считается'),text('small',`Метод: ${a.profile.runs} симуляций драфта соперниками-ботами приложения от текущего состояния; игрок попадает в раунд плана, только если доживает до этого пика с вероятностью ≥${Math.round(a.threshold*100)}%. Затем точная оптимизация (целочисленное программирование) суммы сезонных прогнозов ФО с поправкой на риск при лимите, двух слотах на позицию и rookie. Живые GM могут выбирать иначе, чем боты: вероятности приблизительные, план пересчитывается после каждого пика.`));box.append(method);
+  const method=document.createElement('details');method.className='plan-method';method.append(text('summary','Как считается'),text('small',`Метод: ${a.profile.runs} симуляций драфта соперниками-ботами приложения от текущего состояния; игрок попадает в раунд плана, только если доживает до этого пика с вероятностью ≥${Math.round(a.threshold*100)}%. Затем точная оптимизация (целочисленное программирование) суммы сезонных прогнозов ФО с поправкой на риск при лимите, двух слотах на позицию, rookie и белом правиле (минимум один игрок из списка лиги). Живые GM могут выбирать иначе, чем боты: вероятности приблизительные, план пересчитывается после каждого пика.`));box.append(method);
  };
  planWorker.onerror=()=>{planWorker=null;box.replaceChildren(text('h3','Оптимальный план десятки'),text('p','Ошибка расчёта плана.'));};
- planWorker.postMessage({state,requestId,runs:50,adjust});
+ planWorker.postMessage({state,requestId,runs:50,adjust,white:WHITE});
 }
 // Every GM's roster with expandable cards and the projected standings; partial during the draft, simulated after it.
 // Rosters stay open or closed as the GM left them across re-renders after each pick.
