@@ -8,7 +8,7 @@ import {seasonRosters,bank,transfersThisWeek,moscowToday,marketAlerts,bestPackag
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers,checkRules,appeal} from '../src/rules.js';
-import {esc,gains,moveLines,details,message,sender} from './telegram-format.mjs';
+import {esc,gains,moveLines,details,message,sender,moscow} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -104,7 +104,7 @@ for(const x of rival){
  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)}),mineNow=decision(out);
  const briefs=[...await brief(joined),...await brief(out)];
  const effect=v?`${v.gain.season>=0?'📈':'📉'} Им: ${gains(v.gain.season,v.gain.month)} · ${v.label}`:null;
- await report(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
+ await report(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${x.seenAt?moscow(x.seenAt):day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
   details([...mineNow.why,...briefs,
    ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
    `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>state.transfers.push(transferKey(x)));

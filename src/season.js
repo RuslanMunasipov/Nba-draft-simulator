@@ -472,7 +472,7 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
   if(ins.length>1&&score(ins[0])===score(ins[1]))warnings.push({team:t,message:`${row.date}: ${row.buy.name} неоднозначен, выбран ${ins[0].name} (${ins[0].team}).`});
   const joining=ins[0];
   roster[roster.indexOf(leaving.id)]=joining.id;taken.delete(leaving.id);taken.add(joining.id);
-  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru'});
+  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',...(row.seenAt?{seenAt:row.seenAt}:{})});
  }
  return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
 }

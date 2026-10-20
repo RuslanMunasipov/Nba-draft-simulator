@@ -8,7 +8,13 @@ export const moveLines=(pairs,bankAfter)=>[...pairs.map((x,i)=>`${i+1}. ${esc(x.
 export const details=lines=>lines.length?`<blockquote expandable>${lines.join('\n')}</blockquote>`:'';
 export const message=(...blocks)=>blocks.flat().filter(x=>x!==null&&x!==undefined).join('\n');
 export const plainText=html=>html.replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
-// Sending to one bot and chat. Without both the message is only printed and send() answers false.
+// Moscow date and time (UTC+3 all year) of an instant, e.g. "19.10.2026, 14:32 МСК".
+export function moscow(at=new Date()){
+ const d=new Date(new Date(at).getTime()+3*3600e3),two=n=>String(n).padStart(2,'0');
+ return `${two(d.getUTCDate())}.${two(d.getUTCMonth()+1)}.${d.getUTCFullYear()}, ${two(d.getUTCHours())}:${two(d.getUTCMinutes())} МСК`;
+}
+// Sending to one bot and chat. Without both the message is only printed and send() answers false. Every message ends
+// with the Moscow time it was sent.
 export function sender(token,chat){
  const configured=Boolean(token&&chat);
  // One Telegram call: waits out 429 rate limits (retry_after) and retries server errors a few times.
@@ -23,7 +29,7 @@ export function sender(token,chat){
  // Telegram refuses messages over 4096 characters: a long one is cut at a line and says so.
  const fit=text=>text.length<=4000?text:text.slice(0,text.lastIndexOf('\n',3900))+'\n…';
  async function send(text){
-  text=fit(text);console.log('\n'+text+'\n');
+  text=fit(text)+`\n\n<i>🕒 Отправлено: ${moscow()}</i>`;console.log('\n'+text+'\n');
   if(!configured){console.log('Telegram secrets not set: message not sent.');return false;}
   const res=await post({text,parse_mode:'HTML'});
   // Rejected markup must not lose the message: resend the same words as plain text.
