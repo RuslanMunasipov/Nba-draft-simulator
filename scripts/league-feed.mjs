@@ -110,20 +110,23 @@ for(const idx of groups.values()){
  number++;
  const moves=idx.map(i=>transfers[i]);
  if(preview?number<=firstPreview:moves.every(m=>done.has(key(m))))continue;
+ // Only the deals not yet published are shown (a day's earlier deals had their protocol); the rules are checked on the
+ // roster after the whole day's package, since Sports.ru confirms a day's transfers as one.
+ const news=preview?moves:moves.filter(m=>!done.has(key(m))),fresh=m=>news.includes(m);
  const last=idx[idx.length-1],x=moves[0],after=transfers.slice(0,last+1),rosters=seasonRosters(after);
  const all=checkRules({rosters,byId,transfers:after,white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:moves[moves.length-1].date,clubOf,nameOf:p=>p&&name(p.id)})[x.team];
  // The hours are judged per transfer: this protocol carries those of its own deals, earlier ones had theirs.
- const own=new Set(moves.map(m=>`${m.outId}>${m.inId}:${m.date}`));
+ const own=new Set(news.map(m=>`${m.outId}>${m.inId}:${m.date}`));
  const c={...all,violations:all.violations.filter(v=>v.rule!=='time'||own.has(v.transfer))};
  const money=bank(x.team,after,draftPrice),t=c.transfers;
  // Which deal broke each rule: the one after which the rule stayed broken to the end of the package (a package is
  // judged on its final roster, so a rookie sold and bought back the same day breaks nothing). Time is per deal.
- const dealName=k=>moves.length>1?`сделка ${k+1}`:'сделка';
+ const dealName=k=>!fresh(moves[k])?'в предыдущем протоколе':news.length>1?`сделка ${news.indexOf(moves[k])+1}`:'сделка';
  const steps=idx.map(i=>new Set(checkRules({rosters:seasonRosters(transfers.slice(0,i+1)),byId,transfers:transfers.slice(0,i+1),white:league.white||[],
   checked:(league.whiteChecked||[]).map(String),today:transfers[i].date,clubOf})[x.team].violations.filter(r=>r.rule!=='time').map(r=>r.rule)));
  const blame=new Map(),broke=new Map(),doubted=new Map();
  for(const r of new Set(c.violations.map(r=>r.rule))){
-  if(r==='time'){const k=moves.findIndex(m=>transferTime(m).state!=='ok'&&transferTime(m).state!=='unknown');
+  if(r==='time'){const k=moves.findIndex(m=>fresh(m)&&transferTime(m).state!=='ok'&&transferTime(m).state!=='unknown');
    if(k>=0){blame.set(r,dealName(k));if(transferTime(moves[k]).state==='breach')broke.set(k,[...(broke.get(k)||[]),r]);else doubted.set(k,[...(doubted.get(k)||[]),r]);}continue;}
   let k=steps.length-1;while(k>0&&steps[k-1].has(r))k--;
   if(steps[k]?.has(r)){blame.set(r,dealName(k));broke.set(k,[...(broke.get(k)||[]),r]);}
@@ -132,21 +135,28 @@ for(const idx of groups.values()){
  const whiteSet=new Set((league.white||[]).map(String));
  const who=id=>`${esc(name(id))}${byId.get(id)?.isRookie===true?' <i>[новичок]</i>':''}${whiteSet.has(String(id))?' <i>[белый]</i>':''}`;
  const ruleName={rookie:'правило новичка',white:'белое правило',club:'лимит клуба NBA',transfers:'лимит трансферов',time:'время сделки'};
- const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${who(m.outId)} (${m.outPrice}) ⟶ ${who(m.inId)} (${m.inPrice})${broke.has(i)?` — ❌ ${broke.get(i).map(r=>ruleName[r]).join(', ')}`:''}${doubted.has(i)?` — ⏳ ${doubted.get(i).map(r=>ruleName[r]).join(', ')}`:''}`);
- const v=reasons(c,moves.length>1?blame:new Map());
- const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team,v),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
-  `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,'',
+ const deals=moves.map((m,i)=>[m,i]).filter(([m])=>fresh(m)).map(([m,i],n)=>`<b>Сделка${news.length>1?' '+(n+1):''}:</b> ${who(m.outId)} (${m.outPrice}) ⟶ ${who(m.inId)} (${m.inPrice})${broke.has(i)?` — ❌ ${broke.get(i).map(r=>ruleName[r]).join(', ')}`:''}${doubted.has(i)?` — ⏳ ${doubted.get(i).map(r=>ruleName[r]).join(', ')}`:''}`);
+ // A breach left by the day's earlier deals that the new ones repair is said so.
+ const prior=idx.filter(i=>!fresh(transfers[i])).pop();
+ const before=prior===undefined?new Set():new Set(checkRules({rosters:seasonRosters(transfers.slice(0,prior+1)),byId,transfers:transfers.slice(0,prior+1),
+  white:league.white||[],checked:(league.whiteChecked||[]).map(String),today:transfers[prior].date,clubOf})[x.team].violations.filter(r=>r.rule!=='time').map(r=>r.rule));
+ const nowBroken=new Set(c.violations.map(r=>r.rule)),fixed=[...before].filter(r=>!nowBroken.has(r));
+ const repaired=fixed.length?`♻️ <b>Нарушение устранено:</b> ${fixed.map(r=>ruleName[r]).join(', ')}`:null;
+ // The heading says which deal only when it is not the protocol's single one.
+ const v=reasons(c,new Map([...blame].filter(([,d])=>d!=='сделка')));
+ const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team,v),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(news),'',
+  `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,repaired,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,
-  moves.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит FBL (${t.limit} в неделю) — с первой игры сезона`
+  news.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит FBL (${t.limit} в неделю) — с первой игры сезона`
    :`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
-  '<b>Проверка регламента</b>',...checkLines(c,moves),'',CONCLUSION[v.kind](v.items,v.doubts),'',
+  '<b>Проверка регламента</b>',...checkLines(c,news),'',CONCLUSION[v.kind](v.items,v.doubts),'',
   // Зак Онн's own word on it (the facts above are the rules check's): his remark on the verdict, then, while the
   // protocol still fits under his photo, a word on the circumstances and now and then a joke; then his signature.
-  ...voice(v,c,moves,x.team,money,t),
-  v.kind==='approved'?`<i>✅ Одобрено. ${signature(key(moves[0]))}</i>`:`<i>${signature(key(moves[0]))}</i>`);
+  ...voice(v,c,news,x.team,money,t),
+  v.kind==='approved'?`<i>✅ Одобрено. ${signature(key(news[0]))}</i>`:`<i>${signature(key(news[0]))}</i>`);
  // Extra lines (circumstances, joke) go first when the protocol would not fit under the photo.
  let fitted=text;
- for(const l of voice(v,c,moves,x.team,money,t).slice(1).reverse())
+ for(const l of voice(v,c,news,x.team,money,t).slice(1).reverse())
   if(plainText(fitted).length+45>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
  if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
 }
