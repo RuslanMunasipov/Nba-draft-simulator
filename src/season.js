@@ -464,42 +464,68 @@ export function journalTransfers(players,live,picks=DRAFT_PICKS){
   }
   journal.slice(start+1).forEach((row,i)=>events.push({t,row,i}));
  }
- events.sort((a,b)=>a.row.date.localeCompare(b.row.date)||a.t-b.t||a.i-b.i);
- const taken=new Set(rosters.flat()),out=[];
- for(const {t,row} of events){
+ // Across teams, a date's transfers go in the order the watcher saw them (rows it never timed first), not by team: the
+ // first buyer of a player must come first.
+ events.sort((a,b)=>a.row.date.localeCompare(b.row.date)||(a.row.seenAt||'').localeCompare(b.row.seenAt||'')||a.t-b.t||a.i-b.i);
+ const taken=new Set(rosters.flat()),out=[],bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p]));
+ // Within a team's day a row may sell a player a later-listed row bought (Sports.ru's order is not stable): such a row
+ // waits until that later row is applied.
+ const queue=[...events];
+ for(let i=0;i<queue.length;i++){
+  const {t,row}=queue[i];
   if(!row.buy||!row.sell){warnings.push({team:t,message:`${row.date}: запись без пары покупка/продажа (${row.buy?.name||row.sell?.name}).`});continue;}
   const roster=rosters[t];
   const held=new Set((live?.teams?.[t]?.roster||[]).map(r=>r.sportsId)),gone=p=>held.size&&held.has(p.sportsId)?1e7:0;
-  const outs=roster.map(id=>byId.get(id)).filter(p=>p&&shortName(p,live)===row.sell.name).sort((a,b)=>gone(a)+Math.abs(priceOf(a,live)-row.sell.price)-gone(b)-Math.abs(priceOf(b,live)-row.sell.price));
-  if(!outs.length){warnings.push({team:t,message:`${row.date}: продан ${row.sell.name}, но его нет в составе.`});continue;}
+  // The watcher pinned the exact players when it first saw the row (sellSid, buySid); names only when it could not.
+  const pinnedOut=row.sellSid&&bySid.get(String(row.sellSid)),pinnedIn=row.buySid&&bySid.get(String(row.buySid));
+  const outs=pinnedOut&&roster.includes(pinnedOut.id)?[pinnedOut]:roster.map(id=>byId.get(id)).filter(p=>p&&shortName(p,live)===row.sell.name).sort((a,b)=>gone(a)+Math.abs(priceOf(a,live)-row.sell.price)-gone(b)-Math.abs(priceOf(b,live)-row.sell.price));
+  if(!outs.length){
+   const later=queue.findIndex((e,j)=>j>i&&e.t===t&&e.row.date===row.date&&e.row.buy?.name===row.sell.name);
+   if(later>i&&!row.deferred){queue.splice(later+1,0,{t,row:{...row,deferred:true}});continue;}
+   warnings.push({team:t,message:`${row.date}: продан ${row.sell.name}, но его нет в составе.`});continue;
+  }
   const leaving=outs[0],pos=positionOf(leaving,live),now=new Set((live?.teams?.[t]?.roster||[]).map(r=>r.sportsId));
   // The roster JSON names the exact player a team holds today; position and price only break remaining ties.
   // A player another FBL team holds is still possible (Sports.ru allows it); when the roster cannot tell, a free one wins.
   const score=p=>(now.size&&!now.has(p.sportsId)?1e7:0)+(positionOf(p,live).some(x=>pos.includes(x))?0:1e6)+(taken.has(p.id)?1e5:0)+Math.abs(priceOf(p,live)-row.buy.price);
-  const ins=players.filter(p=>p.sportsId&&!roster.includes(p.id)&&shortName(p,live)===row.buy.name).sort((a,b)=>score(a)-score(b));
+  const ins=pinnedIn&&!roster.includes(pinnedIn.id)?[pinnedIn]:players.filter(p=>p.sportsId&&!roster.includes(p.id)&&shortName(p,live)===row.buy.name).sort((a,b)=>score(a)-score(b));
   if(!ins.length){warnings.push({team:t,message:`${row.date}: куплен ${row.buy.name}, игрок не найден в базе.`});continue;}
-  if(ins.length>1&&score(ins[0])===score(ins[1]))warnings.push({team:t,message:`${row.date}: ${row.buy.name} неоднозначен, выбран ${ins[0].name} (${ins[0].team}).`});
+  if(!pinnedIn&&ins.length>1&&score(ins[0])===score(ins[1]))warnings.push({team:t,message:`${row.date}: ${row.buy.name} неоднозначен, выбран ${ins[0].name} (${ins[0].team}).`});
   const joining=ins[0];
   roster[roster.indexOf(leaving.id)]=joining.id;
   // Still taken while another team holds the player.
   taken.clear();for(const r of rosters)for(const id of r)taken.add(id);
-  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',...(row.seenAt?{seenAt:row.seenAt}:{}),...(row.seenAfter?{seenAfter:row.seenAfter}:{})});
+  out.push({team:t,outId:leaving.id,inId:joining.id,date:row.date,outPrice:row.sell.price,inPrice:row.buy.price,source:'sports.ru',
+   // The journal's own words, which never change when a name resolves differently: what «already reported» matches on.
+   outName:row.sell.name,inName:row.buy.name,...(row.seenAt?{seenAt:row.seenAt}:{}),...(row.seenAfter?{seenAfter:row.seenAfter}:{})});
  }
  return {transfers:out,warnings,teams:new Set(Object.keys(live?.teams||{}).map(Number))};
 }
-// Transfers not yet reported, given the keys (team:out>in:date) of those that were. Sports.ru re-pairs a day's sales and
-// purchases into other rows as the day goes on, so a transfer counts as reported when both its sale and its purchase
-// were in reported transfers of that team and date (each reported event covers one transfer).
-export function unreported(transfers,keys=[]){
- const pool=new Map(),put=k=>pool.set(k,(pool.get(k)||0)+1);
- for(const k of keys){const m=String(k).match(/^(\d+):(.+)>(.+):(\d{4}-\d{2}-\d{2})$/);if(!m)continue;put(`${m[1]}:${m[4]}:out:${m[2]}`);put(`${m[1]}:${m[4]}:in:${m[3]}`);}
+// The two journal events of a deal, in the journal's own words (short name and price): what «already reported» matches
+// on, so a deal is never reported twice when Sports.ru re-pairs a day's rows or a short name resolves to another player.
+export const dealEvents=x=>[`${x.team}|${x.date}|out|${x.outName??x.outId}|${x.outPrice}`,`${x.team}|${x.date}|in|${x.inName??x.inId}|${x.inPrice}`];
+// Transfers not yet reported. `events` is the multiset of reported deal events (each reported deal adds its two, so a deal
+// repeated the same day needs its own); a state from before events were kept gives the keys (team:out>in:date) of the
+// reported deals instead, matched by resolved ids.
+export function unreported(transfers,keys=[],events=null){
+ const pool=new Map(),put=k=>pool.set(k,(pool.get(k)||0)+1),take=k=>{const n=pool.get(k)||0;if(n>0){pool.set(k,n-1);return true;}return false;};
+ const idEvents=x=>[`${x.team}:${x.date}:out:${x.outId}`,`${x.team}:${x.date}:in:${x.inId}`];
+ if(events)for(const e of events)put(e);
+ else for(const k of keys){const m=String(k).match(/^(\d+):(.+)>(.+):(\d{4}-\d{2}-\d{2})$/);if(!m)continue;put(`${m[1]}:${m[4]}:out:${m[2]}`);put(`${m[1]}:${m[4]}:in:${m[3]}`);}
  const fresh=new Set();
  for(const x of transfers){
-  const out=`${x.team}:${x.date}:out:${x.outId}`,inn=`${x.team}:${x.date}:in:${x.inId}`;
-  if((pool.get(out)||0)>0&&(pool.get(inn)||0)>0){pool.set(out,pool.get(out)-1);pool.set(inn,pool.get(inn)-1);}
+  const [out,inn]=events?dealEvents(x):idEvents(x);
+  if((pool.get(out)||0)>0&&(pool.get(inn)||0)>0){take(out);take(inn);}
   else fresh.add(x);
  }
  return fresh;
+}
+// The reported events of a state: kept ones, or, for a state from before they were kept, those of the deals its keys
+// cover (once, on the first run after the update).
+export function reportedEvents(transfers,state){
+ if(Array.isArray(state?.events))return [...state.events];
+ const open=unreported(transfers,state?.reported||[]);
+ return transfers.filter(x=>!open.has(x)).flatMap(dealEvents);
 }
 // Sports.ru journals for every connected team, the shared league log for the rest.
 // Anything breaking a rule is dropped; every team's bank is replayed with Sports.ru prices and flagged when it goes negative.

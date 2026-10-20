@@ -5,7 +5,8 @@
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
-import {seasonRosters,bank,unreported,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
+import path from 'node:path';
+import {seasonRosters,bank,unreported,dealEvents,reportedEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers} from '../src/rules.js';
@@ -100,7 +101,11 @@ function decide(p){
 }
 // Every new transfer of the other teams, one message each: who moved, what it gives them, what I should do.
 // Not yet reported, matched by sale and purchase: Sports.ru re-pairs a day's journal rows.
-const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,pending=unreported(transfers,previous.transfers||[]);
+// Reported deals are kept as their journal events (a multiset), saved with every message, so a re-paired day or a
+// short name resolving to another player never repeats a message.
+const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`;
+state.transferEvents=reportedEvents(transfers,{events:previous.transferEvents,reported:previous.transfers});
+const pending=unreported(transfers,[],state.transferEvents),told=x=>{state.transfers.push(transferKey(x));state.transferEvents.push(...dealEvents(x));};
 const rival=transfers.filter(x=>x.team!==team&&pending.has(x));
 for(const x of rival){
  const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)}),mineNow=decision(out);
@@ -109,7 +114,7 @@ for(const x of rival){
  await report(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${x.seenAt?moscow(x.seenAt):day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
   details([...mineNow.why,...briefs,
    ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
-   `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>state.transfers.push(transferKey(x)));
+   `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>told(x));
 }
 // My own transfers, once each, as the watcher saw them: what was done, when, what it gives by the model, and where the
 // bank and the week's transfers stand. Only those seen live (seenAt); older ones were never news.
@@ -120,8 +125,18 @@ for(const x of transfers.filter(x=>x.team===team&&x.seenAt&&pending.has(x))){
  await report(message(`✅ <b>Твой трансфер зафиксирован</b> · ${moscow(x.seenAt)}`,`${esc(out?.name)} (${x.outPrice}) → <b>${esc(joined?.name)}</b> (${x.inPrice})`,effect,'',
   `Банк: ${money} · трансферов осталось: ${leftLabel(team)}`,
   details(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[])),
-  ()=>state.transfers.push(transferKey(x)));
+  ()=>told(x));
 }
+// League protocols not posted because they were too late (an outage or an update) that held a breach or a doubt: the
+// league chat stays quiet, the owner hears of them here, once, to decide whether Зак Онн should announce them.
+const leagueStatePath=path.join(path.dirname(path.resolve(livePath)),'league-state.json');
+const unannounced=fs.existsSync(leagueStatePath)?JSON.parse(fs.readFileSync(leagueStatePath,'utf8')).unannounced||[]:[];
+const silentKey=u=>`${u.team}:${u.date}:${u.seenAt}`;
+for(const u of unannounced.filter(u=>!(previous.silent||[]).includes(silentKey(u))))
+ await report(message(`🔕 <b>Не опубликовано в лиге: ${esc(teamLabel(u.team))}</b>`,`${u.deals.map(esc).join('; ')}${u.seenAt?` · ${moscow(u.seenAt)}`:''}`,
+  `${u.kind==='violation'?'🚨 Нарушено':'🔎 На проверке'}: ${u.items.join('; ')}`,'',
+  'Бот был недоступен дольше 2 часов, поэтому протокол не отправлен задним числом. Если нужно, объяви через «League announcement».'),
+  ()=>{state.silent=[...(state.silent||[]),silentKey(u)];});
 // Journal rows the database cannot match (a player new to the Sports.ru market): report them as they are, once.
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
 for(const w of unknown.filter(w=>!(previous.unknown||[]).includes(unknownKey(w))))
@@ -141,6 +156,6 @@ for(const x of soon){const why=explainSwap(ctx,null,null,'season',dealPairs(x));
  `🎯 <b>Тебе: можно брать</b> · ${sureness(why).toLowerCase()}`,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>state.returns.push(injuryKey(x)));}
 // Remember what was already reported so the same advice is not sent again. Until Telegram is configured nothing
 // counts as reported: the first messages arrive once the secrets are set. Transfers already in the journal count as seen.
-state.transfers=[...new Set([...state.transfers,...transfers.map(transferKey)])];state.returns=state.returns.slice(-500);state.unknown=state.unknown.slice(-200);
+state.transfers=[...new Set([...state.transfers,...transfers.map(transferKey)])];state.transferEvents=transfers.flatMap(dealEvents);state.returns=state.returns.slice(-500);state.unknown=state.unknown.slice(-200);
 state.watch=targets.map(x=>x.player.id);
 if(configured)save();else fs.writeFileSync(statePath,JSON.stringify({...previous,updatedAt:new Date().toISOString()}));

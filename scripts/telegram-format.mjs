@@ -15,6 +15,8 @@ export function moscow(at=new Date()){
  const d=new Date(new Date(at).getTime()+3*3600e3),two=n=>String(n).padStart(2,'0');
  return `${two(d.getUTCDate())}.${two(d.getUTCMonth()+1)}.${d.getUTCFullYear()}, ${two(d.getUTCHours())}:${two(d.getUTCMinutes())} МСК`;
 }
+// The Actions log is public: Telegram usernames in a printed message are masked (they are kept only encrypted).
+export const hideHandles=text=>String(text).replace(/@[A-Za-z][A-Za-z0-9_]{3,31}/g,'@•••');
 // Telegram's limit on a photo caption, counted on the visible text.
 export const CAPTION_LIMIT=1024;
 // Sending to one bot and chat. Without both the message is only printed and send() answers false. Every message ends
@@ -49,7 +51,7 @@ export function sender(token,chat){
  // Telegram refuses messages over 4096 characters: a long one is cut at a line and says so.
  const fit=text=>text.length<=4000?text:text.slice(0,text.lastIndexOf('\n',3900))+'\n…';
  async function send(text,{photo}={}){
-  text=fit(text)+`\n\n<i>🕒 Отправлено: ${moscow()}</i>`;console.log((photo?`\n[фото: ${path.basename(photo)}]`:'')+'\n'+text+'\n');
+  text=fit(text)+`\n\n<i>🕒 Отправлено: ${moscow()}</i>`;console.log((photo?`\n[фото: ${path.basename(photo)}]`:'')+'\n'+hideHandles(text)+'\n');
   if(!configured){console.log('Telegram secrets not set: message not sent.');return false;}
   // Telegram counts the caption in UTF-16 units (an emoji is two), as JavaScript's length does.
   if(photo&&plainText(text).length<=CAPTION_LIMIT)await deliver('caption',text,photo);

@@ -18,7 +18,24 @@ test('pre-season transfers are free; from the first game the FBL week counts thr
  const t=[...pre,{team:7,date:'2026-10-21'},{team:7,date:'2026-10-22'},{team:6,date:'2026-10-22'}];
  assert.equal(fblTransfers(t,7,'2026-10-22').left,1);assert.equal(fblTransfers(t,6,'2026-10-22').left,2);
  assert.equal(fblTransfers(t,7,'2026-10-22').resetOn,'2026-10-26');assert.equal(fblTransfers(t,7,'2026-10-26').left,3);
- assert.deepEqual(fblTransfers([...t,{team:7,date:'2026-10-23'},{team:7,date:'2026-10-24'}],7,'2026-10-24').over,[{start:'2026-10-18',end:'2026-10-25',count:4}]);
+ assert.deepEqual(fblTransfers([...t,{team:7,date:'2026-10-23'},{team:7,date:'2026-10-24'}],7,'2026-10-24').over,[{start:'2026-10-18',end:'2026-10-25',count:4,certain:true,atDeadline:[]}]);
+});
+test('a deal whose time window crosses the 21:30 pre-season deadline may have been free: the limit is checked, not breached',async()=>{
+ const {freeState,verdict}=await import('../src/rules.js');
+ assert.equal(freeState({date:'2026-10-20',seenAfter:'2026-10-20T18:29:00Z',seenAt:'2026-10-20T18:30:40Z'}),'doubt');
+ assert.equal(freeState({date:'2026-10-20',seenAfter:'2026-10-20T18:30:10Z',seenAt:'2026-10-20T18:31:00Z'}),'counted');
+ assert.equal(freeState({date:'2026-10-20',seenAfter:'2026-10-20T18:28:00Z',seenAt:'2026-10-20T18:29:30Z'}),'free');
+ const at=(seenAfter,seenAt)=>({team:0,date:'2026-10-20',outId:1,inId:2,seenAfter,seenAt});
+ const four=[at('2026-10-20T18:29:00Z','2026-10-20T18:30:40Z'),...[1,2,3].map(m=>at(`2026-10-20T18:3${m}:00Z`,`2026-10-20T18:3${m+1}:00Z`))];
+ const [w]=fblTransfers(four,0,'2026-10-20').over;
+ assert.equal(w.count,4);assert.equal(w.certain,false);assert.equal(w.atDeadline.length,1);
+ const byId=new Map([[1,{id:1,name:'A',isRookie:true}],[2,{id:2,name:'B',isRookie:true}]]);
+ const c=checkRules({rosters:[[2],...Array(7).fill([])],byId,transfers:four,white:[2],today:'2026-10-20'})[0];
+ const v=c.violations.find(v=>v.rule==='transfers');
+ assert.equal(v.certain,false);assert.match(v.text,/у дедлайна 21:30/);assert.equal(verdict(c).kind,'check');
+ // Four deals all after the deadline: a breach.
+ const late=[1,2,3,4].map(m=>at(`2026-10-20T18:3${m}:00Z`,`2026-10-20T18:3${m+1}:00Z`));
+ assert.equal(verdict(checkRules({rosters:[[2],...Array(7).fill([])],byId,transfers:late,white:[2],today:'2026-10-20'})[0]).kind,'violation');
 });
 test('missing rookie, white player or a third player of a club is a breach with an appeal to the league lawyer',()=>{
  const p=(id,club,extra={})=>({id,name:'P'+id,sportsClub:club,...extra});

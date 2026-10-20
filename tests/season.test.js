@@ -294,20 +294,18 @@ test('the only player counting for the white rule leaves only for another who co
 test('a team that trades back to its exact draft roster keeps both transfers',async()=>{
  const {journalTransfers}=await import('../src/season.js');
  const {DRAFT_PICKS}=await import('../src/fbl-draft-2026.js');
- const fs=await import('node:fs');
- const db=JSON.parse(fs.readFileSync(new URL('../public/data/default-draft.json',import.meta.url),'utf8'));
- const byId=new Map(db.players.map(p=>[p.id,p]));
- const mine=DRAFT_PICKS.filter((_,i)=>i%8===0).map(id=>byId.get(id));
- const short=p=>p.sportsName||p.name.split(' ').slice(-1)[0];
- const out=mine[9],other=db.players.find(p=>p.sportsId&&!DRAFT_PICKS.includes(p.id)&&p.position===out.position);
- if(!other)return;
- const players={};for(const p of [...mine,other])players[p.sportsId]={fullName:p.name,name:short(p),price:p.price,initialPrice:p.price,position:p.position};
+ // Team 0's ten picks and one free player, all on Sports.ru, with their own short names.
+ const mine=DRAFT_PICKS.filter((_,i)=>i%8===0).map((id,i)=>({id,name:`Player ${i}`,sportsId:`s${i}`,position:'PG',price:1500}));
+ const other={id:'free-1',name:'Free One',sportsId:'f1',position:'PG',price:1400};
+ const short=p=>`П${p.sportsId}`;
+ const players={};for(const p of [...mine,other])players[p.sportsId]={fullName:p.name,name:short(p),price:p.price,initialPrice:p.price,position:'PG'};
  const draftRows=mine.map(p=>({date:'2026-10-18',buy:{name:short(p),price:p.price},sell:null}));
+ const out=mine[9];
  const there={date:'2026-10-20',buy:{name:short(other),price:other.price},sell:{name:short(out),price:out.price}};
  const back={date:'2026-10-20',buy:{name:short(out),price:out.price},sell:{name:short(other),price:other.price}};
  // Sports.ru put a draft row after the day's transfers: order within a date is not stable.
  const journal=[...draftRows.slice(0,9),there,back,draftRows[9]];
- const r=journalTransfers(db.players,{players,teams:{0:{journal}}});
+ const r=journalTransfers([...mine,other],{players,teams:{0:{journal}}});
  assert.equal(r.transfers.filter(x=>x.team===0).length,2,JSON.stringify(r.warnings));
 });
 test('a deal counts as reported by its sale and purchase: Sports.ru re-pairs a day\'s rows',async()=>{
@@ -320,4 +318,31 @@ test('a deal counts as reported by its sale and purchase: Sports.ru re-pairs a d
  // Ids with a colon (espn:…) are read whole.
  assert.equal(unreported([t('espn:1','2')],['0:espn:1>2:2026-10-20']).size,0);
  assert.equal(unreported([t('espn:1','2')],[]).size,1);
+});
+test('reported deals are a multiset of journal events: a deal repeated the same day, re-paired rows, a renamed resolution',async()=>{
+ const {unreported,dealEvents,reportedEvents}=await import('../src/season.js');
+ const d=(out,inn,o='A',i='B')=>({team:2,outId:out,inId:inn,outName:o,inName:i,outPrice:1800,inPrice:1600,date:'2026-10-20'});
+ // Kessler→Queta, back, and Kessler→Queta again: the third is new even though its key equals the first's.
+ const [a,b,c]=[d(1,2,'Кесслер','Кета'),d(2,1,'Кета','Кесслер'),d(1,2,'Кесслер','Кета')];
+ assert.deepEqual([...unreported([a,b,c],[],[...dealEvents(a),...dealEvents(b)])],[c]);
+ // The journal's words, not the resolved ids: «Уайт» resolving to another player later is the same deal.
+ const w1={...d(5,7,'Сабонис','Уайт')},w2={...w1,inId:8};
+ assert.equal(unreported([w2],[],dealEvents(w1)).size,0);
+ // A state from before events were kept: its id keys cover their deals once.
+ assert.deepEqual(reportedEvents([a],{reported:['2:1>2:2026-10-20']}),dealEvents(a));
+});
+test('rows of a day listed out of order, and namesakes pinned by the watcher, resolve to the right deals',async()=>{
+ const {journalTransfers}=await import('../src/season.js');
+ const {DRAFT_PICKS}=await import('../src/fbl-draft-2026.js');
+ const mine=DRAFT_PICKS.filter((_,i)=>i%8===0).map((id,i)=>({id,name:`Player ${i}`,sportsId:`s${i}`,position:'PG',price:1500}));
+ const coby={id:'coby',name:'Coby White',sportsId:'c1',position:'PG',price:1500},derrick={id:'derrick',name:'Derrick White',sportsId:'d1',position:'PG',price:1800};
+ const short=p=>p.id==='coby'||p.id==='derrick'?'Уайт':`П${p.sportsId}`;
+ const players={};for(const p of [...mine,coby,derrick])players[p.sportsId]={fullName:p.name,name:short(p),price:p.price,initialPrice:p.price,position:'PG'};
+ const draft=mine.map(p=>({date:'2026-10-18',buy:{name:short(p),price:p.price},sell:null}));
+ const out=mine[9];
+ // Sold for Derrick White (pinned by the watcher), then back: Sports.ru lists the buy-back first.
+ const there={date:'2026-10-20',buy:{name:'Уайт',price:1800},sell:{name:short(out),price:1500},buySid:'d1',sellSid:'s9'};
+ const back={date:'2026-10-20',buy:{name:short(out),price:1500},sell:{name:'Уайт',price:1800}};
+ const r=journalTransfers([...mine,coby,derrick],{players,teams:{0:{journal:[...draft,back,there]}}});
+ assert.deepEqual(r.transfers.map(x=>[x.outId,x.inId]),[[out.id,'derrick'],['derrick',out.id]],JSON.stringify(r.warnings));
 });
