@@ -51,7 +51,8 @@ export function sender(token,chat){
  async function send(text,{photo}={}){
   text=fit(text)+`\n\n<i>🕒 Отправлено: ${moscow()}</i>`;console.log((photo?`\n[фото: ${path.basename(photo)}]`:'')+'\n'+text+'\n');
   if(!configured){console.log('Telegram secrets not set: message not sent.');return false;}
-  if(photo&&[...plainText(text)].length<=CAPTION_LIMIT)await deliver('caption',text,photo);
+  // Telegram counts the caption in UTF-16 units (an emoji is two), as JavaScript's length does.
+  if(photo&&plainText(text).length<=CAPTION_LIMIT)await deliver('caption',text,photo);
   else{if(photo){const res=await post({},photo);if(!res.ok)throw Error('Telegram: '+res.status+' '+await res.text());}
    await deliver('text',text);}
   return true;
