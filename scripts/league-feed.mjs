@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
-import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED} from '../src/rules.js';
+import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,MANAGERS} from '../src/rules.js';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
@@ -65,8 +65,10 @@ const photo=kind=>fileURLToPath(new URL(`./assets/zak-onn/${kind}.jpg`,import.me
 const tag=u=>u?`@${String(u).replace(/^@/,'')}`:null;
 const lawyer=tag(LAWYER.telegram)?`${tag(LAWYER.telegram)} (${esc(LAWYER.name)})`:esc(LAWYER.name);
 const commissioner=tag(COMMISSIONER.telegram)?`👔 ${tag(COMMISSIONER.telegram)} (${esc(COMMISSIONER.role)}) — к сведению.`:null;
-const HEAD={violation:['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`⚖️ ${lawyer}, вы вызываетесь для расследования.`,commissioner,''],
- check:['🔎 <b>ТРЕБУЕТСЯ ПРОВЕРКА ЮРИСТА</b>',`⚖️ ${lawyer}, прошу проверить состав.`,commissioner,''],approved:[]};
+// The team's general manager is tagged too, so the one who made the deal hears of it first.
+const gmLine=team=>tag(MANAGERS[team])?`📣 GM команды: ${tag(MANAGERS[team])}`:null;
+const HEAD={violation:team=>['🚨 <b>НАРУШЕНИЕ РЕГЛАМЕНТА</b>',`⚖️ ${lawyer}, вы вызываетесь для расследования.`,commissioner,gmLine(team),''],
+ check:team=>['🔎 <b>ТРЕБУЕТСЯ ПРОВЕРКА ЮРИСТА</b>',`⚖️ ${lawyer}, прошу проверить состав.`,commissioner,gmLine(team),''],approved:()=>[]};
 const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> выявлено нарушение — ${items.join('; ')}.${doubts.length?` Также требует проверки: ${doubts.join('; ')}.`:''} Юрист лиги ${esc(LAWYER.name)} вызван для расследования.`,
  check:items=>`🔏 <b>Заключение:</b> явных нарушений нет, требуется проверка — ${items.join('; ')}. Состав передан юристу лиги.`,
  approved:()=>'🔏 <b>Заключение:</b> состав соответствует регламенту.'};
@@ -87,7 +89,7 @@ for(const idx of groups.values()){
  const money=bank(x.team,after,draftPrice),t=c.transfers;
  const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
  const v=reasons(c);
- const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind],`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
+ const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${number}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,`🔁 <b>Осталось трансферов:</b> ${t.left} из ${t.limit} · обновление в пн ${ddmm(t.resetOn)}`,'',
   '<b>Проверка регламента</b>',...checkLines(c,moves),'',CONCLUSION[v.kind](v.items,v.doubts),
