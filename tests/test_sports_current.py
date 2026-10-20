@@ -136,3 +136,15 @@ class JournalStampTests(unittest.TestCase):
         bounded = collector.stamp_journal([a], [a, b], now='2026-10-20T10:00:00+00:00', after='2026-10-20T09:59:00+00:00')
         self.assertEqual(bounded[1]['seenAfter'], '2026-10-20T09:59:00+00:00')
         self.assertEqual(collector.stamp_journal(bounded, [a, b], now='2026-10-20T11:00:00+00:00', after='2026-10-20T10:59:00+00:00')[1]['seenAfter'], '2026-10-20T09:59:00+00:00')
+        # Sports.ru lists rows of one date in no stable order: a reordered journal keeps every row's stamps.
+        c = {'date': '2026-10-19', 'buy': {'name': 'C', 'price': 3}, 'sell': None}
+        known = collector.stamp_journal([a, c], [a, c, b], now='2026-10-20T10:00:00+00:00')
+        moved = collector.stamp_journal(known, [c, b, a], now='2026-10-20T12:00:00+00:00')
+        self.assertEqual([r.get('seenAt') for r in moved], [None, '2026-10-20T10:00:00+00:00', None])
+        # A row seen while Sports.ru shows ∞ transfers is free (pre-season).
+        self.assertTrue(collector.stamp_journal([a], [a, b], now='x', free=True)[1]['free'])
+
+    def test_unlimited_transfers_in_pre_season(self):
+        team = collector.parse_team('<th>Баланс</th><td>200</td><th>Трансферы</th><td>∞</td>')
+        self.assertEqual((team['balance'], team['transfersLeft'], team['transfersUnlimited']), (200, None, True))
+        self.assertEqual(collector.parse_team('<th>Трансферы</th><td>2</td>')['transfersLeft'], 2)

@@ -27,12 +27,13 @@ def changed_teams(snapshot,fresh):
     """Teams whose journal differs from the published snapshot. A shorter journal is a failed parse, not a reversal."""
     old=snapshot.get('teams',{})
     # The stored rows carry seenAt (when the watcher first saw them); Sports.ru rows do not.
-    bare=lambda rows:[{k:v for k,v in r.items() if k not in ('seenAt','seenAfter')} for r in rows or []]
+    # Rows of one date come in no stable order, so journals are compared as sorted lists.
+    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','free')},ensure_ascii=False,sort_keys=True) for r in rows or [])
     return [t for t,rows in fresh.items() if bare(rows)!=bare(old.get(t,{}).get('journal')) and len(rows)>=len(old.get(t,{}).get('journal') or [])]
 def mark_read(snapshot,fresh):
     """Remember when each journal was last read unchanged: a row that appears later was made after that read, which
     bounds the time of the transfer (FBL allows transfers only from 08:00 to 22:00 Moscow time)."""
-    bare=lambda rows:[{k:v for k,v in r.items() if k not in ('seenAt','seenAfter')} for r in rows or []]
+    bare=lambda rows:sorted(json.dumps({k:v for k,v in r.items() if k not in ('seenAt','seenAfter','free')},ensure_ascii=False,sort_keys=True) for r in rows or [])
     stamp=now()
     for t,rows in fresh.items():
         entry=snapshot.get('teams',{}).get(t)
@@ -49,7 +50,7 @@ def apply(snapshot,fresh,teams,config):
         except Exception as e:  # noqa: BLE001
             print(f'team {t}: {e}',flush=True)
         stamp=now();previous=snapshot['teams'].get(t) or {}
-        entry['journal']=sports.stamp_journal(previous.get('journal'),fresh[t],now=stamp,after=previous.get('journalReadAt'))
+        entry['journal']=sports.stamp_journal(previous.get('journal'),fresh[t],now=stamp,after=previous.get('journalReadAt'),free=bool(entry.get('transfersUnlimited')))
         entry['journalReadAt']=stamp;snapshot['teams'][t]=entry
     snapshot['teamsCheckedAt']=now()
     return snapshot

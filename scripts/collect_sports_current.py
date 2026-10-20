@@ -247,8 +247,11 @@ def parse_team(page):
     if m:
         out['name'] = html.unescape(m.group(1)).strip()
     for key, label in (('value', 'Стоимость команды'), ('balance', 'Баланс'), ('transfersLeft', 'Трансферы')):
-        m = re.search(r'<th>' + label + r'</th>\s*<td>\s*(-?\d+)', page)
-        if m:
+        m = re.search(r'<th>' + label + r'</th>\s*<td>\s*(-?\d+|∞|&infin;)', page)
+        if m and m.group(1) in ('∞', '&infin;'):
+            # Pre-season: Sports.ru shows ∞ transfers until shortly before the first game.
+            out[key], out['transfersUnlimited'] = None, True
+        elif m:
             out[key] = int(m.group(1))
     m = re.search(r'<th>Место</th>\s*<td>\s*(\d+) из (\d+)', page)
     if m:
@@ -278,21 +281,27 @@ def parse_journal(page):
     return rows[::-1]
 
 
-def stamp_journal(old, new, now=None, after=None):
+def stamp_journal(old, new, now=None, after=None, free=False):
     """Sports.ru journals give only the date of a transfer. A row first seen by this collection gets seenAt, the UTC
     time it appeared, and seenAfter, the previous read of the same journal without it (after): the transfer was made
-    between the two (the watcher reads journals every minute). Rows already known keep theirs. Without a previous
-    journal nothing is stamped: the time of those rows is unknown."""
+    between the two (the watcher reads journals every minute). A row seen while Sports.ru shows unlimited transfers
+    (pre-season) is marked free. Rows already known keep theirs: they are matched by content, since Sports.ru lists rows
+    of one date in no stable order. Without a previous journal nothing is stamped: the time of those rows is unknown."""
     if not old:
         return new
     now = now or datetime.now(timezone.utc).isoformat(timespec='seconds')
-    same = lambda a, b: (a.get('date'), a.get('buy'), a.get('sell')) == (b.get('date'), b.get('buy'), b.get('sell'))
+    ident = lambda r: json.dumps([r.get('date'), r.get('buy'), r.get('sell')], ensure_ascii=False, sort_keys=True)
+    known = {}
+    for row in old:
+        known.setdefault(ident(row), []).append(row)
     out = []
-    for i, row in enumerate(new):
-        if i < len(old) and same(old[i], row):
-            out.append({**row, **{k: old[i][k] for k in ('seenAt', 'seenAfter') if old[i].get(k)}})
+    for row in new:
+        match = known.get(ident(row))
+        if match:
+            prev = match.pop(0)
+            out.append({**row, **{k: prev[k] for k in ('seenAt', 'seenAfter', 'free') if prev.get(k)}})
         else:
-            out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {})})
+            out.append({**row, 'seenAt': now, **({'seenAfter': after} if after else {}), **({'free': True} if free else {})})
     return out
 
 
@@ -333,7 +342,8 @@ def collect_teams(previous=None, errors=None):
             errors.append({'team': team, 'error': f"journal shrank from {len(old['journal'])} to {len(entry['journal'])} rows; kept the previous one"})
             entry['journal'] = old['journal']
         read_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
-        entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'], now=read_at, after=(old or {}).get('journalReadAt'))
+        entry['journal'] = stamp_journal((old or {}).get('journal'), entry['journal'], now=read_at, after=(old or {}).get('journalReadAt'),
+                                         free=bool(entry.get('transfersUnlimited')))
         entry['journalReadAt'] = read_at
         if 'balance' not in entry or 'transfersLeft' not in entry:
             errors.append({'team': team, 'error': 'team profile without balance or transfers; layout changed?'})

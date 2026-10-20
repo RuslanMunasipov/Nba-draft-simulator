@@ -39,8 +39,8 @@ function merged(){
 const transfers=()=>merged().transfers;
 const sportsTeam=t=>live?.teams?.[t]||null;
 // Transfers left this week: Sports.ru's own counter for connected teams, the league limit minus recorded ones otherwise.
-// Both limits bind: Sports.ru's own weekly count and the FBL week (pre-season moves count against the first one).
-function transfersLeft(ctx,t){const x=sportsTeam(t)?.transfersLeft,sports=Number.isFinite(x)?x:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(ctx.transfers,t,ctx.today,gameWeeks(live)));
+// Both limits bind: Sports.ru's own weekly count (∞ in pre-season) and the FBL week (pre-season moves are free).
+function transfersLeft(ctx,t){const x=sportsTeam(t)?.transfersLeft,sports=sportsTeam(t)?.transfersUnlimited?Infinity:Number.isFinite(x)?x:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(ctx.transfers,t,ctx.today,gameWeeks(live)));
  return Math.min(sports,fblTransfers(ctx.transfers,t,ctx.today).left);}
 const draftPrice=id=>{const p=byId.get(id);return live?.players?.[p?.sportsId]?.initialPrice??p?.price??0;};
 // Sports.ru's own balance wins: a number typed on this device only stands in for a team Sports.ru does not show.

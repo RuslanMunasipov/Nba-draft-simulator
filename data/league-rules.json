@@ -64,14 +64,16 @@
     "weekStartsOn": "Monday (Moscow date)",
     "firstWeekFrom": "2026-10-18",
     "firstWeekTo": "2026-10-25",
-    "source": "League owner, 2026-10-20: the FBL limit is 3 transfers a week; transfers since the draft count against the first week, which ends on Sunday 25.10; the next weeks run Monday to Sunday. Sports.ru counts its own weeks separately.",
+    "source": "League owner, 2026-10-20: the FBL limit is 3 transfers a week, Monday to Sunday; the first week ends on Sunday 25.10. Pre-season transfers are free (see preseason).",
     "hours": {
       "from": "08:00",
       "to": "22:00",
       "timezone": "Europe/Moscow (UTC+3)",
       "source": "League owner, 2026-10-20: transfers are allowed strictly from 08:00 to 22:00 Moscow time.",
       "note": "Sports.ru journals give only the date; the time is bounded by the watcher: after its last read of the journal without the transfer (seenAfter) and by its first read with it (seenAt)."
-    }
+    },
+    "countFrom": "2026-10-21",
+    "preseason": "League owner, 2026-10-20: while Sports.ru shows ∞ transfers (pre-season, until shortly before the first game) transfers are unlimited and do not count against the FBL week. A transfer counts from countFrom on, unless the watcher saw it while Sports.ru still showed ∞ (journal row flag free)."
   },
   "whiteRule": {
     "min": 1,

@@ -46,11 +46,14 @@ export function timeLabel(t){
  return a&&a!==b&&t.state==='doubt'?`между ${a} и ${b} (${mskDate(t.at)})`:`${b} (${mskDate(t.at)})`;
 }
 
+// Pre-season transfers are free: those before countFrom, and any the watcher saw while Sports.ru showed ∞ transfers.
+export const isFreeTransfer=(x,rules=FBL_TRANSFERS)=>Boolean(x.free)||Boolean(rules.countFrom&&x.date<rules.countFrom);
 export function fblTransfers(transfers,team,today,rules=FBL_TRANSFERS){
- const week=fblWeek(today,rules),used=transfers.filter(x=>x.team===team&&x.date>=week.start&&x.date<=today&&x.date<=week.end).length;
+ const counted=transfers.filter(x=>x.team===team&&!isFreeTransfer(x,rules));
+ const week=fblWeek(today,rules),used=counted.filter(x=>x.date>=week.start&&x.date<=today&&x.date<=week.end).length;
  // Weeks in which the team went over the limit, for the appeal.
  const byWeek=new Map();
- for(const x of transfers.filter(x=>x.team===team)){const w=fblWeek(x.date,rules).start;byWeek.set(w,(byWeek.get(w)||0)+1);}
+ for(const x of counted){const w=fblWeek(x.date,rules).start;byWeek.set(w,(byWeek.get(w)||0)+1);}
  const over=[...byWeek].filter(([,n])=>n>rules.perWeek).map(([start,count])=>({start,end:fblWeek(start,rules).end,count}));
  return {used,left:Math.max(0,rules.perWeek-used),limit:rules.perWeek,week,resetOn:addDays(week.end,1),over};
 }

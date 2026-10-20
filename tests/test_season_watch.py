@@ -24,3 +24,6 @@ class WatchTests(unittest.TestCase):
   snapshot={'teams':{'0':{'journal':[{**row('A'),'seenAt':'x','seenAfter':'y'}]},'1':{'journal':[row('A')]}}}
   mark_read(snapshot,{'0':[row('A')],'1':[row('A'),row('B')]})
   self.assertIn('journalReadAt',snapshot['teams']['0']);self.assertNotIn('journalReadAt',snapshot['teams']['1'])
+ def test_reordered_rows_of_one_date_are_not_a_change(self):
+  a,b={**row('A'),'seenAt':'x'},row('B')
+  self.assertEqual(changed_teams({'teams':{'0':{'journal':[a,b]}}},{'0':[row('B'),row('A')]}),[])
