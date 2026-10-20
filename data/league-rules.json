@@ -87,5 +87,9 @@
     "role": "комиссионер лиги FBL",
     "telegram": "startedfromthe64",
     "note": "Tagged with the lawyer on every breach and on every roster that needs a check."
+  },
+  "leagueFeed": {
+    "since": "2026-10-20T07:00:00Z",
+    "note": "The league chat gets protocols only for transfers the watcher saw from this moment on (league owner, 20.10: no protocols for the transfers made before the bot joined the chat). Protocol numbers count from here."
   }
 }

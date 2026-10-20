@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
-import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER} from '../src/rules.js';
+import {checkRules,verdict,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED} from '../src/rules.js';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
@@ -36,8 +36,12 @@ const name=id=>{const p=byId.get(id);return live.players?.[p?.sportsId]?.fullNam
 const names=list=>list.map(p=>esc(name(p.id))).join(', ');
 const key=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,done=new Set(state.reported||[]);
 // Transfers grouped by team and day in the order they happened; a group's place in that order is its protocol number.
+// The league chat starts at leagueFeed.since: transfers the watcher saw before it (or never timed) get no protocol and
+// no number. A preview shows every transfer since the draft.
+const preview=Number(process.env.LEAGUE_FEED_PREVIEW)||0;
+const posted=x=>preview||!LEAGUE_FEED.since||(x.seenAt&&Date.parse(x.seenAt)>=Date.parse(LEAGUE_FEED.since));
 const groups=new Map();
-transfers.forEach((x,i)=>{const g=`${x.team}:${x.date}`;if(!groups.has(g))groups.set(g,[]);groups.get(g).push(i);});
+transfers.forEach((x,i)=>{if(!posted(x))return;const g=`${x.team}:${x.date}`;if(!groups.has(g))groups.set(g,[]);groups.get(g).push(i);});
 // Sports.ru money: the cap, minus the draft prices, plus every sale, minus every purchase up to the given transfer.
 const draftPrice=id=>live.players?.[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0;
 function checkLines(c,moves){
@@ -67,7 +71,7 @@ const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> �
  check:items=>`🔏 <b>Заключение:</b> явных нарушений нет, требуется проверка — ${items.join('; ')}. Состав передан юристу лиги.`,
  approved:()=>'🔏 <b>Заключение:</b> состав соответствует регламенту.'};
 // LEAGUE_FEED_PREVIEW=N: the last N protocols as a test (printed, or posted to the league chat), remembering nothing.
-const preview=Number(process.env.LEAGUE_FEED_PREVIEW)||0,firstPreview=groups.size-preview;
+const firstPreview=groups.size-preview;
 // When the transfer happened: the watcher's first sight of the journal row (within a minute), in Moscow time.
 const when=moves=>{const at=moves.map(m=>m.seenAt).filter(Boolean).sort().pop();return at?`🕒 Трансфер зафиксирован: ${moscow(at)}`:'🕒 Время трансфера: не зафиксировано (до начала наблюдения)';};
 let number=0;
