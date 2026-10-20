@@ -114,6 +114,15 @@ for(const idx of groups.values()){
  number++;
  const moves=idx.map(i=>transfers[i]);
  if(preview?number<=firstPreview:moves.every(m=>!pending.has(m)))continue;
+ // A package only stale deals make up (seen longer ago than maxAgeMinutes: an outage or an update) is not posted late:
+ // it is recorded as reported and listed in the log.
+ const maxAge=(LEAGUE_FEED.maxAgeMinutes||0)*60e3,stale=m=>maxAge&&(!m.seenAt||Date.now()-Date.parse(m.seenAt)>maxAge);
+ if(!preview&&moves.filter(m=>pending.has(m)).every(stale)){
+  const late=moves.filter(m=>pending.has(m));console.log(`Not posted (older than ${LEAGUE_FEED.maxAgeMinutes} min): ${late.map(key).join(', ')}`);
+  for(const m of late){done.add(key(m));pending.delete(m);}
+  if(configured)fs.writeFileSync(statePath,JSON.stringify({...state,reported:[...done],count:issued,updatedAt:new Date().toISOString()}));
+  continue;
+ }
  // Only the deals not yet published are shown (a day's earlier deals had their protocol); the rules are checked on the
  // roster after the whole day's package, since Sports.ru confirms a day's transfers as one.
  const news=preview?moves:moves.filter(m=>pending.has(m)),fresh=m=>news.includes(m);
@@ -162,6 +171,6 @@ for(const idx of groups.values()){
  let fitted=text;
  for(const l of voice(v,c,news,x.team,money,t).slice(1).reverse())
   if(plainText(fitted).length+45>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
- if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);}issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
+ if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);}issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({...state,reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');

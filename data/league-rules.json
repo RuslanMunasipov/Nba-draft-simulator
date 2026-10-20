@@ -90,7 +90,9 @@
   },
   "leagueFeed": {
     "since": "2026-10-20T07:00:00Z",
-    "note": "The league chat gets protocols only for transfers the watcher saw from this moment on (league owner, 20.10: no protocols for the transfers made before the bot joined the chat). Protocol numbers count from here."
+    "note": "The league chat gets protocols only for transfers the watcher saw from this moment on (league owner, 20.10: no protocols for the transfers made before the bot joined the chat). Protocol numbers count from here.",
+    "maxAgeMinutes": 120,
+    "maxAgeNote": "A deal the feed did not post within this many minutes of the watcher seeing it (an outage, an update) is not posted late to the league chat: it is recorded as reported and listed in the run log (league owner, 20.10: no late posts after an update)."
   },
   "managers": {
     "source": "League owner, 2026-10-20: the Telegram username of each team's general manager (team index as in src/teams.js), kept only encrypted in data/telegram-handles.enc.json.",
