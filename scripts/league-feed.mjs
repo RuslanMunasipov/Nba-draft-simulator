@@ -57,13 +57,16 @@ function checkLines(c,moves){
 }
 // The protocol's verdict (an obvious breach summons the lawyer, a doubt asks for his check, otherwise he approves) and
 // the reasons behind it; each verdict has its photo of Зак Онн.
-function reasons(c){
+function reasons(c,blame=new Map()){
  const v=verdict(c);
  // Short names in the conclusion: the check lines above already carry the details.
  const label=r=>r.rule==='rookie'?'правило новичка':r.rule==='white'?(c.whiteState==='sold'?'белое правило — продан засчитываемый игрок, замена не отмечена':'белое правило')
   :r.rule==='club'?'лимит клуба NBA':r.rule==='transfers'?'лимит трансферов':r.rule==='time'?(r.certain?'время сделки — вне 08:00–22:00 МСК':'время сделки — на границе 08:00–22:00 МСК'):esc(r.text);
  const doubts=[...v.doubts.map(label),...(v.unmarked?[`белое правило — нет решения лиги по ${names(c.undecided)||'игрокам состава'}`]:[])];
- return {kind:v.kind,items:v.kind==='violation'?[...new Set(v.breaches.map(label))]:doubts,doubts};
+ // Which deal of the package broke it, when there are several.
+ const by=r=>blame.has(r.rule)?`${label(r)} (${blame.get(r.rule)})`:label(r);
+ const doubted=[...v.doubts.map(by),...(v.unmarked?[`белое правило — нет решения лиги по ${names(c.undecided)||'игрокам состава'}`]:[])];
+ return {kind:v.kind,items:v.kind==='violation'?[...new Set(v.breaches.map(by))]:doubted,doubts:doubted};
 }
 const photo=kind=>fileURLToPath(new URL(`./assets/zak-onn/${kind}.jpg`,import.meta.url));
 // The lawyer and the commissioner by their Telegram usernames (Telegram then notifies them personally), decrypted for
@@ -74,11 +77,13 @@ const commissioner=at(handles.commissioner)?`👔 ${at(handles.commissioner)} ($
 const gmLine=team=>at(handles.managers[team])?`📣 GM команды: ${at(handles.managers[team])}`:null;
 // The bot speaks as Зак Онн; the member who answers for him is tagged to take the case.
 const operator=at(handles.lawyer);
-const HEAD={violation:team=>[HEADINGS.violation,`🚨 Нарушение регламента. Зак Онн открывает дело.${operator?` ${operator} — к расследованию.`:''}`,commissioner,gmLine(team),''],
- check:team=>[HEADINGS.check,`🔎 Есть сомнение. Зак Онн сверяет факты.${operator?` ${operator} — к проверке.`:''}`,commissioner,gmLine(team),''],approved:()=>[]};
+// The heading names the broken (or doubtful) rules and the deal that did it, first thing.
+const HEAD={violation:(team,v)=>[HEADINGS.violation,`🚨 <b>Нарушено:</b> ${v.items.join('; ')}`,`⚖️ Зак Онн открывает дело.${operator?` ${operator} — к расследованию.`:''}`,commissioner,gmLine(team),''],
+ check:(team,v)=>[HEADINGS.check,`🔎 <b>На проверке:</b> ${v.items.join('; ')}`,`⚖️ Зак Онн сверяет факты.${operator?` ${operator} — к проверке.`:''}`,commissioner,gmLine(team),''],approved:()=>[]};
 const watched=team=>WATCHLIST.find(w=>Number(w.team)===Number(team));
-const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> нарушено — ${items.join('; ')}.${doubts.length?` На проверке: ${doubts.join('; ')}.`:''} Дело открыто.`,
- check:items=>`🔏 <b>Заключение:</b> явных нарушений нет. На проверке: ${items.join('; ')}.`,
+// The heading names the rules; the conclusion states the outcome (and a doubt alongside a breach).
+const CONCLUSION={violation:(items,doubts)=>`🔏 <b>Заключение:</b> регламент нарушен, дело открыто.${doubts.length?` Также на проверке: ${doubts.join('; ')}.`:''}`,
+ check:()=>'🔏 <b>Заключение:</b> явных нарушений нет, нужна проверка.',
  approved:()=>'🔏 <b>Заключение:</b> состав соответствует регламенту.'};
 // LEAGUE_FEED_PREVIEW=N: the last N protocols as a test (printed, or posted to the league chat), remembering nothing.
 const firstPreview=groups.size-preview;
@@ -111,9 +116,25 @@ for(const idx of groups.values()){
  const own=new Set(moves.map(m=>`${m.outId}>${m.inId}:${m.date}`));
  const c={...all,violations:all.violations.filter(v=>v.rule!=='time'||own.has(v.transfer))};
  const money=bank(x.team,after,draftPrice),t=c.transfers;
- const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${esc(name(m.outId))} (${m.outPrice}) ⟶ ${esc(name(m.inId))} (${m.inPrice})`);
- const v=reasons(c);
- const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
+ // Which deal broke each rule: the one after which the rule stayed broken to the end of the package (a package is
+ // judged on its final roster, so a rookie sold and bought back the same day breaks nothing). Time is per deal.
+ const dealName=k=>moves.length>1?`сделка ${k+1}`:'сделка';
+ const steps=idx.map(i=>new Set(checkRules({rosters:seasonRosters(transfers.slice(0,i+1)),byId,transfers:transfers.slice(0,i+1),white:league.white||[],
+  checked:(league.whiteChecked||[]).map(String),today:transfers[i].date,clubOf})[x.team].violations.filter(r=>r.rule!=='time').map(r=>r.rule)));
+ const blame=new Map(),broke=new Map(),doubted=new Map();
+ for(const r of new Set(c.violations.map(r=>r.rule))){
+  if(r==='time'){const k=moves.findIndex(m=>transferTime(m).state!=='ok'&&transferTime(m).state!=='unknown');
+   if(k>=0){blame.set(r,dealName(k));if(transferTime(moves[k]).state==='breach')broke.set(k,[...(broke.get(k)||[]),r]);else doubted.set(k,[...(doubted.get(k)||[]),r]);}continue;}
+  let k=steps.length-1;while(k>0&&steps[k-1].has(r))k--;
+  if(steps[k]?.has(r)){blame.set(r,dealName(k));broke.set(k,[...(broke.get(k)||[]),r]);}
+ }
+ // Each player is marked when he counts for a rule: «новичок» (rookie) and «белый» (the league's white list).
+ const whiteSet=new Set((league.white||[]).map(String));
+ const who=id=>`${esc(name(id))}${byId.get(id)?.isRookie===true?' <i>[новичок]</i>':''}${whiteSet.has(String(id))?' <i>[белый]</i>':''}`;
+ const ruleName={rookie:'правило новичка',white:'белое правило',club:'лимит клуба NBA',transfers:'лимит трансферов',time:'время сделки'};
+ const deals=moves.map((m,i)=>`<b>Сделка${moves.length>1?' '+(i+1):''}:</b> ${who(m.outId)} (${m.outPrice}) ⟶ ${who(m.inId)} (${m.inPrice})${broke.has(i)?` — ❌ ${broke.get(i).map(r=>ruleName[r]).join(', ')}`:''}${doubted.has(i)?` — ⏳ ${doubted.get(i).map(r=>ruleName[r]).join(', ')}`:''}`);
+ const v=reasons(c,moves.length>1?blame:new Map());
+ const text=message(...(preview?['🧪 <i>Пример протокола бота лиги FBL: так он появится в чате лиги</i>','']:[]),...HEAD[v.kind](x.team,v),`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,`Лига FBL · сезон 2026/27 · ${day(x.date)}`,when(moves),'',
   `<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`,watched(x.team)?`🎯 <i>Под прицелом Зака Онна с ${ddmm(watched(x.team).since)}</i>`:null,...deals,'',
   `💰 <b>Баланс после трансферов:</b> ${money}`,
   moves.every(m=>isFreeTransfer(m))?`🔁 <b>Трансферы:</b> ∞ · предсезонье, лимит FBL (${t.limit} в неделю) — с первой игры сезона`
@@ -126,7 +147,7 @@ for(const idx of groups.values()){
  // Extra lines (circumstances, joke) go first when the protocol would not fit under the photo.
  let fitted=text;
  for(const l of voice(v,c,moves,x.team,money,t).slice(1).reverse())
-  if([...plainText(fitted)].length+40>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
+  if(plainText(fitted).length+45>CAPTION_LIMIT)fitted=fitted.replace('\n'+l,'');
  if(await send(fitted,{photo:photo(v.kind)})&&!preview){for(const m of moves)done.add(key(m));issued++;if(configured)fs.writeFileSync(statePath,JSON.stringify({reported:[...done],count:issued,updatedAt:new Date().toISOString()}));}
 }
 if(!groups.size)console.log('No new league transfers.');
