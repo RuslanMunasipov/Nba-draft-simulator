@@ -1,0 +1,28 @@
+name: League feed sample
+# Manual only, never on a schedule: sends the latest league-feed protocol, headed as a sample, to the owner's personal
+# chat, so it can be forwarded to the commissioner. Nothing is remembered as posted; the watcher never runs this.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Latest Sports.ru snapshot
+        run: |
+          mkdir -p out
+          git fetch -q origin data/season-live:refs/remotes/origin/data/season-live
+          git show origin/data/season-live:sports-current.json > out/sports-current.json
+      - name: Send one sample protocol to the owner
+        env:
+          LEAGUE_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          LEAGUE_TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          LEAGUE_FEED_PREVIEW: '1'
+        run: node scripts/league-feed.mjs out/sports-current.json out/sample-state.json
