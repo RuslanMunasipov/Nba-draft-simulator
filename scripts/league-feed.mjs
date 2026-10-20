@@ -3,7 +3,8 @@
 // happened and whether the roster complies. A team's transfers of one day are one message (Sports.ru confirms them as a
 // package), checked on the roster after the whole package.
 // Usage: league-feed.mjs <sports-current.json> <league-state.json>
-// Env: LEAGUE_TELEGRAM_CHAT_ID, LEAGUE_TELEGRAM_BOT_TOKEN (defaults to TELEGRAM_BOT_TOKEN). Without them nothing is
+// Env: LEAGUE_TELEGRAM_CHAT_ID and LEAGUE_TELEGRAM_BOT_TOKEN, the league's own bot (never the personal one: the league
+// chat must not share a bot or a chat with the personal advice). Without them nothing is
 // marked as posted, so the feed starts complete once the chat is set.
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank} from '../src/season.js';
@@ -20,7 +21,12 @@ const league=await json(RAW+'main/data/fbl-league.json').catch(()=>JSON.parse(fs
 const state=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/league-state.json').catch(()=>({reported:[]}));
 const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p]));
 const {transfers}=allTransfers(players,live,league);
-const {configured,send}=sender(process.env.LEAGUE_TELEGRAM_BOT_TOKEN||process.env.TELEGRAM_BOT_TOKEN,process.env.LEAGUE_TELEGRAM_CHAT_ID);
+// The league feed posts only through the league's own bot into the league's own chat. The personal bot or chat in its
+// place is refused, so no message ever crosses between the two (a preview to the personal chat is the one exception).
+const leagueToken=process.env.LEAGUE_TELEGRAM_BOT_TOKEN,leagueChat=process.env.LEAGUE_TELEGRAM_CHAT_ID;
+if(!Number(process.env.LEAGUE_FEED_PREVIEW)&&leagueToken&&(leagueToken===process.env.TELEGRAM_BOT_TOKEN||(leagueChat&&leagueChat===process.env.TELEGRAM_CHAT_ID))){
+ console.error('League feed refused: the league bot and chat must differ from the personal ones.');process.exit(1);}
+const {configured,send}=sender(leagueToken,leagueChat);
 const clubOf=p=>live.players?.[p.sportsId]?.club||p.sportsClub;
 const day=d=>`${d.slice(8,10)}.${d.slice(5,7)}.${d.slice(0,4)}`,ddmm=d=>`${d.slice(8,10)}.${d.slice(5,7)}`;
 // A player as the league sees him on Sports.ru (Russian name).

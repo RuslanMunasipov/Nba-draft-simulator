@@ -38,7 +38,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # The league chat's feed (scripts/league-feed.mjs); its own bot is optional, the default is the same bot.
+          # The league chat's feed (scripts/league-feed.mjs): its own bot and chat, never the personal ones.
           LEAGUE_TELEGRAM_CHAT_ID: ${{ secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           LEAGUE_TELEGRAM_BOT_TOKEN: ${{ secrets.LEAGUE_TELEGRAM_BOT_TOKEN }}
         run: python scripts/season_watch.py out/sports-current.json out/notify-state.json --minutes 345 --every 60 --full-every 120
