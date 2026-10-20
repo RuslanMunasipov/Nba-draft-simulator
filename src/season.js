@@ -415,26 +415,24 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
  const level=confidence>=CONFIDENT?'CONFIDENT':confidence>=DOUBTFUL?'MODERATE':'DOUBTFUL';
  return {gain,sd,confidence,level,parts,flags:[...new Set(flags)],sides};
 }
-// Official Sports.ru formula on an ESPN box-score line; the result bonus applies only to finished games.
-// A line with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of a DNP empty.
-export function resultBonus(home,won){return won?(home?2:3):(home?-3:-2);}
-export function boxScorePoints(stats,{home,won=null}){
+// The FBL formula on an ESPN box-score line: Sports.ru's without the team result bonus (the league scores on Yahoo,
+// which cannot award it). A line with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of
+// a DNP empty.
+export function boxScorePoints(stats){
  const n=v=>Number(v)||0,split=v=>String(v||'0-0').split('-').map(Number);
  const [fgm,fga]=split(stats.FG),[ftm,fta]=split(stats.FT),min=n(stats.MIN);
  if(!Object.keys(stats||{}).length)return null;
- return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+(min>=10?2:1)+(won===null?0:resultBonus(home,won));
+ return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+(min>=10?2:1);
 }
 // ESPN summary -> {espnAthleteId: {points, minutes, final}}.
 export function liveGamePoints(summary,event){
- const comp=event?.competitions?.[0],final=Boolean(event?.status?.type?.completed),out={};
- const sides=new Map((comp?.competitors||[]).map(c=>[String(c.team?.id),{home:c.homeAway==='home',won:final?Boolean(c.winner):null}]));
+ const final=Boolean(event?.status?.type?.completed),out={};
  for(const team of summary?.boxscore?.players||[]){
-  const side=sides.get(String(team.team?.id))||{home:false,won:null};
   for(const st of team.statistics||[]){
    const labels=st.labels||st.names||[];
    for(const a of st.athletes||[]){
     if(!a.stats?.length||a.didNotPlay)continue;const stats=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]]));
-    const points=boxScorePoints(stats,side);if(points!==null)out[String(a.athlete?.id)]={points,minutes:Number(stats.MIN)||0,final};
+    const points=boxScorePoints(stats);if(points!==null)out[String(a.athlete?.id)]={points,minutes:Number(stats.MIN)||0,final};
    }
   }
  }

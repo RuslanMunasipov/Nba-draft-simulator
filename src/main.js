@@ -188,7 +188,7 @@ function sportsHistoryPanel(p){
  const box=el('div',null,'pc-block');box.append(el('h4','Sports.ru · ФО по сезонам'));
  const table=el('table',null,'sports-table'),head=el('tr');for(const h of ['Сезон','Матчи','За матч','Всего'])head.append(el('th',h));table.append(head);
  const row=([season,s])=>{const tr=el('tr');for(const v of [season.replace(/^20(\d\d)-(\d\d)$/,'$1/$2'),String(s.games),dec(s.perGame),int(s.points)])tr.append(el('td',v));return tr;};
- for(const s of seasons.slice(0,3))table.append(row(s));box.append(table);
+ for(const s of seasons.slice(0,3))table.append(row(s));box.append(table,el('p','По формуле Sports.ru, с бонусом за результат команды; в FBL его нет.','muted'));
  if(seasons.length>3){const all=el('details',null,'inline'),t=el('table',null,'sports-table');for(const s of seasons.slice(3))t.append(row(s));all.append(el('summary',`Ещё ${count(seasons.length-3,'сезон','сезона','сезонов')}`),t);box.append(all);}
  return box;
 }
@@ -239,7 +239,7 @@ function forecastCard(p){
  if(f.transfer)box.append(el('p',`С заменами при травмах: ${int(f.slotSeason)} ФО = ${int(f.meanSeason)} своих + ${int(f.transfer.value)} от замены. Длинные пропуски закрывает трансфер: в среднем ${dec(f.transfer.replacedGames)} матча по ${dec(f.transfer.replacementPerGame)} ФО. По этой ценности строится рейтинг драфта.`));
  if(f.scoringBreakdown){
   const table=el('table',null,'scoring-breakdown');table.append(el('caption','Формула Sports.ru · вклад за матч'));
-  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери (×2)',personalFouls:'Фолы',participation:'Бонус за минуты',teamResult:'Результат команды',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, ESPN)'};
+  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери (×2)',personalFouls:'Фолы',participation:'Бонус за минуты',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, ESPN)'};
   for(const [key,value] of Object.entries(f.scoringBreakdown)){const row=el('tr');row.append(el('th',labels[key]||key),el('td',signedDec(value,2)));table.append(row);}
   const total=el('tr');total.append(el('th','Итого за матч'),el('td',dec(f.meanPerGame,2)));table.append(total);
   const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap);

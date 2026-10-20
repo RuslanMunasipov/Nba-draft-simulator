@@ -14,7 +14,7 @@ def game(pid, season, n, minutes=30.0, pts=20, team='AAA', won=True):
 class HistoryTests(unittest.TestCase):
     def setUp(self):
         rows = [game('1', 2024, i) for i in range(60)] + [game('1', 2026, i) for i in range(70)] + [game('2', 2026, i, minutes=8, pts=2) for i in range(20)]
-        seasons, team_games, bonus = pm.season_table(rows, lambda r: r['player_id'])
+        seasons, team_games = pm.season_table(rows, lambda r: r['player_id'])
         self.h = pm.History(seasons, team_games, {'1': '1998-01-01'})
 
     def test_a_season_missed_after_the_debut_counts_as_zero_games(self):
@@ -23,7 +23,7 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(self.h.target('1', 2025)['games'], 0)
         self.assertIsNone(self.h.features('2', 2026))  # no season before the target
 
-    def test_rate_is_the_sports_formula_without_the_result_bonus(self):
+    def test_rate_is_the_fbl_formula_without_a_team_result_bonus(self):
         y = self.h.target('1', 2026)
         self.assertAlmostEqual(y['rate'], 20 + 5 + 3 + 1 + 1 - 8 - 1 - 4 - 2 + 2)
         short = self.h.target('2', 2026)
@@ -38,8 +38,8 @@ class HistoryTests(unittest.TestCase):
 class StatLineTests(unittest.TestCase):
     def test_components_add_up_to_the_forecast(self):
         p = dict(short=.1, stats=dict(pts=20, reb=8, ast=4, stl=1, blk=1, tov=3, pf=2.5, fgm=7, fga=15, ftm=5, fta=6))
-        line, comp = pm.stat_line(p, None, {}, rate=22.0, bonus=.4)
-        self.assertAlmostEqual(sum(comp.values()), 22.0)
+        line, comp = pm.stat_line(p, None, {}, rate=22.0)
+        self.assertAlmostEqual(sum(comp.values()), 22.0); self.assertNotIn('teamResult', comp)
         self.assertAlmostEqual(comp['countingAndMisses'], pm.terms(line))
         self.assertAlmostEqual(comp['personalFouls'], -2.5)
 

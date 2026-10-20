@@ -109,5 +109,11 @@
     "source": "League owner, 2026-10-20: a player may be on only one FBL team; buying a player another FBL team holds is a direct breach (Sports.ru itself allows it).",
     "verdict": "violation",
     "note": "The team that bought him later is in breach; the team that had him first is not."
+  },
+  "scoringFormula": {
+    "formula": "Sports.ru per-game formula without the team result bonus",
+    "resultBonus": false,
+    "decidedBy": "league owner, 2026-10-20",
+    "reason": "The league scores on Yahoo, which cannot award points for team wins or take them for losses."
   }
 }

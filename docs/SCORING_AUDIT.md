@@ -5,6 +5,7 @@
 - Removed uncalibrated role 0.85 and OUT 0.5 multipliers from the value calculation. Availability/risk evidence remains visible; high-risk candidates remain separate.
 - Removed successful roster completion from player advantages. It is enforced as a feasibility constraint.
 - Added complete Sports.ru formula estimates: provider counting statistics, estimated PF, participation and team-result bonuses. Formula source: https://www.sports.ru/fantasy/basketball/tournament/rules/150.html .
+- 20.10.2026 (league owner): the FBL formula has no team result bonus (Yahoo, where the league scores, cannot award points for a team's wins or take them for its losses). Every forecast, the live box-score points and the in-season calibration use Sports.ru's formula without it; every played game is scored on its own row (no reconstructed outcome needed).
 - Explicitly separated single-game P90, mean season, and high/low season scenarios. Never multiply game ceiling by 82.
 - Reconstruct historical team outcomes only for two-team games with complete minute totals; report rejected games.
 - Preserve joint empirical change in per-game production and games in season scenarios.

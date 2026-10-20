@@ -1,12 +1,12 @@
 """FBL season projection model trained on full career game logs (ESPN, NBA regular seasons 2002-2026).
 
 Marcel-style, every weight fitted on data and checked on an untouched season:
-- points per minute (Sports.ru formula without participation and result bonuses): weighted last three seasons,
+- points per minute (Sports.ru formula without the participation bonus): weighted last three seasons,
   shrunk to the league rate by total minutes, plus an age curve;
 - minutes per game: weighted last three seasons, shrunk to the league mean by games, plus an age curve;
 - share of team games played: weighted last three seasons and the career share, shrunk to the age-group mean;
-- participation bonus from the player's own share of games under 10 minutes; result bonus from the team's previous
-  season, shrunk by the measured year-to-year team persistence;
+- participation bonus from the player's own share of games under 10 minutes. The FBL formula has no team result bonus
+  (league owner, 20.10.2026: the league scores on Yahoo, which cannot award points for wins or take them for losses);
 - rookies: first-season rate, minutes and share by draft pick, fitted on complete draft classes.
 - games distribution: a semi-Markov absence chain with Gamma frailty (availability_model.py), its mean set to the
   regression's; it supplies the games side of the season range and the short-season probability.
@@ -37,9 +37,8 @@ RULES='https://www.sports.ru/fantasy/basketball/tournament/rules/150.html'
 STAT_KEYS=['pts','reb','ast','stl','blk','tov','pf','fgm','fga','ftm','fta']
 
 def counting(r):
-    """Sports.ru points of one game without the participation and result bonuses."""
+    """FBL points of one game without the participation bonus."""
     return r['pts']+r['reb']+r['ast']+r['stl']+r['blk']-(r['fga']-r['fgm'])-(r['fta']-r['ftm'])-2*r['tov']-r['pf']
-def result_bonus(home,won):return (2 if home else 3) if won else (-3 if home else -2)
 def quantile(values,p):
     v=sorted(values)
     if not v:return None
@@ -50,19 +49,17 @@ def normalize(name):
 
 # ---------- seasons ----------
 def season_table(rows,key):
-    """(player, season) -> games, minutes, counting points, games under 10 minutes, team, result bonus; plus team calendars."""
-    seasons=defaultdict(lambda:dict(games=0,minutes=0.0,counting=0.0,short=0,bonus=0.0,teams=[],logs=[],stats=defaultdict(float)))
-    team_games=defaultdict(set);team_bonus=defaultdict(list)
+    """(player, season) -> games, minutes, counting points, games under 10 minutes, team; plus team calendars."""
+    seasons=defaultdict(lambda:dict(games=0,minutes=0.0,counting=0.0,short=0,teams=[],logs=[],stats=defaultdict(float)))
+    team_games=defaultdict(set)
     for r in rows:
         s=seasons[(key(r),r['season'])];s['games']+=1;s['minutes']+=r['minutes'];s['counting']+=counting(r);s['short']+=r['minutes']<10
         for k in STAT_KEYS:s['stats'][k]+=r[k]
         s['teams'].append(r['team']);s['logs'].append(counting(r)+(2 if r['minutes']>=10 else 1))
-        if r.get('result') in ('W','L'):
-            b=result_bonus(r['home'],r['result']=='W');s['bonus']+=b
-            team_games[(r['season'],r['team'])].add(r['game_id']);team_bonus[(r['season'],r['team'])].append((r['game_id'],b))
+        # A team's calendar counts its decided games (a row with a result).
+        if r.get('result') in ('W','L'):team_games[(r['season'],r['team'])].add(r['game_id'])
     for s in seasons.values():s['team']=max(set(s['teams']),key=s['teams'].count)
-    bonus={k:statistics.mean(dict(v).values()) for k,v in team_bonus.items() if len(dict(v))>=20}
-    return dict(seasons),{k:len(v) for k,v in team_games.items()},bonus
+    return dict(seasons),{k:len(v) for k,v in team_games.items()}
 def season_length(year,team=None,team_games=None):
     if team_games and (year,team) in team_games and team_games[(year,team)]>=40:return max(team_games[(year,team)],{2012:66,2020:63,2021:72}.get(year,82))
     return {2012:66,2020:72,2021:72}.get(year,82)
@@ -377,17 +374,16 @@ def actual_replaced(o,n,delay=av.REPLACE_DELAY):
 def replacement_rate(rates,rostered=80,depth=16):
     """Per-game value of the best players left after the league's 80 roster spots (ranks 81-96 by forecast)."""
     v=sorted(rates,reverse=True)[rostered:rostered+depth];return statistics.mean(v) if v else 0.0
-def transfer_check(model,chain,test,history,bonus,beta):
+def transfer_check(model,chain,test,history):
     """Held-out check of the slot value with replacements: on 2025/26, does adding the expected replacement points to a
     player's own forecast predict (and rank) what his roster slot actually produced, own points plus a replacement's
     over his actual long absences? The replacement level is the same on both sides, so only the absence model is tested."""
     rows=[]
     for e in test:
-        n=season_length(e['t']);p=model.predict(e['x']);last=next((q for q in e['x']['past'] if q and q['games']),None)
-        b=beta*bonus.get((e['t']-1,last['team']),0)
+        n=season_length(e['t']);p=model.predict(e['x'])
         _,info=chain.distribution(e['pid'],e['t'],mean=p['share']*n,L=n)
-        rows.append(dict(rate=p['rate']+b,centre=(p['rate']+b)*p['share']*n,expected=info['replacedGames'],
-                         actual=((e['y']['rate'] or 0)+b)*e['y']['games'],replaced=actual_replaced(history.spells.get((e['pid'],e['t'])),n)))
+        rows.append(dict(rate=p['rate'],centre=p['rate']*p['share']*n,expected=info['replacedGames'],
+                         actual=(e['y']['rate'] or 0)*e['y']['games'],replaced=actual_replaced(history.spells.get((e['pid'],e['t'])),n)))
     R=replacement_rate([r['rate'] for r in rows])*(1-chain.short-chain.long)
     for r in rows:r['slot']=r['actual']+R*r['replaced'];r['adjusted']=r['centre']+R*r['expected']
     def top(key,k=80):return sum(r['slot'] for r in sorted(rows,key=lambda r:-r[key])[:k])
@@ -434,23 +430,15 @@ def teammate_correlation(forward):
     cov=sum((a-mx)*(b-my) for a,b in zip(xs,ys))/len(xs)
     return dict(correlation=cov/(statistics.pstdev(xs)*statistics.pstdev(ys)),pairs=len(xs)//2)
 
-# ---------- team results ----------
-def team_persistence(bonus):
-    pairs=[(bonus[(y-1,t)],bonus[(y,t)]) for (y,t) in bonus if (y-1,t) in bonus and y<=TEST]
-    mx=statistics.mean(a for a,_ in pairs);my=statistics.mean(b for _,b in pairs)
-    beta=sum((a-mx)*(b-my) for a,b in pairs)/sum((a-mx)**2 for a,_ in pairs)
-    return beta,len(pairs)
-
 # ---------- evaluation ----------
-def evaluate(model,ranges,test,bonus,beta,chain=None):
+def evaluate(model,ranges,test,chain=None):
     rows=[]
     for e in test:
-        p=with_games(model.predict(e['x']),chain,e['pid'],e['t']);last=next((q for q in e['x']['past'] if q and q['games']),None)
-        team=last['team'];b=beta*bonus.get((e['t']-1,team),0)
-        n=season_length(e['t']);centre=(p['rate']+b)*p['share']*n;lo,hi,short=ranges.interval(dict(p,rate=p['rate']+b),e['x'],n)
-        actual=((e['y']['rate'] or 0)+b)*e['y']['games']
+        p=with_games(model.predict(e['x']),chain,e['pid'],e['t'])
+        n=season_length(e['t']);centre=p['rate']*p['share']*n;lo,hi,short=ranges.interval(p,e['x'],n)
+        actual=(e['y']['rate'] or 0)*e['y']['games']
         lp=e['x']['past'][0]
-        persistence=((lp['counting']+2*lp['games']-lp['short'])/lp['games']+b)*lp['games'] if lp and lp['games'] else 0
+        persistence=(lp['counting']+2*lp['games']-lp['short']) if lp and lp['games'] else 0
         rows.append(dict(pid=e['pid'],actual=actual,centre=centre,persistence=persistence,lo=lo,hi=hi,short=short,
                          rate=p['rate'],actualRate=e['y']['rate'],games=p['share']*n,actualGames=e['y']['games'],lastGames=lp['games'] if lp else 0,
                          gamesRange=av.quantiles(p['gamesPmf'],(.1,.9)) if p.get('gamesPmf') is not None else None))
@@ -510,9 +498,9 @@ def load():
     births={p['playerId']:p['birthDate'] for p in json.loads(PEOPLE.read_text())['players'] if p.get('birthDate')}
     first=min(SEASON_FILES)
     rows=[r for r in pq.read_table(CAREER,filters=[('competition','=','nba'),('season_type','=','REGULAR')]).to_pylist() if r['season']<first]+league_rows()
-    seasons,team_games,bonus=season_table(rows,lambda r:r['player_id'])
+    seasons,team_games=season_table(rows,lambda r:r['player_id'])
     history=History(seasons,team_games,births);history.spells=av.spells(rows)
-    return history,bonus
+    return history
 
 FIT_FROM=2014  # earlier seasons hold few players of this universe and only long careers
 POOL=6  # seasons of out-of-sample errors behind the ranges
@@ -522,8 +510,7 @@ def current_roster(data):
     return {str(p.get('nbaId') or p['id']) for p in data['players'] if p.get('currentRosterStatus')=='SOURCE_REPORTED'}
 
 def run(data=None):
-    history,bonus=load()
-    beta,team_pairs=team_persistence(bonus)
+    history=load()
     current=current_roster(data)
     if len(current)<300:raise ValueError('Current rosters are required to define the forecast population')
     fit=examples_for(history,range(FIT_FROM,TEST),current);test=examples_for(history,[TEST],current)
@@ -531,11 +518,11 @@ def run(data=None):
     frozen=Veteran(fit)
     ranges=Ranges(forward(fit,range(TEST-POOL,TEST),history))
     chain=availability(history,TEST)
-    holdout=evaluate(frozen,ranges,test,bonus,beta,chain)
+    holdout=evaluate(frozen,ranges,test,chain)
     holdout['errorSources']=error_sources(frozen,test,history)
     if chain:
         holdout['healthyStart']=healthy_start_check(frozen,chain,test,history)
-        holdout['transferValue']=transfer_check(frozen,chain,test,history,bonus,beta)
+        holdout['transferValue']=transfer_check(frozen,chain,test,history)
     drafts=json.loads(DRAFTS.read_text())['drafts']
     league={y:league_seasons(p,y) for y,p in SEASON_FILES.items()}
     rookie_fit=rookie_rows(drafts,{2025:(league[2025],league[2024])})
@@ -546,13 +533,13 @@ def run(data=None):
     rookie_holdout={k:dict(modelMAE=rookie_err(rookie_frozen,rookie_test,k),flatPriorMAE=statistics.mean(abs(flat[k]-r[k]) for r in rookie_test if r[k] is not None)) for k in ('rate','minutes','share')}
     rookie_holdout.update(players=len(rookie_test),drafted=sum(bool(r['pick']) for r in rookie_test))
     report=dict(status='TRAINED_AND_HELD_OUT',fitTargets=[FIT_FROM,TEST-1],testTarget=TEST,fitTransitions=len(fit),testPlayers=len(test),
-                frozenModel=frozen.report(),availability=chain.report() if chain else None,holdout=holdout,teamResultPersistence=dict(slope=beta,teamSeasons=team_pairs),
+                frozenModel=frozen.report(),availability=chain.report() if chain else None,holdout=holdout,
                 rangeScaling=dict(low=ranges.low,high=ranges.high,errorPool=[TEST-POOL,TEST-1],method='forward (out-of-sample) errors, leave-one-season-out conformal per tail'),
                 rookies=dict(fit=rookie_frozen.fit,holdout=rookie_holdout,fitSeasons=[2024],testSeason=2025),
                 limitations=['Career logs cover players on 2026-27 rosters: older transitions are survivor-selected (players who lasted). '
                              'The test season matches the forecast population (players who are on a roster the following season).',
                              'ESPN minutes are whole numbers, so the 10-minute participation threshold is approximate near 10 minutes.',
-                             'Team result bonus uses the previous season shrunk by measured persistence, not the current roster strength.',
+                             'No team result bonus: the FBL formula is Sports.ru\'s without it (the league scores on Yahoo, which cannot award it).',
                              'Rookie rows match draft names to league logs; ambiguous names are skipped. Drafted players who never played count as zero games.'])
     if data is None:return report
     production=Veteran(fit+test);pool=forward(fit+test,range(TARGET-POOL,TARGET),history);prod_ranges=Ranges(pool)
@@ -562,32 +549,21 @@ def run(data=None):
     game_ratios=game_spread(history)
     index={str(p['PERSON_ID']):p for p in json.loads(Path('data/official-nba-player-index.json').read_text())['players']}
     draft_names={normalize(p['name']):p['overall'] for p in drafts.get(str(TARGET-1),[])}
-    applied=apply(data,history,production,prod_ranges,rookies,bonus,beta,index,draft_names,game_ratios,prod_chain)
+    applied=apply(data,history,production,prod_ranges,rookies,index,draft_names,game_ratios,prod_chain)
     for player in data['players']:
         if (player.get('forecast') or {}).get('version')==4:player['forecast']['clubCorrelation']=club['correlation']
     report['production']=dict(model=production.report(),availability=prod_chain.report() if prod_chain else None,teammateCorrelation=club,rangeScaling=dict(low=prod_ranges.low,high=prod_ranges.high),rookies=rookies.fit,applied=applied)
     data['projectionModelAudit']=report
     return report
 
-def team_bonus(team,beta,bonus,teams):
-    """Expected Sports.ru result bonus per game of a club: last season's, shrunk by measured persistence, averaged with the
-    one implied by ESPN BPI projected wins (5p - 2.5 over a season of half home, half away games), which sees the
-    summer's roster changes. No archive of preseason BPI exists to fit the weight, so it is equal."""
-    if not team:return 0.0
-    last=beta*bonus.get((TEST,team),0);t=teams.get(team)
-    if not t:return last
-    p=t['projectedWins']/(t['projectedWins']+t['projectedLosses'])
-    return (last+5*p-2.5)/2
-
-def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ratios,chain=None):
+def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=None):
     """Model forecast for every catalog player with NBA history or a draft pick, combined with ESPN where it exists."""
     counts=defaultdict(int)
     context=json.loads(TEAM_CONTEXT.read_text()) if TEAM_CONTEXT.exists() else {}
-    teams=(context.get('bpi') or {}).get('teams',{});depth=context.get('depth',{})
+    depth=context.get('depth',{})
     for player in data['players']:
         pid=str(player.get('nbaId') or player['id'])
         f=player.get('forecast') or {}
-        team=player.get('team');b=team_bonus(team,beta,bonus,teams)
         x=history.features(pid,TARGET)
         if x:
             p=model.predict(x);evidence='CAREER_MODEL'
@@ -597,7 +573,7 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
             if not (player.get('isRookie') or pick):continue
             p=rookies.predict(pick);p['short']=1/(1+math.exp((p['minutes']-8)/2.5));evidence='DRAFT_PICK_MODEL' if pick else 'UNDRAFTED_ROOKIE_MODEL'
             p['pick']=pick
-        model_rate=p['rate']+b;model_games=p['share']*82
+        model_rate=p['rate'];model_games=p['share']*82
         # No injury on the current ESPN report: the season starts healthy (validated shift, see availability_model).
         healthy=bool(x and chain and player.get('currentRosterStatus')=='SOURCE_REPORTED' and not player.get('injuries'))
         unconditional_games=model_games
@@ -605,8 +581,7 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
         espn=f if f.get('origin')=='ESPN_INDIVIDUAL' else None
         # Without any archive of ESPN projections their relative accuracy cannot be fitted: an equal-weight combination
         # per game, the standard choice for two unvalidated forecasts, until the 2026/27 season measures it.
-        # ESPN's per-game value carries last season's raw team result: it is swapped for the same team term as the model's.
-        espn_rate=espn['meanPerGame']-((espn.get('components') or {}).get('teamResult') or 0)+b if espn else None
+        espn_rate=espn['meanPerGame'] if espn else None
         rate=(model_rate+espn_rate)/2 if espn else model_rate
         # Games are ESPN's alone (the owner's call): the absence chain predicts too few games for players who start healthy.
         games=espn['games'] if espn else model_games
@@ -625,13 +600,13 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
                         healthyNow=healthy,unconditionalGames=unconditional_games,hazards=[a['shortHazard'],a['longHazard']])
         game_floor=f.get('gameFloor');game_ceiling=f.get('gameCeiling')
         if x:
-            logs=[v+b for year in (TARGET-1,TARGET-2) for v in history.by[pid].get(year,{}).get('logs',[])]
+            logs=[v for year in (TARGET-1,TARGET-2) for v in history.by[pid].get(year,{}).get('logs',[])]
             if len(logs)>=10:
                 shift=rate-statistics.mean(logs);game_floor=quantile(logs,.1)+shift;game_ceiling=quantile(logs,.9)+shift
         if game_floor is None or not x:
             lo_r,hi_r=game_ratios(rate);game_floor,game_ceiling=rate*lo_r,rate*hi_r
         origin=('ESPN_MODEL_COMBINED' if espn else evidence)
-        line,components=stat_line(p,espn,player,rate,b)
+        line,components=stat_line(p,espn,player,rate)
         tier='PERSONAL_PROVIDER' if espn else 'PERSONAL_HISTORY' if x else 'DRAFT_PRIOR'
         player['forecast']=dict(version=4,metric='FBL_FULL_FORMULA_ESTIMATE',origin=origin,coverageTier=tier,
             basis=('ФО за матч — среднее ESPN и модели по карьере, число матчей — ESPN' if espn else 'Модель по карьере' if x else 'Модель новичков по номеру драфта'
@@ -642,8 +617,7 @@ def apply(data,history,model,ranges,rookies,bonus,beta,index,draft_names,game_ra
             intervalCalibration='FORWARD_CONFORMAL_PER_TAIL' if x else 'ROOKIE_CLASS_2025_ERRORS',
             inputStats=line,components=components,
             sources=dict(model=dict(perGame=model_rate,games=model_games,perMinute=p.get('perMinute'),minutes=p['minutes'],participation=2-p['short']),
-                         espn=dict(perGame=espn_rate,games=espn['games']) if espn else None,
-                         teamResult=dict(value=b,lastSeason=beta*bonus.get((TEST,team),0) if team else None,bpiWins=(teams.get(team) or {}).get('projectedWins'))),
+                         espn=dict(perGame=espn_rate,games=espn['games']) if espn else None),
             draftPick=p.get('pick'),rookieExtrapolation=not x,asOf=data['generatedAt'],
             previous=dict(origin=f.get('origin'),meanPerGame=f.get('meanPerGame'),games=f.get('games')) if f else None)
         if replaced is not None:player['forecast']['_replaced']=replaced
@@ -685,7 +659,7 @@ def slot_values(data,chain):
     data['replacementLevel']=dict(perGame=level,delayGames=av.REPLACE_DELAY,
         method='Best players left after 16 starters per Sports.ru position (ranks 17-24 by forecast), times a healthy player\'s chance to play.')
 def terms(st):return st['pts']+st['reb']+st['ast']+st['stl']+st['blk']-(st['fga']-st['fgm'])-(st['fta']-st['ftm'])-2*st['tov']
-def stat_line(p,espn,player,rate,bonus):
+def stat_line(p,espn,player,rate):
     """Per-game box-score line of the forecast (model, or the mean of model and ESPN) and the Sports.ru components that
     add up exactly to the per-game forecast; what the stat line does not explain (age curve, ESPN's own adjustments) is
     a separate `adjustment` term."""
@@ -700,9 +674,9 @@ def stat_line(p,espn,player,rate,bonus):
     line={k:statistics.mean(x.get(k,0) for x in lines) for k in STAT_KEYS} if lines else None
     participation=2-p['short']
     if line:
-        components=dict(countingAndMisses=terms(line),personalFouls=-line['pf'],participation=participation,teamResult=bonus)
+        components=dict(countingAndMisses=terms(line),personalFouls=-line['pf'],participation=participation)
     else:
-        components=dict(countingAndMisses=rate-bonus-participation,personalFouls=0,participation=participation,teamResult=bonus)
+        components=dict(countingAndMisses=rate-participation,personalFouls=0,participation=participation)
     components['adjustment']=rate-sum(components.values())
     return line,components
 
@@ -727,4 +701,4 @@ if __name__=='__main__':
     if report['holdout']['pairedGain95'][0]<=0:raise SystemExit('Projection model no longer beats persistence on the held-out season')
     path.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
     Path('public/data/projection-model-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2,default=str))
-    print(json.dumps({k:v for k,v in report.items() if k in ('holdout','rookies','teamResultPersistence','rangeScaling','production')},indent=2,default=str)[:6000])
+    print(json.dumps({k:v for k,v in report.items() if k in ('holdout','rookies','rangeScaling','production')},indent=2,default=str)[:6000])

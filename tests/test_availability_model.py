@@ -45,7 +45,7 @@ class ChainTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         rows = league()
-        seasons, team_games, _ = pm.season_table(rows, lambda r: r['player_id'])
+        seasons, team_games = pm.season_table(rows, lambda r: r['player_id'])
         cls.history = pm.History(seasons, team_games, {})
         cls.table = av.spells(rows)
         cls.chain = av.Availability(cls.table, cls.history, set(range(2020, 2026)))
