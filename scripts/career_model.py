@@ -136,7 +136,7 @@ def run(data):
              validation={k:v for k,v in validation_report.items() if k!='details'},test={k:v for k,v in test_report.items() if k!='details'},
              promotedByValidation=promote,predictions=forecast_count,
              limitations=['Career cohort is current provider universe plus uniquely matched history; selection/survivorship limits remain.',
-              'Target excludes team result bonus; that term is estimated separately in full FBL scoring.',
+              'Target excludes the team result bonus, which the FBL formula does not have (the league scores on Yahoo).',
               'Hyperparameters chosen on 2024/25 only; 2025/26 is subsequent temporal evaluation.',
               'No claim that more historical seasons always improve a changing role.'])
  return report

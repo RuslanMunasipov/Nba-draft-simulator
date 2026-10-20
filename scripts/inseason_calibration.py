@@ -8,10 +8,10 @@ from collections import defaultdict
 from pathlib import Path
 import pyarrow.parquet as pq
 try:
-    from build_forecasts import result_bonuses,full
+    from build_forecasts import full
     from minute_encoding import normalize_minutes
 except ImportError:
-    from scripts.build_forecasts import result_bonuses,full
+    from scripts.build_forecasts import full
     from scripts.minute_encoding import normalize_minutes
 
 SEASONS=['2023-24','2024-25','2025-26']
@@ -23,13 +23,11 @@ OUT=Path('data/inseason-calibration.json')
 
 def load(season):
     rows,_=normalize_minutes(pq.read_table('data/raw/game_logs_'+season+'.parquet').to_pylist(),season)
-    bonus,_=result_bonuses(rows)
     players=defaultdict(list);dates=defaultdict(set)
     for r in rows:
         dates[r['team']].add(r['game_date'])
-        # Games without a reconstructable result bonus cannot be scored by the official formula.
-        if (r['game_id'],r['team']) in bonus:
-            players[r['player_id']].append(dict(date=r['game_date'],team=r['team'],min=r['minutes'],fp=full(r,bonus[(r['game_id'],r['team'])])))
+        # The FBL formula scores every game on its own row (no team result bonus, so no reconstructed outcome is needed).
+        players[r['player_id']].append(dict(date=r['game_date'],team=r['team'],min=r['minutes'],fp=full(r)))
     for logs in players.values():logs.sort(key=lambda g:g['date'])
     return dict(players=players,dates={t:sorted(d) for t,d in dates.items()})
 
@@ -115,7 +113,7 @@ def run():
     current_av=lambda c:c['prior']
     pack=lambda g:dict(rateGames=g[0],minuteGames=g[1],minuteHalfLife=g[2])
     return dict(version=1,fitSeasons=list(FIT),testSeasons=list(TEST),
-        target='Official full-formula FBL points per played game over the rest of the season; share of remaining team games played',
+        target='FBL points per played game (Sports.ru formula without the team result bonus) over the rest of the season; share of remaining team games played',
         points=dict(established=pack(est),newcomer=pack(new)),availability=dict(priorGames=av[0]),
         holdout=dict(
             established=compare(test_est,simple,lambda c:split(c,*est),GAME_CHECKS),

@@ -135,16 +135,15 @@ test('a package can sell an expensive player to fund a better one elsewhere',()=
  const p=bestPackage(c,{team:0,bankMoney:0,k:2,sort:'season'});
  assert.ok(p.pairs.some(x=>x.in.id===100));assert.ok(p.bankAfter>=0);
 });
-test('box score uses the Sports.ru formula with the result bonus only for finished games',()=>{
+test('box score uses the FBL formula: Sports.ru\'s without the team result bonus, win or lose',()=>{
  const line={MIN:'36',PTS:'30',FG:'11-20',FT:'6-8',REB:'10',AST:'8',STL:'2',BLK:'1',TO:'3',PF:'2'};
- assert.equal(boxScorePoints(line,{home:true,won:null}),30+10+8+2+1-9-2-6-2+2);
- assert.equal(boxScorePoints(line,{home:false,won:true}),34+3);
- assert.equal(boxScorePoints({...line,MIN:'8'},{home:true,won:false}),34-1-3);
+ assert.equal(boxScorePoints(line),30+10+8+2+1-9-2-6-2+2);
+ assert.equal(boxScorePoints({...line,MIN:'8'}),34-1);
  // A few seconds on court with nothing else still earn the participation point.
- assert.equal(boxScorePoints({MIN:'0',FG:'0-0',FT:'0-0',PTS:'0',REB:'0'},{home:true,won:null}),1);
+ assert.equal(boxScorePoints({MIN:'0',FG:'0-0',FT:'0-0',PTS:'0',REB:'0'}),1);
  const event={status:{type:{completed:true}},competitions:[{competitors:[{team:{id:'1'},homeAway:'home',winner:false},{team:{id:'2'},homeAway:'away',winner:true}]}]};
  const summary={boxscore:{players:[{team:{id:'2'},statistics:[{labels:Object.keys(line),athletes:[{athlete:{id:'77'},stats:Object.values(line)},{athlete:{id:'78'},stats:[]}]}]}]}};
- assert.deepEqual(liveGamePoints(summary,event),{77:{points:37,minutes:36,final:true}});
+ assert.deepEqual(liveGamePoints(summary,event),{77:{points:34,minutes:36,final:true}});
 });
 test('packages never trade the season for a short-term gain unless asked',()=>{
  // Free agent 99 (C) is great this week but out from November; the roster centre is steady all season.

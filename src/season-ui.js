@@ -295,10 +295,9 @@ function whyBox(why,ctx){
 }
 // The forecast's own numbers: career model, ESPN, the draft-pick model, and the result.
 function sourcesLine(f){
- const m=f.sources?.model,e=f.sources?.espn,t=f.sources?.teamResult;if(!m)return f.basis||'';
- const teamBonus=t&&Number.isFinite(t.bpiWins)?` Бонус команды ${t.value>0?'+':''}${dec(t.value)} за матч (ESPN BPI: ${Math.round(t.bpiWins)} побед).`:'';
+ const m=f.sources?.model,e=f.sources?.espn;if(!m)return f.basis||'';
  const own=f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных':'модель по карьере';
- return `Прогноз до сезона: ${own} ${dec(m.perGame)} × ${Math.round(m.games)}${e?`, ESPN ${dec(e.perGame)} × ${Math.round(e.games)} → итог ${dec(f.meanPerGame)} × ${Math.round(f.games)}`:''} матчей.${teamBonus}`;
+ return `Прогноз до сезона: ${own} ${dec(m.perGame)} × ${Math.round(m.games)}${e?`, ESPN ${dec(e.perGame)} × ${Math.round(e.games)} → итог ${dec(f.meanPerGame)} × ${Math.round(f.games)}`:''} матчей.`;
 }
 function sideBlock(label,x){
  const p=x.player,f=p.forecast||{},box=el('div',null,'sp-side'),hist=Object.entries(p.sportsHistory||{}).slice(-2);

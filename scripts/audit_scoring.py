@@ -4,10 +4,10 @@ from collections import defaultdict
 from pathlib import Path
 import pyarrow.parquet as pq
 try:
-    from build_forecasts import SEASONS, result_bonuses, full, profiles
+    from build_forecasts import SEASONS, full, profiles
     from minute_encoding import normalize_minutes
 except ImportError:
-    from scripts.build_forecasts import SEASONS, result_bonuses, full, profiles
+    from scripts.build_forecasts import SEASONS, full, profiles
     from scripts.minute_encoding import normalize_minutes
 
 def terms(s):
@@ -23,18 +23,17 @@ def audit(data,rows_by_season):
     latest={};history={};game_count=0;negative_count=0
     for year,raw in rows_by_season.items():
         rows,_=normalize_minutes(raw,year)
-        bonuses,_=result_bonuses(rows)
         grouped=defaultdict(list)
         for row in rows:
-            key=(row['game_id'],row['team'])
-            if key not in bonuses or row['minutes']<=0:continue
-            score=sum(terms(row).values())-row['pf']+(2 if row['minutes']>=10 else 1)+bonuses[key]
-            close(score,full(row,bonuses[key]),year+' '+row['player_name'])
+            if row['minutes']<=0:continue
+            # The FBL formula: Sports.ru's without the team result bonus (the league scores on Yahoo).
+            score=sum(terms(row).values())-row['pf']+(2 if row['minutes']>=10 else 1)
+            close(score,full(row),year+' '+row['player_name'])
             close(sum(terms(dict(row,tov=row['tov']+1)).values())-sum(terms(row).values()),-2,'one turnover')
             grouped[row['player_id']].append(score)
             game_count+=1;negative_count+=score<0
         if year==SEASONS[-1]:
-            latest=profiles(rows,bonuses)
+            latest=profiles(rows)
             history={pid:dict(season=year,games=len(scores),negativeGames=sum(s<0 for s in scores),
                              worstGame=min(scores),meanWorstTenPercent=statistics.mean(sorted(scores)[:max(1,math.ceil(len(scores)*.1))]))
                      for pid,scores in grouped.items()}
