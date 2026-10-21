@@ -60,3 +60,4 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
 - Not pushed yet: claude/full-model-audit is local. If the container is lost, recreate it by merging the audit-fix/* branches
   (they exist only locally too!) -> push them first.
 - Review: workflow run wf_d5b2cffc-28f (script review.js) on frozen worktree scratchpad/review-wt @967f2c6; resume with resumeFromRunId.
+- Review split (04:20Z): wf_d5b2cffc-28f resumed [season-core, season-advice]; wf_03eb5e36-c98 [season-ui, model]; wf_117da8df-523 [collection-rules, draft-docs]; script review.js takes args.areas. CI green on ece9307 (PR #88). Hotfixes merged to main: #87 live ESPN points, #89 20 s refresh, #90 live stat lines + season panel; merged into audit branch.

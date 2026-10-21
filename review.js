@@ -50,8 +50,9 @@ const AREAS = [
 ]
 
 phase('Review')
+const ACTIVE = args && args.areas ? AREAS.filter(a => args.areas.includes(a.key)) : AREAS
 const results = await pipeline(
-  AREAS,
+  ACTIVE,
   a => agent(`${CONTEXT}\n${a.prompt}\nReturn every real defect you can reproduce; list what you checked and found correct in checkedOk.`, { label: `review:${a.key}`, phase: 'Review', schema: FINDINGS }),
   async (r, a) => {
     if (!r) return { area: a.key, failed: true, findings: [] }
