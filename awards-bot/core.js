@@ -10,8 +10,9 @@ import RULES from '../data/league-rules.json' with {type:'json'};
 
 export const SEASON_START=RULES.yahoo.scoringStart,SEASON_END=RULES.yahoo.scoringEnd;
 export const STATS=['pts','reb','ast','stl','blk','tov','fgm','fga','ftm','fta','pf'];
-// Minimum minutes: a flop of the day among the league's players, the NBA antitop, a flop of the week.
-export const MIN_FLOP=15,MIN_ANTITOP=20,MIN_WEEK_FLOP=60;
+// Minimum minutes: a flop of the day among the league's players, a flop of the week. The NBA antitop takes every player
+// who took the floor (league chat, 21.10.2026: a minus in eight minutes is the point of it).
+export const MIN_FLOP=15,MIN_WEEK_FLOP=60;
 // Mef player: pre-season Sports.ru price from 1000 to 1900 inclusive.
 export const MEF_PRICE={min:1000,max:1900};
 // Season records start announcing new entries a week into the season: before that every big game would be one.
@@ -132,7 +133,7 @@ const top=(rows,n,dir=-1)=>[...rows].sort((a,b)=>dir*(a.p-b.p)||a.m-b.m||String(
 // The day: heroes and flops of the league's players, the best free agents, the NBA antitop.
 export function dailyBlocks(lines){
  const drafted=lines.filter(l=>l.h.length),free=lines.filter(l=>!l.h.length);
- return {heroes:top(drafted,3),flops:top(drafted.filter(l=>l.m>=MIN_FLOP),3,1),gold:top(free,3),antitop:top(lines.filter(l=>l.m>=MIN_ANTITOP),3,1)};
+ return {heroes:top(drafted,3),flops:top(drafted.filter(l=>l.m>=MIN_FLOP),3,1),gold:top(free,3),antitop:top(lines,3,1)};
 }
 export function weeklyBlocks(lines){
  const rows=perPlayer(lines),drafted=rows.filter(r=>r.h.length),free=rows.filter(r=>!r.h.length);
