@@ -72,3 +72,10 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
 - 08:40Z: merged audit-fix2/season-core (9f591b9) + audit-fix2/season-ui (4cabd9e) -> 1a686c2 pushed; npm 300, py 193 ok.
   Their crossGroupNotes/docNotes: synth/fix2-round1-season.json. Pending: telegram+model (wf_85863c51-544), conformance audit
   (wf_e76ac352-d8a). Collection/draft review: synth/review-results-2.json (C01-C13). Round 2 then docs pass then merge #88.
+- 09:10Z: round 1 all merged (telegram ba58a0e, model b07abc2) + shared season-ending fixture test -> c66da69 pushed (npm 308, py 201).
+  Conformance sweep findings Y01-Y24: synth/conformance-findings.json (verifiers of wf_e76ac352-d8a still running).
+  Round 2 (base c66da69, branches audit-fix3/<group>, script workflows/scripts/fbl-review-fix-round2-wf_b77d8bda-d8c.js):
+  wf_106b5c4a-b89 [collection, season-core], wf_72d45b7b-dc1 [season-ui, telegram], wf_e8e72486-1ad [model-misc].
+  POLICY: FBL points only BOX (Sports.ru box) or ESPN box; NO_BOX rows points null; app ignores NO_BOX/SPORTS_WITH_BONUS.
+  After round 2: docs pass by me (README, SCORING_AUDIT, ACCEPTANCE incl. C06-C11, Y12-Y15, Y20 + all docNotes; league-rules
+  gamePoints), adversarial review of combined diff, final model rerun, merge #88.
