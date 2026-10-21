@@ -1,14 +1,14 @@
 name: Awards bot
 # The league's awards bot (awards-bot/): its own Telegram bot and state branch data/awards-bot. It posts into the league
 # chat, where Zak Onn's feed posts too (LEAGUE_TELEGRAM_CHAT_ID, unless AWARDS_CHAT_ID names another chat), with its own
-# token: nothing else is shared with the season watcher or its bots, and it only reads the project's data. Every 15
-# minutes from 06:07 to 13:52 Moscow time it archives finished games and posts the game day once every game of it is over
-# (a day finished later is posted the next morning), the week and the awards race after Sunday's games, and the month's
-# five after its last game day.
+# token: nothing else is shared with the season watcher or its bots, and it only reads the project's data. A run every
+# hour reads the day's schedule from ESPN; once the day's last game is about to tip off, the run stays: it waits for the
+# tip-off, checks every minute until every game is over, waits 15 minutes for corrections and posts the game day. Then the
+# week and the awards race after Sunday's games, and the month's five after its last game day.
 # Run it by hand with a US game day to preview that day's posts (nothing saved or sent).
 on:
   schedule:
-    - cron: '7,22,37,52 3-10 * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       preview:
@@ -27,7 +27,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,6 +61,8 @@ jobs:
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
           RESEND: ${{ inputs.resend }}
+          # One run follows a day for at most this long, then saves; the next hourly run goes on.
+          WATCH_MINUTES: '330'
         run: node awards-bot/bot.mjs --state "$RUNNER_TEMP/awards" ${RESEND:+--resend "$RESEND"}
       - name: Save the bot's state
         # The bot saves after every post, so a run that failed halfway still keeps what it posted.
