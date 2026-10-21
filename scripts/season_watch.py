@@ -63,8 +63,18 @@ def merge_full(full,cur):
         else:entry['journal']=sports.stamp_journal(mine['journal'],entry.get('journal'),now=full.get('collectedAt') or entry.get('journalReadAt'),after=mine.get('journalReadAt'))
         entry['journalReadAt']=max(filter(None,(mine.get('journalReadAt'),entry.get('journalReadAt'))),default=None)
     # A player the watcher took from a roster (new to the market) stays known: the collection may have started before.
-    for sid,p in (cur.get('players') or {}).items():full.setdefault('players',{}).setdefault(sid,p)
+    # One whose page failed keeps his last entry, marked stale, with only its box-scored games as FBL points: an older
+    # collector's rows (Sports.ru's ФО, 0 till it counts a game) cannot be scored again without the page.
+    players=full.setdefault('players',{})
+    for sid,p in (cur.get('players') or {}).items():
+        if sid not in players:players[sid]=p if p.get('fromRoster') else {**p,'stale':True,'games':sports.unscored([dict(g) for g in p.get('games') or []])}
     return full
+def unscore_old_rows(snapshot):
+    """The snapshot a run starts from may be an older collector's: its played rows carry Sports.ru's ФО (0 till it counts
+    a game, then its own formula), never FBL points. They wait for the first full collection without points, so a
+    journal change published meanwhile never shows them as FBL's."""
+    for p in ((snapshot or {}).get('players') or {}).values():sports.unscored(p.get('games'))
+    return snapshot
 # A team whose roster cannot be read waits for it this many reads at most (one a minute).
 HOLD=3
 def apply(snapshot,fresh,teams,config,read_from=None,held=None):
@@ -216,6 +226,8 @@ def main():
     a=argparse.ArgumentParser();a.add_argument('live');a.add_argument('state')
     a.add_argument('--minutes',type=float,default=345);a.add_argument('--every',type=float,default=60);a.add_argument('--full-every',type=float,default=120)
     args=a.parse_args();w=Watch(args.live,args.state);config=teams_config()
+    # The live branch may still hold an older collector's snapshot: its rows never go out again as FBL points.
+    if w.live.exists():w.live.write_text(json.dumps(unscore_old_rows(json.loads(w.live.read_text(encoding='utf-8'))),ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     # A cancelled run (GitHub sends SIGINT, then SIGTERM) saves what was posted before it goes, so the next run never
     # posts it again.
     def leave(sig,frame):

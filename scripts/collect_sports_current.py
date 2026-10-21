@@ -6,9 +6,9 @@ Source: the public Sports.ru fantasy player popup (no login needed)
 It shows the current and initial price, the role ("Амплуа"), the share of
 Sports.ru users who own the player, the club calendar with official fantasy
 week numbers and, once the season has started, the per-game table of the
-current season with the official fantasy points ("ФО") and the price after
-each game ("С"). Nothing is estimated here. ESPN adds the injury report and the tip-off time of every calendar game
-(its team schedules).
+current season with each game's box score, Sports.ru's own fantasy points ("ФО", never FBL's) and the price after
+each game ("С"). FBL points of a game are the league's Yahoo formula on that box score. Nothing is estimated here.
+ESPN adds the injury report and the tip-off time of every calendar game (its team schedules).
 
 Usage: collect_sports_current.py [output.json]
 """
@@ -174,12 +174,11 @@ SEASON_END = season_end()
 # The FBL formula's inputs as the game table heads them (Sports.ru writes two-point attempts «В20», with a zero).
 BOX = {'fgm2': ('2О',), 'fga2': ('В20', 'В2О'), 'fgm3': ('3О',), 'fga3': ('В3О',), 'ftm': ('Ш',), 'fta': ('ВШ',), 'pts': ('О',),
        'reb': ('ПБ',), 'ast': ('ПР',), 'stl': ('ПХ',), 'blk': ('БШ',), 'tov': ('П',), 'pf': ('Ф',)}
-# Where a played game's points come from: its own row (box score, or Sports.ru's points minus the result bonus of the
-# row's score), the club calendar's score, or nowhere yet (Sports.ru's points, bonus included).
-ROW_SOURCES = ('BOX', 'ROW_SCORE')
+FORMULA = ("FBL (Yahoo): PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF+1 per game played, on each Sports.ru game row's "
+           "box score (2О+3О of В20+В3О, Ш of ВШ, О, ПБ, ПР, ПХ, БШ, П, Ф); a played row without one has no points (NO_BOX)")
 
 
-def box_points(cs, col, minutes):
+def box_points(cs, col):
     """FBL points of a game from its own box score: PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF, plus 1 for the game
     played (Yahoo GP, league settings 21.10.2026). None when a column is missing or unreadable."""
     v = {}
@@ -193,27 +192,25 @@ def box_points(cs, col, minutes):
     return v['pts'] + v['reb'] + v['ast'] + v['stl'] + v['blk'] - misses - 2 * v['tov'] - v['pf'] + GAME_PLAYED
 
 
-def row_points(game, cs, col):
-    """A played game's FBL points from its own row, read at the same moment as Sports.ru's points (no calendar of another
-    page, no orientation vote): the box score when the table has it, else Sports.ru's points minus the team result bonus
-    of the row's score, which is written home side first («118 : 128» away is a win), and minus the extra point Sports.ru
-    gives for 10+ minutes (FBL counts 1 per game played). With both, each checks the other: Sports.ru's points are FBL's
-    plus that bonus and that point; a row where they differ is marked MISMATCH (the box score stands, it is the league's
-    formula). A row with neither is left to the club calendars (fbl_points)."""
-    base = game['points']
+def row_points(game, cs, col, sports):
+    """A played game's FBL points: the league's formula on its own row's box score (pointsSource BOX). Sports.ru's points
+    (ФО, sports) stay as sportsPoints and are never FBL's: they carry Sports.ru's team result bonus and its +2 for 10+
+    minutes, and stay 0 for hours after the game while its box score is already listed. A row without a readable box
+    score gets no points (NO_BOX), never Sports.ru's points less bonuses: consumers leave it out, and refuse_reason
+    refuses a collection with many. The row's score, written home side first («118 : 128» away is a win), gives the
+    result and checks Sports.ru's line: once Sports.ru counts the game its points are the box score plus that bonus and
+    that point. A row where they differ is MISMATCH (the box score stands); one whose ФО is still 0 or no number is
+    UNCOUNTED, its box line Sports.ru's provisional one."""
     i = next((col[n] for n in ('Счет', 'Счёт') if n in col), None)
     score = parse_score(cs[i]) if i is not None and len(cs) > i else None
     won = None if not score or score[0] == score[1] else (score[0] > score[1] if game['home'] else score[1] > score[0])
-    box = box_points(cs, col, game['minutes'])
-    game['sportsPoints'] = base
+    box = box_points(cs, col)
+    game['sportsPoints'] = sports
     if won is not None:
         game['result'] = 'W' if won else 'L'
-    if box is not None:
-        game['points'], game['pointsSource'] = round(box, 2), 'BOX'
-        if won is not None and round(base - box, 2) != result_bonus(game['home'], won) + minutes_extra(game['minutes']):
-            game['pointsCheck'] = 'MISMATCH'
-    elif won is not None:
-        game['points'], game['pointsSource'] = round(base - result_bonus(game['home'], won) - minutes_extra(game['minutes']), 2), 'ROW_SCORE'
+    game['points'], game['pointsSource'] = (round(box, 2), 'BOX') if box is not None else (None, 'NO_BOX')
+    if box is not None and (sports is None or won is not None and round(sports - box, 2) != result_bonus(game['home'], won) + minutes_extra(game['minutes'])):
+        game['pointsCheck'] = 'MISMATCH' if sports else 'UNCOUNTED'
     return game
 
 
@@ -249,13 +246,12 @@ def parse_games(page, season_start='2026-10-01', season_end=SEASON_END):
             continue
         minutes = cs[col['МИН']]
         played = minutes not in ('', '00:00', '–', '-')
+        # Sports.ru's ФО is no FBL input: a played row whose ФО is no number still counts by its box score.
         points = number(cs[col['ФО']])
-        if points is None and played:
-            continue  # an unreadable score is left out, never counted as zero
         game = {'date': day, 'opponent': cs[1], 'home': cs[2].startswith('Д'), 'minutes': minutes if played else '00:00',
                 'points': points or 0, 'played': played}
         if played:
-            row_points(game, cs, col)
+            row_points(game, cs, col, points)
         if 'С' in col and len(cs) > col['С']:
             price = number(cs[col['С']])
             if price is not None:
@@ -266,28 +262,9 @@ def parse_games(page, season_start='2026-10-01', season_end=SEASON_END):
 
 
 def parse_score(text):
-    """A calendar score as two numbers in the order written ('112:104', an overtime mark ignored); None before the game."""
+    """A score as two numbers in the order written ('112:104', an overtime mark ignored); None before the game."""
     m = re.search(r'(\d+)\s*:\s*(\d+)', text or '')
     return (int(m.group(1)), int(m.group(2))) if m else None
-
-
-def score_orientation(clubs):
-    """How club calendars write a score: 'own' (the club's points first) or 'home' (the home side first). Each finished
-    game is in both clubs' calendars: written the same way in both it is home-first, mirrored it is own-first. None until
-    games are played."""
-    votes = {'own': 0, 'home': 0}
-    for club, games in clubs.items():
-        for g in games:
-            mine = parse_score(g.get('score'))
-            other = next((x for x in clubs.get(g['opponent'], []) if x['date'] == g['date'] and x['opponent'] == club), None)
-            theirs = parse_score((other or {}).get('score'))
-            if not mine or not theirs or mine[0] == mine[1]:
-                continue
-            if theirs == mine[::-1]:
-                votes['own'] += 1
-            elif theirs == mine:
-                votes['home'] += 1
-    return max(votes, key=votes.get) if any(votes.values()) else None
 
 
 def minutes_extra(minutes):
@@ -301,48 +278,52 @@ def result_bonus(home, won):
     return (2 if home else 3) if won else (-3 if home else -2)
 
 
-def fbl_points(players, clubs):
-    """FBL points of the played games their own row could not convert (row_points: a table without box score and score).
-    FBL scores on Yahoo with Sports.ru's counting terms, 1 point per game played and no team result bonus: Sports.ru's
-    points of the game minus its extra point for 10+ minutes and minus the bonus of the result, read from the score in the club's
-    calendar (the club that met that opponent that day, home or away as the game row says, so a traded player is matched
-    too). Sports.ru's own number stays as sportsPoints; a game whose result is in no calendar either keeps Sports.ru's
-    number less the minutes point, with its result bonus and without a result, marked pointsSource SPORTS_WITH_BONUS and
-    counted in gamePoints."""
-    orientation = score_orientation(clubs)
-    index = {(g['date'], g['opponent'], bool(g.get('home'))): g for games in clubs.values() for g in games}
-    scored = 0
-    for info in players.values():
+def unscored(games):
+    """Played rows of an earlier snapshot whose points are not the box score's: an older collector's (no pointsSource:
+    Sports.ru's ФО, or ФО less its result bonus) or ФО less bonuses (ROW_SCORE, CALENDAR, SPORTS_WITH_BONUS). Without the
+    page they cannot be scored again, so Sports.ru's number stays as sportsPoints and they get no points (NO_BOX)."""
+    for g in games or []:
+        if g.get('played') and (g.get('pointsSource') != 'BOX' or not isinstance(g.get('points'), (int, float))):
+            g['sportsPoints'] = g.get('sportsPoints', g.get('points'))
+            g['points'], g['pointsSource'] = None, 'NO_BOX'
+            g.pop('pointsCheck', None)
+    return games
+
+
+def keep_games(players, previous):
+    """What the previous snapshot of this season read where this collection could not: a player whose game table is gone
+    or unreadable (no games now, played ones before) keeps the previous games, marked gamesKeptFrom, and a played row
+    without a readable box score keeps the box-score points the previous snapshot gave the same row (date, opponent),
+    marked pointsKeptFrom. Published empty or unscored, his season total and every standing would lose those points till
+    the next collection. Rows the previous snapshot did not score from a box score stay unscored. Runs after
+    refuse_reason: a layout change of many pages is refused, never masked by old data. Returns the players kept whole."""
+    previous = previous or {}
+    old = (previous.get('players') or {}) if previous.get('season') == SEASON_LABEL else {}
+    at, kept = previous.get('collectedAt'), []
+    for sid, info in players.items():
+        was = [dict(g) for g in (old.get(sid) or {}).get('games') or [] if not SEASON_END or g.get('date', '') <= SEASON_END]
+        if not info.get('games') and any(g.get('played') for g in was):
+            info['games'], info['gamesKeptFrom'] = unscored(was), (old[sid].get('gamesKeptFrom') or at)
+            kept.append(sid)
+            continue
+        box = {(g.get('date'), g.get('opponent')): g for g in was if g.get('played') and g.get('pointsSource') == 'BOX'}
         for g in info.get('games') or []:
-            if not g.get('played') or g.get('pointsSource') in ROW_SOURCES:
-                continue
-            base = g.get('sportsPoints', g.get('points'))
-            score = parse_score((index.get((g['date'], g.get('opponent'), bool(g.get('home')))) or {}).get('score'))
-            if orientation is None or not score or score[0] == score[1]:
-                # Without a result only the minutes point can come off: the result bonus stays in.
-                g['sportsPoints'] = base
-                g['points'] = round(base - minutes_extra(g.get('minutes')), 2)
-                g['pointsSource'] = 'SPORTS_WITH_BONUS'
-                g.pop('result', None)
-                continue
-            a, b = score
-            won = a > b if orientation == 'own' or g.get('home') else b > a
-            g['sportsPoints'] = base
-            g['points'] = round(base - result_bonus(bool(g.get('home')), won) - minutes_extra(g.get('minutes')), 2)
-            g['result'] = 'W' if won else 'L'
-            g['pointsSource'] = 'CALENDAR'
-            scored += 1
-    return orientation, scored
+            o = box.get((g['date'], g.get('opponent'))) if g.get('played') and g.get('pointsSource') == 'NO_BOX' else None
+            if o and isinstance(o.get('points'), (int, float)):
+                g['points'], g['pointsSource'], g['pointsKeptFrom'] = o['points'], 'BOX', o.get('pointsKeptFrom') or at
+    return kept
 
 
 def game_points_summary(players):
-    """What the published game points rest on: played games by source, those whose result is known, those still with
-    Sports.ru's result bonus (no result anywhere yet) and the rows whose box score and Sports.ru's points disagree."""
+    """What the published game points rest on: played games by source (BOX: the league's formula on the row's box score;
+    NO_BOX: none readable, no points), those whose result is known, those without points, the rows Sports.ru has not
+    counted yet (its box line provisional) and those whose box score and Sports.ru's counted points disagree."""
     games = [g for p in players.values() for g in p.get('games') or [] if g.get('played')]
-    sources = Counter(g.get('pointsSource', 'SPORTS_WITH_BONUS') for g in games)
+    sources = Counter(g.get('pointsSource') or 'UNMARKED' for g in games)
+    checks = Counter(g.get('pointsCheck') for g in games)
     return {'played': len(games), 'sources': dict(sorted(sources.items())), 'gamesWithResult': sum(1 for g in games if g.get('result')),
-            'gamesWithoutResult': sources.get('SPORTS_WITH_BONUS', 0),
-            'mismatches': sum(1 for g in games if g.get('pointsCheck') == 'MISMATCH'), 'seasonEnd': SEASON_END}
+            'gamesWithoutBox': sum(1 for g in games if g.get('pointsSource') != 'BOX'), 'uncounted': checks['UNCOUNTED'],
+            'mismatches': checks['MISMATCH'], 'seasonEnd': SEASON_END}
 
 
 def collect(player):
@@ -513,7 +494,8 @@ def refuse_reason(previous, players, clubs, today, season_end=SEASON_END):
     """Why a collection whose prices are fine still must not be published (None when it may): the club calendars of fewer
     than MIN_CLUBS clubs while the season has games ahead, a tenth of the upcoming calendar games or of the played games
     of the same players gone since the previous snapshot of this season, or the game tables of many players without
-    points or minutes. Each is a page layout change; published, it would turn every forecast or every standing to 0."""
+    points or minutes, or with played games but no readable box score (every listed game has one, counted by Sports.ru
+    or not). Each is a page layout change; published, it would turn every forecast or every standing to 0."""
     previous = previous or {}
     same = previous.get('season') == SEASON_LABEL
     before = upcoming(previous.get('clubs'), today) if same else 0
@@ -532,6 +514,9 @@ def refuse_reason(previous, players, clubs, today, season_end=SEASON_END):
     bad = sum(1 for p in players.values() if p.get('gameTable') == 'UNREADABLE')
     if bad > max(5, 0.05 * len(players)):
         return f'{bad} game tables without points or minutes; game table layout changed?'
+    bare = sum(1 for p in players.values() if any(g.get('played') and g.get('pointsSource') == 'NO_BOX' for g in p.get('games') or []))
+    if bare > max(5, 0.05 * len(players)):
+        return f'{bare} game tables with played games but no readable box score; game table layout changed?'
     return None
 
 
@@ -852,12 +837,13 @@ def main():
     reason = refuse_reason(previous, players, clubs, today)
     if reason:
         raise SystemExit(f'Sports.ru {reason} Refusing to publish.')
-    keep_played(clubs, previous, players, today)
     unreadable = sum(1 for p in players.values() if p.get('gameTable') == 'UNREADABLE')
     if unreadable:
         errors.append({'error': f'{unreadable} game tables without points or minutes'})
+    for sid in keep_games(players, previous):
+        errors.append({'sportsId': sid, 'error': f"game table unread; kept the games of {players[sid]['gamesKeptFrom']}"})
+    keep_played(clubs, previous, players, today)
     fresh_injuries = espn_injuries()
-    orientation, _ = fbl_points(players, clubs)
     schedules, tipped = {}, 0
     try:
         schedules = espn_schedules()
@@ -868,16 +854,18 @@ def main():
     if len(schedules) < len(set(ESPN_ABBR.values())):
         errors.append({'error': f'ESPN schedules of {len(schedules)} of {len(set(ESPN_ABBR.values()))} clubs read; other tip-off times kept from the previous snapshot'})
     points = game_points_summary(players)
-    if points['gamesWithoutResult'] or points['mismatches']:
-        errors.append({'error': f"{points['gamesWithoutResult']} played games still carry Sports.ru's result bonus (no result found), "
-                                f"{points['mismatches']} box scores disagree with Sports.ru's points"})
+    if points['gamesWithoutBox'] or points['mismatches']:
+        errors.append({'error': f"{points['gamesWithoutBox']} played games without a readable box score (no FBL points), "
+                                f"{points['mismatches']} box scores disagree with Sports.ru's counted points"})
     out = {'source': BASE_URL.format(t=TOURNAMENT, pid='<sportsId>'), 'season': SEASON_LABEL,
            'collectedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
            'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'teams': teams, 'errors': errors,
-           # Game points are FBL's, from each game row's box score (or Sports.ru's points minus the result bonus of the
-           # row's or the calendar's score); sportsPoints keeps Sports.ru's.
-           'gamePoints': {'formula': 'FBL: PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF, +2 for 10+ minutes, else +1',
-                          'scoreOrientation': orientation, **points},
+           # Game points are FBL's: the Yahoo formula on each game row's own box score. sportsPoints keeps Sports.ru's
+           # ФО, which is never FBL's (its result bonus, its +2 for 10+ minutes), as a check of Sports.ru's line.
+           'gamePoints': {'formula': FORMULA,
+                          'check': "sportsPoints = box score + Sports.ru's result bonus (+2/+3 home/away win, -3/-2 home/away loss) "
+                                   "+ 1 for 10+ minutes once Sports.ru counts the game: MISMATCH when not, UNCOUNTED while ФО is 0",
+                          **points},
            'tips': {'source': SCHEDULE_URL.format(abbr='<club>', year=SEASON_LABEL[-4:]), 'clubs': len(schedules), 'games': tipped, 'of': sum(len(g) for g in clubs.values()),
                     'fetchedAt': datetime.now(timezone.utc).isoformat(timespec='seconds') if schedules else (previous.get('tips') or {}).get('fetchedAt')}}
     # Whether the injury report was fetched now; a failed fetch publishes the last good one (espnInjuriesAt), never none.
@@ -896,7 +884,8 @@ def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     print(f"Sports.ru: {len(players)} players, {len(clubs)} club calendars ({tipped} games with a tip-off time), {points['played']} played games "
-          f"({points['gamesWithoutResult']} without a result, {points['mismatches']} mismatches), {len(errors)} errors -> {OUT}")
+          f"({points['gamesWithoutBox']} without a box score, {points['uncounted']} not counted by Sports.ru yet, {points['mismatches']} mismatches), "
+          f"{len(errors)} errors -> {OUT}")
 
 
 if __name__ == '__main__':
