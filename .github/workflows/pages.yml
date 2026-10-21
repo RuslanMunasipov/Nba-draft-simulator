@@ -69,6 +69,9 @@ jobs:
         run: python scripts/espn_team_context.py
       - name: Train, hold out and apply the career projection model (2002-2026 game logs)
         run: python scripts/projection_model.py
+      - name: Check the acceptance figures against the model just built
+        # The unit tests above run before the build, without public/data, so they skip this comparison.
+        run: python -m unittest tests.test_docs_truth
       - name: Independently audit all scoring terms and negative games
         run: python scripts/audit_scoring.py
       - name: Attach official Sports.ru fantasy points per season and audit forecasts

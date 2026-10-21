@@ -29,6 +29,8 @@ class DocsTruth(unittest.TestCase):
                   f"slot MAE {t['slotMAE']['withReplacements']:.0f} vs {t['slotMAE']['ownForecast']:.0f}",
                   f"the 40 best slots by the new value produced {gain('top40SlotPoints'):.1f}% more",
                   f"the 80 best {gain('top80SlotPoints'):.1f}% more"]
+        c=(json.loads(MODEL_AUDIT.read_text()).get('production') or {}).get('teammateCorrelation')
+        if c:expected.append(f"correlation {100*c['correlation']:.1f}% over {c['pairs']:,} pairs".replace('-','−'))
         for text in expected:
             self.assertIn(text,CURRENT,'«Current state» in docs/ACCEPTANCE.md disagrees with projection-model-audit.json')
 
