@@ -14,7 +14,7 @@ import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers} from '../src/rules.js';
 import {fetchLiveGames} from '../src/live.js';
-import {esc,gains,moveLines,details,message,sender,moscow,injuryFeed,injuryWarning,isOut,returnHead,returnKey,warnedFor,stillInjured} from './telegram-format.mjs';
+import {esc,gains,moveLines,details,message,sender,moscow,injuryFeed,injuryWarning,hasInjuryRows,outUntil,isOut,returnHead,returnKey,warnedFor,stillInjured} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -29,16 +29,19 @@ const league=JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import
 const previous=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
 const players=withMarket(db.players,raw),byId=new Map(players.map(p=>[p.id,p])),today=moscowToday();
 const {transfers,warnings}=allTransfers(players,raw,league);
-// Sports.ru lists a game as played with 0 points until it counts it: as in the app (season-ui scoreBoxes, the clubs of
-// the FBL rosters), finished games are scored from the ESPN box scores and a running one waits for the final whistle.
-// Without ESPN the rows stay as Sports.ru lists them, as the app's do.
+// The messages quote FBL points only (the Yahoo formula): season.js counts a played row by its box line, never by
+// Sports.ru's ФО. As in the app (season-ui scoreBoxes, the clubs of the FBL rosters), finished games are scored from the
+// ESPN box scores and a running one waits for the final whistle; without ESPN the rows stay as the collector published
+// them, as the app's do.
 const rosters=seasonRosters(transfers),live=withBoxScores(raw,await fetchLiveGames(new Set(rosters.flat().map(id=>byId.get(id)?.team).filter(Boolean))).catch(()=>[]),players);
 // The collector's ESPN injury report; when its fetch failed, one more try from here, then the report it kept (old, and
-// said so) — never an empty one that reads as "everyone is healthy".
+// said so) — never an empty one that reads as "everyone is healthy": an answer that lists nobody is the broken feed the
+// collector refused, so the kept report stays, with its warning.
 let injuryState=injuryFeed(live);
 if(!injuryState.fresh){const now=await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries').catch(()=>null),at=new Date().toISOString();
- if(now?.injuries)injuryState={feed:{...now,fetchedAt:at},fresh:true,fetchedAt:at};}
-const ctx={players,live,injuries:parseInjuries(injuryState.feed),today,rosters,white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
+ if(hasInjuryRows(now))injuryState={feed:{...now,fetchedAt:at},fresh:true,fetchedAt:at};}
+// now: a game that has tipped off can no longer be gained by a move, even before its score or box line is in.
+const ctx={players,live,injuries:parseInjuries(injuryState.feed),today,now:Date.now(),rosters,white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
 const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
 // Both limits bind: Sports.ru's own weekly count (∞ in pre-season) and the FBL week (pre-season moves are free).
 const leftOf=t=>{const x=live.teams?.[t],sports=x?.transfersUnlimited?Infinity:Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));
@@ -57,7 +60,7 @@ const hours=transferWindow(),when=hours.open?'':` · сделать с ${hours.f
 // left this week cannot buy him first.
 const rivalsFor=id=>contestedBy(ctx,{team,playerId:id,bankOf,sort}).filter(t=>leftOf(t)>0);
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
- .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${i.returnDate?' до '+i.returnDate.slice(8,10)+'.'+i.returnDate.slice(5,7):''}`};});
+ .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${outUntil(i)}`};});
 const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(rec.best?[rec.best.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
 // Injuries of my roster are news only from a fresh report: an old or missing one neither adds nor clears them.
 const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=injuryState.fresh?hurt.filter(h=>!previous.injuries?.includes(h.key)):[];
@@ -213,7 +216,7 @@ const back=!left||!feedOk?[]:(previous.watch||[]).map(id=>byId.get(id)).filter(p
 for(const x of back){const why=dealWhy(x,x.player.id),head=returnHead(why.confidence,{sure:CONFIDENT,maybe:DOUBTFUL,now:true,when});if(!head)continue;
  await report(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',head,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>{});}
 for(const x of soon){const why=dealWhy(x,x.player.id),head=returnHead(why.confidence,{sure:CONFIDENT,maybe:DOUBTFUL,when});if(!head)continue;
- await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${x.injury.returnDate?' до '+day(x.injury.returnDate):''}`,'',
+ await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${outUntil(x.injury)}`,'',
  `${head} · ${sureness(why).toLowerCase()}`,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>state.returns.push(returnKey(x.player.id)));}
 // Remember what was already reported so the same advice is not sent again. Until Telegram is configured nothing
 // counts as reported: the first messages arrive once the secrets are set. Transfers already in the journal count as seen.

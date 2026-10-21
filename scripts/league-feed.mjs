@@ -66,7 +66,9 @@ function checkItems(c,moves){
  // With several deals each has its own time.
  const times=moves.map(m=>transferTime(m));
  const time=moves.length>1?times.map((x,i)=>`сд. ${i+1} ${icon[x.state]} ${timeLabel(x)}`).join(', '):times.map(x=>`${icon[x.state]} ${timeLabel(x)}`).join(', ');
- return [{ok:!bad('rookie'),name:'новичок',line:`Новичок в составе — ${bad('rookie')?'❌ нет':'✅ '+names(c.rookies)}`},
+ // No marked rookie beside a player only the Sports.ru market knows is the lawyer's check (rules.js), not a breach.
+ const rk=of('rookie')[0];
+ return [{ok:!rk,name:'новичок',line:`Новичок в составе — ${!rk?'✅ '+names(c.rookies):rk.certain===false?`⏳ не отмечен, базе не известен статус: ${names(rk.unknown||[])}`:'❌ нет'}`},
   {ok:c.whiteState==='ok',name:'белое правило',line:`Белое правило — ${white}`},
   {ok:!bad('club'),name:'лимит клуба',line:`Лимит клуба NBA (2) — ${bad('club')?of('club').map(v=>`❌ ${esc(v.club)}: ${esc(v.players.join(', '))}`).join('; '):'✅'}`},
   {ok:!bad('transfers'),name:'лимит трансферов',line:moves.every(m=>isFreeTransfer(m))?'Лимит трансферов — ✅ предсезонье, без лимита'
@@ -166,9 +168,12 @@ for(const idx of groups.values()){
  // Each breach by what it is about (vid: the rule, the club, the shared player, the week): one the roster already had
  // before this protocol's deals is not theirs («не устранено»), one it had and the deals repair is «устранено», a new one
  // next to an old one of the same rule is new. The transfer limit and the hours are judged per deal and per week.
+ // A breach stands only when it was a breach before: a doubt the deals turn into a breach (a market-only player sold
+ // for a veteran) was never announced, so its case opens now; a doubt that persists stands as it was.
  const lasting=r=>r.rule!=='time'&&r.rule!=='transfers';
- const before=check(transfers.indexOf(news[0])).violations.filter(lasting),base=new Set(before.map(r=>r.vid));
- const nowBroken=new Set(c.violations.filter(lasting).map(r=>r.vid)),standing=new Set([...nowBroken].filter(v=>base.has(v)));
+ const beforeCheck=check(transfers.indexOf(news[0])),before=beforeCheck.violations.filter(lasting),base=new Set(before.map(r=>r.vid));
+ const wasBreach=new Set(before.filter(r=>!isDoubt(r,beforeCheck)).map(r=>r.vid));
+ const nowBroken=new Set(c.violations.filter(lasting).map(r=>r.vid)),standing=new Set(c.violations.filter(r=>lasting(r)&&(isDoubt(r,c)?base:wasBreach).has(r.vid)).map(r=>r.vid));
  const fixed=[...new Set(before.filter(r=>!nowBroken.has(r.vid)).map(r=>r.rule))];
  // Which deal broke each new breach: the one after which it stayed broken to the end of the package (a package is
  // judged on its final roster, so a rookie sold and bought back the same day breaks nothing). The hours go to every deal

@@ -1,6 +1,7 @@
 // Telegram HTML formatting for the FBL notifier: the decision on top in bold, the reasoning in a collapsed quote.
 import fs from 'node:fs';
 import path from 'node:path';
+import {seasonEnding} from '../src/season.js';
 export const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 export const signed=n=>(n>=0?'+':'−')+Math.abs(Math.round(n));
 export const gains=(season,month)=>`${signed(season)} ФО за сезон · ${signed(month)} за 4 нед.`;
@@ -22,6 +23,12 @@ export function injuryFeed(live,now=Date.now(),maxHours=6){
  const feed=live?.espnInjuries?.injuries?live.espnInjuries:null,at=Date.parse(feed?.fetchedAt||'');
  return {feed,fresh:Boolean(feed)&&live.espnInjuriesOk!==false&&Number.isFinite(at)&&now-at<=maxHours*36e5,fetchedAt:Number.isFinite(at)?new Date(at).toISOString():null};
 }
+// A report that lists nobody is a broken feed, never "everyone is healthy" (the collector's rule: espn_injuries in
+// collect_sports_current.py keeps the previous report then).
+export const hasInjuryRows=feed=>Boolean(feed?.injuries?.some(t=>t?.injuries?.length));
+// Until when a report keeps a player out, as the messages say it: a season-ending one (season.js seasonEnding: OFS, or
+// OUT whose comment says so; the forecast counts no game) to the end of the season, whatever placeholder date ESPN shows.
+export const outUntil=i=>!i?'':seasonEnding(i)?' до конца сезона':i.returnDate?` до ${String(i.returnDate).slice(8,10)}.${String(i.returnDate).slice(5,7)}`:'';
 // The line that says the advice ran without a fresh ESPN report, or null when it had one.
 export const injuryWarning=state=>state.fresh?null:state.feed?`⚠️ Отчёт ESPN о травмах не обновился${state.fetchedAt?' с '+moscow(state.fetchedAt):''}: травмы — по последнему полученному, о возвращениях не сообщаю.`
  :'⚠️ Отчёт ESPN о травмах недоступен: советы без учёта травм, о возвращениях не сообщаю.';
