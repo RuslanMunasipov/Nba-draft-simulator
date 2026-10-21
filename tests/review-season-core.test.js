@@ -17,8 +17,9 @@ test('a known absence (merged build shape): the season games equal the published
   const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{origin:'ESPN_MODEL_COMBINED',gamesBasis:'MEAN_ESPN_MODEL',meanPerGame:20,minutes:30,games:F,
    availability:{unconditionalGames:U},knownAbsence:{blockedGames:b,gamesLeft:left,unconditionalGames:U},sources:{model:{games:U*left/82},espn:{games:Math.min(60,left)}}}};
   near(season(p,ctxWith(p,{injuries:out})),F);
-  // ESPN clears him early (no report before the next build): every game is his at the post-return share, not F/82.
-  near(season(p,ctxWith(p)),82*F/left);
+  // ESPN clears him early (no report before the next build): the blocked games still ahead come back at his report-free
+  // share, the games after the return keep the published F (not F/82, nor every game at the post-return share F/left).
+  near(season(p,ctxWith(p)),F+U*b/82);
  }
 });
 test('a rookie with a known absence is not cut twice; with the build\'s season-ending block the report-free games stand in',()=>{
