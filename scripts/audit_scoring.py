@@ -2,18 +2,20 @@
 
 consistency: the formula restated term by term against build_forecasts.full(), and forecast components against
 meanPerGame. It is not an independent test of the rule: both sides are the repository's own code.
-externalCheck: Sports.ru's official season totals against the FBL formula plus Sports.ru's team result bonus on the
-same games of the league logs. Sports.ru computes its totals outside this repository, so this one can catch a wrong
-term, a wrong minutes rule or a wrong bonus."""
+externalCheck: Sports.ru's official season totals against Sports.ru's own formula (the FBL terms, its +2/+1 minutes
+rule instead of FBL's 1 per game played, and its team result bonus) on the same games of the league logs. Sports.ru
+computes its totals outside this repository, so this one can catch a wrong counting term or a wrong bonus."""
 import json, math, statistics
 from collections import defaultdict
 from pathlib import Path
 import pyarrow.parquet as pq
 try:
-    from build_forecasts import SEASONS, full, profiles
+    from build_forecasts import SEASONS, full, sports_full, profiles
+    from fbl_formula import participation
     from minute_encoding import normalize_minutes
 except ImportError:
-    from scripts.build_forecasts import SEASONS, full, profiles
+    from scripts.build_forecasts import SEASONS, full, sports_full, profiles
+    from scripts.fbl_formula import participation
     from scripts.minute_encoding import normalize_minutes
 
 HISTORY = Path('data/sports-fantasy-history.json')
@@ -48,7 +50,7 @@ def external_check(data,rows_by_season,history):
             s=(record.get('seasons') or {}).get(year);games=logs.get(nba.get(sid))
             if not s or not games or len(games)!=s.get('games') or any(len(clubs[r['game_id']])!=2 for r in games):continue
             won=lambda r:score[(r['game_id'],r['team'])]>score[(r['game_id'],next(t for t in clubs[r['game_id']] if t!=r['team']))]
-            base=sum(full(r) for r in games);bonus=sum(sports_result_bonus(r['home'],won(r)) for r in games)
+            base=sum(sports_full(r) for r in games);bonus=sum(sports_result_bonus(r['home'],won(r)) for r in games)
             season.append(s['points']-base-bonus);without.append(abs(s['points']-base))
         residuals+=season
         by_season[year]=dict(playerSeasons=len(season),exact=sum(x==0 for x in season),within2=sum(abs(x)<=2 for x in season),
@@ -58,7 +60,7 @@ def external_check(data,rows_by_season,history):
     mean_without=statistics.mean(without) if n else None
     passed=n>=100 and within2/n>=.75 and mean_without>5*mean_abs
     return dict(status='PASS' if passed else 'FAIL',
-                source='Sports.ru season totals (data/sports-fantasy-history.json) vs FBL formula + Sports.ru result bonus on the same league-log games',
+                source='Sports.ru season totals (data/sports-fantasy-history.json) vs Sports.ru formula (FBL terms, +2/+1 minutes rule) + its result bonus on the same league-log games',
                 playerSeasons=n,exact=sum(x==0 for x in residuals),within2=within2,within5=sum(abs(x)<=5 for x in residuals),
                 meanResidual=round(statistics.mean(residuals),2) if n else None,meanAbsResidual=round(mean_abs,2) if n else None,
                 meanAbsWithoutBonus=round(mean_without,2) if n else None,bySeason=by_season,
@@ -75,7 +77,7 @@ def audit(data,rows_by_season):
         for row in rows:
             if row['minutes']<=0:continue
             # The FBL formula: Sports.ru's without the team result bonus (the league scores on Yahoo).
-            score=sum(terms(row).values())-row['pf']+(2 if row['minutes']>=10 else 1)
+            score=sum(terms(row).values())-row['pf']+participation(row['minutes'])
             check(score,full(row),year+' '+row['player_name'])
             check(sum(terms(dict(row,tov=row['tov']+1)).values())-sum(terms(row).values()),-2,'one turnover')
             grouped[row['player_id']].append(score)

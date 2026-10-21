@@ -64,10 +64,10 @@ test('minutes move the estimate before points per minute do',()=>{
  const vet={forecast:{meanPerGame:30,minutes:30}},rookie={...vet,isRookie:true};
  const games=Array.from({length:5},(_,i)=>({played:true,points:40,minutes:'40:00',date:'2026-10-2'+i}));
  const v=perGame(vet,{games}),r=perGame(rookie,{games});
- // The same counting rate in a bigger role (28 points per 30 minutes plus the +2): without the early-season lift the
- // estimate is that rate times the expected minutes, between forecast and new role, plus the +2, which minutes do not scale.
- const same=games.map(g=>({...g,points:28/30*40+2})),e=perGame(vet,{games:same},{...CALIBRATION.points,offsets:null});
- assert.ok(Math.abs(e.value-(28/30*e.minutes+2))<1e-9&&e.minutes>30&&e.minutes<40);
+ // The same counting rate in a bigger role (29 points per 30 minutes plus the +1): without the early-season lift the
+ // estimate is that rate times the expected minutes, between forecast and new role, plus the +1, which minutes do not scale.
+ const same=games.map(g=>({...g,points:29/30*40+1})),e=perGame(vet,{games:same},{...CALIBRATION.points,offsets:null});
+ assert.ok(Math.abs(e.value-(29/30*e.minutes+1))<1e-9&&e.minutes>30&&e.minutes<40);
  assert.ok(v.minutes>30&&v.minutes<40);
  assert.ok(r.value>v.value,'newcomers adapt to a new role faster');
  assert.equal(perGame(vet,{games:[...games,{played:true,points:10,minutes:''}]}).value,(10*30+210)/16);
@@ -138,15 +138,15 @@ test('a package can sell an expensive player to fund a better one elsewhere',()=
  const p=bestPackage(c,{team:0,bankMoney:0,k:2,sort:'season'});
  assert.ok(p.pairs.some(x=>x.in.id===100));assert.ok(p.bankAfter>=0);
 });
-test('box score uses the FBL formula: Sports.ru\'s without the team result bonus, win or lose',()=>{
+test('box score uses the FBL formula as Yahoo counts it: no team result bonus, 1 per game played',()=>{
  const line={MIN:'36',PTS:'30',FG:'11-20',FT:'6-8',REB:'10',AST:'8',STL:'2',BLK:'1',TO:'3',PF:'2'};
- assert.equal(boxScorePoints(line),30+10+8+2+1-9-2-6-2+2);
- assert.equal(boxScorePoints({...line,MIN:'8'}),34-1);
+ assert.equal(boxScorePoints(line),30+10+8+2+1-9-2-6-2+1);
+ assert.equal(boxScorePoints({...line,MIN:'8'}),33);
  // A few seconds on court with nothing else still earn the participation point.
  assert.equal(boxScorePoints({MIN:'0',FG:'0-0',FT:'0-0',PTS:'0',REB:'0'}),1);
  const event={status:{type:{completed:true}},competitions:[{competitors:[{team:{id:'1'},homeAway:'home',winner:false},{team:{id:'2'},homeAway:'away',winner:true}]}]};
  const summary={boxscore:{players:[{team:{id:'2'},statistics:[{labels:Object.keys(line),athletes:[{athlete:{id:'77'},stats:Object.values(line)},{athlete:{id:'78'},stats:[]}]}]}]}};
- assert.deepEqual(liveGamePoints(summary,event),{77:{points:34,minutes:36,final:true,counting:32,name:'',team:'',line}});
+ assert.deepEqual(liveGamePoints(summary,event),{77:{points:33,minutes:36,final:true,counting:32,name:'',team:'',line}});
 });
 test('packages never trade the season for a short-term gain unless asked',()=>{
  // Free agent 99 (C) is great this week but out from November; the roster centre is steady all season.
@@ -403,14 +403,14 @@ test('finished games Sports.ru has not counted yet are scored at once from the E
   4:{club:'Сан-Антонио',games:[]}},clubs:{}};
  const players=[{id:'a',espnId:'11',sportsId:'1'},{id:'b',espnId:'22',sportsId:'2'},{id:'c',espnId:'33',sportsId:'3'},{id:'d',espnId:'44',sportsId:'4'}];
  const games=[
-  {id:'g1',date:'2026-10-20T23:30Z',state:'post',final:true,points:{11:{points:36,minutes:40,final:true,counting:34}}},
-  // ESPN rounds 9:58 to "10": Sports.ru's exact minutes give +1, not +2.
-  {id:'g2',date:'2026-10-20T19:00Z',state:'post',final:true,points:{22:{points:12,minutes:10,final:true,counting:10}}},
-  {id:'g3',date:'2026-10-21T00:00Z',state:'in',final:false,points:{33:{points:10,minutes:20,final:false,counting:8}}},
+  {id:'g1',date:'2026-10-20T23:30Z',state:'post',final:true,points:{11:{points:36,minutes:40,final:true,counting:35}}},
+  // ESPN rounds 9:58 to "10": Sports.ru's exact minutes stay on the row; the game point is +1 either way.
+  {id:'g2',date:'2026-10-20T19:00Z',state:'post',final:true,points:{22:{points:11,minutes:10,final:true,counting:10}}},
+  {id:'g3',date:'2026-10-21T00:00Z',state:'in',final:false,points:{33:{points:10,minutes:20,final:false,counting:9}}},
   {id:'g4',date:'2026-10-21T00:30Z',state:'post',final:true,points:{44:{points:6,minutes:8,final:true,counting:5}}}];
  const out=withBoxScores(live,games,players);
  assert.deepEqual(out.players[1].games[0],{date:'2026-10-21',opponent:'Нью-Йорк',home:false,tip:'2026-10-20T23:30Z',minutes:'39:33',points:36,played:true,source:'ESPN',sportsRowPoints:0});
- assert.equal(out.players[2].games[0].points,11);
+ assert.equal(out.players[2].games[0].points,11);assert.equal(out.players[2].games[0].minutes,'09:58');
  // A running game: its Sports.ru row does not count yet, the running points do.
  assert.equal(out.players[3].games[0].played,false);
  // Sports.ru has not listed the game at all: the box score adds it.

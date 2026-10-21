@@ -10,7 +10,7 @@ MODEL_AUDIT=ROOT/'public/data/projection-model-audit.json'
 class DocsTruth(unittest.TestCase):
     def test_current_state_section_exists_and_records_owner_decisions(self):
         self.assertTrue(CURRENT,'docs/ACCEPTANCE.md needs its «Current state» section')
-        for text in ['EXACT_MINUTES','first holder','1st place','mean of ESPN']:
+        for text in ['PER_GAME_PLAYED','first holder','1st place','mean of ESPN']:
             self.assertIn(text,CURRENT)
 
     def test_in_season_figures_match_the_calibration_file(self):

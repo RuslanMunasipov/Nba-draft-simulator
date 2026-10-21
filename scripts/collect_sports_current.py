@@ -24,6 +24,10 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+try:
+    from fbl_formula import GAME_PLAYED, sports_participation
+except ImportError:
+    from scripts.fbl_formula import GAME_PLAYED, sports_participation
 
 ROOT = Path(__file__).resolve().parent.parent
 PRICES = ROOT / 'data' / 'sports-prices-2026-10-17.json'
@@ -176,8 +180,8 @@ ROW_SOURCES = ('BOX', 'ROW_SCORE')
 
 
 def box_points(cs, col, minutes):
-    """FBL points of a game from its own box score: PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF, plus 2 for 10 minutes
-    or more, else 1 (exact minutes, league owner 21.10.2026). None when a column is missing or unreadable."""
+    """FBL points of a game from its own box score: PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF, plus 1 for the game
+    played (Yahoo GP, league settings 21.10.2026). None when a column is missing or unreadable."""
     v = {}
     for key, names in BOX.items():
         i = next((col[n] for n in names if n in col), None)
@@ -185,17 +189,17 @@ def box_points(cs, col, minutes):
         if x is None:
             return None
         v[key] = x
-    m = re.match(r'(\d+)', minutes or '')
     misses = v['fga2'] + v['fga3'] - v['fgm2'] - v['fgm3'] + v['fta'] - v['ftm']
-    return v['pts'] + v['reb'] + v['ast'] + v['stl'] + v['blk'] - misses - 2 * v['tov'] - v['pf'] + (2 if m and int(m.group(1)) >= 10 else 1)
+    return v['pts'] + v['reb'] + v['ast'] + v['stl'] + v['blk'] - misses - 2 * v['tov'] - v['pf'] + GAME_PLAYED
 
 
 def row_points(game, cs, col):
     """A played game's FBL points from its own row, read at the same moment as Sports.ru's points (no calendar of another
     page, no orientation vote): the box score when the table has it, else Sports.ru's points minus the team result bonus
-    of the row's score, which is written home side first («118 : 128» away is a win). With both, each checks the other:
-    Sports.ru's points are FBL's plus that bonus; a row where they differ is marked MISMATCH (the box score stands, it is
-    the league's formula). A row with neither is left to the club calendars (fbl_points)."""
+    of the row's score, which is written home side first («118 : 128» away is a win), and minus the extra point Sports.ru
+    gives for 10+ minutes (FBL counts 1 per game played). With both, each checks the other: Sports.ru's points are FBL's
+    plus that bonus and that point; a row where they differ is marked MISMATCH (the box score stands, it is the league's
+    formula). A row with neither is left to the club calendars (fbl_points)."""
     base = game['points']
     i = next((col[n] for n in ('Счет', 'Счёт') if n in col), None)
     score = parse_score(cs[i]) if i is not None and len(cs) > i else None
@@ -206,10 +210,10 @@ def row_points(game, cs, col):
         game['result'] = 'W' if won else 'L'
     if box is not None:
         game['points'], game['pointsSource'] = round(box, 2), 'BOX'
-        if won is not None and round(base - box, 2) != result_bonus(game['home'], won):
+        if won is not None and round(base - box, 2) != result_bonus(game['home'], won) + minutes_extra(game['minutes']):
             game['pointsCheck'] = 'MISMATCH'
     elif won is not None:
-        game['points'], game['pointsSource'] = round(base - result_bonus(game['home'], won), 2), 'ROW_SCORE'
+        game['points'], game['pointsSource'] = round(base - result_bonus(game['home'], won) - minutes_extra(game['minutes']), 2), 'ROW_SCORE'
     return game
 
 
@@ -286,6 +290,12 @@ def score_orientation(clubs):
     return max(votes, key=votes.get) if any(votes.values()) else None
 
 
+def minutes_extra(minutes):
+    """What Sports.ru's minutes rule adds over FBL's 1 per game played: +1 for 10 minutes or more («MM:SS»)."""
+    m = re.match(r'(\d+)', minutes or '')
+    return sports_participation(int(m.group(1)) if m else 0) - GAME_PLAYED
+
+
 def result_bonus(home, won):
     """Sports.ru's team result bonus: +2/+3 for a home/away win, -3/-2 for a home/away loss."""
     return (2 if home else 3) if won else (-3 if home else -2)
@@ -293,11 +303,12 @@ def result_bonus(home, won):
 
 def fbl_points(players, clubs):
     """FBL points of the played games their own row could not convert (row_points: a table without box score and score).
-    FBL scores on Yahoo with Sports.ru's formula but without the team result bonus (league owner, 20.10.2026): Sports.ru's
-    points of the game keep their own minutes rule, minus the bonus of the result, read from the score in the club's
+    FBL scores on Yahoo with Sports.ru's counting terms, 1 point per game played and no team result bonus: Sports.ru's
+    points of the game minus its extra point for 10+ minutes and minus the bonus of the result, read from the score in the club's
     calendar (the club that met that opponent that day, home or away as the game row says, so a traded player is matched
     too). Sports.ru's own number stays as sportsPoints; a game whose result is in no calendar either keeps Sports.ru's
-    number, without a result, marked pointsSource SPORTS_WITH_BONUS and counted in gamePoints."""
+    number less the minutes point, with its result bonus and without a result, marked pointsSource SPORTS_WITH_BONUS and
+    counted in gamePoints."""
     orientation = score_orientation(clubs)
     index = {(g['date'], g['opponent'], bool(g.get('home'))): g for games in clubs.values() for g in games}
     scored = 0
@@ -308,14 +319,16 @@ def fbl_points(players, clubs):
             base = g.get('sportsPoints', g.get('points'))
             score = parse_score((index.get((g['date'], g.get('opponent'), bool(g.get('home')))) or {}).get('score'))
             if orientation is None or not score or score[0] == score[1]:
-                g['points'] = base
+                # Without a result only the minutes point can come off: the result bonus stays in.
+                g['sportsPoints'] = base
+                g['points'] = round(base - minutes_extra(g.get('minutes')), 2)
                 g['pointsSource'] = 'SPORTS_WITH_BONUS'
                 g.pop('result', None)
                 continue
             a, b = score
             won = a > b if orientation == 'own' or g.get('home') else b > a
             g['sportsPoints'] = base
-            g['points'] = round(base - result_bonus(bool(g.get('home')), won), 2)
+            g['points'] = round(base - result_bonus(bool(g.get('home')), won) - minutes_extra(g.get('minutes')), 2)
             g['result'] = 'W' if won else 'L'
             g['pointsSource'] = 'CALENDAR'
             scored += 1

@@ -1,12 +1,12 @@
 """FBL season projection model trained on full career game logs (ESPN, NBA regular seasons 2002-2026).
 
 Marcel-style, every weight fitted on data and checked on an untouched season:
-- points per minute (Sports.ru formula without the participation bonus): weighted last three seasons,
+- points per minute (the FBL formula without its 1 point per game played): weighted last three seasons,
   shrunk to the league rate by total minutes, plus an age curve;
 - minutes per game: weighted last three seasons, shrunk to the league mean by games, plus an age curve;
 - share of team games played: weighted last three seasons and the career share, shrunk to the age-group mean;
-- participation bonus from the player's own share of games under 10 minutes. The FBL formula has no team result bonus
-  (league owner, 20.10.2026: the league scores on Yahoo, which cannot award points for wins or take them for losses);
+- participation: 1 point per game played, as Yahoo counts GP (league settings, 21.10.2026), whatever the minutes. The
+  FBL formula has no team result bonus (the league scores on Yahoo, which cannot award points for wins or losses);
 - rookies: first-season rate, minutes and share by draft pick, fitted on complete draft classes.
 - games distribution: a semi-Markov absence chain with Gamma frailty (availability_model.py), its mean set to the
   forecast games (no lower than a floor of the hazard scale); it supplies the games side of the season range and the
@@ -24,6 +24,8 @@ from datetime import date
 from pathlib import Path
 import numpy as np
 import pyarrow.parquet as pq
+try:from fbl_formula import GAME_PLAYED,participation
+except ImportError:from scripts.fbl_formula import GAME_PLAYED,participation
 try:import availability_model as av
 except ImportError:from scripts import availability_model as av
 
@@ -57,7 +59,7 @@ def season_table(rows,key):
     for r in rows:
         s=seasons[(key(r),r['season'])];s['games']+=1;s['minutes']+=r['minutes'];s['counting']+=counting(r);s['short']+=r['minutes']<10
         for k in STAT_KEYS:s['stats'][k]+=r[k]
-        s['teams'].append(r['team']);s['logs'].append(counting(r)+(2 if r['minutes']>=10 else 1))
+        s['teams'].append(r['team']);s['logs'].append(counting(r)+participation(r['minutes']))
         # A team's calendar counts its decided games (a row with a result).
         if r.get('result') in ('W','L'):team_games[(r['season'],r['team'])].add(r['game_id'])
     for s in seasons.values():s['team']=max(sorted(set(s['teams'])),key=s['teams'].count)  # sorted: ties do not depend on the hash seed
@@ -110,7 +112,7 @@ class History:
     def target(self,pid,year):
         s=self.by[pid].get(year)
         if not s:return dict(games=0,share=0.0,rate=None,minutes=None,perMinute=None,short=None)
-        return dict(games=s['games'],share=self.share(pid,year),rate=(s['counting']+2*s['games']-s['short'])/s['games'],
+        return dict(games=s['games'],share=self.share(pid,year),rate=(s['counting']+GAME_PLAYED*s['games'])/s['games'],
                     minutes=s['minutes']/s['games'],perMinute=s['counting']/s['minutes'] if s['minutes'] else 0,short=s['short']/s['games'],stats=dict(s['stats']))
 
 # ---------- veteran model ----------
@@ -226,7 +228,7 @@ class Veteran:
             for wi,p in zip(self.pm_w,x['past']):
                 if p and p['minutes']>0:num+=wi*p['stats'].get(k,0);den+=wi*p['minutes']
             stats[k]=num/den*minutes
-        return dict(perMinute=pm,minutes=minutes,share=share,short=short,rate=pm*minutes+2-short,stats=stats,ageAdjustment=age_pm*minutes)
+        return dict(perMinute=pm,minutes=minutes,share=share,short=short,rate=pm*minutes+GAME_PLAYED,stats=stats,ageAdjustment=age_pm*minutes)
     def report(self):
         return dict(perMinuteWeights=self.pm_w,perMinuteShrinkMinutes=self.pm_k,minuteWeights=self.min_w,minuteShrinkGames=self.min_k,
                     shareWeights=self.share_w,careerShareWeight=self.share_wc,shareShrink=self.share_j,
@@ -334,7 +336,7 @@ def league_seasons(path,year):
     for r in rows:
         if r['minutes']<=0:continue
         s=out.setdefault(r['player_id'],dict(name=r['player_name'],games=0,minutes=0.0,points=0.0,stats=defaultdict(float)))
-        s['games']+=1;s['minutes']+=r['minutes'];s['points']+=counting(r)+(2 if r['minutes']>=10 else 1)
+        s['games']+=1;s['minutes']+=r['minutes'];s['points']+=counting(r)+participation(r['minutes'])
         for k in STAT_KEYS:s['stats'][k]+=r[k]
     for s in out.values():s['perMinuteStats']={k:v/s['minutes'] for k,v in s['stats'].items()};s['rate']=s['points']/s['games'];s['minutes']=s['minutes']/s['games']
     return out
@@ -537,7 +539,7 @@ def evaluate(model,ranges,test,chain=None,history=None):
         lo,hi,_=ranges.interval(q,e['x'],n) if healthy else (ulo,uhi,short)
         actual=(e['y']['rate'] or 0)*e['y']['games']
         lp=e['x']['past'][0]
-        persistence=(lp['counting']+2*lp['games']-lp['short']) if lp and lp['games'] else 0
+        persistence=(lp['counting']+GAME_PLAYED*lp['games']) if lp and lp['games'] else 0
         rows.append(dict(pid=e['pid'],actual=actual,centre=centre,persistence=persistence,lo=lo,hi=hi,ulo=ulo,uhi=uhi,short=short,
                          rate=p['rate'],actualRate=e['y']['rate'],games=p['share']*n,actualGames=e['y']['games'],lastGames=lp['games'] if lp else 0,
                          deployedCentre=q['rate']*q['share']*n,healthy=healthy,age=e['x']['age'],evidence=Ranges.evidence(e['x']),
@@ -674,7 +676,7 @@ def run(data=None):
                              f'{len(history.imputed)} players without a birth date get the mean age at the first season after their draft, or at the debut.',
                              'The published range is checked with "played the club\'s first game" standing in for a clean preseason injury report; '
                              'ranges around ESPN-anchored games cannot be checked without an archive of ESPN projections.',
-                             'ESPN minutes are whole numbers, so the 10-minute participation threshold is approximate near 10 minutes.',
+                             'The participation term is 1 per game played (Yahoo GP), so minutes enter only through the counting stats.',
                              'No team result bonus: the FBL formula is Sports.ru\'s without it (the league scores on Yahoo, which cannot award it).',
                              'Rookie rows match picks to league players by NBA id, then by name; ambiguous names are skipped. Drafted players who never played '
                              'count as zero games.'])
@@ -772,7 +774,7 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
             shortSeasonRisk=short,availability=health,knownAbsence=absence,conditionalOnRoster=conditional,
             intervalCalibration='FORWARD_CONFORMAL_PER_TAIL' if x else 'ROOKIE_CLASS_2025_ERRORS',
             inputStats=line,components=components,
-            sources=dict(model=dict(perGame=model_rate,games=model_games,perMinute=p.get('perMinute'),minutes=p['minutes'],participation=2-p['short']),
+            sources=dict(model=dict(perGame=model_rate,games=model_games,perMinute=p.get('perMinute'),minutes=p['minutes'],participation=GAME_PLAYED),
                          espn=dict(perGame=espn_rate,games=espn_games,**({'projectedGames':espn['games']} if espn_games!=espn['games'] else {})) if espn else None),
             draftPick=p.get('pick'),draftYear=p.get('draftYear'),rookieExtrapolation=not x,asOf=data['generatedAt'],
             previous=dict(origin=f.get('origin'),meanPerGame=f.get('meanPerGame'),games=f.get('games')) if f else None)
@@ -939,7 +941,7 @@ def stat_line(p,espn,player,rate):
             espn_line={k:q[n] for k,n in names.items()};espn_line['pf']=-((espn.get('components') or {}).get('personalFouls') or 0)
     lines=[x for x in (model,espn_line) if x]
     line={k:statistics.mean(x.get(k,0) for x in lines) for k in STAT_KEYS} if lines else None
-    participation=2-p['short']
+    participation=GAME_PLAYED
     if line:
         components=dict(countingAndMisses=terms(line),personalFouls=-line['pf'],participation=participation)
     else:

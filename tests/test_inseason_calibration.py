@@ -10,14 +10,14 @@ class InseasonTests(unittest.TestCase):
   value=split(self.case(obs),20,5,20)
   self.assertTrue(simple(self.case(obs))<value<40)
  def test_participation_is_not_scaled_by_minutes(self):
-  # Same counting rate (28 per 30 minutes) in a 40-minute role: the +2 stays 2, it does not grow to 2.67.
-  c=dict(prior=dict(fp=30,min=30,part=2),obs=[dict(fp=28/30*40+2,min=40)]*5,target=0)
+  # Same counting rate (28 per 30 minutes) in a 40-minute role: the +1 stays 1, it does not grow to 1.33.
+  c=dict(prior=dict(fp=29,min=30,part=1),obs=[dict(fp=28/30*40+1,min=40)]*5,target=0)
   value=split(c,20,5,None)
   minutes=(5*30+5*40)/10
-  self.assertAlmostEqual(value,28/30*minutes+2)
-  # A bench role under 10 minutes earns the +1.
-  bench=dict(prior=dict(fp=12,min=12,part=2),obs=[dict(fp=10/12*8+1,min=8)]*40,target=0)
-  self.assertAlmostEqual(split(bench,20,1,None)-10/12*(12+40*8)/41,(2+40)/41)
+  self.assertAlmostEqual(value,28/30*minutes+1)
+  # A bench role under 10 minutes earns the same +1 per game played (Yahoo GP).
+  bench=dict(prior=dict(fp=11,min=12,part=1),obs=[dict(fp=10/12*8+1,min=8)]*40,target=0)
+  self.assertAlmostEqual(split(bench,20,1,None)-10/12*(12+40*8)/41,1)
  def test_offsets_lift_early_games_only_by_their_scale(self):
   off=dict(counting=[1.5]+[0]*(len(BUCKETS)-1),minutes=[0]*len(BUCKETS))
   c=self.case([dict(fp=30,min=30)]*3)
@@ -27,7 +27,7 @@ class InseasonTests(unittest.TestCase):
   logs={'a':[dict(fp=20+i/10,min=30+i/20) for i in range(60)]}
   off=game_offsets(logs)
   self.assertGreater(off['counting'][0],off['counting'][3]);self.assertGreater(off['minutes'][0],0)
-  self.assertEqual(participation(9.99),1);self.assertEqual(participation(10),2)
+  self.assertEqual(participation(9.99),1);self.assertEqual(participation(10),1)
  def test_availability_shrinks_toward_prior(self):
   c=dict(prior=.9,obs=[True,False,False,False],target=0)
   self.assertAlmostEqual(availability(c,20),(18+1)/24)

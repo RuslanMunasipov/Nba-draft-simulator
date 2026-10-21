@@ -241,9 +241,8 @@ function teamInGame(g,focus,own){return players.filter(p=>own.get(p.id)===focus&
 function lineTable(x){
  const s=statLine(x?.line);if(!s)return el('p','В протоколе ESPN пока нет статистики.','sp-note');
  const t=el('table',null,'stat-line');
- for(const r of s.rows){const tr=el('tr');tr.append(el('th',r.label),el('td',String(r.value)+(r.note?` · ${r.note}`:''),'v'),el('td',(r.points?signed(r.points):'0')+(r.unsure?' ±1':''),'num'+(r.points<0?' neg':'')));t.append(tr);}
+ for(const r of s.rows){const tr=el('tr');tr.append(el('th',r.label),el('td',String(r.value)+(r.note?` · ${r.note}`:''),'v'),el('td',r.points?signed(r.points):'0','num'+(r.points<0?' neg':'')));t.append(tr);}
  const total=el('tr',null,'total');total.append(el('th','ФО'),el('td',x.final?'финал':'матч идёт','v'),el('td',int(s.total),'num'));t.append(total);
- if(s.rows.some(r=>r.unsure))t.title='ESPN округляет минуты: при 9:30–9:59 Sports.ru даст на 1 очко меньше';
  return t;
 }
 // A player's line in a game card: tap to open his stat line, which stays open while the scores refresh.
@@ -466,7 +465,7 @@ function teamKpis(ctx,roster,running){
   bankKpi.querySelector('strong').replaceWith(input);
  }
  kpi('Трансферы',left===Infinity?'∞':`${left} из ${WEEKLY_TRANSFERS}`,`Неделя лиги до ${ddmm(fbl.week.end)}`).append(el('small',`до ${ddmm(fbl.week.end)}`));
- into=main;const place=kpi('Место в лиге',race.started?`${placeLabel(race)} из 8`:'—','Место среди 8 команд FBL по очкам формулы FBL (Sports.ru без бонуса за результат) вместе с идущими матчами; равные очки делят место. Официальная таблица лиги — на Yahoo');
+ into=main;const place=kpi('Место в лиге',race.started?`${placeLabel(race)} из 8`:'—','Место среди 8 команд FBL по очкам формулы FBL (Yahoo: +1 за сыгранный матч, без бонуса за результат) вместе с идущими матчами; равные очки делят место. Официальная таблица лиги — на Yahoo');
  place.append(el('small',!race.started?'очков пока нет':race.rank===1?`${int(race.total)} ФО · ${race.total>race.second?'+'+int(race.total-race.second)+' к 2-му':'вровень со 2-м'}`:`${int(race.total)} ФО · −${int(race.leader-race.total)} до 1-го`,race.started&&race.rank===1?'lead':''));
  const fo=kpi('ФО · '+PERIOD[horizon].toLowerCase(),'','Факт — очки по формуле FBL за период; прогноз — факт плюс ожидаемые очки до конца периода');
  fo.querySelector('strong').replaceWith(factForecast(fact,forecast));fo.append(el('small',`факт / прогноз · ${ddmm(w.from)}–${ddmm(w.to)}`));

@@ -8,6 +8,8 @@ import json, math, statistics
 from collections import defaultdict
 from pathlib import Path
 import pyarrow.parquet as pq
+try:from fbl_formula import GAME_PLAYED,participation,sports_participation
+except ImportError:from scripts.fbl_formula import GAME_PLAYED,participation,sports_participation
 try:
     from season_accuracy import cohort, SeasonModel, evaluate
 except ImportError:
@@ -26,7 +28,10 @@ def quantile(values,p):
 def partial(r):
     return r['pts']+r['reb']+r['ast']+r['stl']+r['blk']-(r['fga']-r['fgm'])-(r['fta']-r['ftm'])-2*r['tov']
 def full(r):
-    return partial(r)-r['pf']+(2 if r['minutes']>=10 else 1)
+    return partial(r)-r['pf']+participation(r['minutes'])
+def sports_full(r):
+    """Sports.ru's points of a game without its result bonus: its minutes rule for the participation term."""
+    return partial(r)-r['pf']+sports_participation(r['minutes'])
 def profiles(rows):
     groups=defaultdict(list)
     for r in rows:
@@ -58,7 +63,7 @@ def rookie_component_audit(data,groups):
             for donor in selected:
                 ratio=p['minutes']/donor['minutes']
                 for row in donor['logs']:
-                    extras.append(-max(0,min(6,row['pf']*ratio))+(2 if row['minutes']*ratio>=10 else 1))
+                    extras.append(-max(0,min(6,row['pf']*ratio))+GAME_PLAYED)
             predicted=p['partial']+statistics.mean(extras)
             details.append(dict(id=pid,name=p['name'],season=year,games=p['games'],actual=p['full'],
                                 predicted=predicted,baseline=p['partial'],absoluteError=abs(predicted-p['full'])))
@@ -106,7 +111,7 @@ def build(data,rows_by_season):
         for donor in selected:
             ratio=minutes/donor['minutes']
             for row in donor['logs']:
-                pf=max(0,min(6,row['pf']*ratio));minute_bonus=2 if row['minutes']*ratio>=10 else 1
+                pf=max(0,min(6,row['pf']*ratio));minute_bonus=GAME_PLAYED
                 score=centre+(partial(row)-donor['partial'])*ratio-pf+minute_bonus
                 scores.append(score);fouls.append(pf);participation.append(minute_bonus)
         mean=statistics.mean(scores)

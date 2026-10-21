@@ -53,6 +53,7 @@ class SportsHistory(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'logs.parquet';pq.write_table(pa.Table.from_pylist(rows),path)
             bonuses=result_bonuses(path)
-        self.assertEqual(bonuses[('7','2025-26')],(0.0,2));self.assertEqual(bonuses[('7','2024-25')],(3.0,1))
+        # (mean result bonus, games, mean extra minutes point): both 2025-26 games had 10+ minutes.
+        self.assertEqual(bonuses[('7','2025-26')],(0.0,2,1.0));self.assertEqual(bonuses[('7','2024-25')],(3.0,1,1.0))
 
 if __name__=='__main__':unittest.main()

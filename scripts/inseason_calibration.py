@@ -10,9 +10,11 @@ from pathlib import Path
 import pyarrow.parquet as pq
 try:
     from build_forecasts import full
+    from fbl_formula import GAME_PLAYED
     from minute_encoding import normalize_minutes
 except ImportError:
     from scripts.build_forecasts import full
+    from scripts.fbl_formula import GAME_PLAYED
     from scripts.minute_encoding import normalize_minutes
 
 SEASONS=['2023-24','2024-25','2025-26']
@@ -38,8 +40,8 @@ def load(season):
     for logs in players.values():logs.sort(key=lambda g:g['date'])
     return dict(players=players,dates={t:sorted(d) for t,d in dates.items()})
 
-# The FBL formula's participation term: +2 for 10 minutes or more, +1 below. It is a step of minutes, not a rate.
-def participation(minutes):return 2 if minutes>=10 else 1
+# The FBL formula's participation term: 1 per game played (Yahoo GP, league settings 21.10.2026), not a rate of minutes.
+def participation(minutes):return GAME_PLAYED
 def counting(g):return g['fp']-participation(g['min'])
 def played(logs):return [g for g in logs if g['min']>0]
 def prior_of(logs):

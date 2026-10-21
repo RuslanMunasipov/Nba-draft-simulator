@@ -24,7 +24,7 @@ export function playerInsights(p,players){
  const [[a,prev],[b,last]]=full.length>=2?full.slice(-2):[[],[]],fbl=full.length>=2&&Number.isFinite(prev.fblPerGame)&&Number.isFinite(last.fblPerGame);
  const level=s=>fbl?s.fblPerGame:s.perGame;
  if(full.length>=2&&level(prev)>0){
-  const change=(level(last)-level(prev))/level(prev),unit=fbl?'ФО/матч без бонуса за результат':'ФО/матч (с бонусом за результат)';
+  const change=(level(last)-level(prev))/level(prev),unit=fbl?'ФО/матч по формуле FBL':'ФО/матч (с бонусом за результат)';
   const path=full.slice(-3).filter(([,s])=>!fbl||Number.isFinite(s.fblPerGame)).map(([,s])=>level(s).toFixed(1)).join(' → ');
   if(change>=.08)pros.push(`Рост на Sports.ru: ${path} ${unit} (${b} к ${a}: +${Math.round(change*100)}%).`);
   else if(change<=-.08)cons.push(`Спад на Sports.ru: ${path} ${unit} (${b} к ${a}: ${Math.round(change*100)}%).`);
@@ -56,7 +56,7 @@ export function playerInsights(p,players){
  const d=f?.historicalDownside;if(d&&Number.isFinite(d.meanWorstTenPercent)&&d.meanWorstTenPercent>=12)pros.push(`Высокий пол: худшие 10% матчей в среднем ${d.meanWorstTenPercent.toFixed(1)} ФО.`);
  if(d?.negativeGames>=3)cons.push(`Минусовые матчи: ${d.negativeGames} в ${d.season}.`);
  // Like for like only when the check is on the FBL formula; otherwise the gap includes Sports.ru's team result bonus.
- if(p.sportsCheck?.flag)cons.push(`Прогноз расходится с прошлым сезоном ${p.sportsCheck.basis==='FBL_NO_RESULT_BONUS'?'(Sports.ru без бонуса за результат)':'Sports.ru (с бонусом за результат, которого в FBL нет)'} на ${p.sportsCheck.gap>0?'+':''}${Math.round(p.sportsCheck.gap*100)}%: проверь роль и здоровье.`);
+ if(p.sportsCheck?.flag)cons.push(`Прогноз расходится с прошлым сезоном ${p.sportsCheck.basis==='FBL_NO_RESULT_BONUS'?'(Sports.ru по формуле FBL)':'Sports.ru (с бонусом за результат, которого в FBL нет)'} на ${p.sportsCheck.gap>0?'+':''}${Math.round(p.sportsCheck.gap*100)}%: проверь роль и здоровье.`);
  if(Number.isFinite(p.age)){if(p.age>=32)cons.push(`Возраст ${p.age}: выше риск спада и пропусков.`);else if(p.age<=23&&pros.some(x=>x.startsWith('Рост')))pros.push(`Возраст ${p.age}: потенциал дальнейшего роста.`);}
  if(p.injuries?.length)cons.push('Статус травмы: '+p.injuries.map(i=>i.status||'неизвестно').join(', ')+'.');
  if(p.roleContext?.note)cons.push(p.roleContext.note);

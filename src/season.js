@@ -5,6 +5,7 @@ import {FBL_TRANSFERS,TRANSFER_HOURS,mskTime,firstHolder} from './rules.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 import RULES from '../data/league-rules.json' with {type:'json'};
+import {GAME_PLAYED} from './fbl-scoring.js';
 
 export const CAP=DEFAULT_CAP,WEEKLY_TRANSFERS=3,CLUB_LIMIT=RULE_CLUB_LIMIT;
 export {TEAM_COUNT};
@@ -121,10 +122,10 @@ export function transfersThisWeek(transfers,team,today,weeks){
  return transfers.filter(x=>x.team===team&&x.date<=today&&transferWeek(x.date,weeks)?.start===week.start).length;
 }
 
-// Points per game: the pre-season full-formula forecast updated by the games played, as they arrive (Sports.ru's points
-// of each game minus its team result bonus: FBL scores on Yahoo, without it).
+// Points per game: the pre-season full-formula forecast updated by the games played, as they arrive (each game's points
+// by the league's Yahoo formula: Sports.ru's minus its team result bonus and its extra point for 10+ minutes).
 // Weights come from scripts/inseason_calibration.py (fitted 2023/24->2024/25 on squared error, tested on 2025/26), which
-// tests/fixtures/inseason-golden.json pins this function to: counting points (the formula without its +2/+1 participation
+// tests/fixtures/inseason-golden.json pins this function to: counting points (the formula without its +1 participation
 // term) per minute move slowly, minutes move faster and favour recent games, newcomers adapt fastest; the participation
 // term is shrunk like minutes, never scaled by them. Early games run below the rest of a season (players ramp up), so each
 // game is lifted by its place in the season (offsets measured on the previous season), or the update would run low.
@@ -132,7 +133,8 @@ export const PRIOR_GAMES=10;
 export {CALIBRATION};
 export const clockMinutes=v=>{const m=String(v??'').match(/^(\d+):(\d{2})$/);return m?Number(m[1])+Number(m[2])/60:Math.max(0,Number(v)||0);};
 const newcomer=p=>p.isRookie===true||['EMPIRICAL_ROLE_PRIOR','DRAFT_PICK_MODEL','UNDRAFTED_ROOKIE_MODEL','SPORTS_PRICE_PRIOR'].includes(p.forecast?.origin);
-const participation=m=>m>=10?2:1;
+// One point per game played, whatever the minutes (Yahoo league settings, 21.10.2026).
+const participation=()=>GAME_PLAYED;
 export function perGame(player,live,points=CALIBRATION.points){
  const prior=Number.isFinite(player.forecast?.meanPerGame)?player.forecast.meanPerGame:Number.isFinite(player.projectedFP)?player.projectedFP:0;
  const played=(live?.games||[]).filter(g=>g.played).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),sum=played.reduce((s,g)=>s+g.points,0);
@@ -643,20 +645,16 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
  if(gain>0&&parts.schedule/total>.5)flags.unshift('Выигрыш в основном из календаря (у нового клуба больше матчей в периоде): после периода преимущество исчезнет.');
  return {gain,sd,confidence,level:confidenceLevel(confidence),parts,flags:[...new Set(flags)],sides};
 }
-// The FBL formula on an ESPN box-score line: Sports.ru's without the team result bonus (the league scores on Yahoo,
-// which cannot award it). A line with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of
-// a DNP empty.
+// The FBL formula on an ESPN box-score line, as Yahoo counts it: the box-score terms plus 1 for the game played. A line
+// with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of a DNP empty.
 export function boxScorePoints(stats){
  const n=v=>Number(v)||0,split=v=>String(v||'0-0').split('-').map(Number);
  const [fgm,fga]=split(stats.FG),[ftm,fta]=split(stats.FT),min=clockMinutes(stats.MIN);
  if(!Object.keys(stats||{}).length)return null;
- return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+(min>=10?2:1);
+ return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+GAME_PLAYED;
 }
-// ESPN rounds MIN to the nearest minute: a "10" is 9:30-10:29, and below 10:00 Sports.ru gives +1, not +2 (about half of
-// such lines, 2024-26). The league counts exact minutes (league owner, 21.10.2026), so that line is marked unsure (±1).
-const roundedTen=v=>/^\s*10\s*$/.test(String(v??''));
 const LINE=['MIN','PTS','REB','AST','STL','BLK','FG','3PT','FT','TO','PF'];
-// ESPN summary -> {espnAthleteId: {points, minutes, final, counting, unsure?, name, team, line}}.
+// ESPN summary -> {espnAthleteId: {points, minutes, final, counting, name, team, line}}.
 export function liveGamePoints(summary,event){
  const final=Boolean(event?.status?.type?.completed),out={};
  for(const team of summary?.boxscore?.players||[]){
@@ -665,9 +663,9 @@ export function liveGamePoints(summary,event){
    for(const a of st.athletes||[]){
     if(!a.stats?.length||a.didNotPlay)continue;const stats=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]]));
     const points=boxScorePoints(stats),minutes=clockMinutes(stats.MIN);
-    // counting: the line without the participation bonus, which follows the exact minutes when Sports.ru lists them.
+    // counting: the line without the point for the game played.
     // line: the box-score stats the formula reads, for the live stat line; name and team for the full game list.
-    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-(minutes>=10?2:1),...(roundedTen(stats.MIN)?{unsure:true}:{}),
+    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-GAME_PLAYED,
      name:a.athlete?.displayName||a.athlete?.shortName||'',team:team.team?.abbreviation||'',line:Object.fromEntries(LINE.filter(k=>k in stats).map(k=>[k,stats[k]]))};
    }
   }
@@ -676,7 +674,7 @@ export function liveGamePoints(summary,event){
 }
 // Sports.ru lists a game as played with 0 points until it counts it, hours after the final whistle. Games ESPN covers
 // (yesterday and today, US Eastern) are therefore scored at once by the league's formula on the ESPN box score — the
-// categories Yahoo counts — with Sports.ru's exact minutes for the 10-minute bonus when it lists them. A game still
+// categories Yahoo counts — with Sports.ru's exact minutes for the in-season update when it lists them. A game still
 // running is left to the running points: its Sports.ru row does not count until the final whistle.
 const tipDay=iso=>new Date(Date.parse(iso)+3*3600e3).toISOString().slice(0,10);
 export function withBoxScores(live,games,players){
@@ -690,7 +688,7 @@ export function withBoxScores(live,games,players){
    const rows=[...(info.games||[])],i=rows.findIndex(o=>o.date===day),row=i>=0?rows[i]:null;let next;
    if(g.final){
     const exact=/^\d+:\d{2}$/.test(String(row?.minutes??''))&&clockMinutes(row.minutes)>0?clockMinutes(row.minutes):x.minutes;
-    next={...(row||{date:day}),tip:row?.tip||g.date,minutes:row&&exact!==x.minutes?row.minutes:String(x.minutes),points:x.counting+(exact>=10?2:1),played:true,source:'ESPN',...(row?{sportsRowPoints:row.points}:{})};
+    next={...(row||{date:day}),tip:row?.tip||g.date,minutes:row&&exact!==x.minutes?row.minutes:String(x.minutes),points:x.counting+GAME_PLAYED,played:true,source:'ESPN',...(row?{sportsRowPoints:row.points}:{})};
    }else if(row?.played)next={...row,played:false,running:true};
    else continue;
    if(row)rows[i]=next;else{rows.push(next);rows.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);}

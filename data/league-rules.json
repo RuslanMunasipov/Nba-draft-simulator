@@ -114,16 +114,16 @@
     "scoringRule": "His points go only to the FBL team that held him first; the later buyer's slot scores 0 for those games until the breach is repaired. When the first holder cannot be told (purchases inside one watcher window, firstHolder in src/rules.js), both teams keep his points and the case is under the lawyer's check."
   },
   "scoringFormula": {
-    "formula": "Sports.ru per-game formula without the team result bonus",
+    "formula": "Yahoo league settings: PTS+REB+AST+ST+BLK+FGM-FGA+FTM-FTA-2*TO-PF, plus 1 per game played (GP)",
     "resultBonus": false,
     "decidedBy": "league owner, 2026-10-20",
     "reason": "The league scores on Yahoo, which cannot award points for team wins or take them for losses.",
-    "gamePoints": "Sports.ru points of each played game minus its team result bonus (result read from the club calendar score)",
-    "terms": "PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF+(2 if MIN>=10 else 1)",
-    "participation": "EXACT_MINUTES",
-    "participationRule": "+2 for 10:00 or more minutes in the game, +1 below (exact clock time, as Sports.ru scores it)",
-    "participationDecidedBy": "league owner, 2026-10-21",
-    "participationNote": "Yahoo's categories have no minutes, so Yahoo totals alone cannot apply the split; the term comes from the game rows (Sports.ru's points minus the result bonus). ESPN live box scores round MIN to the whole minute, so a provisional «10» can be 9:30-9:59."
+    "gamePoints": "Sports.ru points of each played game minus its team result bonus (result read from the club calendar score) and minus the extra point Sports.ru gives for 10+ minutes",
+    "terms": "PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF+1",
+    "participation": "PER_GAME_PLAYED",
+    "participationRule": "+1 for every game played (Yahoo GP), whatever the minutes",
+    "participationDecidedBy": "league owner, 2026-10-21 (Yahoo league settings screenshot; replaces the exact-minutes rule recorded the same morning)",
+    "participationNote": "Sports.ru's own formula gives +2 for 10:00 or more minutes and +1 below, plus its result bonus; its season totals, prices and per-game points keep that rule, so they are compared after removing both."
   },
   "forecastBasis": {
     "espnCovered": {

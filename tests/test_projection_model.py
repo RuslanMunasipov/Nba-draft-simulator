@@ -25,7 +25,7 @@ class HistoryTests(unittest.TestCase):
 
     def test_rate_is_the_fbl_formula_without_a_team_result_bonus(self):
         y = self.h.target('1', 2026)
-        self.assertAlmostEqual(y['rate'], 20 + 5 + 3 + 1 + 1 - 8 - 1 - 4 - 2 + 2)
+        self.assertAlmostEqual(y['rate'], 20 + 5 + 3 + 1 + 1 - 8 - 1 - 4 - 2 + 1)  # 1 per game played (Yahoo GP)
         short = self.h.target('2', 2026)
         self.assertEqual(short['short'], 1.0)
         self.assertAlmostEqual(short['rate'], 2 + 5 + 3 + 1 + 1 - 8 - 1 - 4 - 2 + 1)

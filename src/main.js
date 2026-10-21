@@ -258,8 +258,8 @@ function forecastCard(p){
  if(f.version===4&&f.availability)box.append(el('p',healthLine(f.availability,f,database?.projectionModelAudit)));
  if(f.transfer)box.append(el('p',`С заменами при травмах: ${int(f.slotSeason)} ФО = ${int(f.meanSeason)} своих + ${int(f.transfer.value)} от замены. Длинные пропуски закрывает трансфер: в среднем ${dec(f.transfer.replacedGames)} матча по ${dec(f.transfer.replacementPerGame)} ФО. По этой ценности строится рейтинг драфта.`));
  if(f.scoringBreakdown){
-  const table=el('table',null,'scoring-breakdown');table.append(el('caption','Формула FBL (Sports.ru без бонуса за результат) · вклад за матч'));
-  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери (×2)',personalFouls:'Фолы',participation:'Бонус за минуты',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, ESPN)'};
+  const table=el('table',null,'scoring-breakdown');table.append(el('caption','Формула FBL (Yahoo: +1 за сыгранный матч, без бонуса за результат) · вклад за матч'));
+  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери (×2)',personalFouls:'Фолы',participation:'За сыгранный матч',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, ESPN)'};
   for(const [key,value] of Object.entries(f.scoringBreakdown)){const row=el('tr');row.append(el('th',labels[key]||key),el('td',signedDec(value,2)));table.append(row);}
   const total=el('tr');total.append(el('th','Итого за матч'),el('td',dec(f.meanPerGame,2)));table.append(total);
   const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap);

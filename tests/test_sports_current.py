@@ -114,9 +114,10 @@ class SportsCurrentTest(unittest.TestCase):
 
     def test_games_only_current_season(self):
         games = collector.parse_games(GAMES)
-        # The played row's own score (home first: 120 : 110 at home, a win) takes Sports.ru's +2 off its 48.
+        # The played row's own score (home first: 120 : 110 at home, a win) takes Sports.ru's +2 off its 48, and its
+        # extra point for 10+ minutes: FBL gives 1 per game played.
         self.assertEqual([(g['date'], g['played'], g['points'], g['price']) for g in games],
-                         [('2026-10-23', False, 0, 3500), ('2026-10-25', True, 46, 3600)])
+                         [('2026-10-23', False, 0, 3500), ('2026-10-25', True, 45, 3600)])
         self.assertEqual((games[1]['sportsPoints'], games[1]['result'], games[1]['pointsSource']), (48, 'W', 'ROW_SCORE'))
 
     def test_team_profile_and_journal(self):

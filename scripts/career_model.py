@@ -3,8 +3,10 @@ import json,math,statistics
 from pathlib import Path
 import numpy as np
 from build_forecasts import partial
+try:from fbl_formula import participation
+except ImportError:from scripts.fbl_formula import participation
 KEYS=['pts','reb','ast','stl','blk','tov','pf','fgm','fga','ftm','fta','minutes']
-def core(s):return partial(s)-s['pf']+(2 if s['minutes']>=10 else 1)
+def core(s):return partial(s)-s['pf']+participation(s['minutes'])
 def features(rows,year,age,profile='BASE'):
  previous=sorted([r for r in rows if r['year']<year and r['games']>0],key=lambda r:r['year'])
  if not previous:return None

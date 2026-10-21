@@ -5,6 +5,8 @@ import json,math,statistics
 from collections import Counter
 from pathlib import Path
 from build_forecasts import partial
+try:from fbl_formula import GAME_PLAYED
+except ImportError:from scripts.fbl_formula import GAME_PLAYED
 KEYS=['pts','reb','ast','stl','blk','tov','pf','fgm','fga','ftm','fta','minutes']
 def from_history(player,history):
  career=(player.get('onlineEvidence',{}).get('career') or {}).get('seasons',[])
@@ -59,14 +61,14 @@ def complete(data,history):
     s=donor['perGame'];games=statistics.median(d['games'] for d in cohort);origin='EMPIRICAL_ROLE_PRIOR';tier='GROUP_PRIOR'
     basis='Групповой NBA-ориентир по '+str(len(cohort))+' игрокам; это не персональный прогноз будущей статистики'
   s={k:float(s[k]) for k in KEYS};games=max(0,min(82,float(games)))
-  participation=2 if s['minutes']>=10 else 1
-  # The FBL formula: Sports.ru's without the team result bonus (the league scores on Yahoo, which cannot award it).
+  participation=GAME_PLAYED
+  # The FBL formula as Yahoo counts it: no team result bonus, 1 point per game played.
   mean=partial(s)-s['pf']+participation
   # Descriptive game residuals from the existing player estimate if available.
   if f:
    floor=f['gameFloor']+mean-f['meanPerGame'];ceiling=f['gameCeiling']+mean-f['meanPerGame'];sample=f['sampleGames'];analogs=f['analogs']
   else:
-   rates=sorted(partial(d['perGame'])-d['perGame']['pf']+(2 if d['perGame']['minutes']>=10 else 1) for d in donors)
+   rates=sorted(partial(d['perGame'])-d['perGame']['pf']+GAME_PLAYED for d in donors)
    floor=rates[int(.1*(len(rates)-1))];ceiling=rates[int(.9*(len(rates)-1))]
    sample=0;analogs=[]
   base=mean*games

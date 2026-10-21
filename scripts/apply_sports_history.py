@@ -1,8 +1,9 @@
 """Attach Sports.ru fantasy points per season and check forecasts against them.
 
-Sports.ru's season points include its team result bonus (+2/+3 for a home/away win, -3/-2 for a home/away loss),
-which the FBL formula does not count (league owner, 20.10.2026). The check therefore compares the forecast with
-Sports.ru's per-game average minus that season's mean result bonus of the player's own games in the career logs
+Sports.ru's season points include its team result bonus (+2/+3 for a home/away win, -3/-2 for a home/away loss)
+and +2 rather than +1 for a game of 10 minutes or more; FBL counts neither (no result bonus, 1 point per game played,
+league settings on Yahoo, 21.10.2026). The check therefore compares the forecast with Sports.ru's per-game average
+minus that season's mean result bonus and mean extra minutes point of the player's own games in the career logs
 (fblPerGame). Sports.ru's own number stays as perGame for display. Missing seasons stay missing."""
 import json
 from pathlib import Path
@@ -26,16 +27,17 @@ def result_bonus(home, won):
 
 
 def result_bonuses(path=LOGS):
-    """Mean Sports.ru result bonus per played regular-season game: {(nbaId, '2025-26'): (mean, games)}."""
+    """Mean Sports.ru result bonus and mean extra minutes point (+1 for 10+ minutes) per played regular-season game:
+    {(nbaId, '2025-26'): (bonus mean, games, extra mean)}."""
     import pyarrow.parquet as pq
     acc = {}
     for g in pq.read_table(path, columns=['player_id', 'competition', 'season', 'season_type', 'home', 'result', 'minutes']).to_pylist():
         if g['competition'] != 'nba' or g['season_type'] != 'REGULAR' or not g['minutes'] or g['result'] not in ('W', 'L'):
             continue
         key = (str(g['player_id']), f"{g['season'] - 1}-{str(g['season'])[2:]}")
-        total, games = acc.get(key, (0, 0))
-        acc[key] = (total + result_bonus(g['home'], g['result'] == 'W'), games + 1)
-    return {key: (total / games, games) for key, (total, games) in acc.items()}
+        total, games, extra = acc.get(key, (0, 0, 0))
+        acc[key] = (total + result_bonus(g['home'], g['result'] == 'W'), games + 1, extra + (g['minutes'] >= 10))
+    return {key: (total / games, games, extra / games) for key, (total, games, extra) in acc.items()}
 
 
 def attach(database, history, bonuses=None):
@@ -59,8 +61,10 @@ def attach(database, history, bonuses=None):
         for k, v in seasons.items():
             b = (bonuses or {}).get((nba, k))
             if b and abs(b[1] - v['games']) <= MAX_GAME_DIFF:
+                extra = b[2] if len(b) > 2 else 0
                 v['resultBonusPerGame'] = round(b[0], 2)
-                v['fblPerGame'] = round(v['perGame'] - b[0], 2)
+                v['minutesBonusPerGame'] = round(extra, 2)
+                v['fblPerGame'] = round(v['perGame'] - b[0] - extra, 2)
         player['sportsHistory'] = seasons
         attached += 1
         full = [(k, v) for k, v in seasons.items() if v['games'] >= MIN_GAMES]

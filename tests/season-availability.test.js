@@ -207,21 +207,21 @@ test('the in-season estimate equals scripts/inseason_calibration.split on the go
   assert.ok(Math.abs(v-x.expected)<1e-9,`${v} vs ${x.expected}`);
  }
 });
-test('the +2/+1 participation term is not scaled by minutes, and the shipped update lifts early games',()=>{
- const p={forecast:{meanPerGame:17,minutes:15,components:{participation:2}}},flat={...CALIBRATION.points,offsets:null};
- // The same counting rate (1 per minute) in a 30-minute role: the estimate is rate x minutes + 2, not (17/15) x minutes.
- const games=Array.from({length:6},(_,i)=>({played:true,points:30+2,minutes:'30:00',date:`2026-10-2${i}`})),e=perGame(p,{games},flat);
- assert.ok(Math.abs(e.value-(e.minutes+2))<1e-9);
+test('the +1 per game played term is not scaled by minutes, and the shipped update lifts early games',()=>{
+ const p={forecast:{meanPerGame:17,minutes:16,components:{participation:1}}},flat={...CALIBRATION.points,offsets:null};
+ // The same counting rate (1 per minute) in a 30-minute role: the estimate is rate x minutes + 1, not (17/16) x minutes.
+ const games=Array.from({length:6},(_,i)=>({played:true,points:30+1,minutes:'30:00',date:`2026-10-2${i}`})),e=perGame(p,{games},flat);
+ assert.ok(Math.abs(e.value-(e.minutes+1))<1e-9);
  // Games exactly at the forecast's level: without the lift the estimate stays put; the early-season lift raises it.
- const level=Array.from({length:5},(_,i)=>({played:true,points:17,minutes:'15:00',date:`2026-10-2${i}`}));
+ const level=Array.from({length:5},(_,i)=>({played:true,points:17,minutes:'16:00',date:`2026-10-2${i}`}));
  assert.ok(Math.abs(perGame(p,{games:level},flat).value-17)<1e-9);assert.ok(perGame(p,{games:level}).value>17);
 });
-test('live box scores: clock minutes are exact, a rounded "10" is marked unsure by one point',()=>{
+test('live box scores: one point for the game played, whatever the minutes (Yahoo GP)',()=>{
  const line={MIN:'10',PTS:'4',FG:'2-3',FT:'0-0',REB:'1',AST:'0',STL:'0',BLK:'0',TO:'0',PF:'1'};
- assert.equal(boxScorePoints(line),4+1-1-1+2);assert.equal(boxScorePoints({...line,MIN:'9:45'}),4+1-1-1+1);
+ assert.equal(boxScorePoints(line),4+1-1-1+1);assert.equal(boxScorePoints({...line,MIN:'9:45'}),4+1-1-1+1);assert.equal(boxScorePoints({...line,MIN:'0'}),4+1-1-1+1);
  const event={status:{type:{completed:false}}};
  const summary=lines=>({boxscore:{players:[{statistics:[{labels:Object.keys(line),athletes:lines.map((l,i)=>({athlete:{id:String(i)},stats:Object.values(l)}))}]}]}});
  const out=liveGamePoints(summary([line,{...line,MIN:'11'},{...line,MIN:'9'}]),event);
- assert.deepEqual({...out[0],name:undefined,team:undefined,line:undefined},{points:5,minutes:10,final:false,counting:3,unsure:true,name:undefined,team:undefined,line:undefined});assert.equal(out[0].line.MIN,'10');
- assert.ok(!out[1].unsure&&!out[2].unsure);assert.equal(out[2].points,4);
+ assert.deepEqual({...out[0],name:undefined,team:undefined,line:undefined},{points:4,minutes:10,final:false,counting:3,name:undefined,team:undefined,line:undefined});assert.equal(out[0].line.MIN,'10');
+ assert.equal(out[1].points,4);assert.equal(out[2].points,4);
 });
