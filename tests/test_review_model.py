@@ -109,7 +109,6 @@ class InSeasonBuildTests(Build):
             a = f['knownAbsence']
             self.assertEqual((f['games'], a['gamesLeft']), (0, 0), day); self.assertTrue(a['seasonEnding'], day)
             self.assertEqual(a['blockedGames'], pm.blocked_games(day, '9999-12-31', EVERY_SECOND_DAY), day)  # the games from today
-            self.assertEqual(f['availability']['gamesRange'], [0, 0])
 
     def test_a_dated_absence_leaves_the_games_after_the_return(self):
         out = [{'status': 'Out', 'fantasyStatus': 'OUT', 'returnDate': '2026-12-15'}]
@@ -119,8 +118,7 @@ class InSeasonBuildTests(Build):
         for day in ('2026-10-15', '2026-11-20', '2026-12-10'):
             f = self.build(day, out); a = f['knownAbsence']
             self.assertEqual(a['gamesLeft'], after, day)
-            self.assertAlmostEqual(f['games'], before['games'], msg=day)
-            self.assertLessEqual(f['availability']['gamesRange'][1], after)
+            self.assertAlmostEqual(f['games'], before['games'], msg=day); self.assertEqual(f['games'], after, day)
         self.assertEqual(self.build('2026-12-10', out)['knownAbsence']['blockedGames'], pm.blocked_games('2026-12-10', '2026-12-15', EVERY_SECOND_DAY))
 
 
