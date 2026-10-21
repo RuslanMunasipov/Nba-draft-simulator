@@ -10,7 +10,7 @@ import './theme.js';
 import {reportElement} from './rookie-reports.js';
 import {newDraft,pick,undo,replacePick,replayDraft,exportDraft,DEFAULT_CAP,safeUrl,rosterFits,POSITIONS} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
-import {setSeasonPlayers,setSeasonDatabaseState,initSeasonTabs} from './season-ui.js';
+import {setSeasonPlayers,setSeasonDatabaseState,initSeasonTabs,seasonLivePanel} from './season-ui.js';
 import LEAGUE from '../data/fbl-league.json' with {type:'json'};
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {riskProfile} from './analysis.js';
@@ -135,7 +135,7 @@ function statusChips(p){
 }
 function card(p,analysis=null,readonly=false){
  const article=el('article',null,'player-card'),risk=analysis?.risk||riskProfile(p),level=RISK[risk.level]||'medium';article.dataset.risk=level;
- const details=el('details',null,'card-details'),summary=el('summary',null,'player-toggle');
+ const details=el('details',null,'card-details'),summary=el('summary',null,'player-toggle');details.dataset.key='card:'+p.id;
  const main=el('div',null,'pc-main'),name=el('h3',null,'pc-name');name.append(p.name);
  if(p.isRookie)name.append(el('span','rookie','chip chip--accent'));
  const price=state.priceMode==='ON'?(p.priceStatus==='VERIFIED'?int(p.price):null):null;
@@ -196,13 +196,14 @@ function cardBody(p,risk,readonly){
  if(!readonly&&replacing===null&&onClock()===0)for(const w of rookieSlotWarnings(state,p))notes.push(w);
  if(notes.length){const box=el('div',null,'pc-block');for(const n of notes)box.append(el('p',n,'warning'));body.append(box);}
  body.append(forecastSummary(p));
+ const season=seasonLivePanel(p);if(season)body.append(season);
  const history=sportsHistoryPanel(p);if(history)body.append(history);
  body.append(insightsPanel(p));
  const report=p.isRookie?reportElement({name:p.name}):null;
  if(report){const d=el('details','','inline');d.append(el('summary','Скаутский отчёт'),report);body.append(d);}
  if(!readonly)body.append(adjustControl(p));
  if(p.roleContext){const href=safeUrl(p.roleContext.source),link=el(href?'a':'p',p.roleContext.note);if(href){link.href=href;link.target='_blank';link.rel='noopener';}body.append(link);}
- const more=el('details',null,'card-more');more.append(el('summary','Как считается прогноз'));
+ const more=el('details',null,'card-more');more.dataset.key='more:'+p.id;more.append(el('summary','Как считается прогноз'));
  more.addEventListener('toggle',()=>{if(!more.open||more.dataset.filled)return;more.dataset.filled='1';
   if(f)more.append(forecastCard(p));
   if(p.espnContext){const e=p.espnContext,parts=[e.projectedGames!=null?'прогноз '+count(e.projectedGames,'матч','матча','матчей'):null,Number.isFinite(e.adp)?'средний номер выбора в лигах ESPN (ADP) '+dec(e.adp):null].filter(Boolean);if(parts.length)more.append(el('p','ESPN 2026/27: '+parts.join(' · ')+'.'));}

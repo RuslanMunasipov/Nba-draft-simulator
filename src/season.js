@@ -645,7 +645,8 @@ export function boxScorePoints(stats){
 // ESPN rounds MIN to the nearest minute: a "10" is 9:30-10:29, and below 10:00 Sports.ru gives +1, not +2 (about half of
 // such lines, 2024-26). The league counts exact minutes (league owner, 21.10.2026), so that line is marked unsure (±1).
 const roundedTen=v=>/^\s*10\s*$/.test(String(v??''));
-// ESPN summary -> {espnAthleteId: {points, minutes, final, unsure?}}.
+const LINE=['MIN','PTS','REB','AST','STL','BLK','FG','3PT','FT','TO','PF'];
+// ESPN summary -> {espnAthleteId: {points, minutes, final, counting, unsure?, name, team, line}}.
 export function liveGamePoints(summary,event){
  const final=Boolean(event?.status?.type?.completed),out={};
  for(const team of summary?.boxscore?.players||[]){
@@ -655,7 +656,9 @@ export function liveGamePoints(summary,event){
     if(!a.stats?.length||a.didNotPlay)continue;const stats=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]]));
     const points=boxScorePoints(stats),minutes=clockMinutes(stats.MIN);
     // counting: the line without the participation bonus, which follows the exact minutes when Sports.ru lists them.
-    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-(minutes>=10?2:1),...(roundedTen(stats.MIN)?{unsure:true}:{})};
+    // line: the box-score stats the formula reads, for the live stat line; name and team for the full game list.
+    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-(minutes>=10?2:1),...(roundedTen(stats.MIN)?{unsure:true}:{}),
+     name:a.athlete?.displayName||a.athlete?.shortName||'',team:team.team?.abbreviation||'',line:Object.fromEntries(LINE.filter(k=>k in stats).map(k=>[k,stats[k]]))};
    }
   }
  }
