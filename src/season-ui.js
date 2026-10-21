@@ -372,7 +372,7 @@ function takeAction(moves,ctx,label){
  const b=button(label,()=>record(moves,ctx));b.setAttribute('aria-label',`${label}: ${moves.map(m=>`${byId.get(m.outId)?.name} → ${m.player.name}`).join(', ')}`);return b;
 }
 function optionRow(o,outId,ctx,title,withAction=!sportsTeam(team)){
- const li=el('li',null,'sp-option'),inj=injuryText(o.player),why=explainSwap(ctx,outId,o.player.id,horizon);
+ const li=el('li',null,'sp-option'),inj=injuryText(o.player),why=explainSwap(ctx,outId,o.player.id,horizon,null,team);
  const name=el('span',null,'sp-name');name.append(el('strong',title||o.player.name),el('small',`${o.player.positions.join('/')} · ${o.player.team||'—'} · ${int(o.player.price)} · банк после ${int(o.bankAfter)}${inj?' · '+inj:''}`),confidenceBadge(why));
  li.append(name,gainCells(o.gain));if(withAction)li.append(takeAction([{outId,player:o.player}],ctx,'Записать'));li.append(whyBox(why,ctx));return li;
 }
@@ -401,7 +401,7 @@ function sourcesLine(f){
 function sideBlock(label,x){
  const p=x.player,f=p.forecast||{},box=el('div',null,'sp-side'),hist=Object.entries(p.sportsHistory||{}).slice(-2);
  box.append(el('small',label),el('strong',`${p.name} · ${int(x.price)}${x.priceChange?` (${signed(x.priceChange)})`:''}`));
- const lines=[`${dec(x.perGame)} ФО за матч сейчас (прогноз до сезона ${dec(x.prior)}${x.played?`, в сезоне ${dec(x.average)} за ${count(x.played,'матч','матча','матчей')}`:''})`,
+ const lines=[`${dec(x.perGame)} ФО за матч сейчас (прогноз до сезона ${dec(x.prior)}${x.scored?`, в сезоне ${dec(x.average)} за ${count(x.scored,'матч','матча','матчей')}`:''})`,
   `в периоде ${dec(x.expectedGames)} из ${x.clubGames} матчей клуба${x.clubGames?` (шанс сыграть ${Math.round(x.expectedGames/x.clubGames*100)}%)`:''}`,
   p.depth?`состав ESPN: ${p.depth.rank===1?'стартер':'№'+p.depth.rank} на ${p.depth.position}`:'',
   x.injury?'🩹 '+[injuryStatus(x.injury.status).label,injuryUntil(x.injury)].filter(Boolean).join(' '):'травм в отчёте ESPN нет',

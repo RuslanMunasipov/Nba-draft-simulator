@@ -41,7 +41,7 @@ let injuryState=injuryFeed(live);
 if(!injuryState.fresh){const now=await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries').catch(()=>null),at=new Date().toISOString();
  if(hasInjuryRows(now))injuryState={feed:{...now,fetchedAt:at},fresh:true,fetchedAt:at};}
 // now: a game that has tipped off can no longer be gained by a move, even before its score or box line is in.
-const ctx={players,live,injuries:parseInjuries(injuryState.feed),today,now:Date.now(),rosters,white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
+const ctx={players,live,injuries:parseInjuries(injuryState.feed),today,now:Date.now(),rosters,transfers,white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
 const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
 // Both limits bind: Sports.ru's own weekly count (∞ in pre-season) and the FBL week (pre-season moves are free).
 const leftOf=t=>{const x=live.teams?.[t],sports=x?.transfersUnlimited?Infinity:Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));
@@ -133,8 +133,8 @@ function edgePairs(pack,id){
  return minus.map((o,i)=>[o,plus[i]]);
 }
 function dealWhy(d,id){
- const why=explainSwap(ctx,null,null,'season',dealPairs(d));if(!d.pack)return why;
- const edge=explainSwap(ctx,null,null,'season',edgePairs(d.pack,id));return {...why,confidence:edge.confidence,level:edge.level,edge:true};
+ const why=explainSwap(ctx,null,null,'season',dealPairs(d),team);if(!d.pack)return why;
+ const edge=explainSwap(ctx,null,null,'season',edgePairs(d.pack,id),team);return {...why,confidence:edge.confidence,level:edge.level,edge:true};
 }
 function decide(p){
  if(takenIds(ctx).has(p.id))return {kind:'taken',head:`🔒 <b>${esc(p.name)} уже в другой команде FBL</b>`,why:[]};

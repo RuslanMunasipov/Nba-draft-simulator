@@ -118,7 +118,7 @@
     "resultBonus": false,
     "decidedBy": "league owner, 2026-10-20",
     "reason": "The league scores on Yahoo, which cannot award points for team wins or take them for losses.",
-    "gamePoints": "Sports.ru points of each played game minus its team result bonus (result read from the club calendar score) and minus the extra point Sports.ru gives for 10+ minutes",
+    "gamePoints": "The formula on each played game's own box score: the columns of Sports.ru's game table (pointsSource BOX), or ESPN's box score for games of the last two US days (source ESPN). A row without readable box columns has no FBL points (NO_BOX). Sports.ru's ФО stays as sportsPoints and is never FBL points.",
     "terms": "PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF+1",
     "participation": "PER_GAME_PLAYED",
     "participationRule": "+1 for every game played (Yahoo GP), whatever the minutes",
