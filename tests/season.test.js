@@ -209,8 +209,9 @@ test('injured free agents worth a season transfer are flagged when they are abou
  assert.deepEqual(list.map(x=>[x.player.id,x.swap.outId,x.soon]),[[100,65,true]]);
 });
 test('a player too expensive for one swap is bought within a package that funds him',()=>{
- // #100 (C, 39 a game) costs 3000 with an empty bank: selling C #65 alone (1500) is not enough.
- const pricey=players.map(p=>p.id===100?{...p,price:3000}:p.id===96?{...p,price:0}:p);
+ // #100 (C, 45 a game) costs 3000 with an empty bank: selling C #65 alone (1500) is not enough. He is the real upgrade:
+ // the best package without him gains less (a 39-a-game #100 is not worth buying, since his package only beat doing nothing).
+ const pricey=players.map(p=>p.id===100?{...p,price:3000,forecast:{...p.forecast,meanPerGame:45}}:p.id===96?{...p,price:0}:p);
  const c=ctx({players:pricey});
  assert.equal(bestSwapFor(c,{team:0,playerId:100,bankMoney:0}),null);
  const one=acquisition(c,{team:0,playerId:100,bankMoney:0,k:1,minGain:0});assert.equal(one.worth,false);

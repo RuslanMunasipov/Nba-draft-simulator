@@ -2,6 +2,7 @@ import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
 import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
 import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,stints,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from './season.js';
+import {recommendPackage,contestedBy,transferWindow} from './season.js';
 import {fetchLiveGames,moscowDate} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 
@@ -295,9 +296,11 @@ function gainCells(gain){
  for(const k of [horizon,...['week','month','season'].filter(k=>k!==horizon)]){const s=el('span',null,k===horizon?'on':'');s.append(el('strong',signed(gain[k])),el('small',k===horizon?'ФО '+PERIOD_LONG[k]:PERIOD[k].toLowerCase()));if(gain[k]<0)s.classList.add('neg');gains.append(s);}
  return gains;
 }
-// Connected teams make their moves on Sports.ru; the app follows them there instead of recording them itself.
+// Connected teams make their moves on Sports.ru; the app follows them there instead of recording them itself. Outside the
+// FBL transfer hours a move made now is a certain breach: the button says when it opens instead.
 function takeAction(moves,ctx,label){
- const st=sportsTeam(team);
+ const st=sportsTeam(team),hours=transferWindow();
+ if(st&&!hours.open){const b=button(`Трансферы с ${hours.from} МСК`,()=>{},'btn-secondary btn-sm sp-take');b.disabled=true;b.title=`Сейчас ${hours.now} МСК: трансферы FBL только с ${hours.from} до ${hours.to}, сделка сейчас будет нарушением`;return b;}
  if(st)return link('Сделать на Sports.ru ↗',TEAM_URL(st.sportsTeamId),'btn-secondary btn-sm sp-take');
  const b=button(label,()=>record(moves,ctx));b.setAttribute('aria-label',`${label}: ${moves.map(m=>`${byId.get(m.outId)?.name} → ${m.player.name}`).join(', ')}`);return b;
 }
@@ -428,18 +431,18 @@ function teams(ctx){
 }
 
 // ---------- Transfers assistant ----------
-// The answer to "what should I do now": the best package that is confident, does not cost the season and fits the week.
+// The answer to "what should I do now", the same as Telegram's (recommendPackage): the best package the model is confident
+// of (70%+), that does not cost the season and fits the week. Without one, the borderline package (60-69%) comes first
+// among the options, so the hold card names it with its confidence instead of "сделай". The players the shown package
+// buys carry the other FBL teams the same model advises to buy them.
 function recommendation(ctx,money,left){
- const options=[];let previous=0;
- for(const k of [1,2,3]){const p=bestPackage(ctx,{team,bankMoney:money,k,sort:horizon});if(!p||!p.pairs.length||p.gain<=previous+1e-6)continue;previous=p.gain;
-  const why=explainSwap(ctx,null,null,horizon,p.pairs.map(x=>[x.out.id,x.in.id]));options.push({...p,why,lvl:level(why)});}
- const fits=options.filter(o=>o.lvl!=='DOUBTFUL'&&o.gains.season>=0&&o.pairs.length<=left&&o.gains[horizon]>0).sort((a,b)=>b.gains[horizon]-a.gains[horizon]);
- // A transfer is a weekly resource: a bigger package wins only if each extra move adds at least 15 FP.
- let best=fits[0]||null;
- for(const f of fits)if(best&&f.pairs.length<best.pairs.length&&best.gains[horizon]-f.gains[horizon]<15*(best.pairs.length-f.pairs.length))best=f;
- return {best,options};
+ const {best,borderline,options}=recommendPackage(ctx,{team,bankMoney:money,left,sort:horizon}),shown=best||borderline;
+ if(shown)shown.contested=new Map(shown.pairs.map(x=>[x.in.id,contestedBy(ctx,{team,playerId:x.in.id,bankOf:t=>teamBank(t,ctx.transfers),sort:horizon})]));
+ return {best,options:borderline?[borderline,...options.filter(o=>o!==borderline)]:options};
 }
-function packageMoves(p){const ul=el('ul',null,'moves');for(const x of p.pairs){const li=el('li');li.append(el('span',x.out.name,'out'),el('span','→','arrow'),el('span',x.in.name,'in'),el('small',`${x.in.positions.join('/')} · ${int(x.in.price)}${injuryText(x.in)?' · '+injuryText(x.in):''}`));ul.append(li);}return ul;}
+function packageMoves(p){const ul=el('ul',null,'moves');for(const x of p.pairs){const li=el('li'),rivals=p.contested?.get(x.in.id)||[];li.append(el('span',x.out.name,'out'),el('span','→','arrow'),el('span',x.in.name,'in'),el('small',`${x.in.positions.join('/')} · ${int(x.in.price)}${injuryText(x.in)?' · '+injuryText(x.in):''}`));
+ if(rivals.length){const c=el('span',`нужен ещё ${count(rivals.length,'команде','командам','командам')}`,'chip chip--warn');c.title=`По той же модели ${x.in.name} усиливает и ${rivals.map(teamName).join(', ')}. В FBL игрок может быть только в одной команде: кто купит позже, нарушит правило — перед покупкой проверь ленту лиги.`;li.append(c);}
+ ul.append(li);}return ul;}
 function packageCard(p,ctx,left){
  const item=el('div',null,'sp-package'+(p.pairs.length>left?' over-limit':'')+(p.lvl==='DOUBTFUL'?' doubtful':''));
  const head=el('div',null,'sp-package-head'),title=el('div');title.append(el('strong',count(p.pairs.length,'трансфер','трансфера','трансферов')),confidenceBadge(p.why));

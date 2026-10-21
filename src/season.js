@@ -1,6 +1,7 @@
 import solver from 'javascript-lp-solver';
 import {rosterFits,POSITIONS,TEAM_COUNT,DEFAULT_CAP,CLUB_LIMIT as RULE_CLUB_LIMIT} from './engine.js';
 import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
+import {TRANSFER_HOURS,mskTime} from './rules.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 
@@ -213,8 +214,18 @@ function swap(sale,p,ctx){
  const outlook=playerOutlook(p,ctx),gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-sale.base[k].points;
  return {outId:sale.leaving.id,player:p,outlook,gain,bankAfter:sale.money-p.price};
 }
+// Players an FBL team holds: the rosters rebuilt from the journals plus every player the Sports.ru roster JSON shows on a
+// team, so a journal row not resolved yet never makes a held player look free (FBL allows a player on one team only, and
+// the later buyer is in breach).
+export function takenIds(ctx){
+ const taken=new Set(ctx.rosters.flat()),teams=Object.values(ctx.live?.teams||{}).filter(t=>t?.roster?.length);
+ if(!teams.length)return taken;
+ const bySid=new Map(ctx.players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p.id]));
+ for(const t of teams)for(const r of t.roster){const id=bySid.get(String(r.sportsId));if(id!=null)taken.add(id);}
+ return taken;
+}
 export function transferOptions(ctx,{team,outId,bankMoney,limit=15,sort='month'}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),sale=selling(ctx,team,outId,bankMoney,byId);
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx),sale=selling(ctx,team,outId,bankMoney,byId);
  if(!sale)return [];
  const options=[];
  for(const raw of ctx.players){
@@ -227,7 +238,7 @@ export function transferOptions(ctx,{team,outId,bankMoney,limit=15,sort='month'}
 // The best legal one-for-one swap that brings a given free player into a team, or null when none fits.
 export function bestSwapFor(ctx,{team,playerId,bankMoney,sort='season'}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),raw=byId.get(playerId);
- if(!raw||ctx.rosters.flat().includes(playerId)||!onMarket(raw,ctx))return null;
+ if(!raw||takenIds(ctx).has(playerId)||!onMarket(raw,ctx))return null;
  const p=current(raw,ctx);let best=null;
  for(const outId of ctx.rosters[team]){
   const sale=selling(ctx,team,outId,bankMoney,byId);
@@ -266,19 +277,22 @@ export function parseInjuries(feed){
 // keep or sell each player, buy free agents, two per Sports.ru position, at least one rookie, at least one player of the
 // league's «белое правило» list (when there is one), money within the bank.
 // By default the package may not lower the rest-of-season expectation: short-term gains never cost the season.
-export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat());
+// `include`: a free player the package must buy; `exclude`: free players it may not buy.
+export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null,exclude=null}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx);for(const id of exclude==null?[]:[].concat(exclude))taken.add(id);
  const value=p=>playerOutlook(p,ctx)[sort].points;
  const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),wealth=bankMoney+roster.reduce((s,p)=>s+p.price,0);
+ // A club already over the limit after an NBA trade keeps its players, but no purchase may add to it (as clubRoom does
+ // for a single swap): no player of it is bought, even for one of its own sold.
+ const crowded=new Set(roster.map(p=>p.club).filter(c=>c&&roster.filter(p=>p.club===c).length>CLUB_LIMIT));
  const pool=[];
  for(const pos of POSITIONS){
   pool.push(...ctx.players.filter(p=>!taken.has(p.id)&&p.sportsId&&(ctx.live?.players?.[p.sportsId]||p.priceStatus==='VERIFIED'))
-   .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth)
+   .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth&&!crowded.has(p.club))
    .map(p=>({p,v:value(p)})).sort((a,b)=>b.v-a.v).slice(0,poolPerPosition));
  }
- // `include`: a free player the package must buy.
  const must=include!=null&&!taken.has(include)&&byId.get(include)?current(byId.get(include),ctx):null;
- if(include!=null&&!must)return null;
+ if(include!=null&&(!must||crowded.has(must.club)))return null;
  if(must)pool.push({p:must,v:value(must)});
  const unique=[...new Map(pool.map(x=>[x.p.id,x])).values()];
  const white=whiteOf(ctx),counts=p=>Boolean(white?.has(String(p.id)));
@@ -309,46 +323,102 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
 // A transfer already made, judged from today: expected official points of the newcomer minus those of the player sold,
 // and the best swap of the same player the team could have made with the same money. bankMoney is the bank after the move.
 export const VERDICTS={up:'💪 Усиление',down:'🤡 Ослабление',short:'⏳ Усиление только на ближайший месяц',long:'📅 Задел на сезон, сейчас не усиление',even:'🤷 Примерно равноценно'};
-export function transferVerdict(ctx,transfer,{bankMoney,threshold=15}){
+// The verdict follows the expected gain: a season gain decides first (a player bought while injured is a season investment,
+// not a weakening). How sure it is, the model's chance that the deciding gain has its sign, goes next to it: below
+// CONFIDENT the label says «неуверенно», so a coin-flip move never reads as a firm judgement.
+function verdictOf(gain,T){const m=gain.month,s=gain.season;return s>=T?(m>=T?'up':'long'):m>=T?(s>=0?'up':'short'):m<=-T||s<=-T?'down':'even';}
+function judged(ctx,pairs,gain,T){
+ const verdict=verdictOf(gain,T),confidence={season:explainSwap(ctx,null,null,'season',pairs).confidence,month:explainSwap(ctx,null,null,'month',pairs).confidence};
+ const h=verdict==='long'||(verdict==='up'&&gain.season>=T)||(verdict==='down'&&gain.season<=-T)?'season':'month';
+ const sure=verdict==='even'?null:verdict==='down'?1-confidence[h]:confidence[h];
+ return {verdict,label:VERDICTS[verdict]+(sure!==null&&confidenceLevel(sure)!=='CONFIDENT'?', неуверенно':''),confidence,sure,horizon:verdict==='even'?null:h};
+}
+// The net change of a team's deals made together (Sports.ru confirms a day's transfers as one package): the players sold
+// and not bought back, and those bought and not sold again. A chain (A→B, B→C) is one move A→C; a round trip is no move
+// at all. A deal both of whose players are in the net keeps its own pair; the rest are paired by Sports.ru position.
+export function netChange(ctx,deals){
+ const n=new Map(),add=(id,d)=>n.set(id,(n.get(id)||0)+d);for(const x of deals){add(x.outId,-1);add(x.inId,1);}
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),pos=id=>byId.get(id)?current(byId.get(id),ctx).positions:[];
+ const outs=[...n].filter(([,v])=>v<0).map(([id])=>id),ins=[...n].filter(([,v])=>v>0).map(([id])=>id),pairs=[];
+ const restOut=[...outs],restIn=[...ins],take=(list,id)=>{const i=list.indexOf(id);return i>=0?(list.splice(i,1),true):false;};
+ for(const x of deals)if(restOut.includes(x.outId)&&restIn.includes(x.inId)){take(restOut,x.outId);take(restIn,x.inId);pairs.push({outId:x.outId,inId:x.inId});}
+ for(const o of restOut){if(!restIn.length)break;const i=restIn.findIndex(id=>pos(id).some(q=>pos(o).includes(q)));pairs.push({outId:o,inId:restIn.splice(i>=0?i:0,1)[0]});}
+ return {outs,ins,pairs};
+}
+// A team's deals the watcher saw together (one journal read, seenAt), or of one date when never timed: one package each.
+export function dealGroups(deals){
+ const m=new Map();for(const x of deals){const k=`${x.team}|${x.seenAt||x.date}`;if(!m.has(k))m.set(k,[]);m.get(k).push(x);}
+ return [...m.values()];
+}
+// `deals`: the package the transfer was part of (default: itself). The alternative is judged on the team before the whole
+// package: the players it bought then are free again, those it sold are back, and the money is the bank before it (the
+// bank after it, plus what the package paid, minus what it got). It is named only when it is no worse on either horizon
+// and better by at least the threshold on one, so a move good for the season is never "beaten" by a 4-week stream.
+export function transferVerdict(ctx,transfer,{bankMoney,threshold=15,deals=[transfer]}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),out=byId.get(transfer.outId),joined=byId.get(transfer.inId);
  if(!out||!joined)return null;
  const a=playerOutlook(out,ctx),b=playerOutlook(joined,ctx),gain={};for(const k of Object.keys(a))gain[k]=b[k].points-a[k].points;
- const m=gain.month,s=gain.season,T=threshold;
- // A season gain decides first: a player bought while injured is a season investment, not a weakening.
- const verdict=s>=T?(m>=T?'up':'long'):m>=T?(s>=0?'up':'short'):m<=-T||s<=-T?'down':'even';
- const before=ctx.rosters.map((r,t)=>t===transfer.team?r.map(id=>id===transfer.inId?transfer.outId:id):r);
- // The money the team had for this move: its bank after it plus the price paid; selling() adds back today's price of the player sold.
- const [best]=transferOptions({...ctx,rosters:before},{team:transfer.team,outId:transfer.outId,bankMoney:bankMoney+transfer.inPrice-current(out,ctx).price,limit:1});
- return {gain,verdict,label:VERDICTS[verdict],best:best&&best.player.id!==transfer.inId&&best.gain.month>gain.month?best:null};
+ const T=threshold,v=judged(ctx,[[transfer.outId,transfer.inId]],gain,T),t=transfer.team;
+ const back=new Map(netChange(ctx,deals).pairs.map(x=>[x.inId,x.outId]));if(!back.size)back.set(transfer.inId,transfer.outId);
+ const before=ctx.rosters.map((r,i)=>i===t?r.map(id=>back.get(id)??id):r);
+ // Journal prices, today's when a record has none.
+ const price=(x,side)=>x[side+'Price']??(byId.get(x[side+'Id'])?current(byId.get(x[side+'Id']),ctx).price:0);
+ const bankBefore=bankMoney+deals.reduce((s,x)=>s+price(x,'in')-price(x,'out'),0),sale=deals.find(x=>x.outId===transfer.outId)||transfer;
+ // Sports.ru's roster of the team shows the package already made: the counterfactual takes the rebuilt one alone.
+ const teams=Object.fromEntries(Object.entries(ctx.live?.teams||{}).filter(([k])=>Number(k)!==t));
+ // The money for the move is the bank before the package plus what the sale got; selling() adds back today's price of
+ // the player sold.
+ const options=transferOptions({...ctx,rosters:before,live:{...ctx.live,teams}},{team:t,outId:transfer.outId,bankMoney:bankBefore+price(sale,'out')-current(out,ctx).price,limit:20,sort:'season'});
+ const best=options.find(o=>o.player.id!==transfer.inId&&o.gain.season>=gain.season&&o.gain.month>=gain.month&&(o.gain.season-gain.season>=T||o.gain.month-gain.month>=T))||null;
+ return {gain,...v,best};
 }
-// How a team can get a given free player: the best one-for-one swap, or else the best package of up to k transfers
-// that buys him. Worth it when the season gains at least minGain and the next 4 weeks do not drop below monthFloor.
-export function acquisition(ctx,{team,playerId,bankMoney,k=1,minGain=15,monthFloor=0}){
+// A package of deals judged as its net change: no move for a round trip, the single-transfer verdict for one net move,
+// the summed gains of the net moves otherwise.
+export function packageVerdict(ctx,deals,{bankMoney,threshold=15}){
+ const net=netChange(ctx,deals),t=deals[0]?.team;
+ if(!net.pairs.length)return {net,gain:{week:0,month:0,season:0},verdict:'none',label:'🔁 Обмен туда-обратно: состав не изменился',best:null,sure:null};
+ const byId=new Map(ctx.players.map(p=>[p.id,p]));
+ if(net.pairs.some(x=>!byId.get(x.outId)||!byId.get(x.inId)))return {net,gain:null,verdict:null,label:null,best:null,sure:null};
+ if(net.pairs.length===1){const [x]=net.pairs;return {net,...transferVerdict(ctx,{team:t,outId:x.outId,inId:x.inId},{bankMoney,threshold,deals})};}
+ const gain={week:0,month:0,season:0};
+ for(const x of net.pairs){const a=playerOutlook(byId.get(x.outId),ctx),b=playerOutlook(byId.get(x.inId),ctx);for(const k of Object.keys(gain))gain[k]+=b[k].points-a[k].points;}
+ return {net,gain,...judged(ctx,net.pairs.map(x=>[x.outId,x.inId]),gain,threshold),best:null};
+}
+// How a team can get a given free player: the best one-for-one swap, or else the best package of up to k transfers that
+// buys him. With one transfer he is worth it when his swap gains at least minGain over the season and the next 4 weeks do
+// not drop below monthFloor. With several, the other moves of a package must not pay for him: he is worth it only for
+// what he adds over the best package of the same transfers without him (`edge`, season points), at least minGain. `best`:
+// the team's best season package of k transfers, when the caller already has it.
+export function acquisition(ctx,{team,playerId,bankMoney,k=1,minGain=15,monthFloor=0,best}){
  const swap=bestSwapFor(ctx,{team,playerId,bankMoney});
- if(swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor)return {worth:true,swap,pack:null};
- if(k>1){
-  const pack=bestPackage(ctx,{team,bankMoney,k,sort:'season',include:playerId});
-  if(pack&&pack.gains.season>=minGain&&pack.gains.month>=monthFloor)return {worth:true,swap,pack};
- }
- return {worth:false,swap,pack:null};
+ if(k<=1)return {worth:Boolean(swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor),swap,pack:null,edge:swap?swap.gain.season:-Infinity};
+ const top=best!==undefined?best:bestPackage(ctx,{team,bankMoney,k,sort:'season'}),buys=p=>Boolean(p?.pairs.some(x=>x.in.id===playerId));
+ // The best package either buys him (then the best one without him is the comparison) or not (then it is that one).
+ const pack=buys(top)?top:bestPackage(ctx,{team,bankMoney,k,sort:'season',include:playerId});
+ const without=buys(top)?bestPackage(ctx,{team,bankMoney,k,sort:'season',exclude:playerId}):top;
+ const edge=pack?pack.gains.season-Math.max(0,without?.gains.season??0):-Infinity;
+ if(edge>=minGain&&swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor)return {worth:true,swap,pack:null,edge};
+ if(edge>=minGain&&pack.gains.month>=monthFloor)return {worth:true,swap,pack,edge};
+ return {worth:false,swap,pack:null,edge};
 }
-// Injured free agents worth getting over the season (not out for it), with how to get them.
+// Injured free agents worth getting over the season (not out for it), with how to get them, the biggest edge first.
 // `soon`: day-to-day, or an ESPN return date within `days` — the moment to buy before the rivals and the price react.
 export function injuredTargets(ctx,{team,bankMoney,k=1,days=7,minGain=30}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),until=addDays(ctx.today,days),out=[];
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx),until=addDays(ctx.today,days),out=[];
  const rate=p=>perGame(p,ctx.live?.players?.[p.sportsId]).value*playRate(p,ctx.live?.players?.[p.sportsId],ctx);
  const weakest=Math.min(...ctx.rosters[team].map(id=>rate(byId.get(id))));
+ let best;
  for(const raw of ctx.players){
   const injury=raw.espnId&&ctx.injuries?.get(String(raw.espnId));
   if(!injury||taken.has(raw.id)||seasonEnding(injury)||rate(raw)<=weakest)continue;
+  if(k>1&&best===undefined)best=bestPackage(ctx,{team,bankMoney,k,sort:'season'});
   // Still out for a while: judged on the season only; the 4-week window is checked again once he is back.
-  const deal=acquisition(ctx,{team,playerId:raw.id,bankMoney,k,minGain,monthFloor:-Infinity});
+  const deal=acquisition(ctx,{team,playerId:raw.id,bankMoney,k,minGain,monthFloor:-Infinity,best});
   if(!deal.worth)continue;
   const dayToDay=!/out|suspension/i.test(injury.status||'')||injury.fantasyStatus==='GTD';
   out.push({player:current(raw,ctx),injury,...deal,soon:dayToDay||Boolean(injury.returnDate&&injury.returnDate.slice(0,10)<=until)});
  }
- const gainOf=x=>x.pack?x.pack.gains.season:x.swap.gain.season;
- return out.sort((a,b)=>gainOf(b)-gainOf(a));
+ return out.sort((a,b)=>b.edge-a.edge);
 }
 // Free agents who beat a current player of the same position over the horizon and over the rest of the season,
 // affordable in a one-for-one swap: real upgrades, not short-term streams.
@@ -356,21 +426,65 @@ export function marketAlerts(ctx,{team,bankMoney,sort='month',minGain=15,minConf
  return bestTransfers(ctx,{team,bankMoney,sort,limit:10}).map(x=>({...x,why:explainSwap(ctx,x.outId,x.player.id,sort)}))
   .filter(x=>x.gain[sort]>=minGain&&x.gain.season>0&&x.why.confidence>=minConfidence);
 }
+// The package to make now, one answer for the app and Telegram. Options: the best package of up to 1, 2 and 3 transfers
+// over the horizon, each kept when it gains more than the smaller one. A package is advised (`best`) only when the model is
+// CONFIDENT, it does not cost the season and it fits the transfers left. A transfer is a weekly resource, so a smaller
+// package wins when each move it saves would add less than `price` FP, over the horizon and over the season alike (saving
+// a transfer must not give up the season). `borderline`: the same choice among MODERATE packages, when none is confident:
+// "можно, но не уверенно", never "сделай".
+export const MOVE_PRICE=15;
+export function pickPackage(options,{left,sort='month',price=MOVE_PRICE}){
+ const pick=lvl=>{
+  const fits=options.filter(o=>o.lvl===lvl&&o.gains.season>=0&&o.pairs.length<=left&&o.gains[sort]>0).sort((a,b)=>b.gains[sort]-a.gains[sort]);
+  let best=fits[0]||null;
+  for(const f of fits){const d=best?best.pairs.length-f.pairs.length:0;if(d>0&&best.gains[sort]-f.gains[sort]<price*d&&best.gains.season-f.gains.season<price*d)best=f;}
+  return best;
+ };
+ const best=pick('CONFIDENT');
+ return {best,borderline:best?null:pick('MODERATE')};
+}
+export function recommendPackage(ctx,{team,bankMoney,left,sort='month',price=MOVE_PRICE}){
+ const options=[];let previous=0;
+ for(const k of [1,2,3]){const p=bestPackage(ctx,{team,bankMoney,k,sort});if(!p||!p.pairs.length||p.gain<=previous+1e-6)continue;previous=p.gain;
+  const why=explainSwap(ctx,null,null,sort,p.pairs.map(x=>[x.out.id,x.in.id]));options.push({...p,why,lvl:why.level});}
+ return {...pickPackage(options,{left,sort,price}),options};
+}
+// Other FBL teams the same model would also tell to buy a player (his best swap for them gains at least minGain over the
+// horizon without costing the season): FBL allows a player on one team only, so the first buyer gets him and a later one
+// is in breach. The advice itself stays each team's own expected points.
+export function contestedBy(ctx,{team,playerId,bankOf,sort='month',minGain=15}){
+ const out=[];
+ for(let t=0;t<ctx.rosters.length;t++){if(t===team)continue;const s=bestSwapFor(ctx,{team:t,playerId,bankMoney:bankOf(t),sort});if(s&&s.gain[sort]>=minGain&&s.gain.season>0)out.push(t);}
+ return out;
+}
+// FBL transfer hours (08:00-22:00 Moscow time): whether a move made now is inside them. Outside them every move is a
+// certain breach, so advice says when to make it instead of "now".
+export function transferWindow(now=Date.now(),hours=TRANSFER_HOURS){
+ const minutes=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;},m=((now+3*3600e3)%864e5+864e5)%864e5/60e3;
+ return {open:m>=minutes(hours.from)&&m<minutes(hours.to),now:mskTime(new Date(now).toISOString()),from:hours.from,to:hours.to};
+}
 
 // ---------- Why a transfer, and how sure ----------
 // A move is advised only when the model is this sure it gains over the chosen horizon; below DOUBTFUL it is not worth a transfer.
 export const CONFIDENT=.7,DOUBTFUL=.6;
+// One rounding everywhere (app and Telegram): the percent shown is rounded down and the level follows that percent, so
+// "70%" is never printed next to a lower level.
+export const confidencePercent=c=>Math.floor(c*100);
+export function confidenceLevel(c){const p=confidencePercent(c);return p>=Math.round(CONFIDENT*100)?'CONFIDENT':p>=Math.round(DOUBTFUL*100)?'MODERATE':'DOUBTFUL';}
 const Z90=1.2815515655;
 function normalCdf(z){const t=1/(1+.2316419*Math.abs(z)),d=.3989423*Math.exp(-z*z/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
 // Spread of a player's points over a horizon: the forecast's season range (10th-90th percentile, calibrated forward on past
-// seasons) narrowed as his own games of this season come in (the in-season prior weight), plus game-to-game noise, which
-// dominates a one-week horizon.
+// seasons) as a share of his expected points, plus game-to-game noise (about half of the variance over one week). The range
+// is not narrowed as his games of this season come in: most of it is availability and role (injuries, rest, trades), which
+// the games played do not settle. Fitted on the held-out 2024/25 season (a narrowing prior of 20, 40, 60, 100 or 200 games
+// or none, times a scale of 0.8-1.5): none at scale 1 has the lowest log-loss of P(gain>0) over 15 in-season cells (0.540,
+// the old 20-game narrowing 0.563), and so it does on 2025/26 (0.530 against 0.549; season horizon, 70-80% bin, from
+// January: 74-77% won, before 65-70%). Pre-season, with no games played, nothing changes.
 export function pointsSpread(player,ctx,outlook){
- const f=player.forecast,live=ctx.live?.players?.[player.sportsId],played=(live?.games||[]).filter(g=>g.played).length;
- const k=CALIBRATION.points.established.rateGames;
+ const f=player.forecast;
  const rel=f&&f.meanSeason>0&&Number.isFinite(f.seasonFloor)?(f.seasonCeiling-f.seasonFloor)/(2*Z90*f.meanSeason):.5;
  const game=f&&Number.isFinite(f.gameFloor)?(f.gameCeiling-f.gameFloor)/(2*Z90):Math.max(4,(outlook.points/Math.max(1,outlook.games))*.4);
- return Math.sqrt((rel*Math.sqrt(k/(k+played))*outlook.points)**2+game*game*Math.max(0,outlook.games));
+ return Math.sqrt((rel*outlook.points)**2+game*game*Math.max(0,outlook.games));
 }
 // What one player brings over a horizon, split as points per game x share of the club's games he plays x club games.
 export function playerPicture(player,ctx,key){
@@ -382,11 +496,19 @@ export function playerPicture(player,ctx,key){
   expectedGames:outlook.games,clubGames,injury,spread:pointsSpread(player,ctx,outlook),
   price:current(player,ctx).price,priceChange:Number.isFinite(live?.price)&&Number.isFinite(live?.initialPrice)?live.price-live.initialPrice:0};
 }
-// Logarithmic-mean split of a difference of products a1*b1*c1 - a0*b0*c0 into exact additive parts.
-function splitProduct(before,after){
- const total=after.reduce((a,b)=>a*b,1)-before.reduce((a,b)=>a*b,1);
- if(before.some(x=>!(x>0))||after.some(x=>!(x>0))){return before.map((_,i)=>i===0?total:0);}
- const P0=before.reduce((a,b)=>a*b,1),P1=after.reduce((a,b)=>a*b,1),w=Math.abs(P1-P0)<1e-9?P0:(P1-P0)/Math.log(P1/P0);
+// Exact additive split of a difference of products a1*b1*c1 - a0*b0*c0: the logarithmic mean when every factor is positive;
+// with a zero (a player out for the whole period, a club with no games left in it) the Shapley average over every order of
+// changing one factor at a time, which stays exact and gives the change to the factor that caused it.
+const orders=n=>n<2?[[...Array(n).keys()]]:orders(n-1).flatMap(o=>Array.from({length:n},(_,i)=>[...o.slice(0,i),n-1,...o.slice(i)]));
+export function splitProduct(before,after){
+ const prod=xs=>xs.reduce((a,b)=>a*b,1),P0=prod(before),P1=prod(after);
+ if(![...before,...after].every(Number.isFinite))return before.map((_,i)=>i===0?P1-P0:0);
+ if(before.some(x=>!(x>0))||after.some(x=>!(x>0))){
+  const all=orders(before.length),out=before.map(()=>0);
+  for(const o of all){const cur=[...before];for(const i of o){const p=prod(cur);cur[i]=after[i];out[i]+=(prod(cur)-p)/all.length;}}
+  return out;
+ }
+ const w=Math.abs(P1-P0)<1e-9?P0:(P1-P0)/Math.log(P1/P0);
  return before.map((x,i)=>w*Math.log(after[i]/x));
 }
 // Why a swap gains (or not) over a horizon, how sure the model is, and what to check before doing it.
@@ -395,7 +517,10 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
  const moves=pairs||[[outId,inId]],flags=[];let gain=0,variance=0;const parts={perGame:0,availability:0,schedule:0},sides=[];
  for(const [o,i] of moves){
   const a=playerPicture(byId.get(o),ctx,key),b=playerPicture(byId.get(i),ctx,key);sides.push({out:a,in:b});
-  const split=splitProduct([a.perGame,a.expectedGames/Math.max(1e-9,a.clubGames),a.clubGames],[b.perGame,b.expectedGames/Math.max(1e-9,b.clubGames),b.clubGames]);
+  // Share of the club's games he plays; a club with no games in the period has none, so his usual share stands in and
+  // the difference goes to the calendar.
+  const share=x=>x.clubGames>0?x.expectedGames/x.clubGames:x.playRate;
+  const split=splitProduct([a.perGame,share(a),a.clubGames],[b.perGame,share(b),b.clubGames]);
   const d=b.points-a.points;gain+=d;variance+=a.spread**2+b.spread**2;
   const sum=split.reduce((x,y)=>x+y,0)||1,scale=Math.abs(sum)>1e-9?d/sum:0;
   parts.perGame+=split[0]*scale;parts.availability+=split[1]*scale;parts.schedule+=split[2]*scale;
@@ -414,8 +539,7 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
  const total=Math.abs(parts.perGame)+Math.abs(parts.availability)+Math.abs(parts.schedule)||1;
  if(gain>0&&parts.availability/total>.5)flags.unshift('Больше половины выигрыша — из прогноза числа сыгранных матчей, а не из игры за матч: это самая неточная часть прогноза.');
  if(gain>0&&parts.schedule/total>.5)flags.unshift('Выигрыш в основном из календаря (у нового клуба больше матчей в периоде): после периода преимущество исчезнет.');
- const level=confidence>=CONFIDENT?'CONFIDENT':confidence>=DOUBTFUL?'MODERATE':'DOUBTFUL';
- return {gain,sd,confidence,level,parts,flags:[...new Set(flags)],sides};
+ return {gain,sd,confidence,level:confidenceLevel(confidence),parts,flags:[...new Set(flags)],sides};
 }
 // The FBL formula on an ESPN box-score line: Sports.ru's without the team result bonus (the league scores on Yahoo,
 // which cannot award it). A line with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of
