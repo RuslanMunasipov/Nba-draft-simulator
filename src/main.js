@@ -254,7 +254,7 @@ function forecastCard(p){
   const cell=el('div');cell.append(el('small',label),el('strong',value));grid.append(cell);
  }
  box.append(grid);
- box.append(el('p',f.version===4?'Потолок матча — 90-й процентиль собственных матчей игрока за два сезона (у новичков — игроков того же уровня). '+rangeMethod(f,database?.projectionModelAudit):'Ролевой ориентир сравнивает средние показатели похожих игроков; сезонный диапазон для такой оценки не откалиброван.'));
+ box.append(el('p',f.version===4?'Потолок матча — 90-й процентиль собственных матчей игрока за два сезона, сдвинутый к прогнозу ФО за матч (у новичков и у сыгравших за два сезона меньше 10 матчей — игроков того же уровня). '+rangeMethod(f,database?.projectionModelAudit):'Ролевой ориентир сравнивает средние показатели похожих игроков; сезонный диапазон для такой оценки не откалиброван.'));
  if(f.version===4&&f.availability)box.append(el('p',healthLine(f.availability,f,database?.projectionModelAudit)));
  if(f.transfer)box.append(el('p',`С заменами при травмах: ${int(f.slotSeason)} ФО = ${int(f.meanSeason)} своих + ${int(f.transfer.value)} от замены. Длинные пропуски закрывает трансфер: в среднем ${dec(f.transfer.replacedGames)} матча по ${dec(f.transfer.replacementPerGame)} ФО. По этой ценности строится рейтинг драфта.`));
  if(f.scoringBreakdown){

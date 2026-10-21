@@ -1,6 +1,6 @@
 // The league race in numbers: shared places for equal totals, the chances of each final place, and the period windows
 // of the Teams tab. Shared by the Overview table and the Teams tab, so both screens always agree.
-import {teamPoints,playerOutlook,pointsSpread,gameWeeks,horizons,periodList} from './season.js';
+import {teamPoints,playerOutlook,pointsSpread,expectedPoints,gameWeeks,horizons,periodList,stints,shadowed,tourDate} from './season.js';
 
 // Competition ranking: equal totals share a place ("1, 2, 2, 4"), so a tie is never broken by team order or forecast.
 export function leagueRanks(totals){return totals.map(x=>1+totals.filter(y=>y>x).length);}
@@ -35,16 +35,26 @@ export function chanceText(x){
  return Math.round(x*100)+NBSP+'%';
 }
 
+// Holdings that score nothing now ("team:id" -> the team that had the player first): a player bought while another FBL
+// team holds him scores only for that team (league owner, 21.10.2026; season.js teamPoints), so the later buyer's slot
+// brings neither his running points nor his forecast while it keeps him. When the watcher cannot tell who bought first
+// (a 'doubt' holding) both teams keep him, as their facts do.
+export function shadowedHoldings(ctx){
+ const out=new Map();
+ for(const s of stints(ctx.transfers,ctx.picks))if(!s.to&&shadowed(s))out.set(`${s.team}:${s.playerId}`,s.shadowedBy.find(a=>!a.to).team);
+ return out;
+}
 // The whole league race, once per screen: points so far (official plus `running`, the games Sports.ru has not counted
 // yet), the expected rest of the season with its spread (pointsSpread of each player over the rest of the season,
 // players independent: the model's measured teammate correlation is about 0), shared places, and the chances of the
 // final place. Owner's decision 21.10.2026: advice keeps maximising expected points; the standings add these chances.
-// Rosters are today's: future transfers are not modelled. Before any points the place follows the forecast.
+// Rosters are today's: future transfers are not modelled, and a shadowed holding adds nothing (shadowedHoldings). Before
+// any points the place follows the forecast.
 export const CHANCE_RUNS=20000;
 export function leagueRace(ctx,running=new Map(),{sims=CHANCE_RUNS,seed=1}={}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),official=teamPoints(ctx,ctx.transfers,ctx.picks),rc={...ctx,running};
- const rows=ctx.rosters.map((ids,t)=>{
-  const now=ids.reduce((s,id)=>s+(running.get(id)?.points||0),0);
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),official=teamPoints(ctx,ctx.transfers,ctx.picks),rc={...ctx,running},shadow=shadowedHoldings(ctx);
+ const rows=ctx.rosters.map((all,t)=>{
+  const ids=all.filter(id=>!shadow.has(`${t}:${id}`)),now=ids.reduce((s,id)=>s+(running.get(id)?.points||0),0);
   let rest=0,week=0,variance=0;
   for(const id of ids){const p=byId.get(id);if(!p)continue;const o=playerOutlook(p,rc);rest+=o.season.points;week+=o.week.games;variance+=pointsSpread(p,rc,o.season)**2;}
   return {t,official:official[t],now,rest,week,total:official[t]+now+rest,sd:Math.sqrt(variance)};
@@ -68,11 +78,29 @@ export function periodWindows(ctx){
  const i=list.findIndex(w=>ctx.today>=w.start&&ctx.today<=w.end),at=i>=0?i:list.findIndex(w=>w.start>ctx.today),cur=list[at]||null,start=cur?.start||ctx.today;
  return {week:{from:start,to:cur?.end||h.week.to},month:{from:start<ctx.today?start:ctx.today,to:h.month.to},season:{from:list[0]?.start||start,to:h.season.to}};
 }
+// What a roster player still brings team t in a window: the points of a game Sports.ru has not counted yet plus the
+// expectation of the games ahead; nothing for a shadowed holding, whose games score for the first holder (as its fact).
+export function windowAhead(ctx,t,p,w,running=new Map(),shadow=shadowedHoldings(ctx)){
+ if(shadow.has(`${t}:${p.id}`))return {points:0,games:0};
+ const e=expectedPoints(p,{...ctx,running},ctx.today,w.to);return {points:(running.get(p.id)?.points||0)+e.points,games:e.games};
+}
+// The day a played game counts on, as expectedPoints counted it before it was played: the date of its Sports.ru tour
+// (season.js tourDate), so an MLK-day game filed under the previous tour's last Moscow date stays in its own tour. The
+// club calendars keep played games (marked gone) with their week; the opponent's calendar names the game whatever club
+// the player was with then (a club plays once a Moscow date). A game no calendar lists counts on its own date.
+const tourDays=new WeakMap();
+function playedTourDay(live){
+ const clubs=live?.clubs;if(!clubs)return g=>g.date;
+ let at=tourDays.get(clubs);
+ if(!at){const weeks=gameWeeks(live);at=new Map();for(const [club,games] of Object.entries(clubs))for(const g of games)if(Number.isFinite(g.week))at.set(`${club}|${g.date}`,tourDate(g,weeks));tourDays.set(clubs,at);}
+ return (g,club)=>at.get(`${g.opponent}|${g.date}`)??at.get(`${club}|${g.date}`)??g.date;
+}
 // FBL points of a team in a window by the league table's own rule (teamPoints decides which games count for whom), only
-// cut to the window's dates, so a period's fact never disagrees with the league place. With `sportsId`, one player's
-// part of it: what he brought this team in the window, over all his stints with it.
+// cut to the window's tours, so a period's fact never disagrees with the league place nor with the forecast it replaces.
+// With `sportsId`, one player's part of it: what he brought this team in the window, over all his stints with it.
 export function windowFact(ctx,t,w,sportsId=null){
+ const day=playedTourDay(ctx.live);
  const players=Object.fromEntries(Object.entries(ctx.live?.players||{}).filter(([sid])=>sportsId==null||sid===String(sportsId))
-  .map(([sid,x])=>[sid,{...x,games:(x.games||[]).filter(g=>g.date>=w.from&&g.date<=w.to)}]));
+  .map(([sid,x])=>[sid,{...x,games:(x.games||[]).filter(g=>{const d=day(g,x.club);return d>=w.from&&d<=w.to;})}]));
  return teamPoints({...ctx,live:{...ctx.live,players}},ctx.transfers,ctx.picks)[t];
 }
