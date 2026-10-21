@@ -5,6 +5,7 @@ empirical group prior, not fabricated individual NBA statistics.
 """
 import concurrent.futures
 import json
+import re
 import statistics
 import time
 import unicodedata
@@ -13,6 +14,7 @@ from datetime import datetime,timezone
 from pathlib import Path
 
 BASE='https://site.api.espn.com/apis/site/v2/sports/basketball/nba'
+INJURIES=BASE+'/injuries'
 POSITIONS={'PG':['PG'],'SG':['SG'],'SF':['SF'],'PF':['PF'],'C':['C'],
            'G':['PG','SG'],'F':['SF','PF'],'G-F':['SG','SF'],'F-G':['SG','SF'],
            'F-C':['PF','C'],'C-F':['PF','C']}
@@ -46,6 +48,30 @@ def roster(team):
             'injuries':[{'status':i.get('status'),'date':i.get('date')} for i in athlete.get('injuries',[])],
             'source':f"{BASE}/teams/{team['id']}/roster"})
     return result
+
+def report_injuries(feed):
+    """ESPN injury report -> {espnId: [injury]}. The roster endpoint gives only status and date and misses some players
+    (Furphy, 20.10.2026); the report adds the return date, fantasy status (GTD, OUT, OFS) and comment that the
+    pre-season forecast needs for a known absence, the same report the season tab reads."""
+    out={}
+    for team in (feed or {}).get('injuries',[]):
+        for i in team.get('injuries',[]):
+            athlete=i.get('athlete') or {};links=athlete.get('links') or [{}]
+            m=re.search(r'/id/(\d+)',links[0].get('href') or '') if links else None
+            espn=str(athlete['id']) if athlete.get('id') else m.group(1) if m else None
+            if not espn:continue
+            d=i.get('details') or {}
+            out.setdefault(espn,[]).append({'status':i.get('status'),'date':i.get('date'),'returnDate':d.get('returnDate'),
+                'fantasyStatus':(d.get('fantasyStatus') or {}).get('abbreviation') or None,'type':d.get('type'),
+                'comment':(i.get('shortComment') or '')[:300],'source':INJURIES})
+    return out
+
+def merge_injuries(current,report):
+    """The report is authoritative when it arrived: a rostered player it does not list is healthy. Without it the
+    roster endpoint's entries stay (no return dates: the forecast then knows no absence length)."""
+    if not report:return 'ROSTER_ENDPOINT'
+    for athlete in current:athlete['injuries']=report.get(athlete['espnId'],[])
+    return 'INJURY_REPORT'
 
 def identity_map():
     """ESPN athlete id -> NBA person id from the reviewed crosswalks (corroborated identities, Sports.ru map)."""
@@ -131,16 +157,29 @@ def make_database(history,baseline,current,now,identities=None):
                 competition.append(other['name'])
         p['newHighVolumeTeammates']=competition
     values=list(players.values())
+    # A historical player missing from the rosters under the name of a rostered one is an identity-match failure or an
+    # ambiguous name: his conditional (unsigned) forecast must not stand in for the signed player.
+    rostered={normalize(p['name']) for p in values if p.get('currentRosterStatus')=='SOURCE_REPORTED'}
+    twins=sorted(p['name'] for p in values if p.get('currentRosterStatus')=='NOT_IN_CURRENT_SOURCE' and normalize(p['name']) in rostered)
     return {'version':1,'generatedAt':now,'season':'2026-27','priceMode':'OFF',
       'players':values,'coverage':{'players':len(values),'currentRosterPlayers':len(current),
         'historicalPlayers':len(history['players']),'rookies':sum(p['isRookie'] for p in values),
-        'estimatedPlayers':sum(p['projectedFP'] is not None for p in values)},
+        'estimatedPlayers':sum(p['projectedFP'] is not None for p in values),'notInSourceNameTwins':twins},
       'rookiePrior':{'value':prior,'cohortSize':len(cohort),'historicalIds':[p['id'] for p in cohort],
         'method':'median observed core FP/game for players first present in 2025/26 with 20+ games and current ESPN experience 1–2'},
       'limitations':['Positions are mapped from ESPN basketball positions, not verified Yahoo eligibility.',
        'Rookie classification and team status are provider-reported; preseason roster can change.',
        'Rookie estimates are empirical group priors, not personal NBA projections.',
        'No official prices, result bonuses, calibrated injury probability or validated season forecast.']}
+
+def espn_coverage(players,context):
+    """How many catalog players ESPN covers, and who has ESPN games but no usable stat projection (the parser rejected
+    it): those players fall back to the model alone, so the list should stay empty."""
+    ctx=[p.get('espnContext') or {} for p in players]
+    return {'sourcePlayers':len(context),'matchedPlayers':sum(p.get('espnContext') is not None for p in players),
+        'projectedGamesPlayers':sum(c.get('projectedGames') is not None for c in ctx),
+        'individualProjectionPlayers':sum(c.get('individualProjection') is not None for c in ctx),
+        'gamesWithoutIndividualProjection':sorted(p['name'] for p,c in zip(players,ctx) if c.get('projectedGames') is not None and c.get('individualProjection') is None)}
 
 if __name__=='__main__':
     from espn_context import fetch_context
@@ -151,12 +190,19 @@ if __name__=='__main__':
     current=[]
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
         for result in pool.map(roster,teams):current.extend(result)
+    try:report=report_injuries(get_json(INJURIES))
+    except Exception as exc:  # noqa: BLE001
+        print(f'ESPN injury report unavailable, roster injuries kept: {exc}');report=None
+    injury_source=merge_injuries(current,report)
     history=json.loads(Path('public/data/nba-history.json').read_text())
     baseline=json.loads(Path('public/data/experimental-baseline.json').read_text())
     data=make_database(history,baseline,current,now,identity_map())
+    data['injuryReport']={'source':INJURIES if report else BASE+'/teams/{id}/roster','mode':injury_source,'fetchedAt':now,
+        'players':sum(bool(a['injuries']) for a in current)}
     context=fetch_context(now)
     for p in data['players']:p['espnContext']=context.get(p.get('espnId',''))
-    data['espnCoverage']={'sourcePlayers':len(context),'matchedPlayers':sum(p.get('espnContext') is not None for p in data['players']),'projectedGamesPlayers':sum((p.get('espnContext') or {}).get('projectedGames') is not None for p in data['players'])}
+    data['espnCoverage']=espn_coverage(data['players'],context)
+    if data['espnCoverage']['gamesWithoutIndividualProjection']:print('ESPN games without a usable stat projection:',data['espnCoverage']['gamesWithoutIndividualProjection'])
     market=json.loads(Path('data/market-context.json').read_text())
     for p in data['players']:p['marketContext']=market.get(str(p['id']))
     notes=json.loads(Path('data/player-notes.json').read_text())
