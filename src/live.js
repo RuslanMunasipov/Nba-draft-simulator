@@ -14,6 +14,16 @@ export function eventInfo(e){
  const team=x=>({abbr:x?.team?.abbreviation,name:x?.team?.shortDisplayName||x?.team?.displayName,score:x?.score,winner:x?.winner});
  return {id:e.id,date:e.date,state:e.status?.type?.state,final:Boolean(e.status?.type?.completed),detail:e.status?.type?.shortDetail||'',home:team(side('home')),away:team(side('away'))};
 }
+// While a game runs the scores refresh every 20 s. A game past its tip-off that ESPN still lists as not started is checked
+// every 30 s; otherwise the page wakes 15 s after the next tip-off within 12 hours. null: no game to watch.
+export const LIVE_MS=20e3;
+export function nextLiveDelay(games,now=Date.now()){
+ if(games.some(g=>g.state==='in'))return LIVE_MS;
+ const starts=games.filter(g=>g.state==='pre').map(g=>Date.parse(g.date)).filter(t=>Number.isFinite(t)&&t>now-3*36e5);
+ if(starts.some(t=>t<=now))return 30e3;
+ const next=Math.min(...starts);
+ return next-now<=12*36e5?Math.max(LIVE_MS,next-now+15e3):null;
+}
 async function getJson(url){const r=await fetch(url,{cache:'no-cache'});if(!r.ok)throw Error(String(r.status));return r.json();}
 // Yesterday and today (US Eastern) with running points for games that have started.
 export async function fetchLiveGames(wantedTeams){
