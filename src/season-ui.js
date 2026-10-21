@@ -4,6 +4,7 @@ import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './ru
 import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,stints,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,CONFIDENT,DOUBTFUL} from './season.js';
 import {fetchLiveGames,moscowDate,nextLiveDelay,LIVE_MS} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
+import {statLine} from './stat-line.js';
 
 const $=id=>document.getElementById(id);
 const REPO='RuslanMunasipov/Nba-draft-simulator';
@@ -122,6 +123,30 @@ function livePoints(){
  return out;
 }
 
+// ---------- The player's season so far (player cards) ----------
+// His 2026/27 games from Sports.ru (a finished game Sports.ru has not counted yet is scored from the ESPN box score) and
+// the game he is playing now with its stat line. Null until the season data is loaded.
+export function seasonLivePanel(p){
+ if(!live||!p)return null;
+ const row=live.players?.[p.sportsId],played=(row?.games||[]).filter(g=>g.played),eid=String(p.espnId||'');
+ const box=(eid&&games.map(g=>({g,x:g.points?.[eid]})).filter(o=>o.x))||[],now=box.find(o=>o.g.state==='in');
+ if(!row&&!box.length)return null;
+ const block=el('div',null,'pc-block season-live');block.append(el('h4','Сезон 2026/27 · лайв'));
+ if(played.length){
+  const total=played.reduce((s,g)=>s+g.points,0),minutes=played.reduce((s,g)=>s+clockMin(g.minutes),0);
+  block.append(el('p',`${count(played.length,'матч','матча','матчей')} · ${int(total)} ФО · ${dec(total/played.length)} за матч · ${dec(minutes/played.length)} мин`,'season-live-sum'));
+  const t=el('table',null,'sports-table'),h=el('tr');for(const x of ['Дата','Соперник','Мин','ФО'])h.append(el('th',x));t.append(h);
+  for(const g of played.slice(-5).reverse()){const tr=el('tr');for(const v of [ddmm(g.date),g.opponent||'—',String(g.minutes??'—'),int(g.points)+(g.source==='ESPN'?' *':'')])tr.append(el('td',v));t.append(tr);}
+  block.append(t);
+  if(played.some(g=>g.source==='ESPN'))block.append(el('p','* по протоколу ESPN: Sports.ru этот матч ещё не посчитал.','muted'));
+ }else if(!now)block.append(el('p','В этом сезоне ещё не играл.','muted'));
+ if(now)block.append(el('p',`Сейчас в игре: ${int(now.x.points)} ФО · ${gameStatus(now.g)} · обновляется каждые ${LIVE_MS/1e3} с`,'season-live-now'),lineTable(now.x));
+ const last=box.filter(o=>o.g.state==='post').at(-1);
+ if(last){const d=el('details',null,'inline');d.dataset.key=`last:${p.id}:${last.g.id}`;d.append(el('summary',`Статлиния последнего матча (${last.g.away.abbr} — ${last.g.home.abbr})`),lineTable(last.x));block.append(d);}
+ return block;
+}
+const clockMin=v=>{const m=String(v??'').match(/^(\d+):(\d{2})$/);return m?Number(m[1])+Number(m[2])/60:Number(v)||0;};
+
 // ---------- States ----------
 function skeleton(rows=6){const s=el('div',null,'skeleton');s.setAttribute('aria-hidden','true');for(let i=0;i<rows;i++)s.append(el('span'));return s;}
 function loadingBlock(title){const box=el('div');box.setAttribute('aria-busy','true');if(title)box.append(el('h3',title));box.append(el('p','Загружаю данные Sports.ru…','muted'),skeleton());return box;}
@@ -190,26 +215,51 @@ function gameStatus(g){
  if(/half/i.test(d))return 'Перерыв';
  if((m=d.match(/^End of (\d)/i)))return `Конец ${m[1]}-й четв.`;
  if((m=d.match(/^Q(\d)\s+(.+)/i)))return `${m[1]}-я четв. · ${m[2]}`;
+ // ESPN's scoreboard writes the running clock as "8:22 - 3rd" or "2:00 - OT".
+ if((m=d.match(/^(\d+:\d+(?:\.\d+)?)\s*-\s*(\d)(?:st|nd|rd|th)$/i)))return `${m[2]}-я четв. · ${m[1]}`;
+ if((m=d.match(/^(\d+:\d+(?:\.\d+)?)\s*-\s*(\d*)OT$/i)))return `Овертайм${m[2]?' '+m[2]:''} · ${m[1]}`;
  if(/OT/.test(d))return 'Овертайм '+d.replace(/.*OT\s*/,'');
  return d;
 }
 // One game with the players of one FBL team in it: the team chosen in the season tab (my own on the overview).
 const inGame=(p,g)=>p.team===g.home.abbr||p.team===g.away.abbr;
 function teamInGame(g,focus,own){return players.filter(p=>own.get(p.id)===focus&&inGame(p,g));}
-function gameCard(g,focus,own){
+// The FBL formula term by term on one ESPN box-score line: what each stat adds (the live stat line).
+function lineTable(x){
+ const s=statLine(x?.line);if(!s)return el('p','В протоколе ESPN пока нет статистики.','sp-note');
+ const t=el('table',null,'stat-line');
+ for(const r of s.rows){const tr=el('tr');tr.append(el('th',r.label),el('td',String(r.value)+(r.note?` · ${r.note}`:''),'v'),el('td',(r.points?signed(r.points):'0')+(r.unsure?' ±1':''),'num'+(r.points<0?' neg':'')));t.append(tr);}
+ const total=el('tr',null,'total');total.append(el('th','ФО'),el('td',x.final?'финал':'матч идёт','v'),el('td',int(s.total),'num'));t.append(total);
+ if(s.rows.some(r=>r.unsure))t.title='ESPN округляет минуты: при 9:30–9:59 Sports.ru даст на 1 очко меньше';
+ return t;
+}
+// A player's line in a game card: tap to open his stat line, which stays open while the scores refresh.
+function lineRow(key,who,x,status,cls){
+ if(!x){const li=el('li',null,cls);li.append(who,el('span',status,'pts'));return li;}
+ const li=el('li',null,cls),d=el('details',null,'line-details'),sum=el('summary');d.dataset.key=key;
+ sum.append(who,el('span',`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'),'pts'));d.append(sum,lineTable(x));li.append(d);return li;
+}
+function gameCard(g,focus,own,full=false){
  const item=el('div',null,'sp-game'+(g.state==='in'?' is-live':'')),head=el('div',null,'sp-game-head');
  head.append(el('strong',`${g.away.abbr} — ${g.home.abbr}`));
  if(g.state!=='pre')head.append(el('span',`${g.away.score} : ${g.home.score}`,'score'));
  head.append(g.state==='in'?el('span',gameStatus(g),'chip chip--live'):el('small',gameStatus(g)));item.append(head);
- const ours=teamInGame(g,focus,own);
- if(!ours.length)return item;
- const pts=p=>g.points?.[String(p.espnId)];
- ours.sort((a,b)=>(pts(b)?.points||0)-(pts(a)?.points||0));
- if(g.state!=='pre'&&!g.points)item.append(el('p','Протокол ESPN пока недоступен.','sp-note'));
- const ul=el('ul');
- for(const p of ours){const x=pts(p),li=el('li',null,'mine-player'),inj=injuryText(p);
-  li.append(el('span',p.name+(g.state==='pre'&&inj?` (${inj.toLowerCase()})`:''),'who'),el('span',x?`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'):g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','pts'));ul.append(li);}
- item.append(ul);
+ const ours=teamInGame(g,focus,own),pts=p=>g.points?.[String(p.espnId)];
+ if(g.state!=='pre'&&!g.points&&ours.length)item.append(el('p','Протокол ESPN пока недоступен.','sp-note'));
+ if(ours.length){
+  ours.sort((a,b)=>(pts(b)?.points||0)-(pts(a)?.points||0));
+  const ul=el('ul');
+  for(const p of ours){const x=pts(p),inj=injuryText(p);
+   ul.append(lineRow(`line:${g.id}:${p.espnId}`,el('span',p.name+(g.state==='pre'&&inj?` (${inj.toLowerCase()})`:''),'who'),x,g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','mine-player'));}
+  item.append(ul);
+ }
+ // Every player of the game, best first: tap anyone to follow his stat line.
+ const everyone=Object.entries(g.points||{}).sort((a,b)=>b[1].points-a[1].points);
+ if(full&&everyone.length){
+  const all=el('details',null,'inline sp-all');all.dataset.key='all:'+g.id;all.append(el('summary',`Все игроки матча (${everyone.length})`));
+  const ul=el('ul');for(const [id,x] of everyone)ul.append(lineRow(`all:${g.id}:${id}`,el('span',`${x.name||'—'} · ${x.team}`,'who'),x,'',''));
+  all.append(ul);item.append(all);
+ }
  return item;
 }
 function gamesToday(ctx,compact,focus){
@@ -219,10 +269,10 @@ function gamesToday(ctx,compact,focus){
  if(src.games==='error'){box.append(el('p',compact?'Счёт ESPN сейчас недоступен. Расписание — во вкладке «Матчи».':'Счёт ESPN сейчас недоступен. Расписание по календарю Sports.ru — ниже.','muted'));return box;}
  if(!shown.length){box.append(el('p','Сегодня матчей нет.','muted'));return box;}
  const withTeam=shown.filter(g=>teamInGame(g,focus,own).length),list=compact?shown.filter(g=>g.state==='in'||withTeam.includes(g)):onlyMine?withTeam:shown;
- for(const g of list.slice(0,compact?4:99))box.append(gameCard(g,focus,own));
+ for(const g of list.slice(0,compact?4:99))box.append(gameCard(g,focus,own,!compact));
  if(compact&&shown.length>Math.min(list.length,4)){const more=button(`Все матчи (${shown.length})`,()=>setView('games'),'btn-ghost btn-sm');head.append(more);}
  if(!list.length)box.append(el('p',`Сегодня ${count(shown.length,'матч','матча','матчей')}, ${whose} в них нет.`,'muted'));
- if(list.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки без бонуса за результат.','sp-note'));
+ if(list.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки без бонуса за результат. Нажми на игрока — откроется его статлиния по формуле.','sp-note'));
  return box;
 }
 function alertsBlock(ctx){
@@ -294,7 +344,7 @@ function playerRow(p,ctx,running){
  actions.append(button(replacing===p.id?'Скрыть замены':'Найти замену',e=>{e.preventDefault();replacing=replacing===p.id?null:p.id;query='';openRows.add(p.id);renderSeason();}),link('Sports.ru ↗',SPORTS_URL(p.sportsId)));
  box.append(actions);
  if(replacing===p.id)box.append(replacementPanel(p,ctx));
- const dossier=el('details',null,'inline');dossier.append(el('summary','Досье с драфта'));dossier.addEventListener('toggle',()=>{if(dossier.open&&!dossier.querySelector('.player-card'))dossier.append(card(p,null,true));});box.append(dossier);
+ const dossier=el('details',null,'inline');dossier.dataset.key='dossier:'+p.id;dossier.append(el('summary','Досье с драфта'));dossier.addEventListener('toggle',()=>{if(dossier.open&&!dossier.querySelector('.player-card'))dossier.append(card(p,null,true));});box.append(dossier);
  box.addEventListener('toggle',()=>{if(box.open)openRows.add(p.id);else openRows.delete(p.id);});
  return box;
 }
@@ -678,10 +728,15 @@ export function renderSeason(busy=false){
  for(const [k,label] of VIEWS){const b=el('button',label);b.type='button';b.setAttribute('aria-pressed',String(view===k));b.onclick=()=>{replacing=null;setView(k);};nav.append(b);}
  const content=view==='teams'?teams(ctx):view==='transfers'?transfersView(ctx):view==='injuries'?injuriesView(ctx):view==='games'?gamesView(ctx):view==='rules'?rulesView(ctx):overview(ctx);
  const parts=[nav,...warnings(ctx),...content];
- if(METHOD[view]&&live){const method=el('details',null,'method');method.append(el('summary','Как считается'));const ul=el('ul');for(const l of METHOD[view])ul.append(el('li',l));method.append(ul);parts.push(method);}
+ if(METHOD[view]&&live){const method=el('details',null,'method');method.dataset.key='method:'+view;method.append(el('summary','Как считается'));const ul=el('ul');for(const l of METHOD[view])ul.append(el('li',l));method.append(ul);parts.push(method);}
  // Keep the replacement search focused and its caret in place across a re-render.
  const focused=document.activeElement,wasSearch=focused?.closest?.('#season-body')&&focused.type==='search',caret=wasSearch?focused.selectionStart:null;
+ // Open blocks (stat lines, dossiers, method notes) stay open across the 20-second live refresh. A lazily filled block
+ // gets its toggle event at once, so the blocks nested in what it adds can be reopened in the next pass.
+ const open=new Set([...root.querySelectorAll('details[data-key]')].filter(d=>d.open).map(d=>d.dataset.key));
  root.replaceChildren(...parts);
+ for(let pass=0,again=true;again&&pass<4;pass++){again=false;
+  for(const d of root.querySelectorAll('details[data-key]'))if(!d.open&&open.has(d.dataset.key)){d.open=true;d.dispatchEvent(new Event('toggle'));again=true;}}
  if(wasSearch){const s=root.querySelector('.sp-replace input[type=search]');if(s){s.focus({preventScroll:true});try{s.setSelectionRange(caret,caret);}catch{}}}
 }
 export function initSeasonTabs(onDraft){

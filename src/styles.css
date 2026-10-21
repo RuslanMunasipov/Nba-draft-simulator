@@ -633,3 +633,18 @@ body[data-tab=season] #startup-banner.notice--error{display:none}
 @media(max-width:379px){.kpis--main{grid-template-columns:1fr}}
 .kpis--main+.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:559px){.sp-header,.sp-row{grid-template-columns:minmax(0,1fr) 64px 100px}}
+
+/* Live stat line: the FBL formula term by term on an ESPN box score */
+.line-details>summary{display:flex;justify-content:space-between;gap:var(--s3);cursor:pointer;list-style:none}
+.line-details>summary::-webkit-details-marker{display:none}
+.line-details[open]>summary .who{text-decoration:underline;text-underline-offset:3px}
+.stat-line{width:100%;margin:var(--s2) 0 var(--s3);border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.stat-line th{text-align:left;font-weight:600;color:var(--text-2);padding:2px var(--s2) 2px 0}
+.stat-line td{padding:2px 0 2px var(--s2)}
+.stat-line td.v{color:var(--text-3)}
+.stat-line td.num{text-align:right;font-weight:700}
+.stat-line td.neg{color:var(--danger)}
+.stat-line tr.total th,.stat-line tr.total td{border-top:1px solid var(--line);padding-top:var(--s1);font-weight:800;color:var(--text)}
+.sp-all{margin-top:var(--s2)}
+.sp-all ul{margin-top:var(--s2)}
+.season-live-now{font-weight:700;color:var(--accent-text)}
