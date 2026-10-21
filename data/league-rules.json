@@ -179,7 +179,7 @@
     "maxGamesPlayed": null,
     "scoringStart": "2026-10-20",
     "scoringEnd": "2027-04-11",
-    "scoringType": "Rotisserie (category totals; the league counts them with the FBL formula)",
+    "scoringType": "Season Points (commissioner, 22.10.2026: fantasy points by the league weights, not category totals)",
     "slotFit": "Not checked: a Sports.ru-legal roster is not tested against these ten slots under Yahoo eligibility (Yahoo positions are analyst-published, not read from the platform; 21.10 every FBL roster fits)."
   }
 }
