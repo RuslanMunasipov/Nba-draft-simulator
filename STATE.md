@@ -59,3 +59,4 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
 - NEXT: CI on PR #88, then adversarial review workflow over the combined diff, fix confirmed review findings, update ACCEPTANCE final section, PR description, squash-merge, Russian report.
 - Not pushed yet: claude/full-model-audit is local. If the container is lost, recreate it by merging the audit-fix/* branches
   (they exist only locally too!) -> push them first.
+- Review: workflow run wf_d5b2cffc-28f (script review.js) on frozen worktree scratchpad/review-wt @967f2c6; resume with resumeFromRunId.
