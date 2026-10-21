@@ -57,6 +57,8 @@ export function pick(state,playerId){
  return {...state,picks:[...state.picks,{number:state.picks.length+1,team,playerId}]};
 }
 export function undo(state){return {...state,picks:state.picks.slice(0,-1)};}
+// A recorded draft (player ids in pick order) replayed through the rules, or null when the catalog refuses a pick.
+export function replayDraft(state,ids){try{return ids.reduce((s,id)=>pick(s,id),state);}catch{return null;}}
 // Straight order fixes each later pick's team, so replay stops at the first pick the change made illegal.
 export function replacePick(state,index,playerId){
  if(!Number.isInteger(index)||index<0||index>=state.picks.length)throw Error('Нет такого пика');

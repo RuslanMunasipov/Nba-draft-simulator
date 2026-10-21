@@ -1,8 +1,9 @@
 import {pickCompletion,completionPlan} from './completion.js';
 import {scoringMetric,seasonScore,FULL_SEASON} from './season-scoring.js';
 import {draftValue,severeRisk,riskAdjustedValue} from './valuation.js';
-import { TEAM_COUNT, ROUNDS, pick, rosterFits, riskPriority, getPlayer } from './engine.js';
+import { TEAM_COUNT, ROUNDS, pick, rosterFits, clubsFit, riskPriority, getPlayer } from './engine.js';
 import {DRAFT_PICKS} from './fbl-draft-2026.js';
+import LEAGUE from '../data/fbl-league.json' with {type:'json'};
 
 // Rounds in which the FBL GMs took rookies in the real 2026 draft (picks 32-79): the bots' rookie habit is drawn from them.
 // Without that draft in the catalog (tests, other leagues) bots follow their forecasts alone.
@@ -11,9 +12,19 @@ export function observedRookieRounds(state){
   return rounds.length>=4?rounds:null;
 }
 
-// Deterministic PRNG: identical seed + player data => identical draft.
+// The league's «белое правило» list binds the bots too, but only on a catalog that holds it (tests and other leagues
+// have their own players): the same source as the draft plan's list.
+const LEAGUE_WHITE=(LEAGUE.white||[]).filter(x=>!String(x).startsWith('none:')),whiteLists=new WeakMap();
+export function leagueWhite(state){
+  if(!whiteLists.has(state.players)){const ids=new Set(state.players.map(p=>String(p.id)));whiteLists.set(state.players,LEAGUE_WHITE.filter(id=>ids.has(String(id))).length>=10?LEAGUE_WHITE:null);}
+  return whiteLists.get(state.players);
+}
+
+// Deterministic PRNG: identical seed + player data => identical draft. The seed is scrambled first (murmur3 finaliser):
+// a raw LCG started from consecutive seeds gives nearly equal first draws (seeds 1-100 all fell in 0.24-0.27), so all
+// 100 batch drafts gave our team the same bot style.
 export function randomFromSeed(seed=1) {
-  let s = (Number(seed) >>> 0) || 1;
+  let s=Number(seed)>>>0;s^=s>>>16;s=Math.imul(s,0x85ebca6b)>>>0;s^=s>>>13;s=Math.imul(s,0xc2b2ae35)>>>0;s=(s^s>>>16)>>>0||1;
   return () => { s = (Math.imul(1664525,s) + 1013904223) >>> 0; return s / 4294967296; };
 }
 export function currentTeam(state) { return state.picks.length % TEAM_COUNT; }
@@ -37,12 +48,24 @@ export function availableCandidates(state) {
 function botValue(player,style) { return riskAdjustedValue(player,style); }
 function rankingFor(state,style){const metric=scoringMetric(state);return state.players.filter(p=>seasonScore(p,metric)!==null).sort((a,b)=>botValue(b,style)-botValue(a,style)||riskPriority(a)-riskPriority(b));}
 // How many rookies the team on the clock could still complete its roster with after taking `player` now.
-function rookiesLeftAfter(state,player){
+export function rookiesLeftAfter(state,player){
   const team=currentTeam(state),after={...state,picks:[...state.picks,{number:state.picks.length+1,team,playerId:player.id}]};
   if(!completionPlan(after,team).possible)return 0;
-  const used=new Set(after.picks.map(p=>p.playerId));let n=0;
-  for(const p of state.players)if(p.isRookie===true&&!used.has(p.id)&&completionPlan({...after,picks:[...after.picks,{team,playerId:p.id}]},team).possible)n++;
+  // The rookie is appended without pick(): the club rule is checked here, positions, price and cap by the completion.
+  const used=new Set(after.picks.map(p=>p.playerId)),roster=teamRoster(after,team);let n=0;
+  for(const p of state.players)if(p.isRookie===true&&!used.has(p.id)&&clubsFit([...roster,p])&&completionPlan({...after,picks:[...after.picks,{team,playerId:p.id}]},team).possible)n++;
   return n;
+}
+// The first player of `order` after whom the team on the clock can still complete a legal roster. In its last four picks
+// a team without a listed «белое правило» player keeps room for one (the plan does the same for us): one of its next
+// choices or its best listed player; when no move allows that, the plain rules decide.
+export function firstCompletable(state,order){
+  const white=leagueWhite(state);
+  if(white){
+    const listed=new Set(white.map(String)),roster=teamRoster(state,currentTeam(state));
+    if(roster.length>=6&&!roster.some(p=>listed.has(String(p.id))))for(const [i,p] of order.entries())if((i<12||listed.has(String(p.id)))&&pickCompletion(state,p.id,white).possible)return p;
+  }
+  return order.find(p=>pickCompletion(state,p.id).possible)??null;
 }
 export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=null,rookieRound=null) {
   const metric=scoringMetric(state);
@@ -76,9 +99,8 @@ export function botPick(state,random=randomFromSeed(1),style='balanced',ranking=
   }
   // A locally legal position assignment may consume the only slot for a rookie.
   // Check the selected move before committing, then try deterministic alternatives.
-  for(const candidate of [preferred,...ranked.filter(p=>p.id!==preferred.id)]){
-    if(pickCompletion(state,candidate.id).possible)return pick(state,candidate.id);
-  }
+  const choice=firstCompletable(state,[preferred,...ranked.filter(p=>p.id!==preferred.id)]);
+  if(choice)return pick(state,choice.id);
   throw Error('Нет выбора, после которого можно добрать полный состав с rookie');
 }
 export function advanceBots(state,{humanTeam=0,seed=1,style='balanced'}={}) {
