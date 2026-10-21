@@ -416,3 +416,13 @@ test('finished games Sports.ru has not counted yet are scored at once from the E
  assert.equal(teamPoints(ctx,[],['a',...Array(79).fill('z')])[0],36);
  assert.equal(withBoxScores(live,[],players),live);
 });
+test('period windows open at the league opening night, before Sports.ru tour 1', async () => {
+ const {periodList,SCORING_START}=await import('../src/season.js');
+ assert.equal(SCORING_START,'2026-10-20');
+ const weeks={1:{start:'2026-10-22',end:'2026-10-26'},2:{start:'2026-10-27',end:'2026-11-02'}};
+ const list=periodList(weeks);
+ assert.deepEqual(list.map(w=>[w.n,w.start,w.end]),[[1,'2026-10-20','2026-10-26'],[2,'2026-10-27','2026-11-02']]);
+ assert.equal(weeks[1].start,'2026-10-22','Sports.ru weeks are not changed');
+ assert.deepEqual(periodList(weeks,'2026-10-23')[0].start,'2026-10-22');
+ assert.deepEqual(periodList({}),[]);
+});
