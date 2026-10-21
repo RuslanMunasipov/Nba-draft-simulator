@@ -49,3 +49,12 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
   Purchases in one time window (cannot tell who was first): keep for both + lawyer check (state it).
 - Objective: keep expected points for advice; ADD Monte Carlo probabilities of 1st place and top-3 for every team (standings).
 - Games for ESPN-covered players: mean of ESPN and model games (as originally documented); fit the weight on 2026/27 with the frozen ESPN snapshot later.
+
+## Integration (in progress)
+- Hotfix PR #87 (live ESPN box-score points) merged to main 8f68413 at 02:52Z 21.10 (user asked for online points).
+- Branch claude/full-model-audit = origin/main 8f68413 + merges of audit-fix/{docs-truth,collection,projection-inputs,season-transfers,
+  season-ui,draft-engine} (conflicts resolved: season-ui imports + table note, notify-transfers imports + fresh keys, main.js imports).
+  npm test 257 pass, build ok, python 158 ok (before draft-engine merge).
+- Waiting: audit-fix/season-availability (run wf_2a2b0d3e-b79) and audit-fix/projection-model (run wf_5d493399-715).
+- Not pushed yet: claude/full-model-audit is local. If the container is lost, recreate it by merging the audit-fix/* branches
+  (they exist only locally too!) -> push them first.
