@@ -12,11 +12,11 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
    Session limit killed most first-round verifiers; their partial verdicts are in `verdicts.json`.
 2. DONE — Dedup: 77 clusters (`clusters.json`: key, title, finding ids, severity, status). status CONFIRMED/REFUTED/DISPUTED = already
    decided by first-round verifiers; null = needs verification.
-3. IN PROGRESS — Cluster verification (verify2): 3 workflow runs, script
+3. DONE — Cluster verification (verify2): 3 workflow runs, script
    `fbl-verify-clusters` (copy: `verify-clusters.js`), args = the three groups in `verify-groups.json`.
    Run ids: wf_f9f9960f-ac0 (group 0), wf_0bd91bc0-8ac (group 1), wf_a7958ca7-ba4 (group 2).
    Verdicts so far: `verify2.json` (cluster key → list of verdicts with fixPlan/testPlan/ownerQuestion). Progress: `verify2-status.json`.
-4. TODO — Fixes, grouped by files (one agent per group, git worktrees, then merge into claude/full-model-audit):
+4. IN PROGRESS — Fixes, grouped by files (specs: fix-groups.json; script fix-groups.js; runs wf_2a2b0d3e-b79 [season-availability, docs-truth], wf_b5b6bb25-075 [season-transfers, draft-engine], wf_5d493399-715 [projection-model, collection], wf_e0589d74-0e4 [projection-inputs, season-ui]; each agent commits on branch audit-fix/<group> in its own worktree; resume with resumeFromRunId and the same args from fixargs-*.json) (one agent per group, git worktrees, then merge into claude/full-model-audit):
    - season core (src/season.js + tests/season.test.js): transfer-day credit, injury double count, playRate clamp, seasonEnding regex,
      GTD start, NBA Cup fill, zero hazards, return-date TZ, arrival games, gain split, acquisition edge, recommendPackage shared by UI
      and Telegram, verdict confidence, confidence recalibration
