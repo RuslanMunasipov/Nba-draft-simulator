@@ -14,15 +14,16 @@ const MEDALS=['🥇','🥈','🥉'];
 const place=(i,medals)=>medals&&i<3?MEDALS[i]:`${i+1}.`;
 export const badges=teams=>teams.map(t=>LEAGUE_TEAMS[t]?.symbol||'').filter(Boolean).join('');
 const signedInt=n=>n>0?'+'+int(n):int(n);
-// One game's stat line: the six numbers the league reads, outstanding ones in bold (turnovers from 4 too).
-const BOLD={pts:30,reb:12,ast:10,stl:3,blk:4,tov:4};
+// One game's stat line: the six numbers the league reads, as plain text. Bold is for the block title, the name and the
+// FBL points only (league chat, 21.10.2026).
 const LABEL=[['pts','очк'],['reb','подб'],['ast','пер'],['stl','перехв'],['blk','блок'],['tov','пот']];
-export const statLine=(s,bold=true)=>LABEL.map(([k,l])=>{const v=`${s[k]} ${l}`;return bold&&s[k]>=BOLD[k]?`<b>${v}</b>`:v;}).join(' · ');
+export const statLine=s=>LABEL.map(([k,l])=>`${s[k]} ${l}`).join(' · ');
 // "Йокич · DEN 🐎": the Sports.ru short name of a player on the market, else ESPN's.
 const head=(who,r,{club=true,free=false,teams=r.h}={})=>{const b=badges(teams||[]);
  return `<b>${esc(who(r.a,r.n))}</b>${club&&r.c?` · ${esc(r.c)}`:''}${b?' '+b:free?' 🆓':''}`;};
 const gameRow=(who,l,i,{medals,free})=>`${place(i,medals)} ${head(who,l,{free})} — <b>${int(l.p)}</b>\n${statLine(l.s)}`;
-const block=(title,rows,sep='\n\n')=>rows.length?`<b>${title}</b>\n\n${rows.join(sep)}`:'';
+// A block: its title, then its rows with no empty lines between them; blocks stand apart by one empty line.
+const block=(title,rows)=>rows.length?`<b>${title}</b>\n${rows.join('\n')}`:'';
 const join=parts=>parts.filter(Boolean).join('\n\n');
 
 export function dailyText(day,blocks,who,{news=[],missing=[],today}={}){
@@ -43,7 +44,7 @@ function recordAlert({kind,rank,line,previous},who,today){
  if(previous)text+=`\nПрежний ${best?'рекорд':'антирекорд'} — ${esc(who(previous.a,previous.n))}, ${int(previous.p)}, продержался ${count(daysBetween(previous.d,line.d),'день','дня','дней')}`;
  return text;
 }
-const weekRow=(who,r,i,{medals,free})=>`${place(i,medals)} ${head(who,r,{free})} — <b>${signedInt(r.p)}</b> · ${count(r.games,'матч','матча','матчей')}\n${statLine(r.s,false)}`;
+const weekRow=(who,r,i,{medals,free})=>`${place(i,medals)} ${head(who,r,{free})} — <b>${signedInt(r.p)}</b> · ${count(r.games,'матч','матча','матчей')}\n${statLine(r.s)}`;
 export function weeklyText(week,blocks,who){
  return join([`<b>📅 Итоги недели ${week.n} · ${range(week.start,week.end)}</b>`,
   block('⭐ Герои недели',blocks.heroes.map((r,i)=>weekRow(who,r,i,{medals:true}))),
@@ -53,9 +54,9 @@ export function weeklyText(week,blocks,who){
 // Places moved since last week's post: ▲ up, ▼ down, 🆕 new in the list; nothing on the first post.
 const arrow=n=>n===null?' 🆕':n>0?` ▲${n}`:n<0?` ▼${-n}`:'';
 export const raceKey=r=>r.key||r.a;
-// One line a place; the sixth-man race adds a second line, so its places stand apart.
+// One line a place; the sixth-man race adds a second line.
 const race=(title,list,who,previous,extra=()=>'',more=null,free=false)=>block(title,list.map((r,i)=>
- `${i+1}. ${head(who,r,{club:false,teams:r.teams,free})} — ${extra(r,i)}${previous?arrow(moved(raceKey(r),list,previous)):''}${more?more(r):''}`),more?'\n\n':'\n');
+ `${i+1}. ${head(who,r,{club:false,teams:r.teams,free})} — ${extra(r,i)}${previous?arrow(moved(raceKey(r),list,previous)):''}${more?more(r):''}`));
 export function racesText(week,r,who,previous={}){
  const points=x=>`<b>${int(x.p)}</b>`;
  return join([`<b>🏆 Гонка за награды · после ${week.n}-й недели</b>`,
