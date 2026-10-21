@@ -1,10 +1,41 @@
-import {POSITIONS,getPlayer,pick,TEAM_COUNT,CLUB_LIMIT,clubOf,clubsFit} from './engine.js';
+import {POSITIONS,getPlayer,pick,replacePick,rosterFits,TEAM_COUNT,CLUB_LIMIT,clubOf,clubsFit} from './engine.js';
 
 // Exact single-team min-cost circulation with lower bounds. Fixed picks are
 // mandatory; the rookie gate carries at least one player; each position holds 2.
 // This is a feasibility bound using players available NOW, not a promise that
 // seven opponents will leave the completion available until our next pick.
-export function completionPlan(state,team=state.picks.length%TEAM_COUNT){
+// With the league's «белое правило» list (`white`) the ten also need one listed player: every such roster contains some
+// listed player w, so the exact answer is the cheapest completion with one w fixed, tried in the order of a lower bound.
+export function completionPlan(state,team=state.picks.length%TEAM_COUNT,{white=null}={}){
+ const plan=completionCore(state,team);
+ if(!white?.length||!plan.possible)return plan;
+ const listed=new Set(white.map(String)),isWhite=p=>listed.has(String(p.id));
+ const fixedPlayers=state.picks.filter(p=>p.team===team).map(p=>getPlayer(state,p.playerId));
+ if(fixedPlayers.some(isWhite)||plan.playerIds.some(id=>listed.has(String(id))))return plan;
+ const used=new Set(state.picks.map(p=>p.playerId)),priced=state.priceMode==='ON',cost=p=>priced?p.price:0;
+ const free=state.players.filter(p=>!used.has(p.id)&&p.positions.length&&(!priced||(p.priceStatus==='VERIFIED'&&Number.isFinite(p.price))));
+ // Lower bound of a roster holding w: the cheapest two per position without the rookie and club rules, w replacing the
+ // dearest of them at his position (singleton positions); otherwise the cheapest roster without the list.
+ let bound=()=>plan.minimumCost??0;
+ if([...fixedPlayers,...free].every(p=>p.positions.length===1)){
+  const greedy=new Map(POSITIONS.map(pos=>[pos,free.filter(p=>p.positions[0]===pos).map(cost).sort((a,b)=>a-b).slice(0,2-fixedPlayers.filter(p=>p.positions[0]===pos).length)]));
+  const total=fixedPlayers.reduce((s,p)=>s+cost(p),0)+[...greedy.values()].flat().reduce((s,c)=>s+c,0);
+  bound=w=>{const chosen=greedy.get(w.positions[0]);return total+Math.max(0,cost(w)-(chosen.at(-1)??Infinity));};
+ }
+ const order=free.filter(p=>isWhite(p)&&rosterFits([...fixedPlayers,p])&&clubsFit([...fixedPlayers,p])).map(w=>({w,low:bound(w)})).sort((a,b)=>a.low-b.low);
+ let best=null;
+ for(const {w,low} of order){
+  if(best&&(!priced||low>=best.minimumCost-1e-9))break;
+  if(!best&&priced&&low>state.cap+1e-9)return {possible:false,reason:`Полный состав с игроком «белого правила» дороже лимита ${state.cap}`};
+  const r=completionCore({...state,cap:Infinity,picks:[...state.picks,{number:state.picks.length+1,team,playerId:w.id}]},team);
+  if(r.possible&&(!best||r.minimumCost<best.minimumCost))best=r;
+ }
+ if(!best)return {possible:false,reason:'Нельзя добрать игрока из списка «белого правила» лиги при позициях, rookie, клубах и бюджете'};
+ if(priced&&best.minimumCost>state.cap+1e-9)return {possible:false,minimumCost:best.minimumCost,reason:`Минимальный бюджет полного состава с игроком «белого правила» ${best.minimumCost.toFixed(2)} превышает лимит ${state.cap}`};
+ const existingCost=priced?fixedPlayers.reduce((s,p)=>s+p.price,0):null;
+ return {possible:true,minimumCost:best.minimumCost,minimumRemainingCost:priced?best.minimumCost-existingCost:null,playerIds:best.playerIds};
+}
+function completionCore(state,team){
  const fixed=new Set(state.picks.filter(p=>p.team===team).map(p=>p.playerId));
  const used=new Set(state.picks.map(p=>p.playerId));
  const candidates=state.players.filter(p=>(fixed.has(p.id)||!used.has(p.id))&&p.positions.length&&
@@ -113,14 +144,16 @@ function clubCompletion(state,candidates,fixed){
  let best=null,bestCost=Infinity;
  for(const rookie of candidates){
   if(rookie.isRookie!==true||fixed.has(rookie.id))continue;
-  const chosen=flowSelect(candidates,new Set([...fixed,rookie.id]),cost);
+  // The forced rookie takes a club place like any pick: club capacity stays that of the real fixed picks.
+  const chosen=flowSelect(candidates,new Set([...fixed,rookie.id]),cost,fixed);
   if(!chosen)continue;
   const total=chosen.reduce((s,p)=>s+cost(p),0);
   if(total<bestCost){best=chosen;bestCost=total;if(state.priceMode!=='ON')break;}
  }
  return best?result(best):fail;
 }
-function flowSelect(candidates,fixed,cost){
+// Club capacity tolerates fixed picks that already exceed the limit (heldFrom), never a forced player on top of them.
+function flowSelect(candidates,fixed,cost,heldFrom=fixed){
  const clubs=[...new Set(candidates.map(clubOf).filter(c=>c!==null))];
  const source=0,firstClub=1,firstPlayer=firstClub+clubs.length,firstPosition=firstPlayer+candidates.length,sink=firstPosition+5,ss=sink+1,tt=sink+2;
  const graph=Array.from({length:tt+1},()=>[]),balance=Array(tt+1).fill(0),playerEdges=[];
@@ -128,7 +161,7 @@ function flowSelect(candidates,fixed,cost){
   const f={to:b,reverse:graph[b].length,capacity:upper-lower,cost:c,initial:upper-lower,lower};
   const r={to:a,reverse:graph[a].length,capacity:0,cost:-c};graph[a].push(f);graph[b].push(r);balance[a]-=lower;balance[b]+=lower;return f;
  }
- clubs.forEach((club,i)=>{const held=candidates.filter(p=>clubOf(p)===club&&fixed.has(p.id)).length;edge(source,firstClub+i,0,Math.max(CLUB_LIMIT===Infinity?10:CLUB_LIMIT,held));});
+ clubs.forEach((club,i)=>{const held=candidates.filter(p=>clubOf(p)===club&&heldFrom.has(p.id)).length;edge(source,firstClub+i,0,Math.max(CLUB_LIMIT===Infinity?10:CLUB_LIMIT,held));});
  candidates.forEach((p,i)=>{
   const club=clubOf(p);
   playerEdges.push(edge(club===null?source:firstClub+clubs.indexOf(club),firstPlayer+i,fixed.has(p.id)?1:0,1));
@@ -153,9 +186,18 @@ function flowSelect(candidates,fixed,cost){
  return candidates.filter((p,i)=>playerEdges[i].lower+playerEdges[i].initial-playerEdges[i].capacity===1);
 }
 
+// Results are cached per immutable state and per white list (the list arrays are module constants).
 const pickPlans=new WeakMap();
-export function pickCompletion(state,id){
- let plans=pickPlans.get(state);if(!plans){plans=new Map();pickPlans.set(state,plans);}
- if(!plans.has(id)){let result;try{result=completionPlan(pick(state,id),state.picks.length%TEAM_COUNT);}catch(error){result={possible:false,reason:error.message};}plans.set(id,result);}
- return plans.get(id);
+function cached(state,white,key,compute){
+ let lists=pickPlans.get(state);if(!lists){lists=new Map();pickPlans.set(state,lists);}
+ const list=white?.length?white:null;let plans=lists.get(list);if(!plans){plans=new Map();lists.set(list,plans);}
+ if(!plans.has(key)){let result;try{result=compute(list);}catch(error){result={possible:false,reason:error.message};}plans.set(key,result);}
+ return plans.get(key);
+}
+export function pickCompletion(state,id,white=null){
+ return cached(state,white,id,list=>completionPlan(pick(state,id),state.picks.length%TEAM_COUNT,{white:list}));
+}
+// Re-picking pick `index`: the team keeps its later picks that stay legal, so its completion is checked with them fixed.
+export function replaceCompletion(state,index,id,white=null){
+ return cached(state,white,index+':'+id,list=>{const {state:next,dropped}=replacePick(state,index,id);return {...completionPlan(next,state.picks[index].team,{white:list}),dropped};});
 }

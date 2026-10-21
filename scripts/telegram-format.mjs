@@ -15,6 +15,33 @@ export function moscow(at=new Date()){
  const d=new Date(new Date(at).getTime()+3*3600e3),two=n=>String(n).padStart(2,'0');
  return `${two(d.getUTCDate())}.${two(d.getUTCMonth()+1)}.${d.getUTCFullYear()}, ${two(d.getUTCHours())}:${two(d.getUTCMinutes())} МСК`;
 }
+// ---------- Injury and return alerts ----------
+// The ESPN injury report a run may trust: present, fetched by the collector this time (espnInjuriesOk is false when it
+// kept an older report after a failed fetch) and at most `maxHours` old. A run without one never says a player is back.
+export function injuryFeed(live,now=Date.now(),maxHours=6){
+ const feed=live?.espnInjuries?.injuries?live.espnInjuries:null,at=Date.parse(feed?.fetchedAt||'');
+ return {feed,fresh:Boolean(feed)&&live.espnInjuriesOk!==false&&Number.isFinite(at)&&now-at<=maxHours*36e5,fetchedAt:Number.isFinite(at)?new Date(at).toISOString():null};
+}
+// The line that says the advice ran without a fresh ESPN report, or null when it had one.
+export const injuryWarning=state=>state.fresh?null:state.feed?`⚠️ Отчёт ESPN о травмах не обновился${state.fetchedAt?' с '+moscow(state.fetchedAt):''}: травмы — по последнему полученному, о возвращениях не сообщаю.`
+ :'⚠️ Отчёт ESPN о травмах недоступен: советы без учёта травм, о возвращениях не сообщаю.';
+// Out (or suspended) and not a game-time decision: only such a player can "return"; day-to-day players are never news.
+export const isOut=injury=>/out|suspension/i.test(String(injury?.status||''))&&injury?.fantasyStatus!=='GTD';
+// The decision line of a return alert, by the model's confidence: sure → buy, between the bars → offered as not sure,
+// below the lower bar → no alert at all (the same bars as the other advice). `when`: outside the transfer hours, when to
+// make the move (a move made then is a certain breach).
+export function returnHead(confidence,{sure,maybe,now=false,when=''}){
+ if(confidence>=sure)return (now?'🎯 <b>Тебе: забирай</b>':'🎯 <b>Тебе: можно брать</b>')+when;
+ return confidence>=maybe?'🤔 <b>Тебе: можно брать, но не уверенно</b>'+when:null;
+}
+// One "скоро вернётся" per injury: the key is the player, so a new status or return date of the same injury is not news
+// again. Older keys ("id:status:date") still count for their player.
+export const returnKey=id=>String(id);
+const keyOf=(k,id)=>k===String(id)||String(k).startsWith(String(id)+':');
+export const warnedFor=(keys,id)=>(keys||[]).some(k=>keyOf(k,id));
+// A player off the injury report is forgotten, so his next injury warns again.
+export const stillInjured=(keys,injuredIds)=>{const ids=[...injuredIds];return (keys||[]).filter(k=>ids.some(id=>keyOf(k,id)));};
+
 // The Actions log is public: Telegram usernames in a printed message are masked (they are kept only encrypted).
 export const hideHandles=text=>String(text).replace(/@[A-Za-z][A-Za-z0-9_]{3,31}/g,'@•••');
 // Telegram's limit on a photo caption, counted on the visible text.

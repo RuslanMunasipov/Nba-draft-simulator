@@ -25,7 +25,7 @@ class HistoryTests(unittest.TestCase):
 
     def test_rate_is_the_fbl_formula_without_a_team_result_bonus(self):
         y = self.h.target('1', 2026)
-        self.assertAlmostEqual(y['rate'], 20 + 5 + 3 + 1 + 1 - 8 - 1 - 4 - 2 + 2)
+        self.assertAlmostEqual(y['rate'], 20 + 5 + 3 + 1 + 1 - 8 - 1 - 4 - 2 + 1)  # 1 per game played (Yahoo GP)
         short = self.h.target('2', 2026)
         self.assertEqual(short['short'], 1.0)
         self.assertAlmostEqual(short['rate'], 2 + 5 + 3 + 1 + 1 - 8 - 1 - 4 - 2 + 1)
@@ -81,15 +81,34 @@ class HeldOutModelTests(unittest.TestCase):
         self.assertLess(h['shortSeasonBrier'], h['shortSeasonBaseRateBrier'])
 
     def test_range_has_a_real_floor_and_reasonable_coverage(self):
+        # The floor is measured on the published range (healthy-start chain for healthy starters) and on the draftable
+        # top 160: over all 484 players half are fringe forecasts whose floor is near 0.
         h = self.report['holdout']
-        self.assertGreater(h['medianFloorShare'], .2)
-        self.assertGreater(h['coverage80'], .65)
-        self.assertLess(h['coverage80'], .92)
+        self.assertGreater(h['medianFloorShareTop160'], .3)
+        self.assertGreater(h['coverage80'], .7)
+        self.assertLess(h['coverage80'], .9)
+        for group in ('rateBelow10', 'rate10to18', 'healthyStart', 'otherStart', 'top160'):
+            self.assertGreater(h['coverageByGroup'][group]['coverage80'], .7)
+
+    def test_centre_is_unbiased_and_the_healthy_start_stays_calibrated(self):
+        h = self.report['holdout']
+        self.assertLess(abs(h['seasonBias']), 25)
+        self.assertLess(abs(h['gamesBias']), 1.5)
+        self.assertLess(abs(h['perGameBias']), .4)
+        self.assertLess(abs(h['healthyStart']['healthyStartBias']), 1.0)
+        self.assertLess(h['healthyStart']['healthyStartMAE'], 13.5)
 
     def test_slot_value_with_replacements_ranks_slots_better(self):
+        # The top-40/top-80 slot points are reported with bootstrap intervals that include zero, so only the ranking and
+        # the MAE against the fair baseline (own forecast plus the average replacement credit) are asserted.
         t = self.report['holdout']['transferValue']
         self.assertGreater(t['slotSpearman']['withReplacements'], t['slotSpearman']['ownForecast'])
-        self.assertGreaterEqual(t['top40SlotPoints']['withReplacements'], t['top40SlotPoints']['ownForecast'])
+        self.assertLess(t['slotMAE']['withReplacements'], t['slotMAE']['ownPlusConstant'])
+        self.assertGreaterEqual(t['top80SlotPoints']['withReplacements'], t['top80SlotPoints']['ownForecast'])
+
+    def test_rookie_ranges_cover_the_top_picks(self):
+        c = self.report['rookies']['holdout']['rangeCoverage']
+        self.assertGreater(c['picks1-14']['coverage80'], .7)
 
     def test_rookie_draft_model_beats_a_flat_prior(self):
         for key in ('rate', 'minutes', 'share'):

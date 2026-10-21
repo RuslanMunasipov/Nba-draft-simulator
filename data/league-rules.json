@@ -108,14 +108,41 @@
   "sharedPlayers": {
     "source": "League owner, 2026-10-20: a player may be on only one FBL team; buying a player another FBL team holds is a direct breach (Sports.ru itself allows it).",
     "verdict": "violation",
-    "note": "The team that bought him later is in breach; the team that had him first is not."
+    "note": "The team that bought him later is in breach; the team that had him first is not.",
+    "scoring": "FIRST_HOLDER_ONLY",
+    "scoringDecidedBy": "league owner, 2026-10-21",
+    "scoringRule": "His points go only to the FBL team that held him first; the later buyer's slot scores 0 for those games until the breach is repaired. When the first holder cannot be told (purchases inside one watcher window, firstHolder in src/rules.js), both teams keep his points and the case is under the lawyer's check."
   },
   "scoringFormula": {
-    "formula": "Sports.ru per-game formula without the team result bonus",
+    "formula": "Yahoo league settings: PTS+REB+AST+ST+BLK+FGM-FGA+FTM-FTA-2*TO-PF, plus 1 per game played (GP)",
     "resultBonus": false,
     "decidedBy": "league owner, 2026-10-20",
     "reason": "The league scores on Yahoo, which cannot award points for team wins or take them for losses.",
-    "gamePoints": "Sports.ru points of each played game minus its team result bonus (result read from the club calendar score)"
+    "gamePoints": "Sports.ru points of each played game minus its team result bonus (result read from the club calendar score) and minus the extra point Sports.ru gives for 10+ minutes",
+    "terms": "PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF+1",
+    "participation": "PER_GAME_PLAYED",
+    "participationRule": "+1 for every game played (Yahoo GP), whatever the minutes",
+    "participationDecidedBy": "league owner, 2026-10-21 (Yahoo league settings screenshot; replaces the exact-minutes rule recorded the same morning)",
+    "participationNote": "Sports.ru's own formula gives +2 for 10:00 or more minutes and +1 below, plus its result bonus; its season totals, prices and per-game points keep that rule, so they are compared after removing both."
+  },
+  "forecastBasis": {
+    "espnCovered": {
+      "perGame": "MEAN_OF_ESPN_AND_MODEL",
+      "games": "MEAN_OF_ESPN_AND_MODEL"
+    },
+    "otherPlayers": "MODEL",
+    "decidedBy": "league owner, 2026-10-21",
+    "note": "For a player ESPN projects, points per game and games are each the equal-weight mean of ESPN's projection and the model's, as first documented in docs/ACCEPTANCE.md. Neither ESPN's games nor the mean are validated (no archive of past ESPN projections); the weight is to be fitted on 2026/27 with the frozen snapshot data/forecast-snapshots/2026-27/2026-10-17.json."
+  },
+  "objective": {
+    "advice": "EXPECTED_POINTS",
+    "standings": "MONTE_CARLO_PLACE_PROBABILITIES",
+    "placeProbabilities": [
+      "FIRST",
+      "TOP_3"
+    ],
+    "decidedBy": "league owner, 2026-10-21",
+    "note": "Transfer advice keeps maximising expected FBL points; the standings add, for every team, Monte Carlo probabilities of 1st place and of a top-3 finish."
   },
   "yahoo": {
     "role": "Scoring and standings of the league (Sports.ru: draft, transfers, prices and accounting)",
@@ -152,6 +179,7 @@
     "maxGamesPlayed": null,
     "scoringStart": "2026-10-20",
     "scoringEnd": "2027-04-11",
-    "scoringType": "Rotisserie (category totals; the league counts them with the FBL formula)"
+    "scoringType": "Rotisserie (category totals; the league counts them with the FBL formula)",
+    "slotFit": "Not checked: a Sports.ru-legal roster is not tested against these ten slots under Yahoo eligibility (Yahoo positions are analyst-published, not read from the platform; 21.10 every FBL roster fits)."
   }
 }

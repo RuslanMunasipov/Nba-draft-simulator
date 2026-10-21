@@ -10,8 +10,9 @@ group. The season starts in the state seen in the league after a similar previou
 others for the same player, and the chain is solved exactly (dynamic programming over remaining spell and games).
 
 The model's mean is not used on its own: forward-tested 2020-2026 its games MAE lost to the least-squares share
-regression (18.4 vs 15.4). The hazards are scaled so the mean equals the regression's (or the combined forecast's)
-and the chain supplies the shape: the 10-90% games range, the probability of a short season and the explanation.
+regression (18.4 vs 15.4). The hazards are scaled so the mean equals the forecast games and the chain supplies the
+shape: the 10-90% games range, the probability of a short season and the explanation. The scale has a floor
+(Availability.MIN_SCALE): a target at the season length would otherwise leave a chain without absences (82-82).
 """
 import math,statistics
 from collections import Counter,defaultdict
@@ -26,11 +27,13 @@ LATE=10  # ending the previous season out for this many games marks a carried in
 FRAILTY=2.5
 QUADRATURE=7
 # A player known to be healthy at the start (no injury on the preseason report): the forecast moves from the
-# unconditional mean towards the chain's mean started in the healthy state, by a weight per last-season ending fitted
-# on 2021-2025 with "played the club's first game" as the healthy start. Ending the last season out still predicts
-# fewer games when healthy now (208 cases: 56.4 played, 52.8 unconditional, 62.1 healthy-start chain).
-# Held out 2025/26 (296 healthy starters): games MAE 13.36 vs 14.14, bias -0.7 vs -4.2.
-HEALTHY_SHIFT={'healthy':1.0,'endedOut':.3,'noGames':.2}
+# unconditional mean towards the chain's mean started in the healthy state, by a weight per last-season ending, with
+# "played the club's first game" as the healthy start. The weights are fitted for zero mean error on 2024/25, the only
+# forward season whose share regression already carries the survivor-season indicator (which lowered the unconditional
+# mean by 3-4 games): healthy 1.59 (274 cases), endedOut 1.14 (35). Above 1, because missing the opener also marks a
+# frailer season, which the chain's start state does not carry. noGames keeps 0.2 (4 cases in 2024/25).
+# Held out 2025/26 (296 healthy starters): games MAE 13.23 (13.36 with the old regression and weights 1/.3/.2), bias -0.67.
+HEALTHY_SHIFT={'healthy':1.6,'endedOut':1.1,'noGames':.2}
 # A long absence costs a fantasy team only until the player is replaced: Sports.ru allows three transfers a week, so a
 # manager swaps an injured player out once the absence is clear. Games of an absence of 4+ games after the first
 # REPLACE_DELAY are played by a replacement (the player is bought back on his return). The delay is a decision
@@ -41,6 +44,9 @@ try:import numpy as np
 except ImportError:np=None
 
 def season_games(year):return {2012:66,2020:72,2021:72}.get(year,82)
+# Fewest games a club played: in 2019/20 the eight clubs left out of the bubble stopped at 64-67, so their calendars are
+# complete there; judged against 72 they fell back to day spacing across the March-July break (phantom 37-game end spells).
+def club_games(year):return {2012:66,2020:63,2021:72}.get(year,82)
 
 def spells(rows):
     """(player, season) -> games, the spell before the first game, spells between games and the spell after the last,
@@ -55,7 +61,7 @@ def spells(rows):
     cal={k:sorted(v) for k,v in cal.items()}
     def between(s,team,a,b):
         days=cal[(s,team)]
-        if len(days)>=.95*season_games(s):return sum(1 for d in days if (a is None or d>a) and (b is None or d<b))
+        if len(days)>=.95*club_games(s):return sum(1 for d in days if (a is None or d>a) and (b is None or d<b))
         first,last=date.fromisoformat(bounds[s][0]),date.fromisoformat(bounds[s][1])
         lo=date.fromisoformat(a) if a else first-timedelta(days=1)
         hi=date.fromisoformat(b) if b else last+timedelta(days=1)
@@ -87,6 +93,13 @@ def length_pmf(table,seasons,kind):
     total=sum(pmf);return [p/total for p in pmf]
 
 class Availability:
+    # Floor of the hazard scale. A mean near the season length (an ESPN projection of 80-82 games) can only be met by a
+    # chain without absences, so the pmf collapsed to 82-82 although such players play under 72 games about a third of the
+    # time. The floor keeps the frailty spread; forward chains of 2023/24-2025/26 needed less in 1.3% of the regression-
+    # anchored cases and 0.4% of the healthy-start ones. Below it the pmf mean stays under the target (info pmfMean).
+    # Durable healthy starters (78+ games the season before) anchored to last season's games: 80% games range covered
+    # 32% without the floor (32 of 124 ranges were a single number), 70% with it.
+    MIN_SCALE=.25
     def __init__(self,table,history,seasons,decay=.6,short_prior=30,long_prior=8):
         """Fit on target seasons `seasons` only (forward use: every season before the predicted one)."""
         self.table,self.history,self.decay,self.ks,self.kl=table,history,decay,short_prior,long_prior
@@ -123,7 +136,8 @@ class Availability:
             o=self.table.get((pid,t-lag));w=self.decay**(lag-1)
             if o is None:continue
             s,l,g=counts(o);ns+=w*s;nl+=w*l;e+=w*g
-        return (ns+self.ks*80*ps)/(e+self.ks*80),(nl+self.kl*80*pl)/(e+self.kl*80),dict(leagueShort=ps,leagueLong=pl,availableGames=e)
+        # ownShort/ownLong: the player's own decayed spell starts over availableGames, his logged history for display.
+        return (ns+self.ks*80*ps)/(e+self.ks*80),(nl+self.kl*80*pl)/(e+self.kl*80),dict(leagueShort=ps,leagueLong=pl,availableGames=e,ownShort=ns,ownLong=nl)
     def _init(self,pid,t,L):
         p=np.zeros(L+1)
         for r,q in (self.start.get(self.state(pid,t)) or self.start['healthy']).items():p[min(r,L)]+=q
@@ -140,7 +154,7 @@ class Availability:
         """Expected games of a player healthy at the start, from the unconditional `mean` (see HEALTHY_SHIFT)."""
         L=L or season_games(t);_,info=self.distribution(pid,t,mean=mean,L=L,pmf=False);hs,hl,_=self.hazards(pid,t)
         p0=np.zeros(L+1);p0[0]=1;healthy=self._mean(hs*info['scale'],hl*info['scale'],p0,L)
-        return mean+HEALTHY_SHIFT[info['start']]*(healthy-mean)
+        return float(min(L,mean+HEALTHY_SHIFT[info['start']]*(healthy-mean)))
     def distribution(self,pid,t,mean=None,L=None,healthy=False,pmf=True,delay=REPLACE_DELAY):
         """pmf of games played over a season of L team games; with `mean`, hazards are scaled to that expectation.
         `healthy`: the season starts in the available state (known healthy now)."""
@@ -149,7 +163,7 @@ class Availability:
         else:p0=self._init(pid,t,L)
         if mean is not None:
             mean=min(max(mean,0.0),L)
-            lo,hi=-6.0,6.0
+            lo,hi=math.log(self.MIN_SCALE),6.0
             if self._mean(hs*math.exp(hi),hl*math.exp(hi),p0,L)>mean:c=math.exp(hi)
             elif self._mean(hs*math.exp(lo),hl*math.exp(lo),p0,L)<mean:c=math.exp(lo)
             else:
@@ -158,7 +172,7 @@ class Availability:
                     if self._mean(hs*math.exp(m),hl*math.exp(m),p0,L)>mean:lo=m
                     else:hi=m
                 c=math.exp((lo+hi)/2)
-        info=dict(info,shortHazard=c*hs,longHazard=c*hl,start=self.state(pid,t),scale=c)
+        info=dict(info,shortHazard=c*hs,longHazard=c*hl,start=self.state(pid,t),scale=c,healthy=healthy)
         if not pmf:return None,info
         f=self.frailty[:,None,None];a_s=np.minimum(.45,c*hs*f);a_l=np.minimum(.45,c*hl*f)
         w=(a_s*self.fs[None,1:L+1,None]+a_l*self.fl[None,1:L+1,None])
@@ -173,8 +187,8 @@ class Availability:
             replaced+=float((a.sum(1)*a_l[:,0,0]).mean())*cut(L-j)
             Q[:,0,1:]+=a[:,:-1]*stay;Q[:,:L]+=w*a[:,None,:]
             P=Q
-        out=P.sum(1).mean(0)[:L+1]
-        return out/out.sum(),dict(info,replacedGames=replaced,delay=delay)
+        out=P.sum(1).mean(0)[:L+1];out=out/out.sum()
+        return out,dict(info,replacedGames=replaced,delay=delay,pmfMean=float((out*np.arange(L+1)).sum()))
     def report(self):
         return dict(model='semi-Markov absence chain with Gamma frailty, anchored to the regression mean',shortSpellGames=[1,SHORT],
                     leagueShortSpellsPer82=self.short*82,leagueLongSpellsPer82=self.long*82,frailtyShape=FRAILTY,

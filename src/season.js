@@ -1,36 +1,59 @@
 import solver from 'javascript-lp-solver';
 import {rosterFits,POSITIONS,TEAM_COUNT,DEFAULT_CAP,CLUB_LIMIT as RULE_CLUB_LIMIT} from './engine.js';
 import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
+import {FBL_TRANSFERS,TRANSFER_HOURS,mskTime,firstHolder} from './rules.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 import RULES from '../data/league-rules.json' with {type:'json'};
+import {GAME_PLAYED} from './fbl-scoring.js';
 
 export const CAP=DEFAULT_CAP,WEEKLY_TRANSFERS=3,CLUB_LIMIT=RULE_CLUB_LIMIT;
 export {TEAM_COUNT};
 // Sports.ru posts its calendar and fantasy weeks in Moscow dates.
 export function moscowToday(now=Date.now()){return new Date(now+3*3600e3).toISOString().slice(0,10);}
 const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
+// When a game tipped off: the ESPN start time the collector stores (g.tip, UTC), else a guess from its Moscow date. US
+// evening games tip 02:00-05:30 MSK of the date Sports.ru files them under, before the transfer window opens at 08:00;
+// the opening day's only game came 30 minutes after Sports.ru's first deadline (players lock 30 minutes before a game).
+const OPENER=Date.parse(FBL_TRANSFERS?.countFrom)+30*60e3,OPENING_DAY=Number.isFinite(OPENER)?moscowToday(OPENER):null;
+export const tipOf=g=>g.tip?Date.parse(g.tip):g.date===OPENING_DAY?OPENER:Date.parse(g.date+'T02:00:00+03:00');
+// The US Eastern day of a game, the one ESPN's injury return dates use (UTC-5: no game tips in the hour daylight time moves).
+const usDay=g=>new Date(tipOf(g)-5*3600e3).toISOString().slice(0,10);
 // A Sports.ru week is Monday to Sunday in US game days, which the Moscow-dated calendar shows as Tuesday to Monday.
 // Without the published weeks this Tuesday-start week is the fallback.
 export function weekStart(day){const d=new Date(day+'T00:00:00Z');return addDays(day,-((d.getUTCDay()+5)%7));}
 // Game weeks from the week number of every calendar game, oldest first: each runs from the day after the previous week's
-// last game to its own last game, so breaks (All-Star, NBA Cup) belong to the week that follows.
+// last game to its own last game, so breaks (All-Star, NBA Cup) belong to the week that follows. A game moved past a
+// later week's first game keeps its number but does not stretch its week over the next ones.
 export function gameWeeks(live){
- const last=new Map(),first=new Map();
- for(const games of Object.values(live?.clubs||{}))for(const g of games){if(!Number.isFinite(g.week))continue;
-  if(!(last.get(g.week)>=g.date))last.set(g.week,g.date);if(!(first.get(g.week)<=g.date))first.set(g.week,g.date);}
- if(!last.size)return live?.weeks||{};
- const out={};let prev=null;
- for(const n of [...last.keys()].sort((a,b)=>a-b)){out[n]={start:prev?addDays(prev,1):first.get(n),end:last.get(n)};prev=last.get(n);}
+ const dates=new Map();
+ for(const games of Object.values(live?.clubs||{}))for(const g of games)if(Number.isFinite(g.week))(dates.get(g.week)||dates.set(g.week,[]).get(g.week)).push(g.date);
+ if(!dates.size)return live?.weeks||{};
+ const order=[...dates.keys()].sort((a,b)=>a-b),first=order.map(n=>dates.get(n).reduce((m,d)=>d<m?d:m)),next=[],out={};let prev=null;
+ for(let i=order.length-1,m='9999-12-31';i>=0;i--){next[i]=m;if(first[i]<m)m=first[i];}
+ order.forEach((n,i)=>{const end=dates.get(n).reduce((m,d)=>d<=next[i]&&d>m?d:m,'')||first[i],start=prev?addDays(prev,1):first[i];
+  out[n]={start:start<=end?start:end,end};prev=end;});
  return out;
 }
-// Sports.ru's tour 1 starts on 22.10, after the league's opening night: Yahoo, which keeps the FBL standings, scores from
-// 20.10 (data/league-rules.json yahoo.scoringStart). Period windows open the first week at that day, so the opening
-// games count in the week and season facts; Sports.ru's own tours (transfer counting) are left as they are.
+const weekCache=new WeakMap(),weeksOf=live=>{const k=live?.clubs;if(!k)return gameWeeks(live);if(!weekCache.has(k))weekCache.set(k,gameWeeks(live));return weekCache.get(k);};
+// Sports.ru numbers its tours by US game day, the calendar dates games in Moscow: a US-afternoon game of a tour's first
+// day (MLK day, 18.01.2027) carries the previous tour's last Moscow date. Such a game counts on its own tour's first date.
+export function tourDate(g,weeks){const w=Number.isFinite(g?.week)?weeks?.[g.week]:null;return w&&g.date<w.start?w.start:g.date;}
+// Period windows (week and season facts) from the tours. Sports.ru's calendar lists only games still to come: a played
+// game drops out of it with the start of its tour (the collector keeps them from 21.10, the opening night's are gone).
+// Tour 1 therefore opens at the league's scoring start, 20.10 (data/league-rules.json yahoo.scoringStart, Yahoo keeps
+// the FBL standings), and tours missing before the first listed one are rebuilt as Tuesday-Monday weeks (Moscow dates)
+// back to it, the first listed tour starting on its Tuesday. Sports.ru's own tours (transfer counting) stay as they are.
 export const SCORING_START=RULES.yahoo?.scoringStart||null;
 export function periodList(weeks,start=SCORING_START){
  const list=Object.entries(weeks||{}).map(([n,w])=>({n:Number(n),...w})).sort((a,b)=>a.start.localeCompare(b.start));
- if(list.length&&start&&start<list[0].start)list[0]={...list[0],start};
+ if(!list.length||!start)return list;
+ const first=list[0];
+ if(!(first.n>1)){if(start<first.start)list[0]={...first,start};return list;}
+ const from=weekStart(first.start);list[0]={...first,start:from>start?from:start};
+ for(let n=first.n-1,end=addDays(list[0].start,-1);n>=1&&end>=start;n--){
+  const s=n===1?start:weekStart(end),w={n,start:s>start?s:start,end};list.unshift(w);end=addDays(w.start,-1);
+ }
  return list;
 }
 const weekList=weeks=>Object.entries(weeks||{}).map(([n,w])=>({n,...w})).sort((a,b)=>a.start.localeCompare(b.start));
@@ -58,14 +81,44 @@ export function seasonRosters(transfers=[],picks=DRAFT_PICKS){
  }
  return rosters;
 }
-// Who scored for whom and when: each player counts for a team from the day he joined until the day he left.
+// The moment of a move: when the watcher first saw it (seenAt), else when that day's transfer window opened.
+const movedAt=(day,at)=>at?Date.parse(at):Date.parse(`${day}T${TRANSFER_HOURS.from}:00+03:00`);
+const startOf=s=>movedAt(s.from,s.fromAt),endOf=s=>s.to?movedAt(s.to,s.toAt):Infinity;
+// A game is played after a move made on `day` when it is filed under a later date or tipped off after the move: a game of
+// the move's own Moscow date was nearly always over before the window opened (see tipOf).
+const after=(g,day,at)=>g.date>day||(g.date===day&&tipOf(g)>=movedAt(day,at));
+const holds=(g,s)=>after(g,s.from,s.fromAt)&&(!s.to||!after(g,s.to,s.toAt));
+// Who scored for whom: each holding of a player by a team, from the move that brought him (from: its Moscow date,
+// fromAt: when the watcher saw it) to the move that sent him away (to, toAt); a draft holding starts before every game.
+// Keyed by team and player: two teams may hold the same player (Sports.ru allows it). Such a player scores only for the
+// team that had him first (league owner, 21.10.2026; the order is rules.js firstHolder's): the later holding lists the
+// earlier one in `shadowedBy` and scores nothing while it lasts. When the watcher cannot tell who bought first, both keep
+// his points and both holdings carry `doubt` (the other teams) for the lawyer's check.
 export function stints(transfers=[],picks=DRAFT_PICKS){
- // Keyed by team and player: two teams may hold the same player (Sports.ru allows it).
- const k=(team,id)=>`${team}:${id}`;
- const open=new Map(picks.map((id,i)=>[k(i%TEAM_COUNT,id),{team:i%TEAM_COUNT,playerId:id,from:DRAFT_DATE,to:null}])),done=[];
- for(const x of transfers){const s=open.get(k(x.team,x.outId));if(s){s.to=x.date;done.push(s);open.delete(k(x.team,x.outId));}open.set(k(x.team,x.inId),{team:x.team,playerId:x.inId,from:x.date,to:null});}
- return [...done,...open.values()];
+ const k=(team,id)=>`${team}:${id}`,since=new Map(),left=new Map(),done=[];
+ const open=new Map(picks.map((id,i)=>{const s={team:i%TEAM_COUNT,playerId:id,from:DRAFT_DATE,fromAt:null,to:null,toAt:null};since.set(s,{i:-1});return [k(s.team,id),s];}));
+ transfers.forEach((x,i)=>{
+  const s=open.get(k(x.team,x.outId));
+  if(s){s.to=x.date;s.toAt=x.seenAt||null;done.push(s);open.delete(k(x.team,x.outId));left.set(k(x.team,x.outId),{date:x.date,since:since.get(s)});}
+  // A sale and a buy-back on one day keep the holding's start: Sports.ru confirms a day's transfers as one package.
+  const back=left.get(k(x.team,x.inId)),t={team:x.team,playerId:x.inId,from:x.date,fromAt:x.seenAt||null,to:null,toAt:null};
+  since.set(t,back?.date===x.date?back.since:{i,x});open.set(k(x.team,x.inId),t);
+ });
+ const all=[...done,...open.values()],by=new Map();
+ for(const s of all)by.set(s.playerId,[...(by.get(s.playerId)||[]),s]);
+ for(const list of by.values())for(let a=0;a<list.length;a++)for(let b=a+1;b<list.length;b++){
+  const A=list[a],B=list[b];if(A.team===B.team||!(startOf(A)<endOf(B)&&startOf(B)<endOf(A)))continue;
+  const order=firstHolder(since.get(A),since.get(B));
+  if(order==='same'){(A.doubt||=[]).push(B.team);(B.doubt||=[]).push(A.team);}
+  else{const [first,later]=order==='before'?[A,B]:[B,A];(later.shadowedBy||=[]).push(first);}
+ }
+ return all;
 }
+// Whether a holding scores a game: played after the move that began it, before the one that ended it, and not while
+// another FBL team that had the player first holds him. The league table, team and player facts all use it.
+export const inStint=(g,s)=>holds(g,s)&&!s.shadowedBy?.some(a=>holds(g,a));
+// A holding that scores nothing now: another FBL team had the player first and still holds him.
+export const shadowed=s=>Boolean(s.shadowedBy?.some(a=>!a.to));
 // Sports.ru money: start at the cap, pay the initial price of each drafted player, then sell and buy at the prices of the day.
 export function bank(team,transfers,priceAtDraft,picks=DRAFT_PICKS){
  let money=CAP;picks.forEach((id,i)=>{if(i%TEAM_COUNT===team)money-=priceAtDraft(id);});
@@ -77,54 +130,93 @@ export function transfersThisWeek(transfers,team,today,weeks){
  return transfers.filter(x=>x.team===team&&x.date<=today&&transferWeek(x.date,weeks)?.start===week.start).length;
 }
 
-// Points per game: the pre-season full-formula forecast updated by the games played, as they arrive (Sports.ru's points
-// of each game minus its team result bonus: FBL scores on Yahoo, without it).
-// Weights come from scripts/inseason_calibration.py (fitted 2023/24->2024/25, tested on 2025/26):
-// points per minute move slowly, minutes move faster and favour recent games, newcomers adapt fastest.
+// Points per game: the pre-season full-formula forecast updated by the games played, as they arrive (each game's points
+// by the league's Yahoo formula: Sports.ru's minus its team result bonus and its extra point for 10+ minutes).
+// Weights come from scripts/inseason_calibration.py (fitted 2023/24->2024/25 on squared error, tested on 2025/26), which
+// tests/fixtures/inseason-golden.json pins this function to: counting points (the formula without its +1 participation
+// term) per minute move slowly, minutes move faster and favour recent games, newcomers adapt fastest; the participation
+// term is shrunk like minutes, never scaled by them. Early games run below the rest of a season (players ramp up), so each
+// game is lifted by its place in the season (offsets measured on the previous season), or the update would run low.
 export const PRIOR_GAMES=10;
 export {CALIBRATION};
 export const clockMinutes=v=>{const m=String(v??'').match(/^(\d+):(\d{2})$/);return m?Number(m[1])+Number(m[2])/60:Math.max(0,Number(v)||0);};
 const newcomer=p=>p.isRookie===true||['EMPIRICAL_ROLE_PRIOR','DRAFT_PICK_MODEL','UNDRAFTED_ROOKIE_MODEL','SPORTS_PRICE_PRIOR'].includes(p.forecast?.origin);
-export function perGame(player,live){
+// One point per game played, whatever the minutes (Yahoo league settings, 21.10.2026).
+const participation=()=>GAME_PLAYED;
+export function perGame(player,live,points=CALIBRATION.points){
  const prior=Number.isFinite(player.forecast?.meanPerGame)?player.forecast.meanPerGame:Number.isFinite(player.projectedFP)?player.projectedFP:0;
- const played=(live?.games||[]).filter(g=>g.played),sum=played.reduce((s,g)=>s+g.points,0);
+ const played=(live?.games||[]).filter(g=>g.played).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),sum=played.reduce((s,g)=>s+g.points,0);
  const out={prior,games:played.length,average:played.length?sum/played.length:null};
  const priorMinutes=player.forecast?.minutes,minutes=played.map(g=>clockMinutes(g.minutes));
- // Without minutes on both sides only the plain average can be shrunk.
- if(!played.length||!(priorMinutes>0)||minutes.some(m=>!(m>0)))return {...out,value:(PRIOR_GAMES*prior+sum)/(PRIOR_GAMES+played.length)};
- const c=CALIBRATION.points[newcomer(player)?'newcomer':'established'],n=minutes.length;
+ // Without minutes on both sides only the plain average can be shrunk. A real 0 (an ESPN line of a few seconds, MIN '0')
+ // is minutes, as Sports.ru's '00:04' is: one cameo must not switch the estimator for the whole season.
+ if(!played.length||!(priorMinutes>0)||played.some(g=>String(g.minutes??'').trim()===''))return {...out,value:(PRIOR_GAMES*prior+sum)/(PRIOR_GAMES+played.length)};
+ const c=points[newcomer(player)?'newcomer':'established'],n=minutes.length,o=points.offsets,scale=o?c.offsetScale||0:0;
+ const lift=(xs,i)=>scale*xs[o.buckets.findIndex(([a,b])=>i>=a&&(b==null||i<=b))];
+ const part=Number.isFinite(player.forecast?.components?.participation)?player.forecast.components.participation:participation(priorMinutes);
  const w=minutes.map((_,i)=>c.minuteHalfLife?.5**((n-1-i)/c.minuteHalfLife):1),weight=w.reduce((s,x)=>s+x,0);
- const expectedMinutes=(c.minuteGames*priorMinutes+minutes.reduce((s,m,i)=>s+w[i]*m,0))/(c.minuteGames+weight);
- const rate=(c.rateGames*prior+sum)/(c.rateGames*priorMinutes+minutes.reduce((s,m)=>s+m,0));
- return {...out,minutes:expectedMinutes,value:rate*expectedMinutes};
+ const mins=minutes.map((m,i)=>scale?m+lift(o.minutes,i+1):m),counts=played.map((g,i)=>g.points-participation(minutes[i])+(scale?lift(o.counting,i+1):0));
+ const expectedMinutes=(c.minuteGames*priorMinutes+mins.reduce((s,m,i)=>s+w[i]*m,0))/(c.minuteGames+weight);
+ const bonus=(c.minuteGames*part+minutes.reduce((s,m,i)=>s+w[i]*participation(m),0))/(c.minuteGames+weight);
+ const rate=(c.rateGames*(prior-part)+counts.reduce((s,x)=>s+x,0))/(c.rateGames*priorMinutes+mins.reduce((s,m)=>s+m,0));
+ return {...out,minutes:expectedMinutes,value:rate*expectedMinutes+bonus};
 }
-// Share of team games a player plays: his forecast of games, updated by games played and missed so far.
-// Missed games count against the club calendar too, in case Sports.ru lists only appearances.
+// Share of team games a player plays: his forecast of games, updated by games played and missed so far. The forecast is
+// already fitted, so it is not floored (scripts/inseason_calibration.py's [.5,.97] clamp regularises its raw previous-
+// season prior; it counted a 16-game forecast as 41 games, +100-240 FP a season). Missed games count against the club calendar
+// too, in case Sports.ru lists only appearances.
+// The report alone removes the games until his return (injuryFactor), so the share for the games after it must not count
+// that absence again. An absence the build knew (forecast.knownAbsence, ESPN's dated return) is already out of
+// forecast.games, which covers only the games it leaves (the mean of ESPN's and the model's, owner decision 4): the share
+// is games/gamesLeft, whatever the report says now (a rookie's model games are cut by the block too). For a report the
+// build did not see the prior is never below the model's own games (which never see the report; a forecast under them has
+// priced the absence in, as ESPN's totals for known long injuries do). The current run of missed games counts at most
+// CALIBRATION.availability.spellMisses while a report (or the build's block) covers it, fitted at the first game back;
+// once he has played again his latest spell of spellGames+ misses keeps counting at most spellMissesAfterReturn
+// (spellMisses until that is fitted), no report needed: counted in full, the share fell by about 40% the day he came
+// back, and replayed on 2023-26 the share after a return is closer capped (2025/26: MAE 0.264 -> 0.245, t+1..t+40).
 export function playRate(player,live,ctx){
- const g=player.forecast?.games,prior=Number.isFinite(g)?Math.min(.97,Math.max(.5,g/82)):.85,today=ctx?.today;
+ const f=player.forecast,injury=ctx?.injuries?.get?.(String(player.espnId)),ending=Boolean(injury)&&seasonEnding(injury),out=Boolean(injury)&&keptOut(injury)&&!ending;
+ const ka=f?.knownAbsence,left=ka?.gamesLeft>0&&Number.isFinite(f?.games)?ka.gamesLeft:0;
+ const free=f?.availability?.unconditionalGames??ka?.unconditionalGames??f?.sources?.model?.games;
+ const g=left?f.games*82/left:out&&Number.isFinite(free)?Math.max(Number.isFinite(f?.games)?f.games:0,free):f?.games;
+ const prior=Number.isFinite(g)?Math.min(.97,Math.max(.01,g/82)):.85,today=ctx?.today;
  const rows=(live?.games||[]).filter(x=>x.played||today&&x.date<today),on=rows.filter(x=>x.played).length;
- const club=ctx?.live?.clubs?.[live?.club||player.sportsClub]||[],finished=club.filter(x=>x.score&&(!today||x.date<=today)).length;
- const team=Math.max(rows.length,finished,on),k=CALIBRATION.availability.priorGames;
+ const club=ctx?.live?.clubs?.[live?.club||player.sportsClub]||[],finished=club.filter(x=>x.score&&(!today||x.date<=today));
+ let team=Math.max(rows.length,finished.length,on);const {priorGames:k,spellMisses:cap,spellGames:spell}=CALIBRATION.availability,back=CALIBRATION.availability.spellMissesAfterReturn??cap;
+ if(Number.isFinite(cap)){
+  const seen=new Set(rows.filter(x=>x.played).map(x=>x.date)),last=[...seen].reduce((m,d)=>d>m?d:m,'');
+  const run=Math.max(finished.filter(x=>x.date>last).length,rows.filter(x=>!x.played&&x.date>last).length);
+  // Misses before his last game, over the club's finished games and his listed rows (a traded player's old club too).
+  let r=0,spellRun=0;
+  if(last){for(const d of [...new Set([...finished,...rows].map(x=>x.date))].filter(d=>d<last).sort()){if(seen.has(d)){if(r>=spell)spellRun=r;r=0;}else r++;}if(r>=spell)spellRun=r;}
+  const excess=(injury?!ending:left)?run-Math.min(run,cap):0;
+  team=Math.max(on,team-excess-(spellRun-Math.min(spellRun,back)));
+ }
  return (k*prior+on)/(k+team);
 }
 // Chance to play each of the next n club games for a player available now: the absence chain (short and long spells
 // with the player's hazards, league spell lengths) scaled so that over a season it plays `share` of the games. A healthy
-// player plays the next games far more often than his season share (backtest 2025/26, after playing the last game:
-// 83.7% of the next 7 played; season share 78.2%, chain 86.4%), because long absences have not started yet.
+// player plays the next games more often than his season share, because long absences have not started yet; replayed on
+// 2025/26 (audit, 21.10.2026) the chain runs 1-2 points of share high over a week or a month and about 3 over the rest of a
+// season, still closer than the flat share. Hazards that cannot reach the share (zero after rounding in the database) give
+// the flat share.
 const curves=new Map();
 function chainCurve(h,share,n){
+ const flat=()=>Array(n).fill(share);
+ if(!(h[0]+h[1]>0))return flat();
  const key=`${h[0]},${h[1]},${share.toFixed(3)}`;let c=curves.get(key);
- if(!c){
+ if(c===undefined){
   const run=(m,len)=>{const hs=h[0]*m,hl=h[1]*m,stay=Math.max(0,1-hs-hl),out=[];let p=new Float64Array(LENGTHS.longLengths.length);p[0]=1;
    for(let j=0;j<len;j++){const a=p[0],q=new Float64Array(p.length);out.push(a*stay);for(let r=1;r<p.length;r++)q[r-1]=p[r];q[0]+=a*stay;
     for(let k=1;k<p.length;k++)q[k-1]+=a*(hs*(LENGTHS.shortLengths[k]||0)+hl*LENGTHS.longLengths[k]);p=q;}
    return out;};
   const mean=m=>run(m,82).reduce((s,x)=>s+x,0)/82;let lo=-6,hi=6;
-  if(mean(Math.exp(hi))>=share)lo=hi;else if(mean(Math.exp(lo))<=share)hi=lo;
-  else for(let i=0;i<22;i++){const m=(lo+hi)/2;if(mean(Math.exp(m))>share)lo=m;else hi=m;}
-  c=run(Math.exp((lo+hi)/2),82);curves.set(key,c);
+  if(mean(Math.exp(hi))>=share||mean(Math.exp(lo))<=share)c=null;
+  else{for(let i=0;i<22;i++){const m=(lo+hi)/2;if(mean(Math.exp(m))>share)lo=m;else hi=m;}c=run(Math.exp((lo+hi)/2),82);}
+  curves.set(key,c);
  }
- return Array.from({length:n},(_,j)=>c[Math.min(j,c.length-1)]);
+ return c?Array.from({length:n},(_,j)=>c[Math.min(j,c.length-1)]):flat();
 }
 // Injuries named in a player's ESPN fantasy news ("Zubac (ankle) will play…"): body part, how often, first and last
 // mention. Descriptive only: about nine months of news exist, too few seasons to fit a risk per body part.
@@ -143,37 +235,89 @@ export function newsInjuries(feed){
  }
  return [...out.values()].sort((a,b)=>a.first<b.first?-1:1);
 }
-export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||/out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season/i.test(injury?.comment||'');
-// Chance to play a game on a date given the ESPN injury report.
-export function injuryFactor(injury,day,today){
+// The season tag of ESPN comments ("2026-27"), from the draft's year.
+const YEAR=Number(DRAFT_DATE.slice(0,4)),SEASON=`${YEAR}-${String(YEAR+1).slice(2)}`;
+// An injury report that keeps the player out (not a game-time decision).
+const keptOut=injury=>/out|suspension/i.test(String(injury?.status||''))&&String(injury?.fantasyStatus||'')!=='GTD';
+// ESPN marks a season-ending injury OFS, or keeps OUT with a placeholder return date and says it only in the comment:
+// "will miss the remainder of the (regular) season", "is out for the season", "has sustained a season-ending ruptured
+// Achilles". Not "the season opener" (finale, series, debut) or "the start of the season", and not an injury of his
+// past: "season-ending" counts only after sustain/suffer/undergo/underwent/require/need ("the season-ending surgery he
+// underwent in March" is his history), and a part of the comment (a sentence, or a part between commas) naming an earlier
+// season or year ("last season", "a year ago", "2025", "2025-26") or saying he "missed the rest of"/"was out for" it is
+// skipped. One false match zeroes his season everywhere. scripts/projection_model.py absence() must read the same words.
+const OVER=new RegExp(`\\bout for (the )?(${SEASON} )?(regular[- ])?season\\b(?![- ](opener|finale|series|debut))|\\b(sustain|suffer|undergo|underwent|require|need)\\w*\\s+(an?\\s+)?season[- ]ending\\b|\\bmiss the (entire |rest of the |remainder of the )?(${SEASON} )?(regular[- ])?season\\b(?![- ](opener|finale|series|debut))|\\b(remainder|rest|entirety|balance) of the (${SEASON} )?(regular[- ])?season\\b(?![- ](opener|finale|series|debut))`,'i');
+const PAST=/\b(last|previous|past) (season|year|campaign)\b|\ba year ago\b|\bmissed (all |most |much )?(of )?the (entire|rest|remainder|entirety|balance)\b|\bwas out for\b/i;
+const earlier=part=>PAST.test(part)||[...part.matchAll(/\b(20\d\d)\b/g)].some(m=>Number(m[1])<YEAR);
+export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||keptOut(injury)&&String(injury?.comment||'').split(/[.;!?](?:\s|$)|,\s/).some(s=>OVER.test(s)&&!earlier(s));
+// Chance to play a game given the ESPN injury report. `day` is the game's US day (usDay), the calendar of ESPN's return
+// dates; today is the Moscow date, usToday the US day now (from 00:00 MSK until the US evening ends it is the day before).
+// Season-ending: no game, whatever placeholder date ESPN shows. Out with a return date: no game before it (without one:
+// none for 10 days). Day-to-day: ESPN's return date is the doubtful game itself, so the games up to it count half
+// (without a date, or with one already past in US days, those of the next 3 days do).
+export function injuryFactor(injury,day,today,usToday=today){
  if(!injury)return 1;
- const status=String(injury.status||''),fantasy=String(injury.fantasyStatus||''),back=injury.returnDate||null;
- if(seasonEnding(injury))return back&&day>=back?1:0;
- const out=/out|suspension/i.test(status)&&fantasy!=='GTD';
- if(back)return day<back?(out?0:.5):1;
- return out?(day<addDays(today,10)?0:1):(day<addDays(today,3)?.5:1);
+ if(seasonEnding(injury))return 0;
+ const back=injury.returnDate?String(injury.returnDate).slice(0,10):null;
+ if(keptOut(injury))return back?(day<back?0:1):(day<addDays(today,10)?0:1);
+ return day<=(back&&back>=usToday?back:addDays(usToday,2))?.5:1;
+}
+// The NBA adds each club's last 2 of 82 games after the NBA Cup group stage; until Sports.ru lists them the calendar has
+// 80 and the season horizon misses 2.4% of every player's games. They are counted in the club's longest December break,
+// where the Cup knockout days are (no week, no score: they never show as real games), and stop once Sports.ru lists them.
+export const SEASON_GAMES=82;
+const filled=new WeakMap();
+export function seasonCalendar(live,club){
+ const games=live?.clubs?.[club]||[],missing=SEASON_GAMES-games.length;
+ if(missing<=0||missing>2)return games;
+ if(filled.has(games))return filled.get(games);
+ const dates=games.map(g=>g.date).sort(),span=([a,b])=>(Date.parse(b)-Date.parse(a))/864e5;
+ const gap=dates.slice(1).map((b,i)=>[dates[i],b]).filter(([a])=>a.slice(5,7)==='12').reduce((m,x)=>!m||span(x)>span(m)?x:m,null);
+ const out=gap&&span(gap)>missing?[...games,...Array.from({length:missing},(_,i)=>({date:addDays(gap[0],Math.round(span(gap)*(i+1)/(missing+1))),placeholder:true}))]:games;
+ filled.set(games,out);return out;
+}
+// Share of a running game still to play: from ESPN's clock on it ("8:22 - 3rd", "Halftime", "End of 1st", "2:00 - OT";
+// 48 regulation minutes), else from the minutes he has played against those he is expected to play; none of a final.
+function gameLeft(run,minutes){
+ const d=String(run?.game?.detail||'').trim();let m;
+ if(run?.final||run?.game?.final)return 0;
+ if(/half/i.test(d))return .5;
+ if((m=d.match(/^End of (\d)(st|nd|rd|th)\b/i)))return Math.max(0,4-m[1])/4;
+ if((m=d.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)\s*-\s*(\d*)(st|nd|rd|th|OT)$/i))){const clock=(m[1]?Number(m[1]):0)+m[2]/60;return /OT/i.test(m[4])?clock/48:Math.max(0,(4-m[3])*12+clock)/48;}
+ return minutes>0?Math.max(0,1-clockMinutes(run?.minutes)/minutes):0;
 }
 // Expected official points between two dates (inclusive), counting only club games not yet played: a game is done once
-// the calendar has its score, its day has passed, Sports.ru lists it for the player, or it is running (ctx.running).
-// Each game counts with the injury report's factor times the chain's chance to be available that many healthy games on
-// (counted from today, or from the return of an injured player); without hazards (rookies, market players) it is the
-// flat season share as before.
+// the calendar has its score or marks it gone (dropped from Sports.ru's calendar), its day has passed, Sports.ru lists it
+// for the player, it is running (ctx.running), or it has tipped off by ctx.now (a time, when given: such a game can no
+// longer be gained by a move). A game counts in the window of its Sports.ru tour (tourDate). Each game counts with the
+// injury report's factor times the chain's chance to be available that many healthy games on (counted from today, or
+// from the return of an injured player); without hazards (rookies, market players) it is the flat season share.
+// A game he is playing now (ctx.running, which the standings and the team forecast pass with its points so far; transfer
+// gains never do, a move cannot gain it) adds the rest of it: his counting points per game times the share still to
+// play, the game point being in the running points already. It is not a game left. clubGames: the club games left in
+// the window, the same ones (what the share of games he plays is read against).
 export function expectedPoints(player,ctx,from,to){
- const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,calendar=ctx.live?.clubs?.[club]||[];
- const share=playRate(player,live,ctx),value=perGame(player,live).value,injury=ctx.injuries?.get(String(player.espnId));
- const done=new Set((live?.games||[]).map(x=>x.date)),running=ctx.running?.get(player.id)?.day,h=player.forecast?.availability?.hazards;
- const ahead=calendar.filter(g=>!(g.score||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running)).sort((a,b)=>a.date<b.date?-1:1);
+ const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,calendar=seasonCalendar(ctx.live,club),weeks=weeksOf(ctx.live);
+ const share=playRate(player,live,ctx),pg=perGame(player,live),value=pg.value,injury=ctx.injuries?.get(String(player.espnId));
+ const run=ctx.running?.get(player.id),done=new Set((live?.games||[]).map(x=>x.date)),running=run?.day,h=player.forecast?.availability?.hazards;
+ const ahead=calendar.filter(g=>!(g.score||g.gone||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running||ctx.now&&tipOf(g)<=ctx.now)).sort((a,b)=>a.date<b.date?-1:1);
+ // ESPN's return dates are US days. The US day now: from ctx.now when given; else the Moscow date, or the day before
+ // while a US evening game filed under today's Moscow date has no score yet (from 00:00 MSK until its result is in).
+ const usToday=!injury?ctx.today:ctx.now?new Date(ctx.now-5*3600e3).toISOString().slice(0,10):ctx.today&&calendar.some(g=>g.date===ctx.today&&!g.score&&!g.gone&&usDay(g)<g.date)?addDays(ctx.today,-1):ctx.today;
  const curve=Array.isArray(h)?chainCurve(h,share,ahead.length):null;
- let games=0,points=0,healthy=0;
+ let games=0,points=0,healthy=0,clubGames=0;
  for(const g of ahead){
-  const f=injuryFactor(injury,g.date,ctx.today);if(!f)continue;
+  const day=tourDate(g,weeks),inside=day>=from&&day<=to;if(inside)clubGames++;
+  const f=injury?injuryFactor(injury,usDay(g),ctx.today,usToday):1;if(!f)continue;
   const p=f*(curve?curve[healthy++]:share);
-  if(g.date>=from&&g.date<=to){games+=p;points+=value*p;}
+  if(inside){games+=p;points+=value*p;}
  }
- return {points,games};
+ if(running){const now=calendar.find(g=>g.date===running),day=now?tourDate(now,weeks):running;
+  if(day>=from&&day<=to)points+=(value-GAME_PLAYED)*gameLeft(run,pg.minutes??player.forecast?.minutes);}
+ return {points,games,clubGames};
 }
 export function horizons(ctx){
- const all=gameWeeks(ctx.live),last=Object.values(all).reduce((m,w)=>w.end>m?w.end:m,ctx.today),week=weekOf(ctx.today,all);
+ const all=weeksOf(ctx.live),last=Object.values(all).reduce((m,w)=>w.end>m?w.end:m,ctx.today),week=weekOf(ctx.today,all);
  return {week:{label:'До конца недели',from:ctx.today,to:week?.end||ctx.today},
   month:{label:'4 недели',from:ctx.today,to:addDays(ctx.today,27)},
   season:{label:'До конца сезона',from:ctx.today,to:last}};
@@ -223,8 +367,18 @@ function swap(sale,p,ctx){
  const outlook=playerOutlook(p,ctx),gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-sale.base[k].points;
  return {outId:sale.leaving.id,player:p,outlook,gain,bankAfter:sale.money-p.price};
 }
+// Players an FBL team holds: the rosters rebuilt from the journals plus every player the Sports.ru roster JSON shows on a
+// team, so a journal row not resolved yet never makes a held player look free (FBL allows a player on one team only, and
+// the later buyer is in breach).
+export function takenIds(ctx){
+ const taken=new Set(ctx.rosters.flat()),teams=Object.values(ctx.live?.teams||{}).filter(t=>t?.roster?.length);
+ if(!teams.length)return taken;
+ const bySid=new Map(ctx.players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p.id]));
+ for(const t of teams)for(const r of t.roster){const id=bySid.get(String(r.sportsId));if(id!=null)taken.add(id);}
+ return taken;
+}
 export function transferOptions(ctx,{team,outId,bankMoney,limit=15,sort='month'}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),sale=selling(ctx,team,outId,bankMoney,byId);
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx),sale=selling(ctx,team,outId,bankMoney,byId);
  if(!sale)return [];
  const options=[];
  for(const raw of ctx.players){
@@ -237,7 +391,7 @@ export function transferOptions(ctx,{team,outId,bankMoney,limit=15,sort='month'}
 // The best legal one-for-one swap that brings a given free player into a team, or null when none fits.
 export function bestSwapFor(ctx,{team,playerId,bankMoney,sort='season'}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),raw=byId.get(playerId);
- if(!raw||ctx.rosters.flat().includes(playerId)||!onMarket(raw,ctx))return null;
+ if(!raw||takenIds(ctx).has(playerId)||!onMarket(raw,ctx))return null;
  const p=current(raw,ctx);let best=null;
  for(const outId of ctx.rosters[team]){
   const sale=selling(ctx,team,outId,bankMoney,byId);
@@ -252,13 +406,13 @@ export function bestTransfers(ctx,{team,bankMoney,sort='month',limit=10}){
  return ctx.rosters[team].map(outId=>{const [best]=transferOptions(ctx,{team,outId,bankMoney,limit:1,sort});return best?{outId,...best}:null;})
   .filter(x=>x&&x.gain[sort]>0).sort((a,b)=>b.gain[sort]-a.gain[sort]).slice(0,limit);
 }
-// FBL points each team collected so far (Sports.ru's per game minus the team result bonus), counting a player only while
-// he was on the team.
+// FBL points each team collected so far (Sports.ru's per game minus the team result bonus), counting a player only for
+// the games he played while on the team and not held first by another FBL team (inStint).
 export function teamPoints(ctx,transfers,picks=DRAFT_PICKS){
  const totals=Array(TEAM_COUNT).fill(0),byId=new Map(ctx.players.map(p=>[p.id,p]));
  for(const s of stints(transfers,picks)){
   const games=ctx.live?.players?.[byId.get(s.playerId)?.sportsId]?.games||[];
-  for(const g of games)if(g.played&&g.date>=s.from&&(!s.to||g.date<s.to))totals[s.team]+=g.points;
+  for(const g of games)if(g.played&&inStint(g,s))totals[s.team]+=g.points;
  }
  return totals;
 }
@@ -276,19 +430,22 @@ export function parseInjuries(feed){
 // keep or sell each player, buy free agents, two per Sports.ru position, at least one rookie, at least one player of the
 // league's «белое правило» list (when there is one), money within the bank.
 // By default the package may not lower the rest-of-season expectation: short-term gains never cost the season.
-export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat());
+// `include`: a free player the package must buy; `exclude`: free players it may not buy.
+export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null,exclude=null}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx);for(const id of exclude==null?[]:[].concat(exclude))taken.add(id);
  const value=p=>playerOutlook(p,ctx)[sort].points;
  const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),wealth=bankMoney+roster.reduce((s,p)=>s+p.price,0);
+ // A club already over the limit after an NBA trade keeps its players, but no purchase may add to it (as clubRoom does
+ // for a single swap): no player of it is bought, even for one of its own sold.
+ const crowded=new Set(roster.map(p=>p.club).filter(c=>c&&roster.filter(p=>p.club===c).length>CLUB_LIMIT));
  const pool=[];
  for(const pos of POSITIONS){
   pool.push(...ctx.players.filter(p=>!taken.has(p.id)&&p.sportsId&&(ctx.live?.players?.[p.sportsId]||p.priceStatus==='VERIFIED'))
-   .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth)
+   .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth&&!crowded.has(p.club))
    .map(p=>({p,v:value(p)})).sort((a,b)=>b.v-a.v).slice(0,poolPerPosition));
  }
- // `include`: a free player the package must buy.
  const must=include!=null&&!taken.has(include)&&byId.get(include)?current(byId.get(include),ctx):null;
- if(include!=null&&!must)return null;
+ if(include!=null&&(!must||crowded.has(must.club)))return null;
  if(must)pool.push({p:must,v:value(must)});
  const unique=[...new Map(pool.map(x=>[x.p.id,x])).values()];
  const white=whiteOf(ctx),counts=p=>Boolean(white?.has(String(p.id)));
@@ -319,46 +476,102 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
 // A transfer already made, judged from today: expected official points of the newcomer minus those of the player sold,
 // and the best swap of the same player the team could have made with the same money. bankMoney is the bank after the move.
 export const VERDICTS={up:'💪 Усиление',down:'🤡 Ослабление',short:'⏳ Усиление только на ближайший месяц',long:'📅 Задел на сезон, сейчас не усиление',even:'🤷 Примерно равноценно'};
-export function transferVerdict(ctx,transfer,{bankMoney,threshold=15}){
+// The verdict follows the expected gain: a season gain decides first (a player bought while injured is a season investment,
+// not a weakening). How sure it is, the model's chance that the deciding gain has its sign, goes next to it: below
+// CONFIDENT the label says «неуверенно», so a coin-flip move never reads as a firm judgement.
+function verdictOf(gain,T){const m=gain.month,s=gain.season;return s>=T?(m>=T?'up':'long'):m>=T?(s>=0?'up':'short'):m<=-T||s<=-T?'down':'even';}
+function judged(ctx,pairs,gain,T){
+ const verdict=verdictOf(gain,T),confidence={season:explainSwap(ctx,null,null,'season',pairs).confidence,month:explainSwap(ctx,null,null,'month',pairs).confidence};
+ const h=verdict==='long'||(verdict==='up'&&gain.season>=T)||(verdict==='down'&&gain.season<=-T)?'season':'month';
+ const sure=verdict==='even'?null:verdict==='down'?1-confidence[h]:confidence[h];
+ return {verdict,label:VERDICTS[verdict]+(sure!==null&&confidenceLevel(sure)!=='CONFIDENT'?', неуверенно':''),confidence,sure,horizon:verdict==='even'?null:h};
+}
+// The net change of a team's deals made together (Sports.ru confirms a day's transfers as one package): the players sold
+// and not bought back, and those bought and not sold again. A chain (A→B, B→C) is one move A→C; a round trip is no move
+// at all. A deal both of whose players are in the net keeps its own pair; the rest are paired by Sports.ru position.
+export function netChange(ctx,deals){
+ const n=new Map(),add=(id,d)=>n.set(id,(n.get(id)||0)+d);for(const x of deals){add(x.outId,-1);add(x.inId,1);}
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),pos=id=>byId.get(id)?current(byId.get(id),ctx).positions:[];
+ const outs=[...n].filter(([,v])=>v<0).map(([id])=>id),ins=[...n].filter(([,v])=>v>0).map(([id])=>id),pairs=[];
+ const restOut=[...outs],restIn=[...ins],take=(list,id)=>{const i=list.indexOf(id);return i>=0?(list.splice(i,1),true):false;};
+ for(const x of deals)if(restOut.includes(x.outId)&&restIn.includes(x.inId)){take(restOut,x.outId);take(restIn,x.inId);pairs.push({outId:x.outId,inId:x.inId});}
+ for(const o of restOut){if(!restIn.length)break;const i=restIn.findIndex(id=>pos(id).some(q=>pos(o).includes(q)));pairs.push({outId:o,inId:restIn.splice(i>=0?i:0,1)[0]});}
+ return {outs,ins,pairs};
+}
+// A team's deals the watcher saw together (one journal read, seenAt), or of one date when never timed: one package each.
+export function dealGroups(deals){
+ const m=new Map();for(const x of deals){const k=`${x.team}|${x.seenAt||x.date}`;if(!m.has(k))m.set(k,[]);m.get(k).push(x);}
+ return [...m.values()];
+}
+// `deals`: the package the transfer was part of (default: itself). The alternative is judged on the team before the whole
+// package: the players it bought then are free again, those it sold are back, and the money is the bank before it (the
+// bank after it, plus what the package paid, minus what it got). It is named only when it is no worse on either horizon
+// and better by at least the threshold on one, so a move good for the season is never "beaten" by a 4-week stream.
+export function transferVerdict(ctx,transfer,{bankMoney,threshold=15,deals=[transfer]}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),out=byId.get(transfer.outId),joined=byId.get(transfer.inId);
  if(!out||!joined)return null;
  const a=playerOutlook(out,ctx),b=playerOutlook(joined,ctx),gain={};for(const k of Object.keys(a))gain[k]=b[k].points-a[k].points;
- const m=gain.month,s=gain.season,T=threshold;
- // A season gain decides first: a player bought while injured is a season investment, not a weakening.
- const verdict=s>=T?(m>=T?'up':'long'):m>=T?(s>=0?'up':'short'):m<=-T||s<=-T?'down':'even';
- const before=ctx.rosters.map((r,t)=>t===transfer.team?r.map(id=>id===transfer.inId?transfer.outId:id):r);
- // The money the team had for this move: its bank after it plus the price paid; selling() adds back today's price of the player sold.
- const [best]=transferOptions({...ctx,rosters:before},{team:transfer.team,outId:transfer.outId,bankMoney:bankMoney+transfer.inPrice-current(out,ctx).price,limit:1});
- return {gain,verdict,label:VERDICTS[verdict],best:best&&best.player.id!==transfer.inId&&best.gain.month>gain.month?best:null};
+ const T=threshold,v=judged(ctx,[[transfer.outId,transfer.inId]],gain,T),t=transfer.team;
+ const back=new Map(netChange(ctx,deals).pairs.map(x=>[x.inId,x.outId]));if(!back.size)back.set(transfer.inId,transfer.outId);
+ const before=ctx.rosters.map((r,i)=>i===t?r.map(id=>back.get(id)??id):r);
+ // Journal prices, today's when a record has none.
+ const price=(x,side)=>x[side+'Price']??(byId.get(x[side+'Id'])?current(byId.get(x[side+'Id']),ctx).price:0);
+ const bankBefore=bankMoney+deals.reduce((s,x)=>s+price(x,'in')-price(x,'out'),0),sale=deals.find(x=>x.outId===transfer.outId)||transfer;
+ // Sports.ru's roster of the team shows the package already made: the counterfactual takes the rebuilt one alone.
+ const teams=Object.fromEntries(Object.entries(ctx.live?.teams||{}).filter(([k])=>Number(k)!==t));
+ // The money for the move is the bank before the package plus what the sale got; selling() adds back today's price of
+ // the player sold.
+ const options=transferOptions({...ctx,rosters:before,live:{...ctx.live,teams}},{team:t,outId:transfer.outId,bankMoney:bankBefore+price(sale,'out')-current(out,ctx).price,limit:20,sort:'season'});
+ const best=options.find(o=>o.player.id!==transfer.inId&&o.gain.season>=gain.season&&o.gain.month>=gain.month&&(o.gain.season-gain.season>=T||o.gain.month-gain.month>=T))||null;
+ return {gain,...v,best};
 }
-// How a team can get a given free player: the best one-for-one swap, or else the best package of up to k transfers
-// that buys him. Worth it when the season gains at least minGain and the next 4 weeks do not drop below monthFloor.
-export function acquisition(ctx,{team,playerId,bankMoney,k=1,minGain=15,monthFloor=0}){
+// A package of deals judged as its net change: no move for a round trip, the single-transfer verdict for one net move,
+// the summed gains of the net moves otherwise.
+export function packageVerdict(ctx,deals,{bankMoney,threshold=15}){
+ const net=netChange(ctx,deals),t=deals[0]?.team;
+ if(!net.pairs.length)return {net,gain:{week:0,month:0,season:0},verdict:'none',label:'🔁 Обмен туда-обратно: состав не изменился',best:null,sure:null};
+ const byId=new Map(ctx.players.map(p=>[p.id,p]));
+ if(net.pairs.some(x=>!byId.get(x.outId)||!byId.get(x.inId)))return {net,gain:null,verdict:null,label:null,best:null,sure:null};
+ if(net.pairs.length===1){const [x]=net.pairs;return {net,...transferVerdict(ctx,{team:t,outId:x.outId,inId:x.inId},{bankMoney,threshold,deals})};}
+ const gain={week:0,month:0,season:0};
+ for(const x of net.pairs){const a=playerOutlook(byId.get(x.outId),ctx),b=playerOutlook(byId.get(x.inId),ctx);for(const k of Object.keys(gain))gain[k]+=b[k].points-a[k].points;}
+ return {net,gain,...judged(ctx,net.pairs.map(x=>[x.outId,x.inId]),gain,threshold),best:null};
+}
+// How a team can get a given free player: the best one-for-one swap, or else the best package of up to k transfers that
+// buys him. With one transfer he is worth it when his swap gains at least minGain over the season and the next 4 weeks do
+// not drop below monthFloor. With several, the other moves of a package must not pay for him: he is worth it only for
+// what he adds over the best package of the same transfers without him (`edge`, season points), at least minGain. `best`:
+// the team's best season package of k transfers, when the caller already has it.
+export function acquisition(ctx,{team,playerId,bankMoney,k=1,minGain=15,monthFloor=0,best}){
  const swap=bestSwapFor(ctx,{team,playerId,bankMoney});
- if(swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor)return {worth:true,swap,pack:null};
- if(k>1){
-  const pack=bestPackage(ctx,{team,bankMoney,k,sort:'season',include:playerId});
-  if(pack&&pack.gains.season>=minGain&&pack.gains.month>=monthFloor)return {worth:true,swap,pack};
- }
- return {worth:false,swap,pack:null};
+ if(k<=1)return {worth:Boolean(swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor),swap,pack:null,edge:swap?swap.gain.season:-Infinity};
+ const top=best!==undefined?best:bestPackage(ctx,{team,bankMoney,k,sort:'season'}),buys=p=>Boolean(p?.pairs.some(x=>x.in.id===playerId));
+ // The best package either buys him (then the best one without him is the comparison) or not (then it is that one).
+ const pack=buys(top)?top:bestPackage(ctx,{team,bankMoney,k,sort:'season',include:playerId});
+ const without=buys(top)?bestPackage(ctx,{team,bankMoney,k,sort:'season',exclude:playerId}):top;
+ const edge=pack?pack.gains.season-Math.max(0,without?.gains.season??0):-Infinity;
+ if(edge>=minGain&&swap&&swap.gain.season>=minGain&&swap.gain.month>=monthFloor)return {worth:true,swap,pack:null,edge};
+ if(edge>=minGain&&pack.gains.month>=monthFloor)return {worth:true,swap,pack,edge};
+ return {worth:false,swap,pack:null,edge};
 }
-// Injured free agents worth getting over the season (not out for it), with how to get them.
+// Injured free agents worth getting over the season (not out for it), with how to get them, the biggest edge first.
 // `soon`: day-to-day, or an ESPN return date within `days` — the moment to buy before the rivals and the price react.
 export function injuredTargets(ctx,{team,bankMoney,k=1,days=7,minGain=30}){
- const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=new Set(ctx.rosters.flat()),until=addDays(ctx.today,days),out=[];
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx),until=addDays(ctx.today,days),out=[];
  const rate=p=>perGame(p,ctx.live?.players?.[p.sportsId]).value*playRate(p,ctx.live?.players?.[p.sportsId],ctx);
  const weakest=Math.min(...ctx.rosters[team].map(id=>rate(byId.get(id))));
+ let best;
  for(const raw of ctx.players){
   const injury=raw.espnId&&ctx.injuries?.get(String(raw.espnId));
   if(!injury||taken.has(raw.id)||seasonEnding(injury)||rate(raw)<=weakest)continue;
+  if(k>1&&best===undefined)best=bestPackage(ctx,{team,bankMoney,k,sort:'season'});
   // Still out for a while: judged on the season only; the 4-week window is checked again once he is back.
-  const deal=acquisition(ctx,{team,playerId:raw.id,bankMoney,k,minGain,monthFloor:-Infinity});
+  const deal=acquisition(ctx,{team,playerId:raw.id,bankMoney,k,minGain,monthFloor:-Infinity,best});
   if(!deal.worth)continue;
   const dayToDay=!/out|suspension/i.test(injury.status||'')||injury.fantasyStatus==='GTD';
   out.push({player:current(raw,ctx),injury,...deal,soon:dayToDay||Boolean(injury.returnDate&&injury.returnDate.slice(0,10)<=until)});
  }
- const gainOf=x=>x.pack?x.pack.gains.season:x.swap.gain.season;
- return out.sort((a,b)=>gainOf(b)-gainOf(a));
+ return out.sort((a,b)=>b.edge-a.edge);
 }
 // Free agents who beat a current player of the same position over the horizon and over the rest of the season,
 // affordable in a one-for-one swap: real upgrades, not short-term streams.
@@ -366,37 +579,89 @@ export function marketAlerts(ctx,{team,bankMoney,sort='month',minGain=15,minConf
  return bestTransfers(ctx,{team,bankMoney,sort,limit:10}).map(x=>({...x,why:explainSwap(ctx,x.outId,x.player.id,sort)}))
   .filter(x=>x.gain[sort]>=minGain&&x.gain.season>0&&x.why.confidence>=minConfidence);
 }
+// The package to make now, one answer for the app and Telegram. Options: the best package of up to 1, 2 and 3 transfers
+// over the horizon, each kept when it gains more than the smaller one. A package is advised (`best`) only when the model is
+// CONFIDENT, it does not cost the season and it fits the transfers left. A transfer is a weekly resource, so a smaller
+// package wins when each move it saves would add less than `price` FP, over the horizon and over the season alike (saving
+// a transfer must not give up the season). `borderline`: the same choice among MODERATE packages, when none is confident:
+// "можно, но не уверенно", never "сделай".
+export const MOVE_PRICE=15;
+export function pickPackage(options,{left,sort='month',price=MOVE_PRICE}){
+ const pick=lvl=>{
+  const fits=options.filter(o=>o.lvl===lvl&&o.gains.season>=0&&o.pairs.length<=left&&o.gains[sort]>0).sort((a,b)=>b.gains[sort]-a.gains[sort]);
+  let best=fits[0]||null;
+  for(const f of fits){const d=best?best.pairs.length-f.pairs.length:0;if(d>0&&best.gains[sort]-f.gains[sort]<price*d&&best.gains.season-f.gains.season<price*d)best=f;}
+  return best;
+ };
+ const best=pick('CONFIDENT');
+ return {best,borderline:best?null:pick('MODERATE')};
+}
+export function recommendPackage(ctx,{team,bankMoney,left,sort='month',price=MOVE_PRICE}){
+ const options=[];let previous=0;
+ for(const k of [1,2,3]){const p=bestPackage(ctx,{team,bankMoney,k,sort});if(!p||!p.pairs.length||p.gain<=previous+1e-6)continue;previous=p.gain;
+  const why=explainSwap(ctx,null,null,sort,p.pairs.map(x=>[x.out.id,x.in.id]));options.push({...p,why,lvl:why.level});}
+ return {...pickPackage(options,{left,sort,price}),options};
+}
+// Other FBL teams the same model would also tell to buy a player (his best swap for them gains at least minGain over the
+// horizon without costing the season): FBL allows a player on one team only, so the first buyer gets him and a later one
+// is in breach. The advice itself stays each team's own expected points.
+export function contestedBy(ctx,{team,playerId,bankOf,sort='month',minGain=15}){
+ const out=[];
+ for(let t=0;t<ctx.rosters.length;t++){if(t===team)continue;const s=bestSwapFor(ctx,{team:t,playerId,bankMoney:bankOf(t),sort});if(s&&s.gain[sort]>=minGain&&s.gain.season>0)out.push(t);}
+ return out;
+}
+// FBL transfer hours (08:00-22:00 Moscow time): whether a move made now is inside them. Outside them every move is a
+// certain breach, so advice says when to make it instead of "now".
+export function transferWindow(now=Date.now(),hours=TRANSFER_HOURS){
+ const minutes=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;},m=((now+3*3600e3)%864e5+864e5)%864e5/60e3;
+ return {open:m>=minutes(hours.from)&&m<minutes(hours.to),now:mskTime(new Date(now).toISOString()),from:hours.from,to:hours.to};
+}
 
 // ---------- Why a transfer, and how sure ----------
 // A move is advised only when the model is this sure it gains over the chosen horizon; below DOUBTFUL it is not worth a transfer.
 export const CONFIDENT=.7,DOUBTFUL=.6;
+// One rounding everywhere (app and Telegram): the percent shown is rounded down and the level follows that percent, so
+// "70%" is never printed next to a lower level.
+export const confidencePercent=c=>Math.floor(c*100);
+export function confidenceLevel(c){const p=confidencePercent(c);return p>=Math.round(CONFIDENT*100)?'CONFIDENT':p>=Math.round(DOUBTFUL*100)?'MODERATE':'DOUBTFUL';}
 const Z90=1.2815515655;
 function normalCdf(z){const t=1/(1+.2316419*Math.abs(z)),d=.3989423*Math.exp(-z*z/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
 // Spread of a player's points over a horizon: the forecast's season range (10th-90th percentile, calibrated forward on past
-// seasons) narrowed as his own games of this season come in (the in-season prior weight), plus game-to-game noise, which
-// dominates a one-week horizon.
+// seasons) as a share of his expected points, plus game-to-game noise (about half of the variance over one week). The range
+// is not narrowed as his games of this season come in: most of it is availability and role (injuries, rest, trades), which
+// the games played do not settle. Fitted on the held-out 2024/25 season (a narrowing prior of 20, 40, 60, 100 or 200 games
+// or none, times a scale of 0.8-1.5): none at scale 1 has the lowest log-loss of P(gain>0) over 15 in-season cells (0.540,
+// the old 20-game narrowing 0.563), and so it does on 2025/26 (0.530 against 0.549; season horizon, 70-80% bin, from
+// January: 74-77% won, before 65-70%). Pre-season, with no games played, nothing changes.
 export function pointsSpread(player,ctx,outlook){
- const f=player.forecast,live=ctx.live?.players?.[player.sportsId],played=(live?.games||[]).filter(g=>g.played).length;
- const k=CALIBRATION.points.established.rateGames;
+ const f=player.forecast;
  const rel=f&&f.meanSeason>0&&Number.isFinite(f.seasonFloor)?(f.seasonCeiling-f.seasonFloor)/(2*Z90*f.meanSeason):.5;
  const game=f&&Number.isFinite(f.gameFloor)?(f.gameCeiling-f.gameFloor)/(2*Z90):Math.max(4,(outlook.points/Math.max(1,outlook.games))*.4);
- return Math.sqrt((rel*Math.sqrt(k/(k+played))*outlook.points)**2+game*game*Math.max(0,outlook.games));
+ return Math.sqrt((rel*outlook.points)**2+game*game*Math.max(0,outlook.games));
 }
-// What one player brings over a horizon, split as points per game x share of the club's games he plays x club games.
+// What one player brings over a horizon, split as points per game x share of the club's games he plays x club games
+// (those expectedPoints counts: the NBA Cup games not listed yet included, by tour).
 export function playerPicture(player,ctx,key){
- const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,h=horizons(ctx)[key];
+ const live=ctx.live?.players?.[player.sportsId],h=horizons(ctx)[key];
  const outlook=expectedPoints(player,ctx,h.from,h.to),g=perGame(player,live),rate=playRate(player,live,ctx);
- const clubGames=(ctx.live?.clubs?.[club]||[]).filter(x=>x.date>=h.from&&x.date<=h.to&&!x.score&&!(ctx.today&&x.date<ctx.today)).length;
  const injury=ctx.injuries?.get(String(player.espnId))||null,played=(live?.games||[]).filter(x=>x.played);
  return {player,points:outlook.points,perGame:g.value,prior:g.prior,average:g.average,played:played.length,playRate:rate,
-  expectedGames:outlook.games,clubGames,injury,spread:pointsSpread(player,ctx,outlook),
+  expectedGames:outlook.games,clubGames:outlook.clubGames,injury,spread:pointsSpread(player,ctx,outlook),
   price:current(player,ctx).price,priceChange:Number.isFinite(live?.price)&&Number.isFinite(live?.initialPrice)?live.price-live.initialPrice:0};
 }
-// Logarithmic-mean split of a difference of products a1*b1*c1 - a0*b0*c0 into exact additive parts.
-function splitProduct(before,after){
- const total=after.reduce((a,b)=>a*b,1)-before.reduce((a,b)=>a*b,1);
- if(before.some(x=>!(x>0))||after.some(x=>!(x>0))){return before.map((_,i)=>i===0?total:0);}
- const P0=before.reduce((a,b)=>a*b,1),P1=after.reduce((a,b)=>a*b,1),w=Math.abs(P1-P0)<1e-9?P0:(P1-P0)/Math.log(P1/P0);
+// Exact additive split of a difference of products a1*b1*c1 - a0*b0*c0: the logarithmic mean when every factor is positive;
+// with a zero (a player out for the whole period, a club with no games left in it) the Shapley average over every order of
+// changing one factor at a time, which stays exact and gives the change to the factor that caused it.
+const orders=n=>n<2?[[...Array(n).keys()]]:orders(n-1).flatMap(o=>Array.from({length:n},(_,i)=>[...o.slice(0,i),n-1,...o.slice(i)]));
+export function splitProduct(before,after){
+ const prod=xs=>xs.reduce((a,b)=>a*b,1),P0=prod(before),P1=prod(after);
+ if(![...before,...after].every(Number.isFinite))return before.map((_,i)=>i===0?P1-P0:0);
+ if(before.some(x=>!(x>0))||after.some(x=>!(x>0))){
+  const all=orders(before.length),out=before.map(()=>0);
+  for(const o of all){const cur=[...before];for(const i of o){const p=prod(cur);cur[i]=after[i];out[i]+=(prod(cur)-p)/all.length;}}
+  return out;
+ }
+ const w=Math.abs(P1-P0)<1e-9?P0:(P1-P0)/Math.log(P1/P0);
  return before.map((x,i)=>w*Math.log(after[i]/x));
 }
 // Why a swap gains (or not) over a horizon, how sure the model is, and what to check before doing it.
@@ -405,7 +670,10 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
  const moves=pairs||[[outId,inId]],flags=[];let gain=0,variance=0;const parts={perGame:0,availability:0,schedule:0},sides=[];
  for(const [o,i] of moves){
   const a=playerPicture(byId.get(o),ctx,key),b=playerPicture(byId.get(i),ctx,key);sides.push({out:a,in:b});
-  const split=splitProduct([a.perGame,a.expectedGames/Math.max(1e-9,a.clubGames),a.clubGames],[b.perGame,b.expectedGames/Math.max(1e-9,b.clubGames),b.clubGames]);
+  // Share of the club's games he plays; a club with no games in the period has none, so his usual share stands in and
+  // the difference goes to the calendar.
+  const share=x=>x.clubGames>0?x.expectedGames/x.clubGames:x.playRate;
+  const split=splitProduct([a.perGame,share(a),a.clubGames],[b.perGame,share(b),b.clubGames]);
   const d=b.points-a.points;gain+=d;variance+=a.spread**2+b.spread**2;
   const sum=split.reduce((x,y)=>x+y,0)||1,scale=Math.abs(sum)>1e-9?d/sum:0;
   parts.perGame+=split[0]*scale;parts.availability+=split[1]*scale;parts.schedule+=split[2]*scale;
@@ -424,17 +692,15 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null){
  const total=Math.abs(parts.perGame)+Math.abs(parts.availability)+Math.abs(parts.schedule)||1;
  if(gain>0&&parts.availability/total>.5)flags.unshift('Больше половины выигрыша — из прогноза числа сыгранных матчей, а не из игры за матч: это самая неточная часть прогноза.');
  if(gain>0&&parts.schedule/total>.5)flags.unshift('Выигрыш в основном из календаря (у нового клуба больше матчей в периоде): после периода преимущество исчезнет.');
- const level=confidence>=CONFIDENT?'CONFIDENT':confidence>=DOUBTFUL?'MODERATE':'DOUBTFUL';
- return {gain,sd,confidence,level,parts,flags:[...new Set(flags)],sides};
+ return {gain,sd,confidence,level:confidenceLevel(confidence),parts,flags:[...new Set(flags)],sides};
 }
-// The FBL formula on an ESPN box-score line: Sports.ru's without the team result bonus (the league scores on Yahoo,
-// which cannot award it). A line with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of
-// a DNP empty.
+// The FBL formula on an ESPN box-score line, as Yahoo counts it: the box-score terms plus 1 for the game played. A line
+// with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of a DNP empty.
 export function boxScorePoints(stats){
  const n=v=>Number(v)||0,split=v=>String(v||'0-0').split('-').map(Number);
- const [fgm,fga]=split(stats.FG),[ftm,fta]=split(stats.FT),min=n(stats.MIN);
+ const [fgm,fga]=split(stats.FG),[ftm,fta]=split(stats.FT),min=clockMinutes(stats.MIN);
  if(!Object.keys(stats||{}).length)return null;
- return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+(min>=10?2:1);
+ return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+GAME_PLAYED;
 }
 const LINE=['MIN','PTS','REB','AST','STL','BLK','FG','3PT','FT','TO','PF'];
 // ESPN summary -> {espnAthleteId: {points, minutes, final, counting, name, team, line}}.
@@ -445,10 +711,10 @@ export function liveGamePoints(summary,event){
    const labels=st.labels||st.names||[];
    for(const a of st.athletes||[]){
     if(!a.stats?.length||a.didNotPlay)continue;const stats=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]]));
-    const points=boxScorePoints(stats),minutes=Number(stats.MIN)||0;
-    // counting: the line without the participation bonus, which follows the exact minutes when Sports.ru lists them.
+    const points=boxScorePoints(stats),minutes=clockMinutes(stats.MIN);
+    // counting: the line without the point for the game played.
     // line: the box-score stats the formula reads, for the live stat line; name and team for the full game list.
-    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-(minutes>=10?2:1),
+    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-GAME_PLAYED,
      name:a.athlete?.displayName||a.athlete?.shortName||'',team:team.team?.abbreviation||'',line:Object.fromEntries(LINE.filter(k=>k in stats).map(k=>[k,stats[k]]))};
    }
   }
@@ -457,7 +723,7 @@ export function liveGamePoints(summary,event){
 }
 // Sports.ru lists a game as played with 0 points until it counts it, hours after the final whistle. Games ESPN covers
 // (yesterday and today, US Eastern) are therefore scored at once by the league's formula on the ESPN box score — the
-// categories Yahoo counts — with Sports.ru's exact minutes for the 10-minute bonus when it lists them. A game still
+// categories Yahoo counts — with Sports.ru's exact minutes for the in-season update when it lists them. A game still
 // running is left to the running points: its Sports.ru row does not count until the final whistle.
 const tipDay=iso=>new Date(Date.parse(iso)+3*3600e3).toISOString().slice(0,10);
 export function withBoxScores(live,games,players){
@@ -471,7 +737,7 @@ export function withBoxScores(live,games,players){
    const rows=[...(info.games||[])],i=rows.findIndex(o=>o.date===day),row=i>=0?rows[i]:null;let next;
    if(g.final){
     const exact=/^\d+:\d{2}$/.test(String(row?.minutes??''))&&clockMinutes(row.minutes)>0?clockMinutes(row.minutes):x.minutes;
-    next={...(row||{date:day}),minutes:row&&exact!==x.minutes?row.minutes:String(x.minutes),points:x.counting+(exact>=10?2:1),played:true,source:'ESPN',...(row?{sportsRowPoints:row.points}:{})};
+    next={...(row||{date:day}),tip:row?.tip||g.date,minutes:row&&exact!==x.minutes?row.minutes:String(x.minutes),points:x.counting+GAME_PLAYED,played:true,source:'ESPN',...(row?{sportsRowPoints:row.points}:{})};
    }else if(row?.played)next={...row,played:false,running:true};
    else continue;
    if(row)rows[i]=next;else{rows.push(next);rows.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);}

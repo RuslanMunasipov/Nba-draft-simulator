@@ -18,6 +18,19 @@ export function restartDraft(state,database){
  return {...newDraft(state.players,state.cap,state.priceMode),...(state.databaseVersion?{databaseVersion:state.databaseVersion}:{})};
 }
 
+// The players the season tab scores the league with: the installed catalog itself, so drafted players carry the same
+// latest forecasts as free agents, plus any picked player the catalog no longer lists. The pick snapshots above are the
+// draft tab's (its replay and legality); a manual database or no catalog falls back to the draft state. The same
+// inputs give the same array, so the season tab does not re-render on every draft render.
+let seasonMemo=null;
+export function seasonCatalog(state,database){
+ if(!database?.players?.length||!state?.databaseVersion||state.databaseVersion==='manual')return state?.players||[];
+ if(seasonMemo?.catalog===database.players&&seasonMemo.draft===state.players)return seasonMemo.value;
+ const ids=new Set(database.players.map(p=>p.id)),missing=(state.players||[]).filter(p=>!ids.has(p.id));
+ seasonMemo={catalog:database.players,draft:state.players,value:missing.length?[...database.players,...missing]:database.players};
+ return seasonMemo.value;
+}
+
 // What the device keeps for a draft built on the automatic database: the picks and the snapshot of each picked player.
 // The catalog itself (several MB) is the cached or fetched database, so the draft fits any storage quota.
 export function compactDraft(state){

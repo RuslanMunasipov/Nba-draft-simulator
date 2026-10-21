@@ -8,17 +8,26 @@ import {readStored,writeStored,storageFailed,readCache,writeCache} from './stora
 import {fetchDatabase} from './database-loader.js';
 import './theme.js';
 import {reportElement} from './rookie-reports.js';
-import {newDraft,pick,undo,replacePick,exportDraft,DEFAULT_CAP,safeUrl,rosterFits,POSITIONS} from './engine.js';
+import {newDraft,pick,undo,replacePick,replayDraft,exportDraft,DEFAULT_CAP,safeUrl,rosterFits,POSITIONS} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
 import {setSeasonPlayers,setSeasonDatabaseState,initSeasonTabs,seasonLivePanel} from './season-ui.js';
 import LEAGUE from '../data/fbl-league.json' with {type:'json'};
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {riskProfile} from './analysis.js';
-import {pickCompletion,completionPlan} from './completion.js';
-import {installDatabase,restartDraft,compactDraft} from './database.js';
+import {pickCompletion,completionPlan,replaceCompletion} from './completion.js';
+import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
+import {installDatabase,restartDraft,compactDraft,seasonCatalog} from './database.js';
+import {forecastSources,healthLine,seasonRangeLine,rangeMethod,sportsCheckLine} from './forecast-text.js';
 import {int,dec,signed,signedDec,pct,count,stampMsk,injuryStatus} from './format.js';
 // The league's «белое правило» list (players who count; "none:<team>" entries are findings about rosters, not players).
-const WHITE=(LEAGUE.white||[]).filter(x=>!String(x).startsWith('none:'));
+// It binds our own picks like the rookie rule while a roster with a listed player is still possible (once rivals took
+// them all, the plain rules decide instead of blocking every pick); a rival's pick is the league's matter.
+const WHITE=(LEAGUE.white||[]).filter(x=>!String(x).startsWith('none:')),whiteOpen=new WeakMap();
+function whiteFor(team){
+ if(team!==0||!WHITE.length)return null;
+ if(!whiteOpen.has(state))whiteOpen.set(state,completionPlan(state,0,{white:WHITE}).possible);
+ return whiteOpen.get(state)?WHITE:null;
+}
 const $=id=>document.getElementById(id);
 // The real draft and the training draft are saved apart: bots never write into the real one.
 const KEY={LIVE:'fbl-draft',INTERACTIVE:'fbl-draft-practice'};
@@ -65,7 +74,15 @@ function setMode(next){
  mode=next;writeStored('fbl-mode',mode);stopReplace();lastScenario=null;
  ({state,compact:needsCatalog}=readDraft(KEY[mode]));
  if(database&&(!state.players.length||needsCatalog)){try{state=installDatabase(state,database);needsCatalog=false;}catch{}}
- applyMode();save();toast(mode==='INTERACTIVE'?'Тренировка: отдельный драфт с ботами':'Реальный драфт');
+ seedLive();applyMode();save();toast(mode==='INTERACTIVE'?'Тренировка: отдельный драфт с ботами':'Реальный драфт');
+}
+// After 18.10 the real draft is the official one (src/fbl-draft-2026.js): a device that never recorded it gets it
+// replayed through the draft rules, instead of a live plan for a finished draft. Recorded picks are never overwritten;
+// a replay the catalog refuses leaves the draft as it was. Until the next summer, so a new draft can start then.
+function seedLive(){
+ const today=new Date(Date.now()+3*3600e3).toISOString().slice(0,10),season=today>=DRAFT_DATE&&today<`${Number(DRAFT_DATE.slice(0,4))+1}-08-01`;
+ if(mode!=='LIVE'||!season||DRAFT_PICKS.length!==80||state.picks.length||!state.players.length||state.priceMode!=='ON'||state.databaseVersion==='manual')return false;
+ const official=replayDraft(state,DRAFT_PICKS);if(official)state=official;return Boolean(official);
 }
 
 // ---------- Picking ----------
@@ -78,8 +95,10 @@ function stopReplace(){replacing=null;replaceBase=null;}
 function chooseReplacement(p){
  try{
   const index=replacing,old=state.picks[index];
-  const plan=pickCompletion(replaceBase,p.id);if(!plan.possible)throw Error(plan.reason);
-  const result=replacePick(state,index,p.id);
+  // The hard rules first; then the completion with the team's later picks that the replay keeps (not the draft cut at
+  // this pick, which let a re-pick strand the team with no legal completion and no warning).
+  const result=replacePick(state,index,p.id),plan=replaceCompletion(state,index,p.id,whiteFor(old.team));
+  if(!plan.possible&&(old.team===0||mode!=='LIVE'||!confirm(`${p.name}: ${plan.reason}\n\nПо расчёту приложения ${teamName(old.team)} после такой замены не доберёт состав. Если так записано на Sports.ru, всё равно заменить?`)))throw Error(plan.reason);
   if(result.dropped.length&&!confirm(`Пик #${old.number}: ${playerName(old.playerId)} → ${p.name}.\nПосле него станут недопустимы и будут удалены пики: ${result.dropped.map(d=>`#${d.number} ${playerName(d.playerId)}`).join(', ')}. Их нужно будет внести заново. Продолжить?`))return;
   state=result.state.priceMode==='ON'?enforceBudget(result.state):result.state;save();
   toast(`Пик #${old.number}: ${playerName(old.playerId)} → ${p.name}`+(result.dropped.length?` · внеси заново пики с #${result.dropped[0].number}`:''));
@@ -89,11 +108,13 @@ function choose(p){
  if(replacing!==null)return chooseReplacement(p);
  try{
   if(!database&&state.databaseVersion!=='manual'&&state.priceMode!=='ON')throw Error('Дождись загрузки базы с ценами Sports.ru');
-  const plan=pickCompletion(state,p.id),team=onClock(state),mine=team===0,number=state.picks.length+1;
+  const team=onClock(state),mine=team===0,number=state.picks.length+1;
+  // The hard rules (positions, clubs, budget, the rookie at the tenth pick) refuse in pick() before anything is asked.
   // A pick that leaves no legal completion is refused for my team; a rival's real pick on Sports.ru is a fact to record,
-  // so in live mode it only needs confirming (the hard rules — positions, clubs, budget — still apply in pick()).
+  // so in live mode it only needs confirming.
+  const next=pick(state,p.id),plan=pickCompletion(state,p.id,whiteFor(team));
   if(!plan.possible&&(mine||mode!=='LIVE'||!confirm(`${p.name}: ${plan.reason}\n\nПо расчёту приложения эта команда после такого пика не доберёт состав. Если пик уже сделан на Sports.ru, всё равно записать?`)))throw Error(plan.reason);
-  state=pick(state,p.id);if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});
+  state=next;if(mode==='INTERACTIVE')state=advanceBots(state,{humanTeam:0,seed:Number($('seed').value)||1});
   const hadQuery=Boolean($('search').value);if(hadQuery){$('search').value='';listLimit=30;}
   save();toast(`Пик #${number} · ${teamName(team)} — ${p.name}`);
   if(hadQuery&&!mine)$('search').focus({preventScroll:true});
@@ -143,11 +164,19 @@ function cardAction(p){
  const b=el('button',replacing!==null?`На пик #${replacing+1}`:mine?'Выбрать':`Записать за ${teamName(team)}`,mine||replacing!==null?'btn-primary':'btn-secondary');
  b.setAttribute('aria-label',replacing!==null?`Поставить ${p.name} на пик #${replacing+1}`:mine?`Выбрать ${p.name}`:`Записать ${p.name} в пик команды ${teamName(team)}`);
  b.onclick=()=>choose(p);
- let reason='';const plan=pickCompletion(target(),p.id);
- if(plan.possible===false)reason=plan.reason;
- else try{pick(target(),p.id);}catch(e){reason=e.message;}
+ // Hard rules disable the button. A completion the app cannot find disables it for my team and in training; for a
+ // rival's real pick in live mode it only warns, so the pick made on Sports.ru can still be recorded after confirming.
+ let reason='',warn='';
+ try{pick(target(),p.id);}catch(e){reason=e.message;}
+ if(!reason){
+  const plan=replacing!==null?replaceCompletion(state,replacing,p.id,whiteFor(team)):pickCompletion(target(),p.id,whiteFor(team));
+  if(plan.possible===false){if(team!==0&&mode==='LIVE')warn=plan.reason;else reason=plan.reason;}
+ }
  if(reason){b.disabled=true;const wrap=el('div');wrap.append(el('small',reason));box.append(wrap);box.classList.add('is-blocked');}
- else if(replacing!==null){const later=state.picks.findIndex(x=>x.playerId===p.id);if(later>replacing)box.append(el('small',`Уже выбран на пике #${later+1}: перевыбор удалит пики с #${later+1}.`));}
+ else{
+  if(warn)box.append(el('small',`По расчёту приложения команда после этого не доберёт состав: ${warn.charAt(0).toLowerCase()+warn.slice(1)}. Пик с Sports.ru можно записать с подтверждением.`));
+  if(replacing!==null){const later=state.picks.findIndex(x=>x.playerId===p.id);if(later>replacing)box.append(el('small',`Уже выбран на пике #${later+1}: перевыбор удалит пики с #${later+1}.`));}
+ }
  box.prepend(b);
  return box;
 }
@@ -183,13 +212,15 @@ function cardBody(p,risk,readonly){
  body.append(more);
  return body;
 }
-// Official Sports.ru fantasy points are the reference the forecast is checked against: the last three seasons.
+// Sports.ru's own fantasy points by season (with its team result bonus), and the same seasons without the bonus — the
+// FBL formula the forecast uses — when the database has them (fblPerGame).
 function sportsHistoryPanel(p){
  const seasons=Object.entries(p.sportsHistory||{}).reverse();if(!seasons.length)return null;
+ const clean=seasons.some(([,s])=>Number.isFinite(s.fblPerGame));
  const box=el('div',null,'pc-block');box.append(el('h4','Sports.ru · ФО по сезонам'));
- const table=el('table',null,'sports-table'),head=el('tr');for(const h of ['Сезон','Матчи','За матч','Всего'])head.append(el('th',h));table.append(head);
- const row=([season,s])=>{const tr=el('tr');for(const v of [season.replace(/^20(\d\d)-(\d\d)$/,'$1/$2'),String(s.games),dec(s.perGame),int(s.points)])tr.append(el('td',v));return tr;};
- for(const s of seasons.slice(0,3))table.append(row(s));box.append(table,el('p','По формуле Sports.ru, с бонусом за результат команды; в FBL его нет.','muted'));
+ const table=el('table',null,'sports-table'),head=el('tr');for(const h of ['Сезон','Матчи','За матч',...(clean?['Без бонуса']:[]),'Всего'])head.append(el('th',h));table.append(head);
+ const row=([season,s])=>{const tr=el('tr');for(const v of [season.replace(/^20(\d\d)-(\d\d)$/,'$1/$2'),String(s.games),dec(s.perGame),...(clean?[dec(s.fblPerGame)]:[]),int(s.points)])tr.append(el('td',v));return tr;};
+ for(const s of seasons.slice(0,3))table.append(row(s));box.append(table,el('p',clean?'«За матч» и «Всего» — по формуле Sports.ru, с бонусом за результат команды; «Без бонуса» — как считает FBL.':'По формуле Sports.ru, с бонусом за результат команды; в FBL его нет.','muted'));
  if(seasons.length>3){const all=el('details',null,'inline'),t=el('table',null,'sports-table');for(const s of seasons.slice(3))t.append(row(s));all.append(el('summary',`Ещё ${count(seasons.length-3,'сезон','сезона','сезонов')}`),t);box.append(all);}
  return box;
 }
@@ -205,27 +236,15 @@ function forecastSummary(p){
  const personal=p.espnContext?.individualProjection;
  if(f){
   box.append(el('p',`${int(f.meanSeason)} ФО за сезон = ${dec(f.meanPerGame)} за матч × ${count(Math.round(f.games),'матч','матча','матчей')}.`));
-  if(Number.isFinite(f.seasonFloor)&&Number.isFinite(f.seasonCeiling))box.append(el('p',`Слабый сезон ${int(f.seasonFloor)}, сильный ${int(f.seasonCeiling)}: в 8 сезонах из 10 результат между ними.`));
-  if(c)box.append(el('p',`${c.flag?'⚠ ':''}${signed(c.gap*100)}${' '}% к сезону ${String(c.season).replace(/^20(\d\d)-(\d\d)$/,'$1/$2')} на Sports.ru (${dec(c.perGame)} за матч).${c.flag?' Проверь роль, состав и здоровье и при необходимости задай поправку.':''}`));
+  if(Number.isFinite(f.seasonFloor)&&Number.isFinite(f.seasonCeiling))box.append(el('p',seasonRangeLine(f,database?.projectionModelAudit)));
+  if(c)box.append(el('p',sportsCheckLine(c)));
  }else if(personal)box.append(el('p',`Индивидуальный прогноз ESPN: ${dec(personal.componentFPPerGame)} ФО за матч без фолов и бонусов.`));
  else if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&Number.isFinite(p.projectedFP))box.append(el('p',`Групповой ориентир для rookie: ${dec(p.projectedFP)} ФО за матч. Это не персональный прогноз.`));
  else if(Number.isFinite(p.projectedFP))box.append(el('p',`Историческая основа: ${dec(p.projectedFP,2)} ФО за матч.`));
  else box.append(el('p','Прогноза нет.'));
  return box;
 }
-// Where a forecast comes from, in one sentence: the career model, ESPN, the draft-pick model and their numbers.
-function forecastSources(f){
- if(f.version!==4)return `Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}.${f.rookieExtrapolation&&f.analogs?.length?' Похожие игроки для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'.':''}`;
- const m=f.sources?.model,e=f.sources?.espn,parts=[];
- if(m)parts.push(`${f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных новичков':'модель по карьере'}: ${dec(m.perGame)} × ${count(Math.round(m.games),'матч','матча','матчей')}`);
- if(e)parts.push(`ESPN: ${dec(e.perGame)} × ${Math.round(e.games)}`);
- return `Основа: ${parts.join('; ')}${e?' — итог их среднее':''}.${Number.isFinite(f.shortSeasonRisk)?` Риск короткого сезона (меньше четверти матчей): ${pct(f.shortSeasonRisk)}.`:''}`;
-}
-const SEASON_END={healthy:'прошлый сезон закончил в строю',endedOut:'прошлый сезон закончил с пропуском 10+ матчей',noGames:'прошлый сезон пропустил целиком'};
-// Health in numbers: the absence chain's personal spell rates against the league and the games range they imply.
-function healthLine(a){
- return `Здоровье по логам 2002–2026: коротких пропусков (1–3 матча) ${dec(a.shortSpellsPer82)} за 82 матча при ${dec(a.leagueShortSpellsPer82)} у ровесников, длинных (4+) ${dec(a.longSpellsPer82)} при ${dec(a.leagueLongSpellsPer82)}; ${SEASON_END[a.lastSeasonEnd]??'конец прошлого сезона неизвестен'}. С вероятностью 80% сыграет ${a.gamesRange[0]}–${a.gamesRange[1]} матчей, медиана ${a.gamesMedian}.`;
-}
+// Where a forecast comes from, its range and the player's absences: src/forecast-text.js, shared with the season tab.
 function forecastCard(p){
  const f=p.forecast,box=el('div',null,'forecast-panel');
  if(f.conditionalOnRoster)box.append(el('p','Условная оценка при возвращении в ротацию NBA: действующий ростер не подтверждён.','warning'));
@@ -235,12 +254,12 @@ function forecastCard(p){
   const cell=el('div');cell.append(el('small',label),el('strong',value));grid.append(cell);
  }
  box.append(grid);
- box.append(el('p',f.version===4?'Потолок матча — 90-й процентиль собственных матчей игрока за два сезона (у новичков — игроков того же уровня). Слабый и сильный сезон — 10-й и 90-й процентили, проверенные на прошлых сезонах.':'Ролевой ориентир сравнивает средние показатели похожих игроков; сезонный диапазон для такой оценки не откалиброван.'));
- if(f.version===4&&f.availability)box.append(el('p',healthLine(f.availability)));
+ box.append(el('p',f.version===4?'Потолок матча — 90-й процентиль собственных матчей игрока за два сезона, сдвинутый к прогнозу ФО за матч (у новичков и у сыгравших за два сезона меньше 10 матчей — игроков того же уровня). '+rangeMethod(f,database?.projectionModelAudit):'Ролевой ориентир сравнивает средние показатели похожих игроков; сезонный диапазон для такой оценки не откалиброван.'));
+ if(f.version===4&&f.availability)box.append(el('p',healthLine(f.availability,f,database?.projectionModelAudit)));
  if(f.transfer)box.append(el('p',`С заменами при травмах: ${int(f.slotSeason)} ФО = ${int(f.meanSeason)} своих + ${int(f.transfer.value)} от замены. Длинные пропуски закрывает трансфер: в среднем ${dec(f.transfer.replacedGames)} матча по ${dec(f.transfer.replacementPerGame)} ФО. По этой ценности строится рейтинг драфта.`));
  if(f.scoringBreakdown){
-  const table=el('table',null,'scoring-breakdown');table.append(el('caption','Формула Sports.ru · вклад за матч'));
-  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери (×2)',personalFouls:'Фолы',participation:'Бонус за минуты',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, ESPN)'};
+  const table=el('table',null,'scoring-breakdown');table.append(el('caption','Формула FBL (Yahoo: +1 за сыгранный матч, без бонуса за результат) · вклад за матч'));
+  const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери (×2)',personalFouls:'Фолы',participation:'За сыгранный матч',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, ESPN)'};
   for(const [key,value] of Object.entries(f.scoringBreakdown)){const row=el('tr');row.append(el('th',labels[key]||key),el('td',signedDec(value,2)));table.append(row);}
   const total=el('tr');total.append(el('th','Итого за матч'),el('td',dec(f.meanPerGame,2)));table.append(total);
   const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap);
@@ -326,7 +345,7 @@ function renderPlan(){
    }
    parts.push(el('h4',a.onTheClock?'Если взять другого':'Альтернативы к твоему пику'),options);
   }
-  const method=el('details',null,'method');method.append(el('summary','Как считается'),el('p',`${a.profile.runs} симуляций драфта: соперники — боты приложения. Игрок попадает в план, только если доживает до твоего пика с вероятностью от ${pct(a.threshold)}. Затем точная оптимизация суммы сезонных прогнозов при бюджете, двух слотах на позицию, rookie и белом правиле. *ФО в списке — прогноз сезона с поправкой на риск, поэтому немного ниже, чем в карточке. Живые GM выбирают иначе, чем боты: план пересчитывается после каждого пика.`));
+  const method=el('details',null,'method');method.append(el('summary','Как считается'),el('p',`${count(a.profile.runs,'симуляция','симуляции','симуляций')} драфта${a.profile.requested>a.profile.runs?` из ${int(a.profile.requested)} (в остальных соперники не нашли допустимого пика)`:''}: в половине соперники — боты приложения, в половине выбирают по ADP ESPN с шумом. Игрок попадает в план, только если доживает до твоего пика с вероятностью от ${pct(a.threshold)}. Затем точная оптимизация суммы сезонных прогнозов при бюджете, двух слотах на позицию, rookie и белом правиле. *ФО в списке — прогноз сезона с поправкой на риск, поэтому немного ниже, чем в карточке. Шанс дожить — ориентир, а не точная вероятность: на повторе драфта 18.10 из игроков с шансом от 80 % соперники забрали 8 %, а не 4 %. Живые GM выбирают иначе, чем боты: план пересчитывается после каждого пика.`));
   parts.push(method);
   box.replaceChildren(...parts);
  };
@@ -406,7 +425,7 @@ function renderPostDraft(){
  $('standings-note').hidden=!complete;
  if(complete&&sim){
   const table=el('table',null,'standings-table'),head=el('tr');
-  for(const [h,cls] of [['#',''],['Команда',''],['Прогноз','num'],['8 сезонов из 10','num wide-only'],['1-е место','num']]){const th=el('th',h,cls);th.scope='col';head.append(th);}table.append(head);
+  for(const [h,cls] of [['#',''],['Команда',''],['Прогноз','num'],['80% сценариев','num wide-only'],['1-е место','num']]){const th=el('th',h,cls);th.scope='col';head.append(th);}table.append(head);
   rows.forEach((t,rank)=>{const tr=el('tr');if(t.team===1)tr.className='mine';
    const team=el('th',null,'team');team.scope='row';team.append(teamName(t.team-1));if(t.team===1)team.append(' ',el('span','ты','chip chip--accent'));
    tr.append(el('td',String(rank+1)),team,el('td',int(t.sim.mean),'num total'),el('td',`${int(t.sim.p10)}–${int(t.sim.p90)}`,'num wide-only'),el('td',dec(t.sim.firstPlaceShare)+' %','num'));table.append(tr);});
@@ -452,8 +471,8 @@ function renderScenarioAnalysis(){
   box.replaceChildren(el('h4','Кто чаще лидирует, если остальные пики сделают боты'),table,el('p','Меняются только пики ботов; матчи не моделируются.','muted'));return;
  }
  $('simulation-status').textContent=`Готово: ${int(result.runs)} сценариев сезона.`;
- const table=el('table',null,'standings-table'),head=el('tr');for(const [h,c] of [['Команда',''],['Прогноз','num'],['8 из 10','num wide-only'],['1-е место','num']])head.append(el('th',h,c));table.append(head);
- for(const t of [...result.teams].sort((a,b)=>b.base-a.base)){const tr=el('tr');if(t.team===1)tr.className='mine';const first=el('td',dec(t.firstPlaceShare)+' %','num');first.title=`95% доверительный интервал: ${t.firstPlaceCI.map(x=>dec(x)).join('–')}%`;
+ const table=el('table',null,'standings-table'),head=el('tr');for(const [h,c] of [['Команда',''],['Прогноз','num'],['80% сценариев','num wide-only'],['1-е место','num']])head.append(el('th',h,c));table.append(head);
+ for(const t of [...result.teams].sort((a,b)=>b.base-a.base)){const tr=el('tr');if(t.team===1)tr.className='mine';const first=el('td',dec(t.firstPlaceShare)+' %','num');first.title=`Точность расчёта (Монте-Карло, 95%): ${t.firstPlaceCI.map(x=>dec(x)).join('–')}%. Не учитывает неточность самой модели.`;
   tr.append(el('td',teamName(t.team-1)),el('td',int(t.base),'num'),el('td',`${int(t.p10)}–${int(t.p90)}`,'num wide-only'),first);table.append(tr);}
  const details=el('details',null,'method');details.append(el('summary','Как читать'),el('p',`${result.assumptions.range}. Корреляция: ${result.assumptions.correlation}. «1-е место» — доля первых мест в этих модельных сценариях, а не вероятность победы в FBL.`));
  const wrap=el('div',null,'table-scroll');wrap.append(table);box.replaceChildren(wrap,details);
@@ -493,7 +512,8 @@ function renderStatus(){
 }
 function render(){
  renderStatus();renderRoster();renderHistory();renderCandidates();renderPlan();renderPostDraft();renderPractice();renderScenarioAnalysis();
- setSeasonPlayers(state.players,card);
+ // The season tab scores the league with the latest installed forecasts; pick snapshots stay with the draft tab.
+ setSeasonPlayers(seasonCatalog(state,database),card);
 }
 
 // ---------- Database ----------
@@ -508,13 +528,13 @@ async function loadDatabase(force=false){
  setSeasonDatabaseState('loading');
  // Render a valid cached database before waiting for the network.
  if(!state.players.length||needsCatalog){
-  try{const cached=await readCache('fbl-default-db');if(cached){state=installDatabase(state,cached);database=cached;needsCatalog=false;save();banner('info','Сохранённая база готова. Проверяю обновление…');}}catch{}
+  try{const cached=await readCache('fbl-default-db');if(cached){state=installDatabase(state,cached);database=cached;needsCatalog=false;seedLive();save();banner('info','Сохранённая база готова. Проверяю обновление…');}}catch{}
  }
  try{
   const candidate=await fetchDatabase(import.meta.env.BASE_URL+'data/default-draft.json');
   newDraft(candidate.players,DEFAULT_CAP,candidate.priceMode||'OFF');
   if(force||!state.players.length||needsCatalog||(state.databaseVersion&&state.databaseVersion!=='manual')||(!state.picks.length&&!state.databaseVersion)){
-   state=installDatabase(state,candidate);database=candidate;needsCatalog=false;
+   state=installDatabase(state,candidate);database=candidate;needsCatalog=false;seedLive();
    // Applying the fetched database must not depend on storage capacity.
    save();
   }else database=candidate;
@@ -556,7 +576,7 @@ $('undo').onclick=()=>{
 $('reset').onclick=()=>{
  const n=state.picks.length;
  if(!confirm(n?`Удалить все ${count(n,'пик','пика','пиков')} (${mode==='INTERACTIVE'?'тренировка':'реальный драфт'}) и начать заново? Резервную копию можно скачать в этих же настройках.`:'Начать драфт заново?'))return;
- state=restartDraft(state,database);lastScenario=null;$('simulation-status').textContent='';save();toast('Новый драфт начат');
+ state=restartDraft(state,database);lastScenario=null;$('simulation-status').textContent='';const official=seedLive();save();toast(official?`Реальный драфт: восстановлены итоги ${DRAFT_DATE.slice(8)}.${DRAFT_DATE.slice(5,7)}`:'Новый драфт начат');
 };
 $('refresh-database').onclick=()=>loadDatabase(true);
 $('load').onclick=()=>{try{const v=JSON.parse($('data').value);const priced=v.players.every(p=>p.priceStatus==='VERIFIED'&&Number.isFinite(p.price));state={...newDraft(v.players,DEFAULT_CAP,priced?'ON':'OFF'),databaseVersion:'manual'};save();$('settings').open=false;toast('Своя база загружена');}catch(e){showError(e,$('load'));}};

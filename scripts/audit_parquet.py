@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 import pyarrow.parquet as pq
 from minute_encoding import normalize_minutes
+try:from fbl_formula import participation
+except ImportError:from scripts.fbl_formula import participation
 
 SEASONS = ('2023-24', '2024-25', '2025-26')
 STATS = ('pts','reb','ast','stl','blk','fga','fgm','fta','ftm','tov','pf','minutes')
@@ -56,7 +58,7 @@ for season in SEASONS:
             p['name']=latest['player_name']
             # Result bonuses are deliberately excluded: the inputs have no explicit win/loss field.
             core=sum(r['pts']+r['reb']+r['ast']+r['stl']+r['blk']-(r['fga']-r['fgm'])
-                     -(r['fta']-r['ftm'])-2*r['tov']-r['pf']+(2 if r['minutes']>=10 else 1) for r in logs)
+                     -(r['fta']-r['ftm'])-2*r['tov']-r['pf']+participation(r['minutes']) for r in logs)
             p['seasons'][season]={'games':len(logs),'lastHistoricalTeam':latest['team'],
                 'averages':{k:round(sum(r[k] for r in logs)/len(logs),4) for k in STATS},
                 'historicalCoreFPPerGame':round(core/len(logs),4),'coreFPTotal':core}

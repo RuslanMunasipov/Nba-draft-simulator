@@ -20,7 +20,7 @@ test('transfers move players between the draft roster and the free agent pool',(
  const both=stints([...t,{team:1,outId:2,inId:81,date:'2026-10-23'}],picks).filter(x=>x.playerId===81);
  assert.deepEqual(both.map(x=>[x.team,x.from,x.to]).sort(),[[0,'2026-10-22',null],[1,'2026-10-23',null]]);
  assert.throws(()=>seasonRosters([{team:0,outId:2,inId:82,date:'2026-10-23'}],picks),/нет в составе/);
- const s=stints(t,picks);assert.deepEqual(s.find(x=>x.playerId===1),{team:0,playerId:1,from:'2026-10-18',to:'2026-10-22'});
+ const s=stints(t,picks);assert.deepEqual(s.find(x=>x.playerId===1),{team:0,playerId:1,from:'2026-10-18',fromAt:null,to:'2026-10-22',toAt:null});
  assert.equal(bank(0,t,()=>1500,picks),20000-15000+100);
 });
 test('without a calendar the week runs Tuesday to Monday in Moscow dates',()=>{
@@ -64,8 +64,11 @@ test('minutes move the estimate before points per minute do',()=>{
  const vet={forecast:{meanPerGame:30,minutes:30}},rookie={...vet,isRookie:true};
  const games=Array.from({length:5},(_,i)=>({played:true,points:40,minutes:'40:00',date:'2026-10-2'+i}));
  const v=perGame(vet,{games}),r=perGame(rookie,{games});
- // Same 1 FP per minute: the estimate is exactly the expected minutes, between forecast and new role.
- assert.ok(Math.abs(v.value-v.minutes)<1e-9&&v.minutes>30&&v.minutes<40);
+ // The same counting rate in a bigger role (29 points per 30 minutes plus the +1): without the early-season lift the
+ // estimate is that rate times the expected minutes, between forecast and new role, plus the +1, which minutes do not scale.
+ const same=games.map(g=>({...g,points:29/30*40+1})),e=perGame(vet,{games:same},{...CALIBRATION.points,offsets:null});
+ assert.ok(Math.abs(e.value-(29/30*e.minutes+1))<1e-9&&e.minutes>30&&e.minutes<40);
+ assert.ok(v.minutes>30&&v.minutes<40);
  assert.ok(r.value>v.value,'newcomers adapt to a new role faster');
  assert.equal(perGame(vet,{games:[...games,{played:true,points:10,minutes:''}]}).value,(10*30+210)/16);
 });
@@ -135,15 +138,15 @@ test('a package can sell an expensive player to fund a better one elsewhere',()=
  const p=bestPackage(c,{team:0,bankMoney:0,k:2,sort:'season'});
  assert.ok(p.pairs.some(x=>x.in.id===100));assert.ok(p.bankAfter>=0);
 });
-test('box score uses the FBL formula: Sports.ru\'s without the team result bonus, win or lose',()=>{
+test('box score uses the FBL formula as Yahoo counts it: no team result bonus, 1 per game played',()=>{
  const line={MIN:'36',PTS:'30',FG:'11-20',FT:'6-8',REB:'10',AST:'8',STL:'2',BLK:'1',TO:'3',PF:'2'};
- assert.equal(boxScorePoints(line),30+10+8+2+1-9-2-6-2+2);
- assert.equal(boxScorePoints({...line,MIN:'8'}),34-1);
+ assert.equal(boxScorePoints(line),30+10+8+2+1-9-2-6-2+1);
+ assert.equal(boxScorePoints({...line,MIN:'8'}),33);
  // A few seconds on court with nothing else still earn the participation point.
  assert.equal(boxScorePoints({MIN:'0',FG:'0-0',FT:'0-0',PTS:'0',REB:'0'}),1);
  const event={status:{type:{completed:true}},competitions:[{competitors:[{team:{id:'1'},homeAway:'home',winner:false},{team:{id:'2'},homeAway:'away',winner:true}]}]};
  const summary={boxscore:{players:[{team:{id:'2'},statistics:[{labels:Object.keys(line),athletes:[{athlete:{id:'77'},stats:Object.values(line)},{athlete:{id:'78'},stats:[]}]}]}]}};
- assert.deepEqual(liveGamePoints(summary,event),{77:{points:34,minutes:36,final:true,counting:32,name:'',team:'',line}});
+ assert.deepEqual(liveGamePoints(summary,event),{77:{points:33,minutes:36,final:true,counting:32,name:'',team:'',line}});
 });
 test('packages never trade the season for a short-term gain unless asked',()=>{
  // Free agent 99 (C) is great this week but out from November; the roster centre is steady all season.
@@ -209,8 +212,9 @@ test('injured free agents worth a season transfer are flagged when they are abou
  assert.deepEqual(list.map(x=>[x.player.id,x.swap.outId,x.soon]),[[100,65,true]]);
 });
 test('a player too expensive for one swap is bought within a package that funds him',()=>{
- // #100 (C, 39 a game) costs 3000 with an empty bank: selling C #65 alone (1500) is not enough.
- const pricey=players.map(p=>p.id===100?{...p,price:3000}:p.id===96?{...p,price:0}:p);
+ // #100 (C, 45 a game) costs 3000 with an empty bank: selling C #65 alone (1500) is not enough. He is the real upgrade:
+ // the best package without him gains less (a 39-a-game #100 is not worth buying, since his package only beat doing nothing).
+ const pricey=players.map(p=>p.id===100?{...p,price:3000,forecast:{...p.forecast,meanPerGame:45}}:p.id===96?{...p,price:0}:p);
  const c=ctx({players:pricey});
  assert.equal(bestSwapFor(c,{team:0,playerId:100,bankMoney:0}),null);
  const one=acquisition(c,{team:0,playerId:100,bankMoney:0,k:1,minGain:0});assert.equal(one.worth,false);
@@ -234,6 +238,20 @@ test('a running or already listed game is not expected again',()=>{
  const share=playRate(p,base.live.players[p.sportsId],base);
  assert.ok(Math.abs(expectedPoints(p,base,'2026-10-19','2026-10-30').games-2*share)<1e-9);
  assert.ok(Math.abs(expectedPoints(p,{...base,running:new Map([[p.id,{day:'2026-10-21'}]])},'2026-10-19','2026-10-30').games-share)<1e-9);
+});
+test('a game gone from the calendar (played, not listed for the player) is not expected again',()=>{
+ const p=players[0],cal=[{date:'2026-10-21',gone:true},{date:'2026-10-21',opponent:'X'},{date:'2026-10-23'}];
+ const base={...ctx({today:'2026-10-21'}),live:{clubs:{[p.sportsClub]:cal},players:{[p.sportsId]:{games:[]}}}};
+ assert.ok(Math.abs(expectedPoints(p,base,'2026-10-19','2026-10-30').games-2*playRate(p,base.live.players[p.sportsId],base))<1e-9);
+});
+test('period windows: tours the calendar no longer lists are rebuilt back to the scoring start', async () => {
+ const {periodList}=await import('../src/season.js');
+ // 05.11: tours 1 and 2 are over and gone from Sports.ru's calendar, tour 3's first game (03.11) too.
+ const list=periodList({3:{start:'2026-11-04',end:'2026-11-09'},4:{start:'2026-11-10',end:'2026-11-16'}});
+ assert.deepEqual(list.map(w=>[w.n,w.start,w.end]),[[1,'2026-10-20','2026-10-26'],[2,'2026-10-27','2026-11-02'],[3,'2026-11-03','2026-11-09'],[4,'2026-11-10','2026-11-16']]);
+ const {periodWindows}=await import('../src/standings.js');
+ const w=periodWindows({today:'2026-11-05',live:{weeks:{3:{start:'2026-11-04',end:'2026-11-09'},4:{start:'2026-11-10',end:'2026-11-16'}}},players:[],rosters:[]});
+ assert.deepEqual([w.week.from,w.week.to,w.season.from],['2026-11-03','2026-11-09','2026-10-20']);
 });
 test('market players missing from the database get a price-based prior and are matched by the roster json',()=>{
  const live2={players:{'777':{name:'Новичок',fullName:'Новый Игрок',position:'C',price:1500,club:'Q'}}};
@@ -270,7 +288,8 @@ test('a healthy player is expected in the next games more often than his season 
  const week=expectedPoints(p,base,'2026-10-21','2026-10-27'),all=expectedPoints(p,base,'2026-10-21','2027-12-31');
  assert.ok(week.games/4>share+.05,`next games ${week.games/4} vs share ${share}`);
  assert.ok(all.games/60<week.games/4&&Math.abs(all.games/60-share)<.08);
- const hurt={...base,injuries:new Map([[String(p.espnId),{status:'Out',returnDate:'2026-10-29'}]])};
+ // ESPN dates the return by the US day: 28.10 is the evening game Sports.ru files under 29.10.
+ const hurt={...base,injuries:new Map([[String(p.espnId),{status:'Out',returnDate:'2026-10-28'}]])};
  assert.equal(expectedPoints(p,hurt,'2026-10-21','2026-10-27').games,0);
  // After the return he starts healthy again: the first week back is worth the same as a healthy week now.
  assert.ok(Math.abs(expectedPoints(p,hurt,'2026-10-29','2026-11-04').games-expectedPoints(p,base,'2026-10-21','2026-10-27').games)<1e-9);
@@ -398,18 +417,18 @@ test('finished games Sports.ru has not counted yet are scored at once from the E
   4:{club:'Сан-Антонио',games:[]}},clubs:{}};
  const players=[{id:'a',espnId:'11',sportsId:'1'},{id:'b',espnId:'22',sportsId:'2'},{id:'c',espnId:'33',sportsId:'3'},{id:'d',espnId:'44',sportsId:'4'}];
  const games=[
-  {id:'g1',date:'2026-10-20T23:30Z',state:'post',final:true,points:{11:{points:36,minutes:40,final:true,counting:34}}},
-  // ESPN rounds 9:58 to "10": Sports.ru's exact minutes give +1, not +2.
-  {id:'g2',date:'2026-10-20T19:00Z',state:'post',final:true,points:{22:{points:12,minutes:10,final:true,counting:10}}},
-  {id:'g3',date:'2026-10-21T00:00Z',state:'in',final:false,points:{33:{points:10,minutes:20,final:false,counting:8}}},
+  {id:'g1',date:'2026-10-20T23:30Z',state:'post',final:true,points:{11:{points:36,minutes:40,final:true,counting:35}}},
+  // ESPN rounds 9:58 to "10": Sports.ru's exact minutes stay on the row; the game point is +1 either way.
+  {id:'g2',date:'2026-10-20T19:00Z',state:'post',final:true,points:{22:{points:11,minutes:10,final:true,counting:10}}},
+  {id:'g3',date:'2026-10-21T00:00Z',state:'in',final:false,points:{33:{points:10,minutes:20,final:false,counting:9}}},
   {id:'g4',date:'2026-10-21T00:30Z',state:'post',final:true,points:{44:{points:6,minutes:8,final:true,counting:5}}}];
  const out=withBoxScores(live,games,players);
- assert.deepEqual(out.players[1].games[0],{date:'2026-10-21',opponent:'Нью-Йорк',home:false,minutes:'39:33',points:36,played:true,source:'ESPN',sportsRowPoints:0});
- assert.equal(out.players[2].games[0].points,11);
+ assert.deepEqual(out.players[1].games[0],{date:'2026-10-21',opponent:'Нью-Йорк',home:false,tip:'2026-10-20T23:30Z',minutes:'39:33',points:36,played:true,source:'ESPN',sportsRowPoints:0});
+ assert.equal(out.players[2].games[0].points,11);assert.equal(out.players[2].games[0].minutes,'09:58');
  // A running game: its Sports.ru row does not count yet, the running points do.
  assert.equal(out.players[3].games[0].played,false);
  // Sports.ru has not listed the game at all: the box score adds it.
- assert.deepEqual(out.players[4].games,[{date:'2026-10-21',minutes:'8',points:6,played:true,source:'ESPN'}]);
+ assert.deepEqual(out.players[4].games,[{date:'2026-10-21',tip:'2026-10-21T00:30Z',minutes:'8',points:6,played:true,source:'ESPN'}]);
  assert.equal(live.players[1].games[0].points,0,'the fetched snapshot is not changed');
  // Team points and the per-game update use the scored game.
  const ctx={players:[{id:'a',sportsId:'1',forecast:{meanPerGame:20,minutes:35}}],live:out};

@@ -39,13 +39,24 @@ def mark_read(snapshot,fresh,stamp=None):
         entry=snapshot.get('teams',{}).get(t)
         if entry and sports.journal_events(rows)==sports.journal_events(entry.get('journal')):entry['journalReadAt']=stamp
     return snapshot
+# A team's profile as Sports.ru shows it, read as one page (parse_team).
+PROFILE=('name','value','balance','transfersLeft','transfersUnlimited','place','of','deadline','week')
 def merge_full(full,cur):
     """The full collection's snapshot, with each team's journal as the minute watcher knows it: the watcher read the
     journals while the collection ran, so its rows (and their pairing) and their times stand; events only the collection
-    saw are stamped as new (by sale and purchase, as everywhere)."""
+    saw are stamped as new (by sale and purchase, as everywhere). The profile (bank, transfers left) and the roster are
+    the later read's: a deal the watcher applied meanwhile read them after the collection did."""
     if not cur:return full
     for t,entry in (full.get('teams') or {}).items():
         mine=(cur.get('teams') or {}).get(t)
+        # Stamps compare as text (one ISO format); a copy without one (older data) never wins.
+        later=lambda key:mine and mine.get(key) and mine[key]>(entry.get(key) or '')
+        if later('profileReadAt'):
+            for k in PROFILE:
+                if k in mine:entry[k]=mine[k]
+                else:entry.pop(k,None)
+            entry['profileReadAt']=mine['profileReadAt']
+        if later('rosterReadAt') and mine.get('roster'):entry['roster'],entry['rosterReadAt']=mine['roster'],mine['rosterReadAt']
         if not mine or not mine.get('journal'):continue
         # Every event the collection saw is already known (it read the journal earlier): the watcher's journal stands.
         if not sports.journal_events(entry.get('journal'))-sports.journal_events(mine['journal']):entry['journal']=mine['journal']
@@ -64,16 +75,22 @@ def apply(snapshot,fresh,teams,config,read_from=None,held=None):
     held=held if held is not None else {}
     for t in teams:
         entry=dict(snapshot.setdefault('teams',{}).get(t) or {'sportsTeamId':config[t]})
+        # When this read began: merge_full keeps the later of this profile and roster and the full collection's.
+        read=now()
         try:
             profile=sports.fetch(sports.TEAM_URL.format(id=config[t]))
-            if profile:entry.update(sports.parse_team(profile))
+            got=sports.parse_team(profile) if profile else {}
+            # ∞ is the pre-season counter: a number read now ends it (parse_team marks only ∞).
+            if 'transfersLeft' in got and not got.get('transfersUnlimited'):entry.pop('transfersUnlimited',None)
+            entry.update(got)
+            if 'balance' in got:entry['profileReadAt']=read
         except Exception as e:  # noqa: BLE001
             print(f'team {t}: {e}',flush=True)
         try:
             roster=sports.fetch(sports.ROSTER_URL.format(id=config[t]));roster=sports.parse_roster(roster) if roster else None
         except Exception as e:  # noqa: BLE001
             print(f'team {t} roster: {e}',flush=True);roster=None
-        if roster:held.pop(t,None);entry['roster']=roster
+        if roster:held.pop(t,None);entry['roster'],entry['rosterReadAt']=roster,read
         else:
             held[t]=held.get(t,0)+1
             # Without the roster a namesake («Уайт», «Джонсон») would resolve to the wrong player.
