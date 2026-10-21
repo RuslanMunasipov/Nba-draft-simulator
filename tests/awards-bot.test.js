@@ -72,7 +72,7 @@ test('awards bot: day blocks split the league players from free agents and apply
  assert.deepEqual(b.heroes.map(l=>l.a),['a','c','b']);
  assert.deepEqual(b.flops.map(l=>l.a),['c','a'],'under 15 minutes is not a flop');
  assert.deepEqual(b.gold.map(l=>l.a),['d','f','e']);
- assert.deepEqual(b.antitop.map(l=>l.a),['c','f','d'],'the NBA antitop from 20 minutes');
+ assert.deepEqual(b.antitop.map(l=>l.a),['e','b','c'],'the NBA antitop takes every player, whatever the minutes');
  const w=weeklyBlocks([line('a',10,{h:[0],m:30}),line('a',12,{h:[0],m:31,e:'g2'}),line('b',-3,{h:[1],m:50})]);
  assert.deepEqual(w.heroes.map(r=>[r.a,r.p,r.games]),[['a',22,2],['b',-3,1]]);
  assert.deepEqual(w.flops.map(r=>r.a),['a'],'a weekly flop needs 60 minutes');
