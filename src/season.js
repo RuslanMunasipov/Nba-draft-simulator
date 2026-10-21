@@ -148,8 +148,9 @@ export function perGame(player,live,points=CALIBRATION.points){
  const played=(live?.games||[]).filter(g=>g.played).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))),sum=played.reduce((s,g)=>s+g.points,0);
  const out={prior,games:played.length,average:played.length?sum/played.length:null};
  const priorMinutes=player.forecast?.minutes,minutes=played.map(g=>clockMinutes(g.minutes));
- // Without minutes on both sides only the plain average can be shrunk.
- if(!played.length||!(priorMinutes>0)||minutes.some(m=>!(m>0)))return {...out,value:(PRIOR_GAMES*prior+sum)/(PRIOR_GAMES+played.length)};
+ // Without minutes on both sides only the plain average can be shrunk. A real 0 (an ESPN line of a few seconds, MIN '0')
+ // is minutes, as Sports.ru's '00:04' is: one cameo must not switch the estimator for the whole season.
+ if(!played.length||!(priorMinutes>0)||played.some(g=>String(g.minutes??'').trim()===''))return {...out,value:(PRIOR_GAMES*prior+sum)/(PRIOR_GAMES+played.length)};
  const c=points[newcomer(player)?'newcomer':'established'],n=minutes.length,o=points.offsets,scale=o?c.offsetScale||0:0;
  const lift=(xs,i)=>scale*xs[o.buckets.findIndex(([a,b])=>i>=a&&(b==null||i<=b))];
  const part=Number.isFinite(player.forecast?.components?.participation)?player.forecast.components.participation:participation(priorMinutes);
@@ -164,20 +165,33 @@ export function perGame(player,live,points=CALIBRATION.points){
 // already fitted, so it is not floored (scripts/inseason_calibration.py's [.5,.97] clamp regularises its raw previous-
 // season prior; it counted a 16-game forecast as 41 games, +100-240 FP a season). Missed games count against the club calendar
 // too, in case Sports.ru lists only appearances.
-// While an injury report keeps him out, the report alone removes the games until his return (injuryFactor), so the share
-// for the games after it must not count that absence again: the prior is never below the model's own games (which never
-// see the report; a forecast under them has priced the absence in, as ESPN's totals for known long injuries do), and the
-// current run of missed games counts at most CALIBRATION.availability.spellMisses (fitted at the first game back).
+// The report alone removes the games until his return (injuryFactor), so the share for the games after it must not count
+// that absence again. An absence the build knew (forecast.knownAbsence, ESPN's dated return) is already out of
+// forecast.games, which covers only the games it leaves (the mean of ESPN's and the model's, owner decision 4): the share
+// is games/gamesLeft, whatever the report says now (a rookie's model games are cut by the block too). For a report the
+// build did not see the prior is never below the model's own games (which never see the report; a forecast under them has
+// priced the absence in, as ESPN's totals for known long injuries do). The current run of missed games counts at most
+// CALIBRATION.availability.spellMisses while a report (or the build's block) covers it, fitted at the first game back;
+// once he has played again his latest spell of spellGames+ misses keeps counting at most spellMissesAfterReturn
+// (spellMisses until that is fitted), no report needed: counted in full, the share fell by about 40% the day he came
+// back, and replayed on 2023-26 the share after a return is closer capped (2025/26: MAE 0.264 -> 0.245, t+1..t+40).
 export function playRate(player,live,ctx){
- const f=player.forecast,injury=ctx?.injuries?.get?.(String(player.espnId)),out=Boolean(injury)&&keptOut(injury)&&!seasonEnding(injury);
- const free=f?.availability?.unconditionalGames??f?.sources?.model?.games,g=out&&Number.isFinite(free)?Math.max(Number.isFinite(f?.games)?f.games:0,free):f?.games;
+ const f=player.forecast,injury=ctx?.injuries?.get?.(String(player.espnId)),ending=Boolean(injury)&&seasonEnding(injury),out=Boolean(injury)&&keptOut(injury)&&!ending;
+ const ka=f?.knownAbsence,left=ka?.gamesLeft>0&&Number.isFinite(f?.games)?ka.gamesLeft:0;
+ const free=f?.availability?.unconditionalGames??ka?.unconditionalGames??f?.sources?.model?.games;
+ const g=left?f.games*82/left:out&&Number.isFinite(free)?Math.max(Number.isFinite(f?.games)?f.games:0,free):f?.games;
  const prior=Number.isFinite(g)?Math.min(.97,Math.max(.01,g/82)):.85,today=ctx?.today;
  const rows=(live?.games||[]).filter(x=>x.played||today&&x.date<today),on=rows.filter(x=>x.played).length;
  const club=ctx?.live?.clubs?.[live?.club||player.sportsClub]||[],finished=club.filter(x=>x.score&&(!today||x.date<=today));
- let team=Math.max(rows.length,finished.length,on);const k=CALIBRATION.availability.priorGames,cap=CALIBRATION.availability.spellMisses;
- if(out&&Number.isFinite(cap)){
-  const last=rows.filter(x=>x.played).reduce((m,x)=>x.date>m?x.date:m,''),run=Math.max(finished.filter(x=>x.date>last).length,rows.filter(x=>!x.played&&x.date>last).length);
-  team-=run-Math.min(run,cap);
+ let team=Math.max(rows.length,finished.length,on);const {priorGames:k,spellMisses:cap,spellGames:spell}=CALIBRATION.availability,back=CALIBRATION.availability.spellMissesAfterReturn??cap;
+ if(Number.isFinite(cap)){
+  const seen=new Set(rows.filter(x=>x.played).map(x=>x.date)),last=[...seen].reduce((m,d)=>d>m?d:m,'');
+  const run=Math.max(finished.filter(x=>x.date>last).length,rows.filter(x=>!x.played&&x.date>last).length);
+  // Misses before his last game, over the club's finished games and his listed rows (a traded player's old club too).
+  let r=0,spellRun=0;
+  if(last){for(const d of [...new Set([...finished,...rows].map(x=>x.date))].filter(d=>d<last).sort()){if(seen.has(d)){if(r>=spell)spellRun=r;r=0;}else r++;}if(r>=spell)spellRun=r;}
+  const excess=(injury?!ending:left)?run-Math.min(run,cap):0;
+  team=Math.max(on,team-excess-(spellRun-Math.min(spellRun,back)));
  }
  return (k*prior+on)/(k+team);
 }
@@ -222,24 +236,31 @@ export function newsInjuries(feed){
  return [...out.values()].sort((a,b)=>a.first<b.first?-1:1);
 }
 // The season tag of ESPN comments ("2026-27"), from the draft's year.
-const SEASON=`${DRAFT_DATE.slice(0,4)}-${String(Number(DRAFT_DATE.slice(0,4))+1).slice(2)}`;
+const YEAR=Number(DRAFT_DATE.slice(0,4)),SEASON=`${YEAR}-${String(YEAR+1).slice(2)}`;
 // An injury report that keeps the player out (not a game-time decision).
 const keptOut=injury=>/out|suspension/i.test(String(injury?.status||''))&&String(injury?.fantasyStatus||'')!=='GTD';
-// ESPN marks a season-ending injury OFS, or keeps OUT with a placeholder return date and says it only in the comment
-// ("will miss the remainder of the season", "a season-ending ruptured Achilles"); not "the season opener", not last season's.
-const OVER=new RegExp(`out for (the )?season\\b(?![- ]opener)|\\bseason[- ]ending\\b|miss the (entire |rest of the |remainder of the )?(${SEASON} )?season\\b(?![- ]opener)|\\b(remainder|rest|entirety|balance) of the (${SEASON} )?season\\b(?![- ]opener)`,'i');
-const PAST=/\b(last|previous|past|20\d\d-\d\d) season['’]s season[- ]ending\b/gi;
-export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||keptOut(injury)&&OVER.test(String(injury?.comment||'').replace(PAST,''));
+// ESPN marks a season-ending injury OFS, or keeps OUT with a placeholder return date and says it only in the comment:
+// "will miss the remainder of the (regular) season", "is out for the season", "has sustained a season-ending ruptured
+// Achilles". Not "the season opener" (finale, series, debut) or "the start of the season", and not an injury of his
+// past: "season-ending" counts only after sustain/suffer/undergo/underwent/require/need ("the season-ending surgery he
+// underwent in March" is his history), and a part of the comment (a sentence, or a part between commas) naming an earlier
+// season or year ("last season", "a year ago", "2025", "2025-26") or saying he "missed the rest of"/"was out for" it is
+// skipped. One false match zeroes his season everywhere. scripts/projection_model.py absence() must read the same words.
+const OVER=new RegExp(`\\bout for (the )?(${SEASON} )?(regular[- ])?season\\b(?![- ](opener|finale|series|debut))|\\b(sustain|suffer|undergo|underwent|require|need)\\w*\\s+(an?\\s+)?season[- ]ending\\b|\\bmiss the (entire |rest of the |remainder of the )?(${SEASON} )?(regular[- ])?season\\b(?![- ](opener|finale|series|debut))|\\b(remainder|rest|entirety|balance) of the (${SEASON} )?(regular[- ])?season\\b(?![- ](opener|finale|series|debut))`,'i');
+const PAST=/\b(last|previous|past) (season|year|campaign)\b|\ba year ago\b|\bmissed (all |most |much )?(of )?the (entire|rest|remainder|entirety|balance)\b|\bwas out for\b/i;
+const earlier=part=>PAST.test(part)||[...part.matchAll(/\b(20\d\d)\b/g)].some(m=>Number(m[1])<YEAR);
+export const seasonEnding=injury=>String(injury?.fantasyStatus||'')==='OFS'||keptOut(injury)&&String(injury?.comment||'').split(/[.;!?](?:\s|$)|,\s/).some(s=>OVER.test(s)&&!earlier(s));
 // Chance to play a game given the ESPN injury report. `day` is the game's US day (usDay), the calendar of ESPN's return
-// dates; today is the Moscow date. Season-ending: no game, whatever placeholder date ESPN shows. Out with a return date:
-// no game before it (without one: none for 10 days). Day-to-day: ESPN's return date is the doubtful game itself, so the
-// games up to it count half (without a date, or with one already past, those of the next 3 days do).
-export function injuryFactor(injury,day,today){
+// dates; today is the Moscow date, usToday the US day now (from 00:00 MSK until the US evening ends it is the day before).
+// Season-ending: no game, whatever placeholder date ESPN shows. Out with a return date: no game before it (without one:
+// none for 10 days). Day-to-day: ESPN's return date is the doubtful game itself, so the games up to it count half
+// (without a date, or with one already past in US days, those of the next 3 days do).
+export function injuryFactor(injury,day,today,usToday=today){
  if(!injury)return 1;
  if(seasonEnding(injury))return 0;
  const back=injury.returnDate?String(injury.returnDate).slice(0,10):null;
  if(keptOut(injury))return back?(day<back?0:1):(day<addDays(today,10)?0:1);
- return day<=(back&&back>=today?back:addDays(today,2))?.5:1;
+ return day<=(back&&back>=usToday?back:addDays(usToday,2))?.5:1;
 }
 // The NBA adds each club's last 2 of 82 games after the NBA Cup group stage; until Sports.ru lists them the calendar has
 // 80 and the season horizon misses 2.4% of every player's games. They are counted in the club's longest December break,
@@ -255,25 +276,45 @@ export function seasonCalendar(live,club){
  const out=gap&&span(gap)>missing?[...games,...Array.from({length:missing},(_,i)=>({date:addDays(gap[0],Math.round(span(gap)*(i+1)/(missing+1))),placeholder:true}))]:games;
  filled.set(games,out);return out;
 }
+// Share of a running game still to play: from ESPN's clock on it ("8:22 - 3rd", "Halftime", "End of 1st", "2:00 - OT";
+// 48 regulation minutes), else from the minutes he has played against those he is expected to play; none of a final.
+function gameLeft(run,minutes){
+ const d=String(run?.game?.detail||'').trim();let m;
+ if(run?.final||run?.game?.final)return 0;
+ if(/half/i.test(d))return .5;
+ if((m=d.match(/^End of (\d)(st|nd|rd|th)\b/i)))return Math.max(0,4-m[1])/4;
+ if((m=d.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)\s*-\s*(\d*)(st|nd|rd|th|OT)$/i))){const clock=(m[1]?Number(m[1]):0)+m[2]/60;return /OT/i.test(m[4])?clock/48:Math.max(0,(4-m[3])*12+clock)/48;}
+ return minutes>0?Math.max(0,1-clockMinutes(run?.minutes)/minutes):0;
+}
 // Expected official points between two dates (inclusive), counting only club games not yet played: a game is done once
 // the calendar has its score or marks it gone (dropped from Sports.ru's calendar), its day has passed, Sports.ru lists it
 // for the player, it is running (ctx.running), or it has tipped off by ctx.now (a time, when given: such a game can no
 // longer be gained by a move). A game counts in the window of its Sports.ru tour (tourDate). Each game counts with the
 // injury report's factor times the chain's chance to be available that many healthy games on (counted from today, or
 // from the return of an injured player); without hazards (rookies, market players) it is the flat season share.
+// A game he is playing now (ctx.running, which the standings and the team forecast pass with its points so far; transfer
+// gains never do, a move cannot gain it) adds the rest of it: his counting points per game times the share still to
+// play, the game point being in the running points already. It is not a game left. clubGames: the club games left in
+// the window, the same ones (what the share of games he plays is read against).
 export function expectedPoints(player,ctx,from,to){
  const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,calendar=seasonCalendar(ctx.live,club),weeks=weeksOf(ctx.live);
- const share=playRate(player,live,ctx),value=perGame(player,live).value,injury=ctx.injuries?.get(String(player.espnId));
- const done=new Set((live?.games||[]).map(x=>x.date)),running=ctx.running?.get(player.id)?.day,h=player.forecast?.availability?.hazards;
+ const share=playRate(player,live,ctx),pg=perGame(player,live),value=pg.value,injury=ctx.injuries?.get(String(player.espnId));
+ const run=ctx.running?.get(player.id),done=new Set((live?.games||[]).map(x=>x.date)),running=run?.day,h=player.forecast?.availability?.hazards;
  const ahead=calendar.filter(g=>!(g.score||g.gone||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running||ctx.now&&tipOf(g)<=ctx.now)).sort((a,b)=>a.date<b.date?-1:1);
+ // ESPN's return dates are US days. The US day now: from ctx.now when given; else the Moscow date, or the day before
+ // while a US evening game filed under today's Moscow date has no score yet (from 00:00 MSK until its result is in).
+ const usToday=!injury?ctx.today:ctx.now?new Date(ctx.now-5*3600e3).toISOString().slice(0,10):ctx.today&&calendar.some(g=>g.date===ctx.today&&!g.score&&!g.gone&&usDay(g)<g.date)?addDays(ctx.today,-1):ctx.today;
  const curve=Array.isArray(h)?chainCurve(h,share,ahead.length):null;
- let games=0,points=0,healthy=0;
+ let games=0,points=0,healthy=0,clubGames=0;
  for(const g of ahead){
-  const f=injury?injuryFactor(injury,usDay(g),ctx.today):1;if(!f)continue;
-  const p=f*(curve?curve[healthy++]:share),day=tourDate(g,weeks);
-  if(day>=from&&day<=to){games+=p;points+=value*p;}
+  const day=tourDate(g,weeks),inside=day>=from&&day<=to;if(inside)clubGames++;
+  const f=injury?injuryFactor(injury,usDay(g),ctx.today,usToday):1;if(!f)continue;
+  const p=f*(curve?curve[healthy++]:share);
+  if(inside){games+=p;points+=value*p;}
  }
- return {points,games};
+ if(running){const now=calendar.find(g=>g.date===running),day=now?tourDate(now,weeks):running;
+  if(day>=from&&day<=to)points+=(value-GAME_PLAYED)*gameLeft(run,pg.minutes??player.forecast?.minutes);}
+ return {points,games,clubGames};
 }
 export function horizons(ctx){
  const all=weeksOf(ctx.live),last=Object.values(all).reduce((m,w)=>w.end>m?w.end:m,ctx.today),week=weekOf(ctx.today,all);
@@ -598,14 +639,14 @@ export function pointsSpread(player,ctx,outlook){
  const game=f&&Number.isFinite(f.gameFloor)?(f.gameCeiling-f.gameFloor)/(2*Z90):Math.max(4,(outlook.points/Math.max(1,outlook.games))*.4);
  return Math.sqrt((rel*outlook.points)**2+game*game*Math.max(0,outlook.games));
 }
-// What one player brings over a horizon, split as points per game x share of the club's games he plays x club games.
+// What one player brings over a horizon, split as points per game x share of the club's games he plays x club games
+// (those expectedPoints counts: the NBA Cup games not listed yet included, by tour).
 export function playerPicture(player,ctx,key){
- const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,h=horizons(ctx)[key];
+ const live=ctx.live?.players?.[player.sportsId],h=horizons(ctx)[key];
  const outlook=expectedPoints(player,ctx,h.from,h.to),g=perGame(player,live),rate=playRate(player,live,ctx);
- const clubGames=(ctx.live?.clubs?.[club]||[]).filter(x=>x.date>=h.from&&x.date<=h.to&&!x.score&&!x.gone&&!(ctx.today&&x.date<ctx.today)).length;
  const injury=ctx.injuries?.get(String(player.espnId))||null,played=(live?.games||[]).filter(x=>x.played);
  return {player,points:outlook.points,perGame:g.value,prior:g.prior,average:g.average,played:played.length,playRate:rate,
-  expectedGames:outlook.games,clubGames,injury,spread:pointsSpread(player,ctx,outlook),
+  expectedGames:outlook.games,clubGames:outlook.clubGames,injury,spread:pointsSpread(player,ctx,outlook),
   price:current(player,ctx).price,priceChange:Number.isFinite(live?.price)&&Number.isFinite(live?.initialPrice)?live.price-live.initialPrice:0};
 }
 // Exact additive split of a difference of products a1*b1*c1 - a0*b0*c0: the logarithmic mean when every factor is positive;
