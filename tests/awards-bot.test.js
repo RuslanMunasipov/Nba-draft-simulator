@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseScoreboard,parseSummary,makeLeague,benchOf,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,sixthRace,monthFive,
- moved,withoutRookie,reportDay,weekOf,isMonthEnd,isSunday,deadline,daysBetween,special} from '../awards-bot/core.js';
+ moved,withoutRookie,reportDay,weekOf,isMonthEnd,isSunday,daysBetween,special} from '../awards-bot/core.js';
 import {statLine,split,esc,dailyText,racesText,recordsText,monthText,rookieAlert,dayLabel} from '../awards-bot/messages.js';
 
 const line=(a,p,extra={})=>({d:'2026-10-21',e:'g1',a,n:'P'+a,c:'DEN',t:'2026-10-22T00:00Z',m:30,p,h:[],b:[],
@@ -103,13 +103,12 @@ test('awards bot: the month five takes the best of each position held at the mon
  assert.deepEqual(five.map(x=>[x.pos,x.row?.a]),[['PG','c'],['SG',undefined],['SF',undefined],['PF',undefined],['C','b']]);
  assert.deepEqual(withoutRookie([[{isRookie:true}],[{isRookie:false}]],p=>p.isRookie),[1]);
 });
-test('awards bot: report day, weeks, month ends and the posting deadline',()=>{
+test('awards bot: report day, weeks and month ends',()=>{
  assert.equal(reportDay(Date.parse('2026-10-22T04:00:00Z')),'2026-10-21','07:00 Moscow reports the US evening before');
  assert.equal(reportDay(Date.parse('2026-10-22T08:50:00Z')),'2026-10-21');
  assert.deepEqual(weekOf('2026-10-25'),{n:1,start:'2026-10-19',end:'2026-10-25'});
  assert.equal(weekOf('2026-10-26').n,2);
  assert.ok(isSunday('2026-10-25'));assert.ok(isMonthEnd('2026-10-31'));assert.ok(!isMonthEnd('2026-10-30'));
- assert.equal(new Date(deadline('2026-10-21')).toISOString(),'2026-10-22T08:45:00.000Z');
 });
 
 test('awards bot: texts bold only titles, names and points, keep rows together, escape names and fit Telegram',()=>{
@@ -118,10 +117,10 @@ test('awards bot: texts bold only titles, names and points, keep rows together, 
  assert.equal(dayLabel('2026-10-20'),'20 октября');
  const parts=split(['a'.repeat(3000),'b'.repeat(3000),'c'].join('\n\n'));
  assert.equal(parts.length,2);assert.ok(parts.every(p=>p.length<=4096));
- const text=dailyText('2026-10-21',dailyBlocks([line('a',40,{h:[0]}),line('d',30)]),who,{missing:[{home:'LAL',away:'GS'}]});
+ const text=dailyText('2026-10-21',dailyBlocks([line('a',40,{h:[0]}),line('d',30)]),who,{postponed:[{home:'LAL',away:'GS'}]});
  assert.match(text,/<b>⭐ Герои дня · 21 октября<\/b>\n🥇 /,'no empty line under a title');
  assert.ok(!/\d пот\n\n🥈|\d пот\n\n\d\./.test(text),'no empty line between players');assert.match(text,/🥇 <b>Pa<\/b> · DEN 🐎 — <b>40<\/b>/);
- assert.match(text,/🆓 Золотая жила/);assert.match(text,/GS — LAL/);
+ assert.match(text,/🆓 Золотая жила/);assert.match(text,/⏸ Перенесены: GS — LAL/);
  assert.equal(dailyText('2026-10-21',{heroes:[],flops:[],gold:[],antitop:[]},who),'');
  const r=races([line('a',40,{h:[0],b:[0]})],{rostered:new Map([['a',[0]]]),rookies:new Set(),mef:new Map()});
  const race=racesText({n:2},r,who,{mvp:['x','a'],sixth:['0:a']});
