@@ -222,6 +222,6 @@ test('live box scores: clock minutes are exact, a rounded "10" is marked unsure 
  const event={status:{type:{completed:false}}};
  const summary=lines=>({boxscore:{players:[{statistics:[{labels:Object.keys(line),athletes:lines.map((l,i)=>({athlete:{id:String(i)},stats:Object.values(l)}))}]}]}});
  const out=liveGamePoints(summary([line,{...line,MIN:'11'},{...line,MIN:'9'}]),event);
- assert.deepEqual(out[0],{points:5,minutes:10,final:false,counting:3,unsure:true});
+ assert.deepEqual({...out[0],name:undefined,team:undefined,line:undefined},{points:5,minutes:10,final:false,counting:3,unsure:true,name:undefined,team:undefined,line:undefined});assert.equal(out[0].line.MIN,'10');
  assert.ok(!out[1].unsure&&!out[2].unsure);assert.equal(out[2].points,4);
 });
