@@ -1,7 +1,7 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
 import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
-import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,stints,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,CONFIDENT,DOUBTFUL} from './season.js';
+import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,stints,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,periodList,CONFIDENT,DOUBTFUL} from './season.js';
 import {fetchLiveGames,moscowDate,nextLiveDelay,LIVE_MS} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 import {statLine} from './stat-line.js';
@@ -301,7 +301,7 @@ function overview(ctx){
 // ---------- Teams ----------
 // Fact and forecast windows: the current Sports.ru tour, four tours from it, and the whole season.
 function windows(ctx){
- const list=Object.entries(gameWeeks(live)).map(([n,w])=>({n:Number(n),...w})).sort((a,b)=>a.start.localeCompare(b.start)),h=horizons(ctx);
+ const list=periodList(gameWeeks(live)),h=horizons(ctx);
  const i=list.findIndex(w=>ctx.today>=w.start&&ctx.today<=w.end),at=i>=0?i:list.findIndex(w=>w.start>ctx.today),cur=list[at]||null,start=cur?.start||ctx.today;
  return {week:{from:start,to:cur?.end||h.week.to},month:{from:start,to:cur?(list[at+3]||list.at(-1)).end:addDaysIso(start,27)},season:{from:list[0]?.start||start,to:h.season.to}};
 }
