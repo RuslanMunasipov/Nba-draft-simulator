@@ -85,7 +85,8 @@ for(const p of database.players.filter(p=>p.forecast)){
  assert.ok(Math.abs(Object.values(f.components).reduce((a,b)=>a+b,0)-f.meanPerGame)<1e-6,'Component identity '+p.name);
  assert.ok(f.gameFloor<=f.gameCeiling&&f.seasonFloor<=f.meanSeason&&f.meanSeason<=f.seasonCeiling);
 }
-console.log('Complete formula forecast audit:',JSON.stringify(database.forecastAudit));
+console.log('Legacy v2 forecast stage audit (every shown forecast is replaced by projection_model v4 or complete_forecasts v3):',JSON.stringify(database.forecastAudit));
+console.log('Shipped projection model, held out 2025/26:',JSON.stringify(database.projectionModelAudit?.holdout??null));
 console.log('Complete rookie projections:',JSON.stringify(rookieRecommendations(draft).players.map(p=>({name:p.name,forecast:p.forecast}))));
 
 const scoringAudit=JSON.parse(await readFile('dist/data/scoring-audit.json','utf8'));
@@ -107,7 +108,7 @@ assert.ok(pickCompletion(draft,boozer.id).possible,'Boozer must be selectable in
 const chosenBoozer=advanceBots(pick(draft,boozer.id),{seed:1});
 assert.equal(chosenBoozer.picks.length,8);
 assert.ok(chosenBoozer.picks.some(p=>p.team===0&&p.playerId===boozer.id));
-console.log('Independent all-player scoring audit:',JSON.stringify({...database.scoringAudit,focus:scoringAudit.players.filter(p=>['Cade Cunningham','Cameron Boozer'].includes(p.name))}));
+console.log('Scoring consistency check (formula restated vs build_forecasts.full) and external check vs Sports.ru season totals:',JSON.stringify({...database.scoringAudit,focus:scoringAudit.players.filter(p=>['Cade Cunningham','Cameron Boozer'].includes(p.name))}));
 
 for(const rookie of rookieRecommendations(draft).players){
  assert.ok(pickCompletion(draft,rookie.id).possible,'Leading rookie selectable: '+rookie.name);

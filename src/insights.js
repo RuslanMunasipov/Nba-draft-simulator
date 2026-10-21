@@ -19,12 +19,16 @@ function insightContext(players){
 export function playerInsights(p,players){
  const pros=[],cons=[],ctx=insightContext(players),seasons=Object.entries(p.sportsHistory||{});
  const full=seasons.filter(([,s])=>s.games>=20);
- if(full.length>=2){
-  const [[a,prev],[b,last]]=full.slice(-2),change=(last.perGame-prev.perGame)/prev.perGame;
-  const path=full.slice(-3).map(([,s])=>s.perGame.toFixed(1)).join(' → ');
-  if(change>=.08)pros.push(`Рост на Sports.ru: ${path} ФО/матч (${b} к ${a}: +${Math.round(change*100)}%).`);
-  else if(change<=-.08)cons.push(`Спад на Sports.ru: ${path} ФО/матч (${b} к ${a}: ${Math.round(change*100)}%).`);
-  else pros.push(`Стабильный уровень на Sports.ru: ${path} ФО/матч.`);
+ // Sports.ru's averages carry its team result bonus (about ±2 a game by the club's record), which FBL does not count:
+ // the trend compares the averages without it whenever both seasons have them, so a club's record is not read as form.
+ const [[a,prev],[b,last]]=full.length>=2?full.slice(-2):[[],[]],fbl=full.length>=2&&Number.isFinite(prev.fblPerGame)&&Number.isFinite(last.fblPerGame);
+ const level=s=>fbl?s.fblPerGame:s.perGame;
+ if(full.length>=2&&level(prev)>0){
+  const change=(level(last)-level(prev))/level(prev),unit=fbl?'ФО/матч без бонуса за результат':'ФО/матч (с бонусом за результат)';
+  const path=full.slice(-3).filter(([,s])=>!fbl||Number.isFinite(s.fblPerGame)).map(([,s])=>level(s).toFixed(1)).join(' → ');
+  if(change>=.08)pros.push(`Рост на Sports.ru: ${path} ${unit} (${b} к ${a}: +${Math.round(change*100)}%).`);
+  else if(change<=-.08)cons.push(`Спад на Sports.ru: ${path} ${unit} (${b} к ${a}: ${Math.round(change*100)}%).`);
+  else pros.push(`Стабильный уровень на Sports.ru: ${path} ${unit}.`);
  }
  const recent=seasons.slice(-2);
  if(recent.length===2&&recent.every(([,s])=>s.games>=68))pros.push(`Надёжен по здоровью: ${recent.map(([k,s])=>`${s.games} м. в ${k}`).join(', ')}.`);
