@@ -7,6 +7,10 @@ for player in data['players']:
  evidence=player.pop('onlineEvidence',{})
  prediction=player.pop('careerPrediction',None)
  player.pop('rookiePrediction',None)
+ # The model's input stat line and the forecast it replaced are provenance the app never reads: they move to the
+ # per-player file too, so the fields the forecast gains (known absences, sources) stay inside the phone budget.
+ forecast=player.get('forecast') or {}
+ detail={k:forecast.pop(k) for k in ('inputStats','previous') if k in forecast}
  career=(evidence.get('career') or {}).get('seasons',[])
  player['onlineSummary']=dict(careerSeasons=len(career),firstSeason=career[0]['season'] if career else None,
                              lastSeason=career[-1]['season'] if career else None,
@@ -14,7 +18,7 @@ for player in data['players']:
  # The superseded career-model summary is not read by the app: it moves to the per-player file with the evidence.
  filename=str(player['id']).replace(':','-')+'.json'
  (folder/filename).write_text(json.dumps(dict(name=player['name'],espnId=player.get('espnId'),evidence=evidence,draft=player.get('draftContext'),
-   careerModel={k:v for k,v in prediction.items() if k not in ('perGame',)} if prediction else None),ensure_ascii=False),encoding='utf-8')
+   careerModel={k:v for k,v in prediction.items() if k not in ('perGame',)} if prediction else None,forecastDetail=detail or None),ensure_ascii=False),encoding='utf-8')
 # Three decimals are far below any forecast's precision and keep the phone download small. The forecast's own
 # arithmetic (components adding up to the per-game value, per game times games) keeps full precision.
 EXACT={'components','scoringBreakdown','meanPerGame','meanSeason','games','projectedFP'}
