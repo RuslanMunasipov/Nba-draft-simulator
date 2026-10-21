@@ -1,6 +1,6 @@
 // The league race in numbers: shared places for equal totals, the chances of each final place, and the period windows
 // of the Teams tab. Shared by the Overview table and the Teams tab, so both screens always agree.
-import {teamPoints,playerOutlook,pointsSpread,gameWeeks,horizons} from './season.js';
+import {teamPoints,playerOutlook,pointsSpread,gameWeeks,horizons,periodList} from './season.js';
 
 // Competition ranking: equal totals share a place ("1, 2, 2, 4"), so a tie is never broken by team order or forecast.
 export function leagueRanks(totals){return totals.map(x=>1+totals.filter(y=>y>x).length);}
@@ -63,7 +63,8 @@ export function teamPlace(race,t){
 // "4 недели" looks exactly as far ahead as the transfer gains next to it (horizons: 28 days from today); its fact starts
 // with the current tour.
 export function periodWindows(ctx){
- const list=Object.entries(gameWeeks(ctx.live)).map(([n,w])=>({n:Number(n),...w})).sort((a,b)=>a.start.localeCompare(b.start)),h=horizons(ctx);
+ // The first week opens at the league's scoring start (opening night, before Sports.ru's tour 1): season.js periodList.
+ const list=periodList(gameWeeks(ctx.live)),h=horizons(ctx);
  const i=list.findIndex(w=>ctx.today>=w.start&&ctx.today<=w.end),at=i>=0?i:list.findIndex(w=>w.start>ctx.today),cur=list[at]||null,start=cur?.start||ctx.today;
  return {week:{from:start,to:cur?.end||h.week.to},month:{from:start<ctx.today?start:ctx.today,to:h.month.to},season:{from:list[0]?.start||start,to:h.season.to}};
 }

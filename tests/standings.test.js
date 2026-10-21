@@ -88,3 +88,9 @@ test('period facts follow the league table rule: a player counts only while on t
  assert.equal(windowFact(c,0,week2),5);assert.equal(windowFact(c,0,week2,'1001'),0);assert.equal(windowFact(c,0,week2,'1081'),5);
  assert.equal(windowFact(c,0,season,'1001')+windowFact(c,0,season,'1081'),windowFact(c,0,season));
 });
+test('the week and season windows open at the league opening night, before Sports.ru tour 1', async () => {
+ const {periodWindows}=await import('../src/standings.js');
+ const live={clubs:{A:[{date:'2026-10-22',week:1},{date:'2026-10-26',week:1},{date:'2026-10-27',week:2},{date:'2026-11-02',week:2}]}};
+ const w=periodWindows({live,today:'2026-10-21'});
+ assert.equal(w.week.from,'2026-10-20');assert.equal(w.week.to,'2026-10-26');assert.equal(w.season.from,'2026-10-20');
+});

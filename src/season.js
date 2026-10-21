@@ -4,6 +4,7 @@ import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
 import {FBL_TRANSFERS,TRANSFER_HOURS,mskTime,firstHolder} from './rules.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
+import RULES from '../data/league-rules.json' with {type:'json'};
 
 export const CAP=DEFAULT_CAP,WEEKLY_TRANSFERS=3,CLUB_LIMIT=RULE_CLUB_LIMIT;
 export {TEAM_COUNT};
@@ -37,6 +38,15 @@ const weekCache=new WeakMap(),weeksOf=live=>{const k=live?.clubs;if(!k)return ga
 // Sports.ru numbers its tours by US game day, the calendar dates games in Moscow: a US-afternoon game of a tour's first
 // day (MLK day, 18.01.2027) carries the previous tour's last Moscow date. Such a game counts on its own tour's first date.
 export function tourDate(g,weeks){const w=Number.isFinite(g?.week)?weeks?.[g.week]:null;return w&&g.date<w.start?w.start:g.date;}
+// Sports.ru's tour 1 starts on 22.10, after the league's opening night: Yahoo, which keeps the FBL standings, scores from
+// 20.10 (data/league-rules.json yahoo.scoringStart). Period windows open the first week at that day, so the opening
+// games count in the week and season facts; Sports.ru's own tours (transfer counting) are left as they are.
+export const SCORING_START=RULES.yahoo?.scoringStart||null;
+export function periodList(weeks,start=SCORING_START){
+ const list=Object.entries(weeks||{}).map(([n,w])=>({n:Number(n),...w})).sort((a,b)=>a.start.localeCompare(b.start));
+ if(list.length&&start&&start<list[0].start)list[0]={...list[0],start};
+ return list;
+}
 const weekList=weeks=>Object.entries(weeks||{}).map(([n,w])=>({n,...w})).sort((a,b)=>a.start.localeCompare(b.start));
 export function weekOf(day,weeks){
  const list=weekList(weeks);if(!list.length){const start=weekStart(day);return {n:null,start,end:addDays(start,6)};}
