@@ -144,7 +144,7 @@ function card(p,analysis=null,readonly=false){
  if(tags.children.length)main.append(tags);
  const score=el('div',null,'pc-score'),f=p.forecast,personal=p.espnContext?.individualProjection;
  if(f){score.append(el('strong',dec(f.meanPerGame)),el('small','ФО за матч'),el('small',int(f.meanSeason)+' за сезон'));}
- else if(personal){score.append(el('strong',dec(personal.componentFPPerGame)),el('small','без фолов и бонусов'));}
+ else if(personal){score.append(el('strong',dec(personal.componentFPPerGame)),el('small','без фолов и +1 за матч'));}
  else if(Number.isFinite(p.projectedFP)){score.append(el('strong',dec(p.projectedFP)),el('small','ориентир'));}
  summary.append(main,score,el('span',null,'pc-chevron'));
  summary.setAttribute('aria-label',`${p.name}: ${f?`${dec(f.meanPerGame)} ФО за матч, ${int(f.meanSeason)} за сезон`:'без прогноза'}. Открыть разбор`);
@@ -212,15 +212,16 @@ function cardBody(p,risk,readonly){
  body.append(more);
  return body;
 }
-// Sports.ru's own fantasy points by season (with its team result bonus), and the same seasons without the bonus — the
-// FBL formula the forecast uses — when the database has them (fblPerGame).
+// Sports.ru's own fantasy points by season (its formula: the team result bonus, +2 for 10+ minutes), and the same
+// seasons by the league's Yahoo formula the forecast uses (fblPerGame: the box-score terms and +1 per game played) when
+// the database has them.
 function sportsHistoryPanel(p){
  const seasons=Object.entries(p.sportsHistory||{}).reverse();if(!seasons.length)return null;
  const clean=seasons.some(([,s])=>Number.isFinite(s.fblPerGame));
  const box=el('div',null,'pc-block');box.append(el('h4','Sports.ru · ФО по сезонам'));
- const table=el('table',null,'sports-table'),head=el('tr');for(const h of ['Сезон','Матчи','За матч',...(clean?['Без бонуса']:[]),'Всего'])head.append(el('th',h));table.append(head);
+ const table=el('table',null,'sports-table'),head=el('tr');for(const h of ['Сезон','Матчи','За матч',...(clean?['По формуле FBL']:[]),'Всего'])head.append(el('th',h));table.append(head);
  const row=([season,s])=>{const tr=el('tr');for(const v of [season.replace(/^20(\d\d)-(\d\d)$/,'$1/$2'),String(s.games),dec(s.perGame),...(clean?[dec(s.fblPerGame)]:[]),int(s.points)])tr.append(el('td',v));return tr;};
- for(const s of seasons.slice(0,3))table.append(row(s));box.append(table,el('p',clean?'«За матч» и «Всего» — по формуле Sports.ru, с бонусом за результат команды; «Без бонуса» — как считает FBL.':'По формуле Sports.ru, с бонусом за результат команды; в FBL его нет.','muted'));
+ for(const s of seasons.slice(0,3))table.append(row(s));box.append(table,el('p',clean?'«За матч» и «Всего» — ФО Sports.ru по его формуле: с бонусом за результат команды и +2 за 10+ минут. «По формуле FBL» — тот же сезон так, как считает лига на Yahoo: статистика матча и +1 за сыгранный матч, без бонусов.':'ФО Sports.ru по его формуле: с бонусом за результат команды и +2 за 10+ минут. В FBL бонусов нет, за сыгранный матч +1.','muted'));
  if(seasons.length>3){const all=el('details',null,'inline'),t=el('table',null,'sports-table');for(const s of seasons.slice(3))t.append(row(s));all.append(el('summary',`Ещё ${count(seasons.length-3,'сезон','сезона','сезонов')}`),t);box.append(all);}
  return box;
 }
@@ -238,7 +239,7 @@ function forecastSummary(p){
   box.append(el('p',`${int(f.meanSeason)} ФО за сезон = ${dec(f.meanPerGame)} за матч × ${count(Math.round(f.games),'матч','матча','матчей')}.`));
   if(Number.isFinite(f.seasonFloor)&&Number.isFinite(f.seasonCeiling))box.append(el('p',seasonRangeLine(f,database?.projectionModelAudit)));
   if(c)box.append(el('p',sportsCheckLine(c)));
- }else if(personal)box.append(el('p',`Индивидуальный прогноз ESPN: ${dec(personal.componentFPPerGame)} ФО за матч без фолов и бонусов.`));
+ }else if(personal)box.append(el('p',`Индивидуальный прогноз ESPN: ${dec(personal.componentFPPerGame)} ФО за матч без фолов и +1 за матч.`));
  else if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&Number.isFinite(p.projectedFP))box.append(el('p',`Групповой ориентир для rookie: ${dec(p.projectedFP)} ФО за матч. Это не персональный прогноз.`));
  else if(Number.isFinite(p.projectedFP))box.append(el('p',`Историческая основа: ${dec(p.projectedFP,2)} ФО за матч.`));
  else box.append(el('p','Прогноза нет.'));
@@ -345,7 +346,7 @@ function renderPlan(){
    }
    parts.push(el('h4',a.onTheClock?'Если взять другого':'Альтернативы к твоему пику'),options);
   }
-  const method=el('details',null,'method');method.append(el('summary','Как считается'),el('p',`${count(a.profile.runs,'симуляция','симуляции','симуляций')} драфта${a.profile.requested>a.profile.runs?` из ${int(a.profile.requested)} (в остальных соперники не нашли допустимого пика)`:''}: в половине соперники — боты приложения, в половине выбирают по ADP ESPN с шумом. Игрок попадает в план, только если доживает до твоего пика с вероятностью от ${pct(a.threshold)}. Затем точная оптимизация суммы сезонных прогнозов при бюджете, двух слотах на позицию, rookie и белом правиле. *ФО в списке — прогноз сезона с поправкой на риск, поэтому немного ниже, чем в карточке. Шанс дожить — ориентир, а не точная вероятность: на повторе драфта 18.10 из игроков с шансом от 80 % соперники забрали 8 %, а не 4 %. Живые GM выбирают иначе, чем боты: план пересчитывается после каждого пика.`));
+  const method=el('details',null,'method');method.append(el('summary','Как считается'),el('p',`${count(a.profile.runs,'симуляция','симуляции','симуляций')} драфта${a.profile.requested>a.profile.runs?` из ${int(a.profile.requested)} (в остальных соперники не нашли допустимого пика)`:''}: в половине соперники — боты приложения, в половине выбирают по ADP ESPN с шумом. Игрок попадает в план, только если доживает до твоего пика с вероятностью от ${pct(a.threshold)}. Затем точная оптимизация суммы ценностей слотов при бюджете, двух слотах на позицию, rookie и белом правиле. *ФО в списке — ценность слота: свои очки игрока плюс очки замены в его длинных пропусках (как «С заменами при травмах» в карточке), минус небольшая поправка на слабый сезон. Поэтому у игроков с риском пропусков она обычно выше, чем «за сезон» в карточке, у остальных — немного ниже. Шанс дожить — ориентир, а не точная вероятность: на повторе драфта 18.10 из игроков с шансом от 80 % соперники забрали 8 %, а не 4 %. Живые GM выбирают иначе, чем боты: план пересчитывается после каждого пика.`));
   parts.push(method);
   box.replaceChildren(...parts);
  };

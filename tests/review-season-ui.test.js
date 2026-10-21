@@ -52,7 +52,7 @@ test('when the watcher cannot tell who bought first, both teams keep the shared 
 });
 test('the Teams tab reads the shared rule: rows and KPIs pass the shadowed holdings to windowAhead',()=>{
  const ui=source('src/season-ui.js');
- assert.match(ui,/const ahead=\(p,ctx,w,running,shadow\)=>windowAhead\(ctx,team,p,w,running,shadow\)/);
+ assert.match(ui,/const ahead=\(p,ctx,w,running,shadow,credit\)=>windowAhead\(ctx,team,p,w,running,shadow,credit\)/);
  assert.match(ui,/shadow=shadowedHoldings\(ctx\)/);assert.doesNotMatch(ui,/expectedPoints\(p,\{\.\.\.ctx,running\}/);
 });
 

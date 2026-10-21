@@ -42,7 +42,10 @@ class SportsCurrentTest(unittest.TestCase):
 
     def test_unreadable_score_is_not_zero(self):
         page = GAMES.replace('<td>36:10</td><td>48</td>', '<td>36:10</td><td>?</td>')
-        self.assertEqual([g['date'] for g in collector.parse_games(page)], ['2026-10-23'])
+        games = collector.parse_games(page)
+        # The played game stays, without points: this table has no box score and its ФО no number.
+        self.assertEqual([(g['date'], g['points'], g.get('pointsSource'), g.get('sportsPoints')) for g in games],
+                         [('2026-10-23', 0, None, None), ('2026-10-25', None, 'NO_BOX', None)])
 
     def test_roster_json_gives_exact_ids(self):
         raw = '{"players":[{"id":"1796991","club":"Торонто","amplua":"3","price":"2400","lock":"0","name":"Ленард"},{"id":"9","club":"Юта","amplua":"5","price":"1000","lock":"1","name":"Икс"}]}'
@@ -114,11 +117,11 @@ class SportsCurrentTest(unittest.TestCase):
 
     def test_games_only_current_season(self):
         games = collector.parse_games(GAMES)
-        # The played row's own score (home first: 120 : 110 at home, a win) takes Sports.ru's +2 off its 48, and its
-        # extra point for 10+ minutes: FBL gives 1 per game played.
+        # This table has no box score: the played row keeps Sports.ru's 48 and its result (home first: 120 : 110 at home,
+        # a win) and gets no FBL points, never Sports.ru's less its bonuses.
         self.assertEqual([(g['date'], g['played'], g['points'], g['price']) for g in games],
-                         [('2026-10-23', False, 0, 3500), ('2026-10-25', True, 45, 3600)])
-        self.assertEqual((games[1]['sportsPoints'], games[1]['result'], games[1]['pointsSource']), (48, 'W', 'ROW_SCORE'))
+                         [('2026-10-23', False, 0, 3500), ('2026-10-25', True, None, 3600)])
+        self.assertEqual((games[1]['sportsPoints'], games[1]['result'], games[1]['pointsSource']), (48, 'W', 'NO_BOX'))
 
     def test_team_profile_and_journal(self):
         profile = """<h1><b>The Balkan Murderers</b></h1><table class="profile-table"><tr><th>Место</th><td>586 из 1280 </tr></table>
@@ -237,39 +240,3 @@ class JournalStampTests(unittest.TestCase):
         self.assertEqual((team['balance'], team['transfersLeft'], team['transfersUnlimited']), (200, None, True))
         self.assertEqual(collector.parse_team('<th>Трансферы</th><td>2</td>')['transfersLeft'], 2)
         self.assertEqual(collector.parse_team('<th>Дедлайн</th>\n<td>20 октября, 21:30 </td>')['deadline'], '20 октября, 21:30')
-
-
-class FblGamePointsTests(unittest.TestCase):
-    def clubs(self, a_score, b_score):
-        return {'Атланта': [{'date': '2026-10-21', 'opponent': 'Бостон', 'home': True, 'score': a_score}],
-                'Бостон': [{'date': '2026-10-21', 'opponent': 'Атланта', 'home': False, 'score': b_score}]}
-
-    def players(self):
-        return {'a': {'games': [{'date': '2026-10-21', 'opponent': 'Бостон', 'home': True, 'played': True, 'points': 30}]},
-                'b': {'games': [{'date': '2026-10-21', 'opponent': 'Атланта', 'home': False, 'played': True, 'points': 20},
-                                {'date': '2026-10-21', 'opponent': 'Атланта', 'home': False, 'played': False, 'points': 0}]}}
-
-    def test_calendars_tell_how_a_score_is_written(self):
-        self.assertEqual(collector.score_orientation(self.clubs('110:100', '100:110')), 'own')
-        self.assertEqual(collector.score_orientation(self.clubs('110:100', '110:100')), 'home')
-        self.assertIsNone(collector.score_orientation(self.clubs(None, None)))
-
-    def test_game_points_drop_the_team_result_bonus_whichever_way_scores_are_written(self):
-        for a, b in (('110:100', '100:110'), ('110:100', '110:100'), ('110:100 ОТ', '100:110 ОТ')):
-            players = self.players()
-            orientation, scored = collector.fbl_points(players, self.clubs(a, b))
-            home, away = players['a']['games'][0], players['b']['games'][0]
-            # The home side won: Sports.ru gave it +2, the losing guests -2; FBL has neither.
-            self.assertEqual((home['points'], home['sportsPoints'], home['result']), (28, 30, 'W'))
-            self.assertEqual((away['points'], away['sportsPoints'], away['result']), (22, 20, 'L'))
-            self.assertEqual(scored, 2)
-            self.assertNotIn('sportsPoints', players['b']['games'][1])
-            # Collected again (or merged), the bonus is never taken twice.
-            collector.fbl_points(players, self.clubs(a, b))
-            self.assertEqual((home['points'], away['points']), (28, 22))
-
-    def test_a_game_without_a_score_in_the_calendars_keeps_sports_points(self):
-        players = self.players()
-        collector.fbl_points(players, self.clubs(None, None))
-        self.assertEqual(players['a']['games'][0]['points'], 30)
-        self.assertNotIn('result', players['a']['games'][0])

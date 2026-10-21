@@ -41,7 +41,7 @@ class GamePointsFromTheRowTests(unittest.TestCase):
         games = c.parse_games(table(JOKIC, bad))
         self.assertEqual((games[1]['points'], games[1]['pointsCheck']), (11, 'MISMATCH'))
         summary = c.game_points_summary({'p': {'games': games}})
-        self.assertEqual((summary['played'], summary['mismatches'], summary['gamesWithResult'], summary['gamesWithoutResult']), (2, 1, 2, 0))
+        self.assertEqual((summary['played'], summary['mismatches'], summary['gamesWithResult'], summary['gamesWithoutBox']), (2, 1, 2, 0))
 
     def test_rows_after_the_yahoo_window_are_dropped_by_date_not_by_zero_points(self):
         self.assertEqual(c.SEASON_END, '2027-04-12')  # data/league-rules.json yahoo.scoringEnd 2027-04-11 (US) + 1 day
@@ -50,27 +50,20 @@ class GamePointsFromTheRowTests(unittest.TestCase):
         self.assertEqual([g['date'] for g in c.parse_games(table(last, playin))], ['2027-04-12'])
         self.assertIsNone(c.season_end('/nonexistent/league-rules.json'))
 
-    def test_without_box_columns_the_row_score_drops_the_bonus_and_without_a_score_the_calendar_does(self):
+    def test_without_box_columns_a_played_row_has_no_fbl_points_whatever_the_score_says(self):
+        # Sports.ru's points less its result bonus and its minutes point are no FBL points (Yahoo formula only, 21.10.2026):
+        # the row keeps Sports.ru's number and the result, and gets none.
         head = ''.join(f'<td>{h}</td>' for h in ['Дата', 'Соперник', '', 'Счет', 'МИН', 'ФО', 'С'])
         g = c.parse_games(table('<tr><td>24.10.2026</td><td>Сан-Антонио</td><td>Г</td><td>118 : 128</td><td>18:15</td><td>32</td><td>3500</td></tr>', head=head))[0]
-        self.assertEqual((g['points'], g['pointsSource'], g['result']), (28, 'ROW_SCORE', 'W'))
+        self.assertEqual((g['points'], g['pointsSource'], g['sportsPoints'], g['result']), (None, 'NO_BOX', 32, 'W'))
         bare = ''.join(f'<td>{h}</td>' for h in ['Дата', 'Соперник', '', 'МИН', 'ФО', 'С'])
         players = {'p': {'games': c.parse_games(table('<tr><td>24.10.2026</td><td>Сан-Антонио</td><td>Г</td><td>18:15</td><td>32</td><td>3500</td></tr>', head=bare))}}
-        clubs = lambda score: {'Денвер': [{'date': '2026-10-24', 'opponent': 'Сан-Антонио', 'home': False, 'score': score}],
-                               'Сан-Антонио': [{'date': '2026-10-24', 'opponent': 'Денвер', 'home': True, 'score': score}]}
-        # No result anywhere yet: Sports.ru's number less its minutes point stays, with the result bonus, marked and counted.
-        c.fbl_points(players, clubs(None))
         g = players['p']['games'][0]
-        self.assertEqual((g['points'], g['sportsPoints'], g['pointsSource'], 'result' in g), (31, 32, 'SPORTS_WITH_BONUS', False))
-        c.fbl_points(players, clubs(None))
-        self.assertEqual(g['points'], 31, 'a second run does not take the point off twice')
-        self.assertEqual(c.game_points_summary(players)['gamesWithoutResult'], 1)
-        c.fbl_points(players, clubs('118:128'))
-        self.assertEqual((g['points'], g['pointsSource'], g['result']), (28, 'CALENDAR', 'W'))
+        self.assertEqual((g['points'], g['pointsSource'], g['sportsPoints'], 'result' in g), (None, 'NO_BOX', 32, False))
+        self.assertEqual({k: c.game_points_summary(players)[k] for k in ('played', 'gamesWithoutBox', 'sources')}, {'played': 1, 'gamesWithoutBox': 1, 'sources': {'NO_BOX': 1}})
 
     def test_row_points_stand_without_any_calendar(self):
         players = {'p': {'games': c.parse_games(table(JOKIC))}}
-        self.assertEqual(c.fbl_points(players, {}), (None, 0))
         self.assertEqual((players['p']['games'][0]['points'], players['p']['games'][0]['pointsSource']), (28, 'BOX'))
 
     def test_real_2025_26_rows_match_sports_points_minus_the_bonus(self):
@@ -248,8 +241,8 @@ class CollectionRunTests(unittest.TestCase):
         self.assertNotIn('tip', snap['clubs']['Денвер'][1])
         self.assertEqual(snap['players']['1']['games'][0]['tip'], '2026-10-24T00:30:00+00:00')
         self.assertEqual((snap['tips']['clubs'], snap['tips']['games'], snap['tips']['of']), (1, 1, 2))
-        self.assertEqual({k: snap['gamePoints'][k] for k in ('played', 'gamesWithResult', 'gamesWithoutResult', 'mismatches')},
-                         {'played': 2, 'gamesWithResult': 2, 'gamesWithoutResult': 0, 'mismatches': 0})
+        self.assertEqual({k: snap['gamePoints'][k] for k in ('played', 'gamesWithResult', 'gamesWithoutBox', 'uncounted', 'mismatches')},
+                         {'played': 2, 'gamesWithResult': 2, 'gamesWithoutBox': 0, 'uncounted': 0, 'mismatches': 0})
         self.assertEqual([g['points'] for g in snap['players']['1']['games']], [28, 0])
 
     def test_failing_schedules_never_fail_the_collection(self):

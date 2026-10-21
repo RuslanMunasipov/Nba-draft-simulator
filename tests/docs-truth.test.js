@@ -15,7 +15,7 @@ test('the Sports.ru trend compares averages without the team result bonus when b
 
 test('without the bonus for a season the trend keeps Sports.ru numbers and says they include it',()=>{
  const p={id:1,sportsHistory:{'2024-25':season(20),'2025-26':season(18,19)}};
- assert.deepEqual(trend(p),['Спад на Sports.ru: 20.0 → 18.0 ФО/матч (с бонусом за результат) (2025-26 к 2024-25: -10%).']);
+ assert.deepEqual(trend(p),['Спад на Sports.ru: 20.0 → 18.0 ФО/матч Sports.ru (с бонусом за результат и +2 за 10+ минут) (2025-26 к 2024-25: -10%).']);
  // A three-season path on the FBL basis drops a season that has no bonus-free average instead of mixing the two.
  const q={id:2,sportsHistory:{'2023-24':season(30),'2024-25':season(20,19),'2025-26':season(18,19)}};
  assert.deepEqual(trend(q),['Стабильный уровень на Sports.ru: 19.0 → 19.0 ФО/матч по формуле FBL.']);

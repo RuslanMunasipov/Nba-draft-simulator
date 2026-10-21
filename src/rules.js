@@ -81,9 +81,9 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
   const rookies=roster.filter(p=>p.isRookie===true),whites=roster.filter(p=>whiteSet.has(String(p.id)));
   const undecided=checked.length?roster.filter(p=>!decided.has(String(p.id))):[];
   // A player only the Sports.ru market knows (not in the database) has no known rookie status: without a marked rookie
-  // the lawyer checks him, it is no certain breach.
+  // the lawyer checks him, it is no certain breach. unknown: those players, whom the protocol and the app name.
   const unknown=roster.filter(p=>p.isRookie!==true&&p.rookieStatus==='NOT_SHOWN_BY_SPORTS_RU');
-  if(!rookies.length)violations.push({rule:'rookie',vid:'rookie',certain:!unknown.length,key:`rookie:${team}:${roster.map(p=>p.id).sort().join(',')}`,
+  if(!rookies.length)violations.push({rule:'rookie',vid:'rookie',certain:!unknown.length,unknown,key:`rookie:${team}:${roster.map(p=>p.id).sort().join(',')}`,
    text:unknown.length?`в составе нет отмеченного новичка (rookie): статус ${unknown.map(nameOf).join(', ')} базе не известен — проверьте правило обязательного новичка`
     :'в составе нет ни одного новичка (rookie) — нарушено правило обязательного новичка'});
   const lastOut=[...transfers].reverse().find(x=>x.team===team&&whiteSet.has(String(x.outId)));
