@@ -143,7 +143,7 @@ test('box score uses the FBL formula: Sports.ru\'s without the team result bonus
  assert.equal(boxScorePoints({MIN:'0',FG:'0-0',FT:'0-0',PTS:'0',REB:'0'}),1);
  const event={status:{type:{completed:true}},competitions:[{competitors:[{team:{id:'1'},homeAway:'home',winner:false},{team:{id:'2'},homeAway:'away',winner:true}]}]};
  const summary={boxscore:{players:[{team:{id:'2'},statistics:[{labels:Object.keys(line),athletes:[{athlete:{id:'77'},stats:Object.values(line)},{athlete:{id:'78'},stats:[]}]}]}]}};
- assert.deepEqual(liveGamePoints(summary,event),{77:{points:34,minutes:36,final:true,counting:32}});
+ assert.deepEqual(liveGamePoints(summary,event),{77:{points:34,minutes:36,final:true,counting:32,name:'',team:'',line}});
 });
 test('packages never trade the season for a short-term gain unless asked',()=>{
  // Free agent 99 (C) is great this week but out from November; the roster centre is steady all season.

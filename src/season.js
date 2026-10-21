@@ -426,7 +426,8 @@ export function boxScorePoints(stats){
  if(!Object.keys(stats||{}).length)return null;
  return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+(min>=10?2:1);
 }
-// ESPN summary -> {espnAthleteId: {points, minutes, final}}.
+const LINE=['MIN','PTS','REB','AST','STL','BLK','FG','3PT','FT','TO','PF'];
+// ESPN summary -> {espnAthleteId: {points, minutes, final, counting, name, team, line}}.
 export function liveGamePoints(summary,event){
  const final=Boolean(event?.status?.type?.completed),out={};
  for(const team of summary?.boxscore?.players||[]){
@@ -436,7 +437,9 @@ export function liveGamePoints(summary,event){
     if(!a.stats?.length||a.didNotPlay)continue;const stats=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]]));
     const points=boxScorePoints(stats),minutes=Number(stats.MIN)||0;
     // counting: the line without the participation bonus, which follows the exact minutes when Sports.ru lists them.
-    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-(minutes>=10?2:1)};
+    // line: the box-score stats the formula reads, for the live stat line; name and team for the full game list.
+    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-(minutes>=10?2:1),
+     name:a.athlete?.displayName||a.athlete?.shortName||'',team:team.team?.abbreviation||'',line:Object.fromEntries(LINE.filter(k=>k in stats).map(k=>[k,stats[k]]))};
    }
   }
  }
