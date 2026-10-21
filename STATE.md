@@ -55,6 +55,7 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
 - Branch claude/full-model-audit = origin/main 8f68413 + merges of audit-fix/{docs-truth,collection,projection-inputs,season-transfers,
   season-ui,draft-engine} (conflicts resolved: season-ui imports + table note, notify-transfers imports + fresh keys, main.js imports).
   npm test 257 pass, build ok, python 158 ok (before draft-engine merge).
-- Waiting: audit-fix/season-availability (run wf_2a2b0d3e-b79) and audit-fix/projection-model (run wf_5d493399-715).
+- All 8 groups merged (+ main #89 live refresh 20 s). Local: npm 278 pass, build ok, python 192 ok, full projection run on deployed copy: gate holds (gain95 14.9-40.3), coverage80 0.791, seasonBias +4.1, payload 3.26 MB.
+- NEXT: CI on PR #88, then adversarial review workflow over the combined diff, fix confirmed review findings, update ACCEPTANCE final section, PR description, squash-merge, Russian report.
 - Not pushed yet: claude/full-model-audit is local. If the container is lost, recreate it by merging the audit-fix/* branches
   (they exist only locally too!) -> push them first.
