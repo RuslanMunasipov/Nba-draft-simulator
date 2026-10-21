@@ -82,3 +82,4 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
 - 09:00Z: PR #88 squash-merged to main c1dd538 (tree == c66da69). Local claude/full-model-audit reset to origin/main (not pushed yet;
   remote still has old history -> push with --force-with-lease when the follow-up commits exist). Round-2 branches audit-fix3/* are
   based on c66da69 (same tree as main): cherry-pick their commits onto the new branch, then open a NEW PR.
+- 09:47Z: PR #92 merged (main b4f3d44): BOX-only game points, round 2 done. model-misc group (Y17,Y22,Y18,Y23,Y24,C12,C13) stopped at user's request (token cost); C06-C11 docs partly open.
