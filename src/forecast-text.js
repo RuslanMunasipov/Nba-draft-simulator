@@ -8,14 +8,10 @@ const near=(x,y,tol)=>Number.isFinite(x)&&Number.isFinite(y)&&Math.abs(x-y)<=tol
 // "2026" → "2025/26": the audit names a season by the year it ends.
 const seasonLabel=end=>Number.isFinite(end)?`${end-1}/${String(end).slice(2)}`:null;
 
-// How the final numbers came out of the model and ESPN, read from the forecast: games from the ESPN injury report alone
-// (forecast.gamesBasis 'ESPN_REPORT', 21.10.2026), the documented mean of both (gamesBasis 'MEAN_ESPN_MODEL'), or, for
-// older data, whatever the numbers show (games ESPN's alone).
-export const REPORT_GAMES='число матчей — все матчи клуба, кроме пропусков по отчёту ESPN о травмах';
+// How the final numbers came out of the model and ESPN, read from the forecast: the documented mean of both
+// (forecast.gamesBasis 'MEAN_ESPN_MODEL'), or, for older data, whatever the numbers show (games ESPN's alone).
 export function combineNote(f){
- const m=f?.sources?.model,e=f?.sources?.espn;
- if(f?.gamesBasis==='ESPN_REPORT')return m&&e&&near(f.meanPerGame,(m.perGame+e.perGame)/2,.06)?`ФО за матч — среднее модели и ESPN, ${REPORT_GAMES}`:REPORT_GAMES;
- if(!m||!e)return '';
+ const m=f?.sources?.model,e=f?.sources?.espn;if(!m||!e)return '';
  const rate=near(f.meanPerGame,(m.perGame+e.perGame)/2,.06),meanGames=f.gamesBasis==='MEAN_ESPN_MODEL'||!near(m.games,e.games,.5)&&near(f.games,(m.games+e.games)/2,.5);
  const espnGames=!meanGames&&near(f.games,e.games,.5)&&!near(f.games,m.games,.5);
  if(rate&&meanGames)return 'ФО за матч и число матчей — средние модели и ESPN';
@@ -33,11 +29,10 @@ export function espnNumbers(e){
 // Where a forecast comes from, in one sentence: the career model, ESPN, the draft-pick model, their numbers and the result.
 export function forecastSources(f){
  if(f.version!==4)return `Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}.${f.rookieExtrapolation&&f.analogs?.length?' Похожие игроки для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'.':''}`;
- const m=f.sources?.model,e=f.sources?.espn,parts=[],note=combineNote(f),report=f.gamesBasis==='ESPN_REPORT';
- // With games from the injury report the sources give only the points per game.
- if(m)parts.push(`${f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных новичков':'модель по карьере'}: ${report?`${dec(m.perGame)} за матч`:`${dec(m.perGame)} × ${games(m.games)}`}`);
- if(e)parts.push(`ESPN: ${report?`${dec(e.perGame)} за матч`:espnNumbers(e)}`);
- return `Основа: ${parts.join('; ')}${e||report?` → итог ${dec(f.meanPerGame)} × ${games(f.games)}${note?` (${note})`:''}`:''}.${Number.isFinite(f.shortSeasonRisk)?` Риск короткого сезона (меньше четверти матчей): ${Math.round(f.shortSeasonRisk*100)}${NBSP}%.`:''}`;
+ const m=f.sources?.model,e=f.sources?.espn,parts=[],note=combineNote(f);
+ if(m)parts.push(`${f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных новичков':'модель по карьере'}: ${dec(m.perGame)} × ${games(m.games)}`);
+ if(e)parts.push(`ESPN: ${espnNumbers(e)}`);
+ return `Основа: ${parts.join('; ')}${e?` → итог ${dec(f.meanPerGame)} × ${games(f.games)}${note?` (${note})`:''}`:''}.${Number.isFinite(f.shortSeasonRisk)?` Риск короткого сезона (меньше четверти матчей): ${Math.round(f.shortSeasonRisk*100)}${NBSP}%.`:''}`;
 }
 
 // The season range's measured hit rate on the held-out season (projectionModelAudit.holdout), or null without an audit.
@@ -119,10 +114,10 @@ export const LEAGUE_FORMULA='+1 за сыгранный матч, FGM−FGA, FTM
 export const POINTS_SOURCE='по подробной статистике каждого матча: за последние два дня — по протоколу ESPN сразу после финальной сирены, раньше — по таблице матча Sports.ru';
 // "Как считается" on the season tab, from the in-season calibration and the league limits in the code.
 export function seasonMethod(calibration=CALIBRATION){
- const e=calibration.points.established,n=calibration.points.newcomer;
+ const e=calibration.points.established,n=calibration.points.newcomer,k=calibration.availability.priorGames;
  const chances='Шансы на 1-е место и топ-3 — 20 000 розыгрышей остатка сезона: у каждого игрока свой разброс прогноза, игроки независимы, составы как сейчас, будущие трансферы не учтены. Это оценка модели, а не гарантия.';
  const transfers=[`ФО за матч — прогноз сезона по формуле лиги (Yahoo: ${LEAGUE_FORMULA}), который с каждым сыгранным матчем сдвигается к его очкам по той же формуле: очки за минуту — с весом прогноза ${count(e.rateGames,'матч','матча','матчей')} (у новичков ${n.rateGames}), минуты — быстрее (вес прогноза ${e.minuteGames}, у новичков ${n.minuteGames}) и с упором на последние игры.`,
-  `Ожидаемые ФО = ФО за матч × оставшиеся матчи клуба по календарю. Травмы — только по отчёту ESPN: здоровый игрок играет каждый матч; не играет — 0 до даты возвращения (без даты — 10 дней), под вопросом — 50${NBSP}% на ближайшие матчи, до конца сезона — 0. Своей модели пропусков нет (решение владельца лиги).`,
+  `Ожидаемые ФО = ФО за матч × шанс сыграть каждый оставшийся матч клуба по календарю. Шанс — из цепи коротких и длинных пропусков игрока, подогнанной к его доле матчей (прогноз с весом ${k} матчей плюс сыгранные и пропущенные в сезоне); без цепи — просто эта доля. По отчёту ESPN: не играет — 0 до даты возвращения (без даты — 10 дней), под вопросом — 50${NBSP}% на ближайшие матчи, до конца сезона — 0.`,
   `Допустимость: позиция Sports.ru (по 2 на позицию), текущие цены, банк, минимум один rookie, не больше ${CLUB_LIMIT} игроков одного клуба NBA, игрок по «белому правилу», лимит ${WEEKLY_TRANSFERS} трансфера за неделю лиги, бюджет ${int(CAP)}. Пакеты — точная оптимизация.`,
   'Выигрыш «неделя» — до конца текущего тура, «4 недели» — 28 дней начиная с сегодня, «сезон» — до последнего тура. Матч, который уже начался, в выигрыш не входит: его очки остаются у команды, где игрок был к началу.',
   'Sports.ru обновляется каждые 2 часа, травмы и матчи ESPN — при открытии, во время матчей — каждые 20 секунд.'];

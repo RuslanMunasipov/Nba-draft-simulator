@@ -11,22 +11,27 @@ const {priorGames:k,spellMisses:cap,spellGames:spell}=CALIBRATION.availability;
 const near=(a,b,eps=1e-9)=>assert.ok(Math.abs(a-b)<eps,`${a} vs ${b}`);
 
 // ---------- R10, R12/R33: an absence the build knew is already out of forecast.games ----------
-test('a known absence: the ESPN report alone takes the games until his return; cleared, he plays every club game',()=>{
- // Availability only from the ESPN injury report (the league owner, 21.10.2026): whatever the forecast's games.
+test('a known absence (merged build shape): the season games equal the published forecast, whether it is above or below the model',()=>{
  const b=12,left=82-b,out=[['e1',{status:'Out',fantasyStatus:'OUT',returnDate:usBefore(cal82[b].date),comment:'(knee) will not be ready for the start of the regular season'}]];
- for(const F of [40,53.5,70]){
-  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{gamesBasis:'ESPN_REPORT',meanPerGame:20,minutes:30,games:F,knownAbsence:{blockedGames:b,gamesLeft:left,unconditionalGames:82}}};
-  near(season(p,ctxWith(p,{injuries:out})),left);
-  near(season(p,ctxWith(p)),82);
+ for(const [U,F] of [[55,(55*left/82+60)/2],[40,50],[70,(70*left/82+68)/2]]){
+  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{origin:'ESPN_MODEL_COMBINED',gamesBasis:'MEAN_ESPN_MODEL',meanPerGame:20,minutes:30,games:F,
+   availability:{unconditionalGames:U},knownAbsence:{blockedGames:b,gamesLeft:left,unconditionalGames:U},sources:{model:{games:U*left/82},espn:{games:Math.min(60,left)}}}};
+  near(season(p,ctxWith(p,{injuries:out})),F);
+  // ESPN clears him early (no report before the next build): the blocked games still ahead come back at his report-free
+  // share, the games after the return keep the published F (not F/82, nor every game at the post-return share F/left).
+  near(season(p,ctxWith(p)),F+U*b/82);
  }
 });
-test('a rookie with a known absence: the report\'s games out, the rest all his; a season-ending report takes them all',()=>{
+test('a rookie with a known absence is not cut twice; with the build\'s season-ending block the report-free games stand in',()=>{
  const back=usBefore(cal82[41].date),out=[['e1',{status:'Out',fantasyStatus:'OUT',returnDate:back,comment:'(knee) out until December'}]];
- const rookie={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',isRookie:true,forecast:{version:4,origin:'DRAFT_PICK_MODEL',gamesBasis:'ESPN_REPORT',meanPerGame:10,minutes:20,games:41,availability:null,
-  knownAbsence:{returnDate:back,seasonEnding:false,blockedGames:41,gamesLeft:41,unconditionalGames:82},sources:{model:{perGame:10,games:30}}}};
- near(season(rookie,ctxWith(rookie,{injuries:out})),41);
- near(season(rookie,ctxWith(rookie,{injuries:[['e1',{status:'Out',fantasyStatus:'OFS'}]]})),0);
+ const rookie={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',isRookie:true,forecast:{version:4,origin:'DRAFT_PICK_MODEL',meanPerGame:10,minutes:20,games:30,availability:null,
+  knownAbsence:{returnDate:back,seasonEnding:false,blockedGames:41,gamesLeft:41,unconditionalGames:60},sources:{model:{perGame:10,games:30}}}};
+ near(season(rookie,ctxWith(rookie,{injuries:out})),30);
+ // The build read him out for the season, today's report dates a return: his report-free 60 games price the rest.
+ const blocked={...rookie,forecast:{...rookie.forecast,games:0,knownAbsence:{...rookie.forecast.knownAbsence,blockedGames:82,gamesLeft:0,seasonEnding:true},sources:{model:{games:0}}}};
+ near(season(blocked,ctxWith(blocked,{injuries:out})),41*60/82);
 });
+
 // ---------- R11: the capped spell does not expire the day he is back ----------
 const spellCase=(playedIdx,done,injury,forecast={meanPerGame:20,games:70})=>{
  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast};
@@ -35,13 +40,23 @@ const spellCase=(playedIdx,done,injury,forecast={meanPerGame:20,games:70})=>{
  return playRate(p,live,c);
 };
 const range=(a,b)=>Array.from({length:b-a},(_,i)=>a+i);
-test('the play rate is every club game: missed games and spells never lower it, the ESPN report decides absences',()=>{
- assert.equal(spellCase(range(0,10),40,{status:'Out',fantasyStatus:'OUT',returnDate:usBefore(cal82[40].date)}),1);
- assert.equal(spellCase(range(0,10),40,{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:usBefore(cal82[40].date)}),1);
- assert.equal(spellCase([...range(0,10),40],41,null),1);
- assert.equal(spellCase(range(0,10),40,null),1);
- assert.equal(spellCase(range(0,10),40,null,{meanPerGame:20,games:40,knownAbsence:{blockedGames:30,gamesLeft:52}}),1);
+test('after a long absence the share does not collapse on his return, nor when ESPN downgrades the report to day-to-day',()=>{
+ assert.ok(Number.isInteger(cap)&&Number.isInteger(spell)&&cap<spell);
+ const prior=70/82,whileOut=(k*prior+10)/(k+10+cap);
+ near(spellCase(range(0,10),40,{status:'Out',fantasyStatus:'OUT',returnDate:usBefore(cal82[40].date)}),whileOut);
+ // The same day, ESPN shows him questionable instead: the run is still his reported absence.
+ near(spellCase(range(0,10),40,{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:usBefore(cal82[40].date)}),whileOut);
+ // He plays game 40 and the report is gone: the spell keeps counting as `cap` misses (before: every one of the 30).
+ near(spellCase([...range(0,10),40],41,null),(k*prior+11)/(k+11+cap));
+ near(spellCase([...range(0,10),...range(40,45)],45,null),(k*prior+15)/(k+15+cap));
+ // A run shorter than a spell, and a trailing run nobody reported (he may not come back), count in full.
+ near(spellCase([...range(0,10),...range(9+spell,30)],30,null),(k*prior+10+30-(9+spell))/(k+30));
+ near(spellCase(range(0,10),40,null),(k*prior+10)/(k+40));
+ // The build's block covers a trailing run whose report ESPN dropped before he played.
+ const known={meanPerGame:20,games:40,knownAbsence:{blockedGames:30,gamesLeft:52,unconditionalGames:70}};
+ near(spellCase(range(0,10),40,null,known),(k*40/52+10)/(k+10+cap));
 });
+
 // ---------- R14: a GTD report is judged against the US day, not the Moscow date ----------
 test('from 00:00 MSK on game night a day-to-day report still halves only the doubtful game',()=>{
  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:82}};
@@ -66,15 +81,15 @@ test('a running game adds its points so far and the rest of it, not nothing, and
  const p={id:7,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:30,minutes:30,games:82}};
  const calendar=[{date:'2026-10-22',week:1},{date:'2026-10-24',week:1}];
  const at=(detail,minutes=6)=>expectedPoints(p,ctxWith(p,{calendar,today:'2026-10-22',running:new Map([[7,{points:5,minutes,day:'2026-10-22',game:{detail}}]])}),'2026-10-22','2026-10-24');
- const rest=left=>30+(30-1)*left;
- near(at('6:00 - 2nd').points,rest((12+12+6)/48));near(at('6:00 - 2nd').games,1);
+ const rest=left=>.97*30+(30-1)*left;
+ near(at('6:00 - 2nd').points,rest((12+12+6)/48));near(at('6:00 - 2nd').games,.97);
  near(at('Halftime').points,rest(.5));near(at('End of 3rd').points,rest(.25));near(at('2:00 - OT').points,rest(2/48));
  near(at('0:45.2 - 4th').points,rest(45.2/60/48));near(at('45.2 - 4th').points,rest(45.2/60/48));
  // Without ESPN's clock: his minutes against those expected. A final game Sports.ru has not counted yet has nothing left.
  near(at('',12).points,rest(1-12/30));
  near(expectedPoints(p,ctxWith(p,{calendar,today:'2026-10-22',running:new Map([[7,{points:5,minutes:6,final:true,day:'2026-10-22',game:{detail:'Final',final:true}}]])}),'2026-10-22','2026-10-24').points,rest(0));
  // Outside the window nothing of it is added.
- near(expectedPoints(p,ctxWith(p,{calendar,today:'2026-10-22',running:new Map([[7,{points:5,minutes:6,day:'2026-10-22',game:{detail:'6:00 - 2nd'}}]])}),'2026-10-24','2026-10-24').points,30);
+ near(expectedPoints(p,ctxWith(p,{calendar,today:'2026-10-22',running:new Map([[7,{points:5,minutes:6,day:'2026-10-22',game:{detail:'6:00 - 2nd'}}]])}),'2026-10-24','2026-10-24').points,.97*30);
 });
 
 // ---------- R16: season-ending wording of the present only ----------

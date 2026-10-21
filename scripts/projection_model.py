@@ -498,18 +498,6 @@ def healthy_start_check(model,chain,test,history):
         rows.append((g,chain.healthy_mean(e['pid'],e['t'],g,n),e['y']['games']))
     return dict(players=len(rows),unconditionalMAE=statistics.mean(abs(a-y) for a,_,y in rows),healthyStartMAE=statistics.mean(abs(b-y) for _,b,y in rows),
                 unconditionalBias=statistics.mean(a-y for a,_,y in rows),healthyStartBias=statistics.mean(b-y for _,b,y in rows))
-def report_games_check(model,chain,test,history):
-    """Held-out check of the published games (league owner, 21.10.2026): a player with no absence on the ESPN report plays
-    every club game. The healthy start stands in for a clean report (no archive of past reports); the model's healthy-start
-    games on the same players for comparison. Biases are actual minus forecast."""
-    rows=[]
-    for e in test:
-        if not healthy_start(history,e['pid'],e['t']):continue
-        n=season_length(e['t']);q=deployed(model,chain,e);actual=(e['y']['rate'] or 0)*e['y']['games']
-        rows.append((n,q['rate']*n,q['share']*n,q['rate']*q['share']*n,e['y']['games'],actual))
-    mae=lambda i,j:statistics.mean(abs(r[i]-r[j]) for r in rows);bias=lambda i,j:statistics.mean(r[j]-r[i] for r in rows)
-    return dict(players=len(rows),gamesMAE=mae(0,4),gamesBias=bias(0,4),seasonMAE=mae(1,5),seasonBias=bias(1,5),
-                modelGamesMAE=mae(2,4),modelGamesBias=bias(2,4),modelSeasonMAE=mae(3,5),modelSeasonBias=bias(3,5))
 
 def teammate_correlation(forward,history):
     """Correlation of season errors between players of the same NBA club in the same season (out-of-sample errors,
@@ -669,7 +657,6 @@ def run(data=None):
     holdout['errorSources']=error_sources(frozen,test,history)
     if chain:
         holdout['healthyStart']=healthy_start_check(frozen,chain,test,history)
-        holdout['reportGames']=report_games_check(frozen,chain,test,history)
         holdout['transferValue']=transfer_check(frozen,chain,test,history)
     drafts=json.loads(DRAFTS.read_text())['drafts']
     league={y:league_seasons(p,y) for y,p in SEASON_FILES.items()}
@@ -693,8 +680,7 @@ def run(data=None):
                              'the share regression gives those seasons their own level. The test season matches the forecast population '
                              '(players who are on a roster the following season).',
                              f'{len(history.imputed)} players without a birth date get the mean age at the first season after their draft, or at the debut.',
-                             'The published range is checked with "played the club\'s first game" standing in for a clean preseason injury report; '
-                             'ranges around ESPN-anchored games cannot be checked without an archive of ESPN projections.',
+                             'The published range is checked with "played the club\'s first game" standing in for a clean preseason injury report.',
                              'The participation term is 1 per game played (Yahoo GP), so minutes enter only through the counting stats.',
                              'No team result bonus: the FBL formula is Sports.ru\'s without it (the league scores on Yahoo, which cannot award it).',
                              'Rookie rows match picks to league players by NBA id, then by name; ambiguous names are skipped. Drafted players who never played '
@@ -718,7 +704,8 @@ def run(data=None):
     return report
 
 def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=None):
-    """Model forecast for every catalog player with NBA history or a draft pick, combined with ESPN where it exists."""
+    """Model forecast for every catalog player with NBA history or a draft pick. ESPN's individual projections are not
+    used (the league owner, 21.10.2026: the model alone, as for every player); its injury report is."""
     counts=defaultdict(int)
     context=json.loads(TEAM_CONTEXT.read_text()) if TEAM_CONTEXT.exists() else {}
     depth=context.get('depth',{});schedule=context.get('schedule') or {}
@@ -747,25 +734,23 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
         healthy=bool(x and chain and player.get('currentRosterStatus')=='SOURCE_REPORTED' and starts_healthy and not blocked)
         if blocked:model_games=0.0 if left<=0 else chain.healthy_mean(pid,TARGET,unconditional_games*left/82,left) if x and chain else unconditional_games*left/82
         elif healthy:model_games=chain.healthy_mean(pid,TARGET,model_games,82)
-        espn=f if f.get('origin')=='ESPN_INDIVIDUAL' else None
-        # Without any archive of ESPN projections their relative accuracy cannot be fitted: an equal-weight combination
-        # per game, the standard choice for two unvalidated forecasts, until the 2026/27 season measures it. This is the
-        # project's default since the first ESPN import, not a league owner decision (the owner, 21.10.2026).
-        espn_rate=espn['meanPerGame'] if espn else None
-        rate=(model_rate+espn_rate)/2 if espn else model_rate
-        espn_games=min(espn['games'],left) if espn else None
-        # Games only from the ESPN injury report (the league owner, 21.10.2026: not the model and ESPN at once, the model's
-        # absences ran too low): a healthy player plays every club game left, a dated absence on the report takes its games
-        # out, a season-ending one all of them. Neither the absence chain nor ESPN's projected games decide them.
-        games=float(left);share=games/82
-        # The season range then holds only the rate's uncertainty, over these games.
-        pmf=np.zeros(83);pmf[max(0,min(82,round(games)))]=1.0
-        p['gamesPmf']=pmf;p['availability']=dict(healthy=not blocked)
-        # Replacement credit: the games of a long known absence after the reaction delay (only for players with an NBA
-        # record; a rookie's missing games are a rotation question, and the rookie rule keeps one on every roster).
-        replaced=float(max(0,blocked-av.REPLACE_DELAY) if blocked>av.SHORT else 0) if x else None
+        rate=model_rate;games=model_games;share=games/82
+        # The chain is anchored to the published games; after a known absence only over the games it leaves.
+        if x and chain:
+            if blocked:after_return(p,chain,pid,games,blocked,unconditional_games,left=left)
+            else:with_games(p,chain,pid,TARGET,games,healthy)
+        # Replacement credit only for players with an NBA record (the held-out check covers them). A rookie's missing games
+        # are mostly a rotation question, and the rookie rule keeps one on every roster, so he is not simply swapped out.
+        replaced=p['availability']['replacedGames'] if x and chain else None
         lo,hi,short=ranges.interval(dict(p,rate=rate,share=share),x) if x else rookie_range(rookies,rate,games,left)
         health=None
+        if x and p.get('gamesPmf') is not None:
+            a=p['availability'];q10,q50,q90=av.quantiles(p['gamesPmf'])
+            # hazards: per-game spell starts at this season's scale, for the in-season chain from the current state.
+            # unconditionalGames: the regression's games without the injury report (no healthy shift, no known absence).
+            health=dict(gamesRange=[q10,q90],gamesMedian=q50,shortSpellsPer82=a['shortHazard']*82,longSpellsPer82=a['longHazard']*82,
+                        leagueShortSpellsPer82=a['leagueShort']*82,leagueLongSpellsPer82=a['leagueLong']*82,lastSeasonEnd=a['start'],
+                        healthyNow=healthy,unconditionalGames=unconditional_games,hazards=[a['shortHazard'],a['longHazard']])
         # The player's own two-season games when he has ten of them, otherwise players of the same per-game level: the
         # earlier pipeline's role prior is one cross-player constant, not a game P90 (190 players shared 17.58).
         game_floor=game_ceiling=None
@@ -775,23 +760,22 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
                 shift=rate-statistics.mean(logs);game_floor=quantile(logs,.1)+shift;game_ceiling=quantile(logs,.9)+shift
         if game_floor is None:
             lo_r,hi_r=game_ratios(rate);game_floor,game_ceiling=rate*lo_r,rate*hi_r
-        origin=('ESPN_MODEL_COMBINED' if espn else evidence)
-        line,components=stat_line(p,espn,player,rate)
-        tier='PERSONAL_PROVIDER' if espn else 'PERSONAL_HISTORY' if x else 'DRAFT_PRIOR'
+        origin=evidence
+        line,components=stat_line(p,rate)
+        tier='PERSONAL_HISTORY' if x else 'DRAFT_PRIOR'
         # Not on any ESPN roster (most are unsigned free agents): the forecast is what he would do once signed.
         conditional=player.get('currentRosterStatus')!='SOURCE_REPORTED'
         absence=dict(returnDate=until if until<'9999' else None,seasonEnding=left<=0,blockedGames=blocked,gamesLeft=left,
-                     unconditionalGames=82.0,counted='CLUB_SCHEDULE' if len(dates or [])>=70 else 'EVEN_SPREAD',
+                     unconditionalGames=unconditional_games,counted='CLUB_SCHEDULE' if len(dates or [])>=70 else 'EVEN_SPREAD',
                      source='ESPN injury report') if blocked else None
         player['forecast']=dict(version=4,metric='FBL_FULL_FORMULA_ESTIMATE',origin=origin,coverageTier=tier,
-            basis=forecast_basis(espn,x,p,absence,conditional),gamesBasis='ESPN_REPORT',
-            meanPerGame=rate,games=games,minutes=(p['minutes']+espn['minutes'])/2 if espn else p['minutes'],meanSeason=rate*games,
+            basis=forecast_basis(x,p,absence,conditional),gamesBasis='MODEL',
+            meanPerGame=rate,games=games,minutes=p['minutes'],meanSeason=rate*games,
             gameFloor=min(rate,game_floor),gameCeiling=max(rate,game_ceiling),seasonFloor=min(rate*games,lo),seasonCeiling=max(rate*games,hi),
             shortSeasonRisk=short,availability=health,knownAbsence=absence,conditionalOnRoster=conditional,
             intervalCalibration='FORWARD_CONFORMAL_PER_TAIL' if x else 'ROOKIE_CLASS_2025_ERRORS',
             inputStats=line,components=components,
-            sources=dict(model=dict(perGame=model_rate,games=model_games,perMinute=p.get('perMinute'),minutes=p['minutes'],participation=GAME_PLAYED),
-                         espn=dict(perGame=espn_rate,games=espn_games,**({'projectedGames':espn['games']} if espn_games!=espn['games'] else {})) if espn else None),
+            sources=dict(model=dict(perGame=model_rate,games=model_games,perMinute=p.get('perMinute'),minutes=p['minutes'],participation=GAME_PLAYED)),
             draftPick=p.get('pick'),draftYear=p.get('draftYear'),rookieExtrapolation=not x,asOf=data['generatedAt'],
             previous=dict(origin=f.get('origin'),meanPerGame=f.get('meanPerGame'),games=f.get('games')) if f else None)
         if replaced is not None:player['forecast']['_replaced']=replaced
@@ -799,12 +783,13 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
         counts[origin]+=1
     slot_values(data,chain)
     data['forecastNotes']=dict(rulesSource=RULES,
-        rangeMeaning='Сезонный диапазон 10–90%: ошибки ФО за матч у похожих игроков при числе матчей по отчёту ESPN, каждая сторона '
-                     'с запасом, откалиброванным на прежней модели пропусков (для нового правила не проверено). Риск короткого сезона — '
-                     'отчёт ESPN оставляет меньше четверти матчей. У новичков диапазон из ошибок модели драфта на классе 2025.',
-        gamesMeaning='Число матчей — только по отчёту ESPN о травмах: здоровый игрок играет все матчи клуба, пропуск с датой '
-                     'возвращения вычитает матчи клуба до неё, при травме до конца сезона — ни одного. Своей модели пропусков нет '
-                     '(решение владельца лиги, 21.10.2026). Игрок вне ростеров NBA — оценка на случай контракта.')
+        rangeMeaning='Сезонный диапазон 10–90%: ошибки ФО за матч у похожих игроков и число матчей из цепи пропусков, каждая сторона '
+                     'откалибрована отдельно (проверка на 2025/26). Риск короткого сезона — вероятность цепи сыграть меньше четверти матчей. '
+                     'У новичков диапазон из ошибок модели драфта на классе 2025.',
+        gamesMeaning='Число матчей — по модели, как и ФО за матч (прогнозы ESPN не используются). Пропуск с датой возвращения из отчёта '
+                     'ESPN вычитает матчи клуба до неё, после возвращения сезон идёт от здорового старта; по ходу сезона у такого игрока '
+                     'в прогнозе только матчи после возвращения, при травме до конца сезона — ни одного. Игрок вне ростеров NBA — '
+                     'оценка на случай контракта.')
     if chain:
         # Spell lengths for the in-season chain (src/season.js imports them at build time, like the in-season calibration).
         AVAILABILITY_LENGTHS.write_text(json.dumps(dict(source='Kaplan-Meier absence spell lengths in club games, NBA regular seasons 2002-2026',
@@ -904,11 +889,9 @@ def rookie_range(rookies,rate,games,left=82):
     if left>=82:return rookies.interval(rate,games/82)
     share=games/left;lo,hi,_=rookies.interval(rate,share,games_scale=left)
     return lo,hi,statistics.mean(max(0,min(1,share+ds))*left<.25*82 for _,ds in rookies.residuals)
-def forecast_basis(espn,x,p,absence,conditional):
+def forecast_basis(x,p,absence,conditional):
     """What the forecast rests on, one line of the player card."""
-    own='модели по карьере' if x else 'модели новичков'
-    if espn:text=f'ФО за матч — среднее ESPN и {own}'
-    elif x:text='Модель по карьере'
+    if x:text='Модель по карьере'
     elif p.get('pick'):text='Модель новичков по номеру драфта'+(f' (пик №{p["pick"]}, драфт {p["draftYear"]})' if p.get('draftYear') and p['draftYear']<TARGET-1 else '')
     else:text='Модель незадрафтованных новичков'
     text+='; веса модели подобраны на сезонах до 2024/25 и проверены на 2025/26'
@@ -944,13 +927,13 @@ def slot_values(data,chain):
     16 starters there (ranks 17-24 by forecast per game), times 1 - short - long hazard (0.87), the chance that an
     available player plays the next game. Both parts are untested assumptions that roughly cancel: a healthy pickup
     plays about 0.7-0.76 of a 13-game replaced window, and the free-agent market after the real draft holds players
-    2.6-8.4 FP a game above this level. Availability is the ESPN report's alone (21.10.2026): an available replacement
-    plays every game."""
+    2.6-8.4 FP a game above this level."""
+    if not chain:return
     pool=[p for p in data['players'] if (p.get('forecast') or {}).get('version')==4 and p.get('currentRosterStatus')=='SOURCE_REPORTED']
     level={}
     for pos in ('PG','SG','SF','PF','C'):
         v=sorted((p['forecast']['meanPerGame'] for p in pool if pos in (p.get('positions') or [])),reverse=True)[16:24]
-        level[pos]=statistics.mean(v) if v else None
+        level[pos]=statistics.mean(v)*(1-chain.short-chain.long) if v else None
     for p in data['players']:
         f=p.get('forecast') or {};replaced=f.pop('_replaced',None)
         levels=[level[x] for x in (p.get('positions') or []) if level.get(x) is not None]
@@ -959,22 +942,14 @@ def slot_values(data,chain):
         f['transfer']=dict(replacedGames=replaced,replacementPerGame=r,value=replaced*r,delayGames=av.REPLACE_DELAY)
         f['slotSeason']=f['meanSeason']+replaced*r
     data['replacementLevel']=dict(perGame=level,delayGames=av.REPLACE_DELAY,
-        method='Best players left after 16 starters per Sports.ru position (ranks 17-24 by forecast); a replacement plays every game '
-               '(availability only from the ESPN injury report). Untested assumption: the real free-agent market is above ranks 17-24.')
+        method='Best players left after 16 starters per Sports.ru position (ranks 17-24 by forecast), times the chance that an available player '
+               'plays the next game (1 - short - long hazard). Untested assumption: a pickup plays about 0.7-0.76 of a replaced window, '
+               'and the real free-agent market is above ranks 17-24; the two roughly cancel.')
 def terms(st):return st['pts']+st['reb']+st['ast']+st['stl']+st['blk']-(st['fga']-st['fgm'])-(st['fta']-st['ftm'])-2*st['tov']
-def stat_line(p,espn,player,rate):
-    """Per-game box-score line of the forecast (model, or the mean of model and ESPN) and the Sports.ru components that
-    add up exactly to the per-game forecast; what the stat line does not explain (age curve, ESPN's own adjustments) is
-    a separate `adjustment` term."""
-    model=p.get('stats')
-    q=((player.get('espnContext') or {}).get('individualProjection') or {}).get('perGame') if espn else None
-    espn_line=None
-    if q:
-        names=dict(pts='points',reb='rebounds',ast='assists',stl='steals',blk='blocks',tov='turnovers',fgm='fgMade',fga='fgAttempted',ftm='ftMade',fta='ftAttempted')
-        if all(n in q for n in names.values()):
-            espn_line={k:q[n] for k,n in names.items()};espn_line['pf']=-((espn.get('components') or {}).get('personalFouls') or 0)
-    lines=[x for x in (model,espn_line) if x]
-    line={k:statistics.mean(x.get(k,0) for x in lines) for k in STAT_KEYS} if lines else None
+def stat_line(p,rate):
+    """Per-game box-score line of the model's forecast and the Sports.ru components that add up exactly to the per-game
+    forecast; what the stat line does not explain (the age curve) is a separate `adjustment` term."""
+    line={k:p['stats'].get(k,0) for k in STAT_KEYS} if p.get('stats') else None
     participation=GAME_PLAYED
     if line:
         components=dict(countingAndMisses=terms(line),personalFouls=-line['pf'],participation=participation)

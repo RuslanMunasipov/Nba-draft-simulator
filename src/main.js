@@ -206,7 +206,7 @@ function cardBody(p,risk,readonly){
  const more=el('details',null,'card-more');more.dataset.key='more:'+p.id;more.append(el('summary','Как считается прогноз'));
  more.addEventListener('toggle',()=>{if(!more.open||more.dataset.filled)return;more.dataset.filled='1';
   if(f)more.append(forecastCard(p));
-  if(p.espnContext){const e=p.espnContext,parts=[e.projectedGames!=null?'прогноз '+count(e.projectedGames,'матч','матча','матчей'):null,Number.isFinite(e.adp)?'средний номер выбора в лигах ESPN (ADP) '+dec(e.adp):null].filter(Boolean);if(parts.length)more.append(el('p','ESPN 2026/27: '+parts.join(' · ')+'.'));}
+  if(p.espnContext){const e=p.espnContext,parts=[e.projectedGames!=null?'прогноз '+count(e.projectedGames,'матч','матча','матчей'):null,Number.isFinite(e.adp)?'средний номер выбора в лигах ESPN (ADP) '+dec(e.adp):null].filter(Boolean);if(parts.length)more.append(el('p','ESPN 2026/27, для справки (в прогноз не входит): '+parts.join(' · ')+'.'));}
   if(p.onlineSummary||p.onlineEvidence)more.append(onlinePanel(p));
  });
  body.append(more);

@@ -157,9 +157,9 @@ class DraftPickTests(unittest.TestCase):
         self.assertEqual(pm.draft_pick({'nbaId': 6, 'name': 'Nobody'}, index, {}, False), (None, None))
 
     def test_basis_names_an_earlier_class(self):
-        basis = pm.forecast_basis(None, None, {'pick': 15, 'draftYear': 2025}, None, False)
+        basis = pm.forecast_basis(None, {'pick': 15, 'draftYear': 2025}, None, False)
         self.assertIn('пик №15, драфт 2025', basis); self.assertNotIn('незадрафтованных', basis)
-        self.assertNotIn('драфт 2026', pm.forecast_basis(None, None, {'pick': 3, 'draftYear': 2026}, None, False))
+        self.assertNotIn('драфт 2026', pm.forecast_basis(None, {'pick': 3, 'draftYear': 2026}, None, False))
 
     def test_plural_of_games(self):
         self.assertEqual([pm.games_ru(n) for n in (1, 2, 5, 11, 21, 34)], ['1 матч', '2 матча', '5 матчей', '11 матчей', '21 матч', '34 матча'])
@@ -244,26 +244,32 @@ class ApplyTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def test_games_come_from_the_espn_injury_report_alone_per_game_is_the_mean(self):
-        # The league owner, 21.10.2026: a healthy player plays every club game; neither the absence chain nor ESPN's
-        # projected games decide them. Per game: the equal-weight mean of ESPN and the model.
+    def test_espn_projections_are_not_used(self):
+        # The league owner, 21.10.2026: the model alone for every player, points per game and games.
         f = self.f['Espn Vet']; model = self.chain.healthy_mean('6', 2027, .7 * 82, 82)
-        self.assertEqual(f['origin'], 'ESPN_MODEL_COMBINED'); self.assertEqual(f['gamesBasis'], 'ESPN_REPORT')
-        self.assertEqual(f['games'], 82); self.assertIsNone(f['availability'])
-        self.assertAlmostEqual(f['sources']['model']['games'], model); self.assertEqual(f['sources']['espn']['games'], 70)
-        self.assertAlmostEqual(f['meanPerGame'], (20 + 24) / 2); self.assertAlmostEqual(f['meanSeason'], f['meanPerGame'] * 82)
-        self.assertIn('среднее ESPN и модели по карьере', f['basis'])
-        for name in ('Healthy Vet', 'Day To Day', 'Free Agent', 'Few Games'):
-            self.assertEqual((self.f[name]['games'], self.f[name]['gamesBasis']), (82, 'ESPN_REPORT'), name)
-            self.assertIsNone(self.f[name]['knownAbsence'], name)
+        self.assertEqual(f['origin'], 'CAREER_MODEL'); self.assertEqual(f['gamesBasis'], 'MODEL'); self.assertEqual(f['coverageTier'], 'PERSONAL_HISTORY')
+        self.assertAlmostEqual(f['games'], model); self.assertEqual(list(f['sources']), ['model'])
+        self.assertAlmostEqual(f['meanPerGame'], f['sources']['model']['perGame']); self.assertNotAlmostEqual(f['meanPerGame'], 24.0)
+        self.assertAlmostEqual(f['minutes'], f['sources']['model']['minutes']); self.assertAlmostEqual(f['meanSeason'], f['meanPerGame'] * f['games'])
+        self.assertNotIn('ESPN', f['basis'])
+        self.assertAlmostEqual(f['availability']['unconditionalGames'], .7 * 82)
+        self.assertEqual(self.f['Healthy Vet']['gamesBasis'], 'MODEL')
+
+    def test_a_healthy_start_and_a_day_to_day_entry_shift_the_same_way(self):
+        for name, pid in (('Healthy Vet', '5'), ('Day To Day', '10')):
+            f = self.f[name]
+            self.assertTrue(f['availability']['healthyNow'], name)
+            self.assertAlmostEqual(f['games'], self.chain.healthy_mean(pid, 2027, .7 * 82, 82))
+            self.assertIsNone(f['knownAbsence'])
 
     def test_a_known_absence_leaves_only_the_games_after_the_return(self):
         f = self.f['Out Vet']; a = f['knownAbsence']; left = a['gamesLeft']
         self.assertEqual(a['blockedGames'], pm.blocked_games('2026-10-20', '2027-02-03')); self.assertEqual(a['counted'], 'EVEN_SPREAD')
         self.assertEqual(left, 82 - a['blockedGames']); self.assertEqual(a['returnDate'], '2027-02-03')
-        self.assertEqual(f['games'], left)  # every game after the return
-        self.assertEqual(a['unconditionalGames'], 82)
-        self.assertEqual(f['transfer']['replacedGames'] if f.get('transfer') else a['blockedGames'] - av.REPLACE_DELAY, a['blockedGames'] - av.REPLACE_DELAY)
+        self.assertLessEqual(f['games'], left); self.assertLessEqual(f['availability']['gamesRange'][1], left)
+        self.assertFalse(f['availability']['healthyNow'])
+        self.assertAlmostEqual(f['availability']['unconditionalGames'], .7 * 82)  # the post-return share for the season tab
+        self.assertAlmostEqual(f['games'], self.chain.healthy_mean('7', 2027, .7 * left, left))  # healthy start after the return
         self.assertIn('пропустит', f['basis']); self.assertIn('до 03.02', f['basis'])
         self.assertEqual(self.scheduled['players'][0]['forecast']['knownAbsence']['counted'], 'CLUB_SCHEDULE')
 
@@ -280,20 +286,23 @@ class ApplyTests(unittest.TestCase):
     def test_out_for_the_season_means_no_games(self):
         f = self.f['Season Over']
         self.assertEqual(f['games'], 0); self.assertEqual(f['meanSeason'], 0); self.assertEqual(f['seasonCeiling'], 0)
-        self.assertIsNone(f['availability']); self.assertAlmostEqual(f['shortSeasonRisk'], 1)
+        self.assertEqual(f['availability']['gamesRange'], [0, 0]); self.assertAlmostEqual(f['shortSeasonRisk'], 1)
         self.assertTrue(f['knownAbsence']['seasonEnding']); self.assertEqual(f['knownAbsence']['returnDate'], '2027-10-01')
         self.assertIn('вне игры до конца сезона', f['basis'])
         p = {}; pm.after_return(p, self.chain, '8', 0.0, 82, 57.4)
         self.assertEqual(p['availability']['replacedGames'], 82 - av.REPLACE_DELAY)
 
-    def test_espn_games_are_capped_by_a_known_absence(self):
+    def test_an_espn_projected_player_with_a_known_absence_is_the_models_like_any_other(self):
         f = self.f['Espn Out']; left = f['knownAbsence']['gamesLeft']
-        self.assertEqual(f['sources']['espn']['games'], left); self.assertEqual(f['sources']['espn']['projectedGames'], 70)
-        self.assertEqual(f['games'], left)  # the report's games, not ESPN's projection
+        self.assertEqual(list(f['sources']), ['model']); self.assertEqual(f['gamesBasis'], 'MODEL')
+        self.assertAlmostEqual(f['games'], self.chain.healthy_mean('9', 2027, .7 * left, left)); self.assertLessEqual(f['games'], left)
+        self.assertLessEqual(f['availability']['gamesRange'][1], left)
+        self.assertLess(f['availability']['hazards'][0] + f['availability']['hazards'][1], .45)  # no inflated hazards to absorb the block
 
     def test_players_off_every_roster_are_labelled_conditional(self):
         f = self.f['Free Agent']
         self.assertTrue(f['conditionalOnRoster']); self.assertIn('нет в действующем ростере NBA', f['basis'])
+        self.assertFalse(f['availability']['healthyNow'])
         self.assertFalse(self.f['Healthy Vet']['conditionalOnRoster'])
 
     def test_game_range_never_comes_from_the_old_role_prior(self):
@@ -303,11 +312,11 @@ class ApplyTests(unittest.TestCase):
     def test_earlier_drafted_and_injured_rookies(self):
         f = self.f['Thomas Sorber']
         self.assertEqual(f['origin'], 'DRAFT_PICK_MODEL'); self.assertEqual((f['draftPick'], f['draftYear']), (15, 2025))
-        self.assertEqual(f['games'], 82); self.assertIn('пик №15, драфт 2025', f['basis'])
+        self.assertAlmostEqual(f['games'], self.rookies.predict(15)['share'] * 82); self.assertIn('пик №15, драфт 2025', f['basis'])
         hurt = self.f['Hurt Rookie']; left = hurt['knownAbsence']['gamesLeft']
-        self.assertEqual(hurt['draftPick'], 5); self.assertEqual(hurt['games'], left)
+        self.assertEqual(hurt['draftPick'], 5); self.assertAlmostEqual(hurt['games'], self.rookies.predict(5)['share'] * left)
         self.assertLessEqual(hurt['seasonFloor'], hurt['meanSeason']); self.assertGreaterEqual(hurt['seasonCeiling'], hurt['meanSeason'])
-        self.assertEqual(hurt['knownAbsence']['unconditionalGames'], 82)
+        self.assertAlmostEqual(hurt['knownAbsence']['unconditionalGames'], self.rookies.predict(5)['share'] * 82)
         gone = self.f['Gone Rookie']
         self.assertEqual((gone['games'], gone['seasonCeiling'], gone['shortSeasonRisk']), (0, 0, 1.0))
 
@@ -321,9 +330,12 @@ def invariants(players):
         # One game ceiling across many per-game levels is a constant prior, not a per-level P90 (17.58 had 190 players).
         name = p['name']; ceilings.setdefault(round(f['gameCeiling'], 2), set()).add(round(f['meanPerGame'], 1))
         if f.get('conditionalOnRoster') != (p.get('currentRosterStatus') != 'SOURCE_REPORTED'): bad.append(('conditional', name))
-        # Games from the ESPN injury report alone: every club game, or those its known absence leaves.
+        # The model alone (the league owner, 21.10.2026): no forecast combines ESPN's individual projection.
+        if f['origin'] == 'ESPN_MODEL_COMBINED' or f.get('gamesBasis') != 'MODEL' or set(f['sources']) != {'model'}: bad.append(('espn used', name))
         a = f.get('knownAbsence')
-        if f.get('gamesBasis') != 'ESPN_REPORT' or abs(f['games'] - (a['gamesLeft'] if a else 82)) > 1e-6: bad.append(('report games', name))
+        if a:
+            if f['games'] > a['gamesLeft'] + 1e-6: bad.append(('games after return', name))
+            if f.get('availability') and f['availability']['gamesRange'][1] > a['gamesLeft']: bad.append(('range after return', name))
         if (p.get('espnContext') or {}).get('projectedGames') and not (p.get('espnContext') or {}).get('individualProjection'): bad.append(('espn games only', name))
     bad += [('shared ceiling', c) for c, rates in ceilings.items() if len(rates) > 5]
     return bad

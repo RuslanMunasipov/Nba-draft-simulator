@@ -38,7 +38,7 @@ class HistoryTests(unittest.TestCase):
 class StatLineTests(unittest.TestCase):
     def test_components_add_up_to_the_forecast(self):
         p = dict(short=.1, stats=dict(pts=20, reb=8, ast=4, stl=1, blk=1, tov=3, pf=2.5, fgm=7, fga=15, ftm=5, fta=6))
-        line, comp = pm.stat_line(p, None, {}, rate=22.0)
+        line, comp = pm.stat_line(p, rate=22.0)
         self.assertAlmostEqual(sum(comp.values()), 22.0); self.assertNotIn('teamResult', comp)
         self.assertAlmostEqual(comp['countingAndMisses'], pm.terms(line))
         self.assertAlmostEqual(comp['personalFouls'], -2.5)
@@ -97,14 +97,6 @@ class HeldOutModelTests(unittest.TestCase):
         self.assertLess(abs(h['perGameBias']), .4)
         self.assertLess(abs(h['healthyStart']['healthyStartBias']), 1.0)
         self.assertLess(h['healthyStart']['healthyStartMAE'], 13.5)
-
-    def test_the_published_games_rule_is_measured_on_the_held_out_season(self):
-        # League owner, 21.10.2026: games only from the ESPN injury report. Healthy starters at every club game is a
-        # ceiling, so the check must show it above the outcome; the model's healthy-start games on the same players stay near it.
-        r = self.report['holdout']['reportGames']
-        self.assertGreater(r['players'], 250)
-        self.assertLess(r['gamesBias'], 0); self.assertAlmostEqual(r['gamesMAE'], -r['gamesBias'])
-        self.assertLess(abs(r['modelGamesBias']), 1.5)
 
     def test_slot_value_with_replacements_ranks_slots_better(self):
         # The top-40/top-80 slot points are reported with bootstrap intervals that include zero, so only the ranking and

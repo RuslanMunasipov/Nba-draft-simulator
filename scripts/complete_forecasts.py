@@ -32,9 +32,12 @@ def complete(data,history):
  added=0;career_replaced=0
  for p in data['players']:
   f=p.get('forecast');prediction=p.get('careerPrediction')
+  # ESPN's individual projections are never the forecast (the league owner, 21.10.2026: the model alone, as for every
+  # player): such a player gets the estimate a player without one would get.
+  if f and f.get('origin')=='ESPN_INDIVIDUAL':f=None
   if f and not (prediction and prediction['eligibleForPrimary'] and not p.get('isRookie')):
-   f['coverageTier']='PERSONAL_PROVIDER' if f['origin']=='ESPN_INDIVIDUAL' else 'PERSONAL_HISTORY'
-   f['intervalCalibration']='UNVALIDATED_PROVIDER' if f['origin']=='ESPN_INDIVIDUAL' else 'HISTORICAL_MODEL_ONLY'
+   f['coverageTier']='PERSONAL_HISTORY'
+   f['intervalCalibration']='HISTORICAL_MODEL_ONLY'
    f['seasonFloor']=min(f['meanSeason'],max(0,f['seasonFloor']))
    f['seasonCeiling']=max(f['meanSeason'],f['seasonCeiling'])
    continue
