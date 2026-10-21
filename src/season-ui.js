@@ -1,10 +1,10 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
 import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
-import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,CONFIDENT,DOUBTFUL} from './season.js';
+import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,CONFIDENT,DOUBTFUL} from './season.js';
 import {recommendPackage,contestedBy,transferWindow} from './season.js';
-import {leagueRace,teamPlace,placeLabel,chanceText,periodWindows,windowFact,CHANCE_RUNS} from './standings.js';
-import {combineNote,absenceShort,sportsSeasonsLine,seasonMethod} from './forecast-text.js';
+import {leagueRace,teamPlace,placeLabel,chanceText,periodWindows,windowFact,windowAhead,shadowedHoldings,CHANCE_RUNS} from './standings.js';
+import {combineNote,absenceShort,sportsSeasonsLine,seasonMethod,espnNumbers,injuryUntil} from './forecast-text.js';
 import {fetchLiveGames,moscowDate,nextLiveDelay,LIVE_MS} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 import {statLine} from './stat-line.js';
@@ -109,12 +109,13 @@ export function setSeasonDatabaseState(state,retry=null){dbState=state;dbRetry=r
 // Database players plus Sports.ru market players the database does not know yet.
 function addMarket(){if(!basePlayers.length)return;players=withMarket(basePlayers,live);byId=new Map(players.map(p=>[p.id,p]));}
 function currentWeek(today){const w=weekOf(today,gameWeeks(live));return w?.n?w:null;}
-// ESPN's English injury words, in Russian. A return date is shown only for players who are out, never for day-to-day.
+// ESPN's English injury words, in Russian. A return date is shown only for players who are out, never for day-to-day,
+// and never for a season-ending injury, whose date is ESPN's placeholder (forecast-text.js injuryUntil).
 const BODY={hamstring:'бицепс бедра',knee:'колено',ankle:'голеностоп',foot:'стопа',back:'спина',groin:'пах',shoulder:'плечо',hip:'бедро',calf:'икроножная',achilles:'ахиллово сухожилие',wrist:'запястье',hand:'кисть',finger:'палец',thumb:'большой палец',toe:'палец стопы',elbow:'локоть',illness:'болезнь',concussion:'сотрясение',personal:'личные причины',rest:'отдых',neck:'шея',quadriceps:'квадрицепс',abdomen:'пресс',oblique:'косые мышцы',shin:'голень',leg:'нога',chest:'грудь',rib:'ребро',head:'голова',eye:'глаз',face:'лицо',lower_leg:'голень',heel:'пятка',undisclosed:'не раскрыто','not injury related':'не травма'};
 const bodyPart=t=>t?BODY[String(t).toLowerCase()]||t:'';
 function injuryInfo(p){
  const i=injuries.get(String(p.espnId));if(!i)return null;const s=injuryStatus(i.status);
- const until=i.fantasyStatus==='OFS'?'до конца сезона':s.level==='out'&&i.returnDate?`до ~${ddmm(i.returnDate)}`:'';
+ const until=injuryUntil(i);
  return {...s,until,text:[s.label,until].filter(Boolean).join(' '),raw:i};
 }
 const injuryText=p=>injuryInfo(p)?.text||'';
@@ -315,12 +316,13 @@ function overview(ctx){
 // by the league table's own rule: src/standings.js.
 const windows=periodWindows,teamFact=(ctx,t,w)=>windowFact(ctx,t,w);
 const playerFact=(p,t,ctx,w)=>p.sportsId?windowFact(ctx,t,w,p.sportsId):0;
-// Still to come in a window: points of a game Sports.ru has not counted yet plus the expectation of the games ahead.
-function ahead(p,ctx,w,running){const e=expectedPoints(p,{...ctx,running},ctx.today,w.to);return {points:(running?.get(p.id)?.points||0)+e.points,games:e.games};}
+// Still to come in a window for the chosen team: a shadowed holding brings it nothing (standings.js windowAhead).
+const ahead=(p,ctx,w,running,shadow)=>windowAhead(ctx,team,p,w,running,shadow);
 function factForecast(fact,forecast){const v=el('strong',null,'fact');v.append(int(fact),el('span',' / '+int(forecast),'fc'));v.title='Факт / прогноз';return v;}
 // The league race of one team, from the same numbers as the overview table: shared place, gap to the 1st or the 2nd, chances.
 const leaguePlace=(ctx,t,running)=>teamPlace(race(ctx,running),t);
-function playerRow(p,ctx,running){
+// `shadow`: the holdings that score for the team that had the player first (standings.js shadowedHoldings).
+function playerRow(p,ctx,running,shadow){
  const live1=live?.players?.[p.sportsId],c=current(p,ctx),g=perGame(p,live1),inj=injuryInfo(p),now=running?.get(p.id);
  const box=el('details',null,'season-player');box.open=openRows.has(p.id)||replacing===p.id;
  const sum=el('summary'),row=el('div',null,'sp-row');
@@ -329,10 +331,11 @@ function playerRow(p,ctx,running){
  price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
  const form=el('span',null,'sp-form'),last=(live1?.games||[]).filter(x=>x.played).slice(-3).map(x=>int(x.points));
  form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
- const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
+ const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running,shadow),first=shadow.get(`${team}:${p.id}`),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
  left.title='Ожидаемых матчей до конца периода';next.append(factForecast(fact,fact+rest.points),left);
  row.append(name,price,form,next);
  if(inj){const line=el('span',null,'sp-injury'+(inj.level==='out'?' out':''));line.append(`🩹 ${inj.text}`);row.append(line);}
+ if(first!=null)row.append(el('span',`⚖️ Его очки получает ${teamName(first)}: она взяла его раньше. Здесь он приносит 0, пока нарушение не исправлено`,'sp-injury'));
  sum.append(row);box.append(sum);
  const actions=el('div',null,'sp-actions');
  actions.append(button(replacing===p.id?'Скрыть замены':'Найти замену',e=>{e.preventDefault();replacing=replacing===p.id?null:p.id;query='';openRows.add(p.id);renderSeason();}),link('Sports.ru ↗',SPORTS_URL(p.sportsId)));
@@ -380,7 +383,7 @@ function sourcesLine(f){
  const m=f.sources?.model,e=f.sources?.espn;if(!m)return f.basis||'';
  const own=f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных':'модель по карьере';
  const note=combineNote(f);
- return `Прогноз до сезона: ${own} ${dec(m.perGame)} × ${Math.round(m.games)}${e?`, ESPN ${dec(e.perGame)} × ${Math.round(e.games)} → итог ${dec(f.meanPerGame)} × ${Math.round(f.games)}`:''} матчей${note?` (${note})`:''}.`;
+ return `Прогноз до сезона: ${own} ${dec(m.perGame)} × ${Math.round(m.games)}${e?`, ESPN ${espnNumbers(e)} → итог ${dec(f.meanPerGame)} × ${Math.round(f.games)}`:''} матчей${note?` (${note})`:''}.`;
 }
 function sideBlock(label,x){
  const p=x.player,f=p.forecast||{},box=el('div',null,'sp-side'),hist=Object.entries(p.sportsHistory||{}).slice(-2);
@@ -388,7 +391,7 @@ function sideBlock(label,x){
  const lines=[`${dec(x.perGame)} ФО за матч сейчас (прогноз до сезона ${dec(x.prior)}${x.played?`, в сезоне ${dec(x.average)} за ${count(x.played,'матч','матча','матчей')}`:''})`,
   `в периоде ${dec(x.expectedGames)} из ${x.clubGames} матчей клуба${x.clubGames?` (шанс сыграть ${Math.round(x.expectedGames/x.clubGames*100)}%)`:''}`,
   p.depth?`состав ESPN: ${p.depth.rank===1?'стартер':'№'+p.depth.rank} на ${p.depth.position}`:'',
-  x.injury?`🩹 ${injuryStatus(x.injury.status).label}${injuryStatus(x.injury.status).level==='out'&&x.injury.returnDate?' до ~'+ddmm(x.injury.returnDate):''}`:'травм в отчёте ESPN нет',
+  x.injury?'🩹 '+[injuryStatus(x.injury.status).label,injuryUntil(x.injury)].filter(Boolean).join(' '):'травм в отчёте ESPN нет',
   sportsSeasonsLine(hist)];
  for(const l of lines.filter(Boolean))box.append(el('p',l));
  const more=el('details');more.append(el('summary','Подробнее о прогнозе'));
@@ -450,9 +453,9 @@ function controls(ctx){
  head.append(teamSelect(),wrap);
  return head;
 }
-function teamKpis(ctx,roster,running){
+function teamKpis(ctx,roster,running,shadow){
  const st=sportsTeam(team),spent=roster.reduce((s,p)=>s+(current(p,ctx).price||0),0),left=transfersLeft(ctx,team),fbl=fblTransfers(ctx.transfers,team,ctx.today);
- const w=windows(ctx)[horizon],fact=teamFact(ctx,team,w),forecast=fact+roster.reduce((s,p)=>s+ahead(p,ctx,w,running).points,0),race=leaguePlace(ctx,team,running);
+ const w=windows(ctx)[horizon],fact=teamFact(ctx,team,w),forecast=fact+roster.reduce((s,p)=>s+ahead(p,ctx,w,running,shadow).points,0),race=leaguePlace(ctx,team,running);
  // The league race and the period's points come first, money and transfers below them.
  const main=el('div',null,'kpis kpis--main'),kpis=el('div',null,'kpis');let into=main;
  const kpi=(label,value,title)=>{const k=el('div',null,'kpi');k.append(el('small',label),el('strong',value));if(title)k.title=title;into.append(k);return k;};
@@ -474,12 +477,12 @@ function teamKpis(ctx,roster,running){
 }
 function teams(ctx){
  const wait=needsLive('Состав');if(wait)return [controls(ctx),...wait];
- const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),running=livePoints(),st=sportsTeam(team);
- const out=[controls(ctx),teamKpis(ctx,roster,running)];
+ const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),running=livePoints(),st=sportsTeam(team),shadow=shadowedHoldings(ctx);
+ const out=[controls(ctx),teamKpis(ctx,roster,running,shadow)];
  if(st){const info=el('div',null,'sp-team-info');info.append(link('Команда на Sports.ru ↗',TEAM_URL(st.sportsTeamId)));out.push(info);}
  const list=el('div',null,'sp-roster'),header=el('div',null,'sp-header');
  for(const t of ['Игрок','Цена','За матч','Факт / прогноз'])header.append(el('span',t));
- list.append(header,...roster.map(p=>playerRow(p,ctx,running)));out.push(list);
+ list.append(header,...roster.map(p=>playerRow(p,ctx,running,shadow)));out.push(list);
  return out;
 }
 

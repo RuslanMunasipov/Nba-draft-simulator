@@ -41,7 +41,7 @@ test('the forecast basis says what the numbers are: the mean of model and ESPN, 
  assert.match(text,/ESPN: 27,5 × 61 → итог 24,3 × 48 матчей \(ФО за матч и число матчей — средние модели и ESPN\)/);
  assert.doesNotMatch(forecastSources({...base,games:61}),/итог их среднее/);
 });
-const audit={testTarget:2026,holdout:{coverage80:.7458677685950413,gamesCoverage80:.7975}};
+const audit={testTarget:2026,holdout:{coverage80:.7458677685950413,gamesCoverage80:.7975,deployedGamesCoverage80:.7872}};
 test('the season range quotes its measured held-out coverage, not "8 seasons out of 10"',()=>{
  const line=seasonRangeLine(base,audit);
  assert.match(line,/Слабый сезон 610, сильный 2 039/);assert.match(line,/2025\/26/);assert.match(line,/75 % игроков/);
@@ -54,15 +54,15 @@ test('the season range quotes its measured held-out coverage, not "8 seasons out
 const scaled={shortSpellsPer82:174,longSpellsPer82:39.9,leagueShortSpellsPer82:6.85,leagueLongSpellsPer82:1.74,gamesRange:[0,11],gamesMedian:2,lastSeasonEnd:'healthy'};
 test('health: own logged absence rates are "по логам"; scaled hazards are only the pace behind the games forecast',()=>{
  const own={...scaled,ownShortPer82:7.94,ownLongPer82:1.6};
- assert.match(plain(healthLine(own,{games:4},audit)),/^Пропуски по логам 2002–2026: коротких \(1–3 матча\) 7,9 за 82 матча при 6,9 у ровесников, длинных \(4\+\) 1,6 при 1,7/);
+ assert.match(plain(healthLine(own,{games:4},audit)),/^Пропуски по логам 5 последних сезонов \(каждый более ранний — с весом 0,6 от следующего\): коротких \(1–3 матча\) 7,9 за 82 матча при 6,9 у ровесников, длинных \(4\+\) 1,6 при 1,7/);
  const line=plain(healthLine(scaled,{games:4},audit));
  assert.doesNotMatch(line,/по логам|ровесник/);assert.match(line,/^Темп пропусков под прогноз 4 матча: коротких \(1–3 матча\) больше 82 и длинных \(4\+\) 39,9 за 82 матча/);
- assert.match(line,/По модели с вероятностью 80 % сыграет 0–11 матчей, медиана 2 \(на сезоне 2025\/26 в такой диапазон попали 80 % игроков\)/);
+ assert.match(line,/По модели с вероятностью 80 % сыграет 0–11 матчей, медиана 2 \(на сезоне 2025\/26 в такой диапазон попали 79 % игроков\)/);
  // An ESPN-covered forecast: the games check covers the model only, so no coverage is quoted.
  assert.doesNotMatch(healthLine(scaled,{games:4,sources:{espn:{}}},audit),/попали/);
  assert.match(absenceRates({...scaled,ownShortPer82:null},61).text,/своих матчей в логах мало/);
  assert.equal(plain(absenceShort(scaled,61)),'Темп пропусков под прогноз 61 матч: больше 82 коротких и 39,9 длинных за 82 матча.');
- assert.match(plain(absenceShort({...scaled,ownShortPer82:7,ownLongPer82:2},61)),/^Пропуски по логам 2002–2026: 7,0 коротких и 2,0 длинных за 82 матча \(у ровесников 6,9 и 1,7\)/);
+ assert.match(plain(absenceShort({...scaled,ownShortPer82:7,ownLongPer82:2},61)),/^Пропуски по логам 5 последних сезонов \(каждый более ранний — с весом 0,6 от следующего\): 7,0 коротких и 2,0 длинных за 82 матча \(у ровесников 6,9 и 1,7\)/);
 });
 test('Sports.ru seasons next to FBL forecasts: without the result bonus when known, labelled otherwise',()=>{
  const hist=[['2024-25',{perGame:18.2,games:70,fblPerGame:17.4}],['2025-26',{perGame:19,games:65,fblPerGame:19.6}]];

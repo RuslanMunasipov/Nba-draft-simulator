@@ -1,7 +1,7 @@
 // Sentences that explain a forecast and the season tab's numbers, built from the data they describe so that they
 // cannot drift from it: the forecast's own sources and fields, the database's held-out audit and the in-season calibration.
-import {dec,int,signed,count} from './format.js';
-import {CALIBRATION,WEEKLY_TRANSFERS,CAP,CLUB_LIMIT} from './season.js';
+import {dec,int,signed,count,ddmm,injuryStatus} from './format.js';
+import {CALIBRATION,WEEKLY_TRANSFERS,CAP,CLUB_LIMIT,seasonEnding} from './season.js';
 
 const NBSP='\u00a0',games=n=>count(Math.round(n),'матч','матча','матчей');
 const near=(x,y,tol)=>Number.isFinite(x)&&Number.isFinite(y)&&Math.abs(x-y)<=tol;
@@ -20,19 +20,27 @@ export function combineNote(f){
  if(meanGames)return 'число матчей — среднее модели и ESPN';
  return espnGames?'число матчей — ESPN':'';
 }
+// ESPN's own projection: a known absence caps the games it adds to the mean at the games the absence leaves
+// (sources.espn.games), ESPN's own figure stays in projectedGames.
+export function espnNumbers(e){
+ const capped=Number.isFinite(e?.projectedGames)&&Math.round(e.projectedGames)!==Math.round(e.games);
+ return `${dec(e.perGame)} × ${Math.round(capped?e.projectedGames:e.games)}${capped?` (с учётом пропуска — ${Math.round(e.games)})`:''}`;
+}
 // Where a forecast comes from, in one sentence: the career model, ESPN, the draft-pick model, their numbers and the result.
 export function forecastSources(f){
  if(f.version!==4)return `Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}.${f.rookieExtrapolation&&f.analogs?.length?' Похожие игроки для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'.':''}`;
  const m=f.sources?.model,e=f.sources?.espn,parts=[],note=combineNote(f);
  if(m)parts.push(`${f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных новичков':'модель по карьере'}: ${dec(m.perGame)} × ${games(m.games)}`);
- if(e)parts.push(`ESPN: ${dec(e.perGame)} × ${Math.round(e.games)}`);
+ if(e)parts.push(`ESPN: ${espnNumbers(e)}`);
  return `Основа: ${parts.join('; ')}${e?` → итог ${dec(f.meanPerGame)} × ${games(f.games)}${note?` (${note})`:''}`:''}.${Number.isFinite(f.shortSeasonRisk)?` Риск короткого сезона (меньше четверти матчей): ${Math.round(f.shortSeasonRisk*100)}${NBSP}%.`:''}`;
 }
 
 // The season range's measured hit rate on the held-out season (projectionModelAudit.holdout), or null without an audit.
+// The games range is published from the healthy-start chain (deployedGamesCoverage80); gamesCoverage80 is that of the
+// chain anchored to the regression's games, which the card does not show, so an audit without the first quotes none.
 export function rangeCoverage(audit){
  const h=audit?.holdout,c=h?.coverage80;
- return Number.isFinite(c)?{share:c,season:seasonLabel(audit.testTarget),games:Number.isFinite(h.gamesCoverage80)?h.gamesCoverage80:null}:null;
+ return Number.isFinite(c)?{share:c,season:seasonLabel(audit.testTarget),games:Number.isFinite(h.deployedGamesCoverage80)?h.deployedGamesCoverage80:null}:null;
 }
 const share=x=>`${Math.round(x*100)}${NBSP}%`;
 // "Слабый/сильный сезон" on the card: the 10th and 90th percentiles, with how often such a range held on a season the
@@ -48,11 +56,14 @@ export function rangeMethod(f,audit){
 }
 
 // Absence rates on the card: the player's own logged spells (ownShortPer82/ownLongPer82, unscaled) when the database has
-// them; otherwise the chain's rates are only the ones that reproduce the forecast games, and are named so.
+// them; otherwise the chain's rates are only the ones that reproduce the forecast games, and are named so. The own rates
+// cover the five seasons before this one, each older season weighted 0.6 of the next (availability_model.py hazards:
+// lags 1-5, decay 0.6), not the whole 2002-2026 log the chain's spell lengths come from.
+export const OWN_SEASONS=5,OWN_DECAY=.6;
 const rate=x=>x>82?'больше 82':dec(x);
 export function absenceRates(a,forecastGames){
  if(Number.isFinite(a?.ownShortPer82)&&Number.isFinite(a?.ownLongPer82))
-  return {own:true,head:'Пропуски по логам 2002–2026',short:a.ownShortPer82,long:a.ownLongPer82,text:`коротких (1–3 матча) ${dec(a.ownShortPer82)} за 82 матча при ${dec(a.leagueShortSpellsPer82)} у ровесников, длинных (4+) ${dec(a.ownLongPer82)} при ${dec(a.leagueLongSpellsPer82)}`};
+  return {own:true,head:`Пропуски по логам ${OWN_SEASONS} последних сезонов (каждый более ранний — с весом ${dec(OWN_DECAY)} от следующего)`,short:a.ownShortPer82,long:a.ownLongPer82,text:`коротких (1–3 матча) ${dec(a.ownShortPer82)} за 82 матча при ${dec(a.leagueShortSpellsPer82)} у ровесников, длинных (4+) ${dec(a.ownLongPer82)} при ${dec(a.leagueLongSpellsPer82)}`};
  const head=Number.isFinite(forecastGames)?`Темп пропусков под прогноз ${games(forecastGames)}`:'Темп пропусков под прогноз числа матчей';
  return {own:false,head,short:a?.shortSpellsPer82,long:a?.longSpellsPer82,text:`коротких (1–3 матча) ${rate(a?.shortSpellsPer82)} и длинных (4+) ${rate(a?.longSpellsPer82)} за 82 матча${a?.ownShortPer82===null?'; своих матчей в логах мало для личного темпа':''}`};
 }
@@ -69,6 +80,14 @@ export function absenceShort(a,forecastGames){
  const r=absenceRates(a,forecastGames);
  return r.own?`${r.head}: ${dec(r.short)} коротких и ${dec(r.long)} длинных за 82 матча (у ровесников ${dec(a.leagueShortSpellsPer82)} и ${dec(a.leagueLongSpellsPer82)}).`
   :`${r.head}: ${rate(r.short)} коротких и ${rate(r.long)} длинных за 82 матча.`;
+}
+
+// Until when an injury report keeps a player out, as the season tab says it: to the end of the season for a
+// season-ending report (season.js seasonEnding: OFS, or OUT whose comment says so, with only a placeholder date, and the
+// forecast counts no game), ESPN's return date for one who is out, nothing for day-to-day (its date is the doubtful game).
+export function injuryUntil(i){
+ if(!i)return '';if(seasonEnding(i))return 'до конца сезона';
+ return injuryStatus(i.status).level==='out'&&i.returnDate?`до ~${ddmm(i.returnDate)}`:'';
 }
 
 // Sports.ru's printed points include its team result bonus, which FBL does not count: next to FBL forecasts a season is
@@ -96,7 +115,7 @@ export function seasonMethod(calibration=CALIBRATION){
   'Выигрыш «неделя» — до конца текущего тура, «4 недели» — 28 дней начиная с сегодня, «сезон» — до последнего тура.',
   'Sports.ru обновляется каждые 2 часа, травмы и матчи ESPN — при открытии, во время матчей — каждые 20 секунд.'];
  return {
-  overview:['Очки — по формуле FBL (Yahoo): статистика матча и +1 за сыгранный матч, без бонуса за результат команды (из ФО Sports.ru вычитаются его бонус и лишнее очко за 10+ минут); игрок приносит их, только пока он в команде. Официальная таблица лиги — на Yahoo, здесь её реконструкция.','«В игре» — матчи, которые Sports.ru ещё не засчитал: протоколы ESPN по той же формуле, предварительно.','Прогноз — очки сейчас плюс ожидание до конца сезона с учётом календаря и травм. Равные очки делят место.',chances],
+  overview:['Очки — по формуле FBL (Yahoo): статистика матча и +1 за сыгранный матч, без бонуса за результат команды (из ФО Sports.ru вычитаются его бонус и лишнее очко за 10+ минут); игрок приносит их, только пока он в команде. Официальная таблица лиги — на Yahoo, здесь её реконструкция.','«В игре» — матчи, которые Sports.ru ещё не засчитал: протоколы ESPN по той же формуле, предварительно.','Прогноз — очки сейчас плюс ожидание до конца сезона с учётом календаря и травм. Игрок, которого держат две команды FBL, приносит очки только взявшей его раньше (если это не установить — обеим), и в факте, и в прогнозе. Равные очки делят место.',chances],
   transfers,
-  teams:['Факт — очки по формуле FBL за период; игрок считается, только пока он в команде. Прогноз — факт плюс очки матчей, которые Sports.ru ещё не засчитал, плюс ожидаемые очки до конца периода.','Неделя — текущий тур Sports.ru; 4 недели — факт с начала текущего тура и прогноз на 28 дней вперёд, как у выигрышей трансферов; сезон — от первого тура до последнего.','Место в лиге — среди 8 команд FBL по тем же очкам вместе с ещё не засчитанными матчами, как в таблице на «Обзоре»; равные очки делят место. Официальная таблица — на Yahoo.',chances,...transfers]};
+  teams:['Факт — очки по формуле FBL за период; игрок считается, только пока он в команде, а если его держат две команды FBL — только у взявшей его раньше (если это не установить — у обеих). Прогноз — факт плюс очки матчей, которые Sports.ru ещё не засчитал, плюс ожидаемые очки до конца периода.','Неделя — текущий тур Sports.ru; 4 недели — факт с начала текущего тура и прогноз на 28 дней вперёд, как у выигрышей трансферов; сезон — от первого тура до последнего.','Место в лиге — среди 8 команд FBL по тем же очкам вместе с ещё не засчитанными матчами, как в таблице на «Обзоре»; равные очки делят место. Официальная таблица — на Yahoo.',chances,...transfers]};
 }
