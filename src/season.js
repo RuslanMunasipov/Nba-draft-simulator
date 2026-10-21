@@ -39,13 +39,21 @@ const weekCache=new WeakMap(),weeksOf=live=>{const k=live?.clubs;if(!k)return ga
 // Sports.ru numbers its tours by US game day, the calendar dates games in Moscow: a US-afternoon game of a tour's first
 // day (MLK day, 18.01.2027) carries the previous tour's last Moscow date. Such a game counts on its own tour's first date.
 export function tourDate(g,weeks){const w=Number.isFinite(g?.week)?weeks?.[g.week]:null;return w&&g.date<w.start?w.start:g.date;}
-// Sports.ru's tour 1 starts on 22.10, after the league's opening night: Yahoo, which keeps the FBL standings, scores from
-// 20.10 (data/league-rules.json yahoo.scoringStart). Period windows open the first week at that day, so the opening
-// games count in the week and season facts; Sports.ru's own tours (transfer counting) are left as they are.
+// Period windows (week and season facts) from the tours. Sports.ru's calendar lists only games still to come: a played
+// game drops out of it with the start of its tour (the collector keeps them from 21.10, the opening night's are gone).
+// Tour 1 therefore opens at the league's scoring start, 20.10 (data/league-rules.json yahoo.scoringStart, Yahoo keeps
+// the FBL standings), and tours missing before the first listed one are rebuilt as Tuesday-Monday weeks (Moscow dates)
+// back to it, the first listed tour starting on its Tuesday. Sports.ru's own tours (transfer counting) stay as they are.
 export const SCORING_START=RULES.yahoo?.scoringStart||null;
 export function periodList(weeks,start=SCORING_START){
  const list=Object.entries(weeks||{}).map(([n,w])=>({n:Number(n),...w})).sort((a,b)=>a.start.localeCompare(b.start));
- if(list.length&&start&&start<list[0].start)list[0]={...list[0],start};
+ if(!list.length||!start)return list;
+ const first=list[0];
+ if(!(first.n>1)){if(start<first.start)list[0]={...first,start};return list;}
+ const from=weekStart(first.start);list[0]={...first,start:from>start?from:start};
+ for(let n=first.n-1,end=addDays(list[0].start,-1);n>=1&&end>=start;n--){
+  const s=n===1?start:weekStart(end),w={n,start:s>start?s:start,end};list.unshift(w);end=addDays(w.start,-1);
+ }
  return list;
 }
 const weekList=weeks=>Object.entries(weeks||{}).map(([n,w])=>({n,...w})).sort((a,b)=>a.start.localeCompare(b.start));
@@ -248,16 +256,16 @@ export function seasonCalendar(live,club){
  filled.set(games,out);return out;
 }
 // Expected official points between two dates (inclusive), counting only club games not yet played: a game is done once
-// the calendar has its score, its day has passed, Sports.ru lists it for the player, it is running (ctx.running), or it
-// has tipped off by ctx.now (a time, when given: such a game can no longer be gained by a move). A game counts in the
-// window of its Sports.ru tour (tourDate). Each game counts with the injury report's factor times the chain's chance to
-// be available that many healthy games on (counted from today, or from the return of an injured player); without hazards
-// (rookies, market players) it is the flat season share.
+// the calendar has its score or marks it gone (dropped from Sports.ru's calendar), its day has passed, Sports.ru lists it
+// for the player, it is running (ctx.running), or it has tipped off by ctx.now (a time, when given: such a game can no
+// longer be gained by a move). A game counts in the window of its Sports.ru tour (tourDate). Each game counts with the
+// injury report's factor times the chain's chance to be available that many healthy games on (counted from today, or
+// from the return of an injured player); without hazards (rookies, market players) it is the flat season share.
 export function expectedPoints(player,ctx,from,to){
  const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,calendar=seasonCalendar(ctx.live,club),weeks=weeksOf(ctx.live);
  const share=playRate(player,live,ctx),value=perGame(player,live).value,injury=ctx.injuries?.get(String(player.espnId));
  const done=new Set((live?.games||[]).map(x=>x.date)),running=ctx.running?.get(player.id)?.day,h=player.forecast?.availability?.hazards;
- const ahead=calendar.filter(g=>!(g.score||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running||ctx.now&&tipOf(g)<=ctx.now)).sort((a,b)=>a.date<b.date?-1:1);
+ const ahead=calendar.filter(g=>!(g.score||g.gone||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running||ctx.now&&tipOf(g)<=ctx.now)).sort((a,b)=>a.date<b.date?-1:1);
  const curve=Array.isArray(h)?chainCurve(h,share,ahead.length):null;
  let games=0,points=0,healthy=0;
  for(const g of ahead){
@@ -594,7 +602,7 @@ export function pointsSpread(player,ctx,outlook){
 export function playerPicture(player,ctx,key){
  const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,h=horizons(ctx)[key];
  const outlook=expectedPoints(player,ctx,h.from,h.to),g=perGame(player,live),rate=playRate(player,live,ctx);
- const clubGames=(ctx.live?.clubs?.[club]||[]).filter(x=>x.date>=h.from&&x.date<=h.to&&!x.score&&!(ctx.today&&x.date<ctx.today)).length;
+ const clubGames=(ctx.live?.clubs?.[club]||[]).filter(x=>x.date>=h.from&&x.date<=h.to&&!x.score&&!x.gone&&!(ctx.today&&x.date<ctx.today)).length;
  const injury=ctx.injuries?.get(String(player.espnId))||null,played=(live?.games||[]).filter(x=>x.played);
  return {player,points:outlook.points,perGame:g.value,prior:g.prior,average:g.average,played:played.length,playRate:rate,
   expectedGames:outlook.games,clubGames,injury,spread:pointsSpread(player,ctx,outlook),

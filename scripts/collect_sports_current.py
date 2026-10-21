@@ -471,6 +471,39 @@ def add_tips(clubs, players, schedules, previous=None):
     return tipped
 
 
+# A club's game missing from its calendar is rebuilt from its players' game rows when at least this many of the club's
+# players list it (a traded player's rows of his old club are one or two; a club lists 13-17 players a game).
+MIN_ROWS = 5
+
+
+def keep_played(clubs, previous, players, today):
+    """Club calendars with the games already played, marked gone. Sports.ru's calendar lists only games still to come, so
+    a played game drops out of it, and with it the start of its week (the app's week and season facts start there) and
+    the club's game count (the NBA Cup fill). Games of the previous snapshot of this season dated up to today that the
+    new calendar no longer lists are kept with their week, score and tip; a later game it drops was moved or cancelled.
+    A game no snapshot kept (the opening night, a failed run) is rebuilt from the game rows of the club's players, with
+    the week whose games end next. gone tells the app the game can no longer be played. Returns the games added."""
+    previous, added = previous or {}, 0
+    key = lambda g: (g.get('date'), g.get('opponent'), bool(g.get('home')))
+    old = (previous.get('clubs') or {}) if previous.get('season') == SEASON_LABEL else {}
+    votes = Counter((p.get('club'), *key(g)) for p in players.values() for g in p.get('games') or [] if g.get('date', '') <= today)
+    for club, games in clubs.items():
+        listed = {key(g) for g in games}
+        back = [{**g, 'gone': True} for g in old.get(club) or [] if g.get('date', '') <= today and key(g) not in listed]
+        listed |= {key(g) for g in back}
+        ends = sorted((max(d), w) for w, d in week_days(games + back).items())
+        for (c, day, opponent, home), n in sorted(votes.items(), key=lambda kv: kv[0][1]):
+            if c == club and n >= MIN_ROWS and (day, opponent, home) not in listed:
+                week = next((w for end, w in ends if end >= day), None)
+                back.append({'date': day, 'opponent': opponent, 'home': home, 'score': None, **({'week': week} if week else {}), 'gone': True})
+                listed.add((day, opponent, home))
+        if back:
+            games.extend(back)
+            games.sort(key=lambda g: g.get('date', ''))
+            added += len(back)
+    return added
+
+
 def upcoming(clubs, today):
     """Calendar games after today: none of them can have been played, so a collection cannot lose them."""
     return sum(1 for games in (clubs or {}).values() for g in games if g.get('date', '') > today)
@@ -746,13 +779,19 @@ def collect_teams(previous=None, errors=None):
     return teams
 
 
+def week_days(games):
+    """{week number: dates of its games} of calendar games that carry a week."""
+    weeks = {}
+    for g in games:
+        if isinstance(g.get('week'), int):
+            weeks.setdefault(g['week'], []).append(g['date'])
+    return weeks
+
+
 def week_ranges(calendars):
     """Sports.ru game weeks by the week number of each calendar game (Moscow dates, so a US Monday-Sunday week shows as
     Tuesday-Monday). Each week runs from the day after the previous week's last game to its own last game."""
-    weeks = {}
-    for games in calendars:
-        for g in games:
-            weeks.setdefault(g['week'], []).append(g['date'])
+    weeks = week_days([g for games in calendars for g in games])
     out, previous_end = {}, None
     for week, days in sorted(weeks.items()):
         start = (date.fromisoformat(previous_end) + timedelta(days=1)).isoformat() if previous_end else min(days)
@@ -809,9 +848,11 @@ def main():
     if collected < MIN_COLLECTED or priced < MIN_PRICED:
         raise SystemExit(f'Only {collected:.0%} of {len(pool)} Sports.ru players collected and {priced:.0%} with a price and position; '
                          'refusing to publish.')
-    reason = refuse_reason(previous, players, clubs, (datetime.now(timezone.utc) + timedelta(hours=3)).date().isoformat())
+    today = (datetime.now(timezone.utc) + timedelta(hours=3)).date().isoformat()
+    reason = refuse_reason(previous, players, clubs, today)
     if reason:
         raise SystemExit(f'Sports.ru {reason} Refusing to publish.')
+    keep_played(clubs, previous, players, today)
     unreadable = sum(1 for p in players.values() if p.get('gameTable') == 'UNREADABLE')
     if unreadable:
         errors.append({'error': f'{unreadable} game tables without points or minutes'})

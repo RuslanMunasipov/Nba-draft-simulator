@@ -332,5 +332,27 @@ class MergeAndProfileTests(unittest.TestCase):
         self.assertEqual(teams['1']['rosterReadAt'], teams['1']['journalReadAt'])
 
 
+class PlayedCalendarTests(unittest.TestCase):
+    """Sports.ru's calendar lists only games still to come: played games must stay, or the week and season facts lose them."""
+    def cal(self, *games):
+        return [{'date': d, 'opponent': o, 'home': h, 'score': None, 'week': w} for d, o, h, w in games]
+
+    def test_played_games_stay_with_their_week_and_the_opening_night_is_rebuilt_from_player_rows(self):
+        previous = {'season': c.SEASON_LABEL, 'clubs': {'Бостон': self.cal(('2026-10-24', 'Нью-Йорк', True, 1), ('2026-10-27', 'Майами', False, 2),
+                                                                         ('2026-10-30', 'Юта', True, 2))}}
+        # 28.10: the 24.10 game is played and the 30.10 one was moved to 05.11; the opening night (20.10) was never listed.
+        clubs = {'Бостон': self.cal(('2026-10-27', 'Майами', False, 2), ('2026-11-05', 'Юта', True, 3))}
+        rows = lambda club, n, *games: {f'{club}{i}': {'club': club, 'games': [{'date': d, 'opponent': o, 'home': h, 'played': True} for d, o, h in games]} for i in range(n)}
+        players = {**rows('Бостон', 14, ('2026-10-20', 'Детройт', False), ('2026-10-24', 'Нью-Йорк', True)),
+                   **rows('Бостон', 1, ('2026-10-21', 'Орландо', True)),        # one traded player's old club: not Boston's game
+                   **rows('Детройт', 3, ('2026-10-22', 'Бостон', True))}        # a club without a calendar is left alone
+        self.assertEqual(c.keep_played(clubs, previous, players, '2026-10-28'), 2)
+        self.assertEqual([(g['date'], g.get('week'), g.get('gone', False)) for g in clubs['Бостон']],
+                         [('2026-10-20', 1, True), ('2026-10-24', 1, True), ('2026-10-27', 2, False), ('2026-11-05', 3, False)])
+        self.assertEqual(c.week_ranges(clubs.values())['1'], {'start': '2026-10-20', 'end': '2026-10-24'})
+        self.assertEqual(c.keep_played(clubs, {**previous, 'clubs': clubs}, players, '2026-10-28'), 0, 'a second run adds nothing')
+        self.assertEqual(c.keep_played({'Бостон': []}, {'season': 'older', 'clubs': previous['clubs']}, {}, '2026-10-28'), 0)
+
+
 if __name__ == '__main__':
     unittest.main()

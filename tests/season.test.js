@@ -239,6 +239,20 @@ test('a running or already listed game is not expected again',()=>{
  assert.ok(Math.abs(expectedPoints(p,base,'2026-10-19','2026-10-30').games-2*share)<1e-9);
  assert.ok(Math.abs(expectedPoints(p,{...base,running:new Map([[p.id,{day:'2026-10-21'}]])},'2026-10-19','2026-10-30').games-share)<1e-9);
 });
+test('a game gone from the calendar (played, not listed for the player) is not expected again',()=>{
+ const p=players[0],cal=[{date:'2026-10-21',gone:true},{date:'2026-10-21',opponent:'X'},{date:'2026-10-23'}];
+ const base={...ctx({today:'2026-10-21'}),live:{clubs:{[p.sportsClub]:cal},players:{[p.sportsId]:{games:[]}}}};
+ assert.ok(Math.abs(expectedPoints(p,base,'2026-10-19','2026-10-30').games-2*playRate(p,base.live.players[p.sportsId],base))<1e-9);
+});
+test('period windows: tours the calendar no longer lists are rebuilt back to the scoring start', async () => {
+ const {periodList}=await import('../src/season.js');
+ // 05.11: tours 1 and 2 are over and gone from Sports.ru's calendar, tour 3's first game (03.11) too.
+ const list=periodList({3:{start:'2026-11-04',end:'2026-11-09'},4:{start:'2026-11-10',end:'2026-11-16'}});
+ assert.deepEqual(list.map(w=>[w.n,w.start,w.end]),[[1,'2026-10-20','2026-10-26'],[2,'2026-10-27','2026-11-02'],[3,'2026-11-03','2026-11-09'],[4,'2026-11-10','2026-11-16']]);
+ const {periodWindows}=await import('../src/standings.js');
+ const w=periodWindows({today:'2026-11-05',live:{weeks:{3:{start:'2026-11-04',end:'2026-11-09'},4:{start:'2026-11-10',end:'2026-11-16'}}},players:[],rosters:[]});
+ assert.deepEqual([w.week.from,w.week.to,w.season.from],['2026-11-03','2026-11-09','2026-10-20']);
+});
 test('market players missing from the database get a price-based prior and are matched by the roster json',()=>{
  const live2={players:{'777':{name:'Новичок',fullName:'Новый Игрок',position:'C',price:1500,club:'Q'}}};
  const all=withMarket(players,live2),x=all.find(p=>p.sportsId==='777');

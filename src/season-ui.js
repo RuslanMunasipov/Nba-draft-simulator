@@ -589,7 +589,7 @@ function injuriesView(ctx){
   const info=injuryInfo(r.p),item=el('div',null,'sp-injury-item'+(info.level==='out'?' out':'')),head=el('div',null,'head');
   head.append(el('strong',r.p.name),el('span',info.text,'chip '+(info.level==='out'?'chip--danger':'chip--warn')));
   item.append(head,el('small',[r.p.team,bodyPart(r.i.type),r.i.date?'отчёт '+ddmm(String(r.i.date).slice(0,10)):''].filter(Boolean).join(' · ')));
-  if(g===0){const o=playerOutlook(r.p,{...ctx,running:new Map()});const missed=Math.max(0,(live?.clubs?.[clubOf(r.p)]||[]).filter(x=>x.date>=ctx.today&&x.date<=horizons(ctx).week.to&&!x.score).length-o.week.games);
+  if(g===0){const o=playerOutlook(r.p,{...ctx,running:new Map()});const missed=Math.max(0,(live?.clubs?.[clubOf(r.p)]||[]).filter(x=>x.date>=ctx.today&&x.date<=horizons(ctx).week.to&&!x.score&&!x.gone).length-o.week.games);
    if(missed>=.5)item.append(el('p',`Пропустит ~${dec(missed)} матча до конца недели.`));
    item.append(button('Найти замену',()=>{team=0;writeStored('fbl-season-team','0');replacing=r.p.id;openRows.add(r.p.id);setView('teams');},'btn-ghost btn-sm'));}
   if(r.i.comment){const c=el('details',null,'inline');c.append(el('summary','Комментарий ESPN'),el('p',r.i.comment));c.lang='en';item.append(c);}
@@ -609,11 +609,11 @@ function gamesView(ctx){
  const own=owners(ctx),byClub=new Map();
  for(const p of players){if(own.get(p.id)!==team)continue;const c=clubOf(p);if(!byClub.has(c))byClub.set(c,[]);byClub.get(c).push(p);}
  const until=addDaysIso(ctx.today,6),days=new Map();
- for(const [club,cal] of Object.entries(live?.clubs||{}))for(const g of cal){if(g.date<ctx.today||g.date>until||!g.home)continue;if(!days.has(g.date))days.set(g.date,[]);days.get(g.date).push({home:club,away:g.opponent});}
+ for(const [club,cal] of Object.entries(live?.clubs||{}))for(const g of cal){if(g.date<ctx.today||g.date>until||!g.home||g.gone)continue;if(!days.has(g.date))days.set(g.date,[]);days.get(g.date).push({home:club,away:g.opponent});}
  const week=currentWeek(ctx.today),end=week?.end||horizons(ctx).week.to;
  const block=el('div',null,'sp-block');block.append(el('h3',`Игры составов до ${ddmm(end)}`),el('p','Сколько матчей сыграют 10 игроков каждой команды по календарю Sports.ru и с учётом травм.','muted'));
  const counts=el('table',null,'standings-table'),hr=el('tr');for(const [x,c] of [['Команда',''],['Матчей','num'],['С травмами','num']]){const th=el('th',x,c);th.scope='col';hr.append(th);}counts.append(hr);
- const rows=ctx.rosters.map((ids,t)=>{let w=0,e=0;for(const id of ids){const p=byId.get(id);if(!p)continue;for(const g of live?.clubs?.[clubOf(p)]||[])if(g.date>=ctx.today&&g.date<=end&&!g.score)w++;e+=playerOutlook(p,{...ctx,running:new Map()}).week.games;}return {t,w,e};}).sort((a,b)=>b.e-a.e);
+ const rows=ctx.rosters.map((ids,t)=>{let w=0,e=0;for(const id of ids){const p=byId.get(id);if(!p)continue;for(const g of live?.clubs?.[clubOf(p)]||[])if(g.date>=ctx.today&&g.date<=end&&!g.score&&!g.gone)w++;e+=playerOutlook(p,{...ctx,running:new Map()}).week.games;}return {t,w,e};}).sort((a,b)=>b.e-a.e);
  for(const r of rows){const tr=el('tr');if(r.t===team)tr.className='mine';tr.append(el('td',teamName(r.t),'team'),el('td',String(r.w),'num'),el('td',dec(r.e),'num total'));counts.append(tr);}
  const wrap=el('div',null,'table-scroll');wrap.append(counts);block.append(wrap);
  const sched=el('div',null,'sp-block');sched.append(el('h3','Расписание на 7 дней'));
