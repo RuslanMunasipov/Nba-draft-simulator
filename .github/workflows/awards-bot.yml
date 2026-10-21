@@ -1,0 +1,75 @@
+name: Awards bot
+# The league's awards bot (awards-bot/): its own Telegram bot and chat, its own state branch data/awards-bot. Nothing is
+# shared with the season watcher or its bots; it only reads the project's data. Every 15 minutes from 06:07 to 11:52
+# Moscow time it archives finished games and posts the game day once every game is over (by 11:45 at the latest), the
+# week and the awards race after Sunday's games, and the month's five after its last game day.
+# Run it by hand with a US game day to preview that day's posts (nothing saved or sent).
+on:
+  schedule:
+    - cron: '7,22,37,52 3-8 * * *'
+  workflow_dispatch:
+    inputs:
+      preview:
+        description: 'US game day to preview, YYYY-MM-DD (nothing saved or sent). Empty: a normal run.'
+        required: false
+        default: ''
+permissions:
+  contents: write
+concurrency:
+  group: awards-bot
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Preview a game day
+        if: inputs.preview != ''
+        run: node awards-bot/bot.mjs --preview "${{ inputs.preview }}" --week --month
+      - name: Load the bot's state
+        if: inputs.preview == ''
+        run: |
+          mkdir -p "$RUNNER_TEMP/awards"
+          # The state is what was already posted: a run that cannot read it must not start from nothing (it would post
+          # the day again). Only a missing branch is a first run.
+          for i in 1 2 3 4 5; do
+            git fetch -q origin data/awards-bot:refs/remotes/origin/data/awards-bot && break
+            if [ "$i" = 5 ]; then
+              code=0; git ls-remote --exit-code origin data/awards-bot >/dev/null || code=$?
+              [ "$code" = 2 ] && { echo "First run: no state yet"; exit 0; }
+              echo "Cannot fetch data/awards-bot: not starting from an empty state"; exit 1
+            fi
+            sleep $((i * 10))
+          done
+          git show origin/data/awards-bot:state.json > "$RUNNER_TEMP/awards/state.json"
+          git show origin/data/awards-bot:archive.json > "$RUNNER_TEMP/awards/archive.json"
+      - name: Archive games and post
+        if: inputs.preview == ''
+        env:
+          AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
+          AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID }}
+          AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
+        run: node awards-bot/bot.mjs --state "$RUNNER_TEMP/awards"
+      - name: Save the bot's state
+        # The bot saves after every post, so a run that failed halfway still keeps what it posted.
+        if: inputs.preview == '' && (success() || failure())
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd "$RUNNER_TEMP/awards"
+          [ -f state.json ] || exit 0
+          git init -q -b data/awards-bot
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add state.json archive.json
+          git commit -qm "Awards bot state $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do
+            git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data/awards-bot && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
