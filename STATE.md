@@ -42,3 +42,10 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
   so far is in verify2.json / verdicts.json. Re-verify only clusters missing from verify2.json.
 - Data used by agents: deployed Pages data (re-download `https://ruslanmunasipov.github.io/Nba-draft-simulator/data/<file>` into
   public/data/), live branch `data/season-live`, `python3 scripts/projection_model.py --report-only > projection-report-only.json`.
+
+## Owner decisions (21.10.2026, answered in the session)
+- Participation bonus: exact by minutes (+2 at 10+ min, else +1), as now. Record in data/league-rules.json scoringFormula.participation = EXACT_MINUTES.
+- Shared player (bought while another FBL team holds him): his points go only to the first holder; the later buyer's slot scores 0 until repaired.
+  Purchases in one time window (cannot tell who was first): keep for both + lawyer check (state it).
+- Objective: keep expected points for advice; ADD Monte Carlo probabilities of 1st place and top-3 for every team (standings).
+- Games for ESPN-covered players: mean of ESPN and model games (as originally documented); fit the weight on 2026/27 with the frozen ESPN snapshot later.
