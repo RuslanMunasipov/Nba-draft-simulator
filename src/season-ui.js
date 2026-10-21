@@ -5,7 +5,7 @@ import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGam
 import {recommendPackage,contestedBy,transferWindow} from './season.js';
 import {leagueRace,teamPlace,placeLabel,chanceText,periodWindows,windowFact,CHANCE_RUNS} from './standings.js';
 import {combineNote,absenceShort,sportsSeasonsLine,seasonMethod} from './forecast-text.js';
-import {fetchLiveGames,moscowDate} from './live.js';
+import {fetchLiveGames,moscowDate,nextLiveDelay,LIVE_MS} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 
 const $=id=>document.getElementById(id);
@@ -24,7 +24,7 @@ function button(label,onclick,cls='btn-secondary btn-sm'){const b=el('button',la
 
 let basePlayers=[],players=[],byId=new Map(),live=null,rawLive=null,injuries=new Map(),league={transfers:[],banks:{}},games=[],card=()=>el('div');
 // What each source did on the last refresh: the screens say so instead of showing zeros or "no injuries".
-let src={live:'idle',injuries:'idle',games:'idle',injuriesAt:null},loading=null,attempted=false,liveTimer=null,dbState='loading',dbRetry=null;
+let src={live:'idle',injuries:'idle',games:'idle',injuriesAt:null},loading=null,attempted=false,liveTimer=null,gamesAt=null,dbState='loading',dbRetry=null;
 let view=readStored('fbl-season-view')||'overview',team=Number(readStored('fbl-season-team')||0),horizon=readStored('fbl-season-horizon')||'month';
 let replacing=null,query='',injuryScope='league',onlyMine=true;
 const openRows=new Set();
@@ -84,11 +84,16 @@ export async function refreshSeason(){
 }
 async function refreshGames(){
  const ctx=players.length?context():null,wanted=ctx?new Set(ctx.rosters.flat().map(id=>byId.get(id)?.team).filter(Boolean)):null;
- try{games=await fetchLiveGames(wanted);src.games=games.length?'ok':'empty';}catch{src.games='error';}
+ try{games=await fetchLiveGames(wanted);src.games=games.length?'ok':'empty';gamesAt=Date.now();}catch{src.games='error';}
  scoreBoxes();
- // Poll once a minute while a game is running and the season page is open.
- clearTimeout(liveTimer);
- if(games.some(g=>g.state==='in'))liveTimer=setTimeout(async()=>{if(tab()==='season'&&document.visibilityState!=='hidden'&&!document.activeElement?.closest?.('#season-body input')){await refreshGames();renderSeason();}},60000);
+ // Every 20 s while a game runs, and at the next tip-off (live.js nextLiveDelay), while the season page is open.
+ clearTimeout(liveTimer);const wait=nextLiveDelay(games);
+ if(wait!==null)liveTimer=setTimeout(liveTick,wait);
+}
+// Hidden, on the draft tab or while typing: skip the round but keep the rhythm, so the watch never stops by itself.
+async function liveTick(){
+ if(tab()!=='season'||document.visibilityState==='hidden'||document.activeElement?.closest?.('#season-body input')){liveTimer=setTimeout(liveTick,LIVE_MS);return;}
+ await refreshGames();renderSeason();
 }
 // Finished games Sports.ru has not counted yet are scored from the ESPN box scores (season.js withBoxScores).
 function scoreBoxes(){if(rawLive&&players.length){live=withBoxScores(rawLive,games,players);addMarket();}}
@@ -642,6 +647,7 @@ const METHOD=seasonMethod();
 function statusLine(ctx){
  const week=currentWeek(ctx.today),parts=[week?`Тур ${week.n} · ${ddmm(week.start)}–${ddmm(week.end)}`:`Сегодня ${ddmm(ctx.today)}`];
  if(loading)parts.push('обновляю данные…');else if(live)parts.push(`данные Sports.ru на ${timeMsk(live.collectedAt)}`+(moscowDate(live.collectedAt)!==ctx.today?` ${ddmm(moscowDate(live.collectedAt))}`:''));
+ if(!loading&&gamesAt&&games.some(g=>g.state==='in'))parts.push(`счёт ESPN на ${new Date(gamesAt+3*3600e3).toISOString().slice(11,19)} МСК, обновляется каждые ${LIVE_MS/1e3} с`);
  return parts.join(' · ');
 }
 function warnings(ctx){
