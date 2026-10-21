@@ -190,7 +190,7 @@ function ruInsight(s){
 function cardBody(p,risk,readonly){
  const body=el('div',null,'card-body'),f=p.forecast;
  const notes=[];
- for(const i of p.injuries||[])notes.push(`${injuryStatus(i.status).label}${i.date?' · с '+new Date(i.date).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):''}.`);
+ for(const i of p.injuries||[])notes.push(`${injuryStatus(i.status).label}${i.date?' · с '+new Date(i.date).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}).replace(/\.$/,''):''}.`);
  if(p.coverageStatus==='EARLIER_SEASON')notes.push(`Мало матчей в прошлом сезоне: прогноз опирается на сезон ${p.projectionBaseSeason}, текущая нагрузка неизвестна.`);
  if(p.returnContext?.note)notes.push(p.returnContext.note);
  if(!readonly&&replacing===null&&onClock()===0)for(const w of rookieSlotWarnings(state,p))notes.push(w);
