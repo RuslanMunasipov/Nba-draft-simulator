@@ -26,8 +26,8 @@ test('league owner decisions of 21.10.2026 are recorded in the league rules',()=
  const rules=JSON.parse(readFileSync(new URL('../data/league-rules.json',import.meta.url),'utf8'));
  assert.equal(rules.scoringFormula.participation,'PER_GAME_PLAYED');assert.equal(rules.scoringFormula.resultBonus,false);
  assert.equal(rules.sharedPlayers.scoring,'FIRST_HOLDER_ONLY');assert.equal(rules.sharedPlayers.verdict,'violation');
- assert.deepEqual(rules.forecastBasis.espnCovered,{perGame:'MEAN_OF_ESPN_AND_MODEL',games:'ESPN_INJURY_REPORT'});
- assert.equal(rules.forecastBasis.injuries,'ESPN_INJURY_REPORT_ONLY');
+ assert.deepEqual(rules.forecastBasis.allPlayers,{perGame:'MODEL',games:'MODEL'});assert.equal(rules.forecastBasis.espnProjections,'NOT_USED');
+ assert.equal(rules.forecastBasis.injuries,'MODEL_CHAIN_WITH_ESPN_REPORT');
  assert.equal(rules.objective.advice,'EXPECTED_POINTS');assert.deepEqual(rules.objective.placeProbabilities,['FIRST','TOP_3']);
  for(const k of ['scoringFormula','sharedPlayers','forecastBasis','objective'])assert.match(JSON.stringify(rules[k]),/league owner, 2026-10-21/);
 });

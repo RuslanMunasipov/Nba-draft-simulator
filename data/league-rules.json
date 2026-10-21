@@ -126,19 +126,14 @@
     "participationNote": "Sports.ru's own formula gives +2 for 10:00 or more minutes and +1 below, plus its result bonus; its season totals, prices and per-game points keep that rule, so they are compared after removing both."
   },
   "forecastBasis": {
-    "espnCovered": {
-      "perGame": "MEAN_OF_ESPN_AND_MODEL",
-      "games": "ESPN_INJURY_REPORT"
-    },
-    "perGameBasis": "PROJECT_DEFAULT",
-    "otherPlayers": {
+    "allPlayers": {
       "perGame": "MODEL",
-      "games": "ESPN_INJURY_REPORT"
+      "games": "MODEL"
     },
-    "injuries": "ESPN_INJURY_REPORT_ONLY",
-    "decidedBy": "league owner, 2026-10-21 (games and injuries only)",
-    "note": "Points per game of a player ESPN projects are the equal-weight mean of ESPN's projection and the model's. Games, for every player, come only from the ESPN injury report (league owner, 2026-10-21, later the same day, replacing the mean of ESPN's and the model's games): a player with no entry plays every remaining club game; out with a return date misses the club games before it; out for the season plays 0; day-to-day misses half of the next games. The model's absence chain and ESPN's projected games are not used. Held out 2025/26 (scripts/projection_model.py, holdout.reportGames): the 296 players who started healthy played 59.9 of 82 games on average, so the rule runs 22.1 games and 222 FP a season above the outcome (season MAE 297, against 232 for the model's healthy-start games).",
-    "perGameNote": "Not a league owner decision (the owner never set it; corrected 2026-10-21). The equal-weight mean of ESPN and the model for points per game is the project default since the first ESPN import; on the 2026-10-21 database ESPN projects 13 players, all 2026 rookies."
+    "espnProjections": "NOT_USED",
+    "injuries": "MODEL_CHAIN_WITH_ESPN_REPORT",
+    "decidedBy": "league owner, 2026-10-21",
+    "note": "Every forecast is the model's alone, points per game and games, as for every player; ESPN's individual projections are not used (on the 2026-10-21 database they covered 13 players, all 2026 rookies, whose forecast had been the mean of ESPN and the model). Injuries stay as before: the model's absence chain with the ESPN injury report's known absences (return dates) and the healthy start. A same-day change to games from the ESPN report alone was reverted at the owner's request."
   },
   "objective": {
     "advice": "EXPECTED_POINTS",

@@ -2,8 +2,7 @@
 Parameters are chosen on 2023/24 -> 2024/25 only and then frozen; 2024/25 -> 2025/26 is the held-out test.
 The pre-season prior in this backtest is the previous season (newcomers: the median newcomer),
 so the fitted weights describe a prior of that quality, not a validated ESPN forecast.
-src/season.js perGame mirrors split(); tests/fixtures/inseason-golden.json pins it. The fitted share of games played
-(availability()) is reported but no longer used: games come only from the ESPN injury report (league owner, 21.10.2026).
+src/season.js perGame and playRate mirror split() and availability(); tests/fixtures/inseason-golden.json pins both.
 """
 import json,math,random,statistics,sys
 from collections import defaultdict
