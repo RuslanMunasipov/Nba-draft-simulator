@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {gameWeeks,weekOf,horizons,withMarket,seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition,playRate,newsInjuries,clockMinutes,CALIBRATION} from '../src/season.js';
+import {gameWeeks,weekOf,horizons,withMarket,seasonRosters,stints,bank,weekStart,transfersThisWeek,perGame,injuryFactor,expectedPoints,transferOptions,bestTransfers,teamPoints,parseInjuries,PRIOR_GAMES,bestPackage,boxScorePoints,liveGamePoints,journalTransfers,allTransfers,transferVerdict,bestSwapFor,injuredTargets,acquisition,playRate,newsInjuries,clockMinutes,CALIBRATION,withBoxScores} from '../src/season.js';
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 // 80 drafted players (ids 1..80, team = (id-1)%8) plus 20 free agents (ids 81..100).
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -143,7 +143,7 @@ test('box score uses the FBL formula: Sports.ru\'s without the team result bonus
  assert.equal(boxScorePoints({MIN:'0',FG:'0-0',FT:'0-0',PTS:'0',REB:'0'}),1);
  const event={status:{type:{completed:true}},competitions:[{competitors:[{team:{id:'1'},homeAway:'home',winner:false},{team:{id:'2'},homeAway:'away',winner:true}]}]};
  const summary={boxscore:{players:[{team:{id:'2'},statistics:[{labels:Object.keys(line),athletes:[{athlete:{id:'77'},stats:Object.values(line)},{athlete:{id:'78'},stats:[]}]}]}]}};
- assert.deepEqual(liveGamePoints(summary,event),{77:{points:34,minutes:36,final:true}});
+ assert.deepEqual(liveGamePoints(summary,event),{77:{points:34,minutes:36,final:true,counting:32}});
 });
 test('packages never trade the season for a short-term gain unless asked',()=>{
  // Free agent 99 (C) is great this week but out from November; the roster centre is steady all season.
@@ -388,4 +388,31 @@ test('an unpinned purchase: the roster json first, then the journal price, then 
  assert.deepEqual(run(),[derrick.id,morez.id]);
  // The roster json, when it names the player, outranks everything.
  assert.deepEqual(run([...stale.slice(2),{sportsId:'coby'},{sportsId:'tre'}]),['coby','tre']);
+});
+test('finished games Sports.ru has not counted yet are scored at once from the ESPN box score', () => {
+ // Maxey on 21.10: Sports.ru lists the game as played (39:33) with 0 points before it counts it.
+ const live={collectedAt:'2026-10-21T02:20:20Z',players:{
+  1:{club:'Филадельфия',games:[{date:'2026-10-21',opponent:'Нью-Йорк',home:false,minutes:'39:33',points:0,played:true}]},
+  2:{club:'Детройт',games:[{date:'2026-10-20',opponent:'Бостон',home:true,minutes:'09:58',points:0,played:true}]},
+  3:{club:'Оклахома-Сити',games:[{date:'2026-10-21',minutes:'20:00',points:7,played:true}]},
+  4:{club:'Сан-Антонио',games:[]}},clubs:{}};
+ const players=[{id:'a',espnId:'11',sportsId:'1'},{id:'b',espnId:'22',sportsId:'2'},{id:'c',espnId:'33',sportsId:'3'},{id:'d',espnId:'44',sportsId:'4'}];
+ const games=[
+  {id:'g1',date:'2026-10-20T23:30Z',state:'post',final:true,points:{11:{points:36,minutes:40,final:true,counting:34}}},
+  // ESPN rounds 9:58 to "10": Sports.ru's exact minutes give +1, not +2.
+  {id:'g2',date:'2026-10-20T19:00Z',state:'post',final:true,points:{22:{points:12,minutes:10,final:true,counting:10}}},
+  {id:'g3',date:'2026-10-21T00:00Z',state:'in',final:false,points:{33:{points:10,minutes:20,final:false,counting:8}}},
+  {id:'g4',date:'2026-10-21T00:30Z',state:'post',final:true,points:{44:{points:6,minutes:8,final:true,counting:5}}}];
+ const out=withBoxScores(live,games,players);
+ assert.deepEqual(out.players[1].games[0],{date:'2026-10-21',opponent:'Нью-Йорк',home:false,minutes:'39:33',points:36,played:true,source:'ESPN',sportsRowPoints:0});
+ assert.equal(out.players[2].games[0].points,11);
+ // A running game: its Sports.ru row does not count yet, the running points do.
+ assert.equal(out.players[3].games[0].played,false);
+ // Sports.ru has not listed the game at all: the box score adds it.
+ assert.deepEqual(out.players[4].games,[{date:'2026-10-21',minutes:'8',points:6,played:true,source:'ESPN'}]);
+ assert.equal(live.players[1].games[0].points,0,'the fetched snapshot is not changed');
+ // Team points and the per-game update use the scored game.
+ const ctx={players:[{id:'a',sportsId:'1',forecast:{meanPerGame:20,minutes:35}}],live:out};
+ assert.equal(teamPoints(ctx,[],['a',...Array(79).fill('z')])[0],36);
+ assert.equal(withBoxScores(live,[],players),live);
 });

@@ -434,11 +434,38 @@ export function liveGamePoints(summary,event){
    const labels=st.labels||st.names||[];
    for(const a of st.athletes||[]){
     if(!a.stats?.length||a.didNotPlay)continue;const stats=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]]));
-    const points=boxScorePoints(stats);if(points!==null)out[String(a.athlete?.id)]={points,minutes:Number(stats.MIN)||0,final};
+    const points=boxScorePoints(stats),minutes=Number(stats.MIN)||0;
+    // counting: the line without the participation bonus, which follows the exact minutes when Sports.ru lists them.
+    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-(minutes>=10?2:1)};
    }
   }
  }
  return out;
+}
+// Sports.ru lists a game as played with 0 points until it counts it, hours after the final whistle. Games ESPN covers
+// (yesterday and today, US Eastern) are therefore scored at once by the league's formula on the ESPN box score — the
+// categories Yahoo counts — with Sports.ru's exact minutes for the 10-minute bonus when it lists them. A game still
+// running is left to the running points: its Sports.ru row does not count until the final whistle.
+const tipDay=iso=>new Date(Date.parse(iso)+3*3600e3).toISOString().slice(0,10);
+export function withBoxScores(live,games,players){
+ if(!live?.players||!games?.length)return live;
+ const byEspn=new Map(players.filter(p=>p.espnId&&p.sportsId).map(p=>[String(p.espnId),String(p.sportsId)]));
+ const out={...live,players:{...live.players}};let changed=false;
+ for(const g of games){
+  if(!g.points||g.state==='pre')continue;const day=tipDay(g.date);
+  for(const [eid,x] of Object.entries(g.points)){
+   const sid=byEspn.get(eid),info=sid&&out.players[sid];if(!info||!Number.isFinite(x.counting))continue;
+   const rows=[...(info.games||[])],i=rows.findIndex(o=>o.date===day),row=i>=0?rows[i]:null;let next;
+   if(g.final){
+    const exact=/^\d+:\d{2}$/.test(String(row?.minutes??''))&&clockMinutes(row.minutes)>0?clockMinutes(row.minutes):x.minutes;
+    next={...(row||{date:day}),minutes:row&&exact!==x.minutes?row.minutes:String(x.minutes),points:x.counting+(exact>=10?2:1),played:true,source:'ESPN',...(row?{sportsRowPoints:row.points}:{})};
+   }else if(row?.played)next={...row,played:false,running:true};
+   else continue;
+   if(row)rows[i]=next;else{rows.push(next);rows.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);}
+   out.players[sid]={...info,games:rows};changed=true;
+  }
+ }
+ return changed?out:live;
 }
 
 // ---------- Sports.ru team journals ----------

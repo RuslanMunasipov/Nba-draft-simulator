@@ -1,7 +1,7 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
 import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
-import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,stints,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from './season.js';
+import {CAP,WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,teamPoints,stints,expectedPoints,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,CONFIDENT,DOUBTFUL} from './season.js';
 import {fetchLiveGames,moscowDate} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 
@@ -19,7 +19,7 @@ function el(tag,value,cls){const e=document.createElement(tag);if(value!=null)e.
 function link(textValue,href,cls){const a=el('a',textValue,cls);a.href=href;a.target='_blank';a.rel='noopener';return a;}
 function button(label,onclick,cls='btn-secondary btn-sm'){const b=el('button',label,cls);b.type='button';b.onclick=onclick;return b;}
 
-let basePlayers=[],players=[],byId=new Map(),live=null,injuries=new Map(),league={transfers:[],banks:{}},games=[],card=()=>el('div');
+let basePlayers=[],players=[],byId=new Map(),live=null,rawLive=null,injuries=new Map(),league={transfers:[],banks:{}},games=[],card=()=>el('div');
 // What each source did on the last refresh: the screens say so instead of showing zeros or "no injuries".
 let src={live:'idle',injuries:'idle',games:'idle',injuriesAt:null},loading=null,attempted=false,liveTimer=null,dbState='loading',dbRetry=null;
 let view=readStored('fbl-season-view')||'overview',team=Number(readStored('fbl-season-team')||0),horizon=readStored('fbl-season-horizon')||'month';
@@ -66,7 +66,7 @@ export async function refreshSeason(){
  if(loading)return loading;
  const refresh=$('season-refresh');refresh.disabled=true;refresh.setAttribute('aria-busy','true');
  loading=Promise.all([fetchLive(),fetchJson(INJURY_URL).catch(()=>null),fetchJson(LEAGUE_URL,{cache:'no-cache'}).catch(()=>null)]).then(async([l,inj,lg])=>{
-  if(l){live=l;src.live='ok';addMarket();}else src.live=live?'stale':'error';
+  if(l){rawLive=live=l;src.live='ok';addMarket();}else src.live=live?'stale':'error';
   if(inj){injuries=parseInjuries(inj);src.injuries='ok';src.injuriesAt=new Date().toISOString();}
   else if(live?.espnInjuries){injuries=parseInjuries(live.espnInjuries);src.injuries='ok';src.injuriesAt=live.espnInjuries.fetchedAt;}
   else src.injuries=injuries.size?'stale':'error';
@@ -79,14 +79,17 @@ export async function refreshSeason(){
 async function refreshGames(){
  const ctx=players.length?context():null,wanted=ctx?new Set(ctx.rosters.flat().map(id=>byId.get(id)?.team).filter(Boolean)):null;
  try{games=await fetchLiveGames(wanted);src.games=games.length?'ok':'empty';}catch{src.games='error';}
+ scoreBoxes();
  // Poll once a minute while a game is running and the season page is open.
  clearTimeout(liveTimer);
  if(games.some(g=>g.state==='in'))liveTimer=setTimeout(async()=>{if(tab()==='season'&&document.visibilityState!=='hidden'&&!document.activeElement?.closest?.('#season-body input')){await refreshGames();renderSeason();}},60000);
 }
+// Finished games Sports.ru has not counted yet are scored from the ESPN box scores (season.js withBoxScores).
+function scoreBoxes(){if(rawLive&&players.length){live=withBoxScores(rawLive,games,players);addMarket();}}
 export function setSeasonPlayers(list,cardFn){
  if(cardFn)card=cardFn;
  if(list===basePlayers||!list?.length)return;
- basePlayers=list;addMarket();
+ basePlayers=list;addMarket();scoreBoxes();
  if(tab()==='season')renderSeason();
 }
 // The draft tab reports how its player database is doing; without it the season tab has nothing to show.
@@ -151,7 +154,7 @@ function standingsTable(ctx,running){
   const open=()=>{team=r.t;writeStored('fbl-season-team',String(team));setView('teams');};
   tr.onclick=open;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};table.append(tr);});
  const box=el('div',null,'sp-block');const head2=el('div',null,'sp-block-head');head2.append(el('h3',started?'Таблица лиги':'Прогноз сезона'));box.append(head2);
- const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap,el('p','Нажми на команду, чтобы открыть состав.','sp-note'));
+ const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap,el('p',(started?'Очки — по формуле лиги; матчи последних двух дней — сразу по протоколам ESPN (категории Yahoo), пока Sports.ru их не посчитал. ':'')+'Нажми на команду, чтобы открыть состав.','sp-note'));
  return box;
 }
 // "Сезон стартует 21.10" from the Sports.ru calendar, never a hard-coded date.
