@@ -79,3 +79,6 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
   POLICY: FBL points only BOX (Sports.ru box) or ESPN box; NO_BOX rows points null; app ignores NO_BOX/SPORTS_WITH_BONUS.
   After round 2: docs pass by me (README, SCORING_AUDIT, ACCEPTANCE incl. C06-C11, Y12-Y15, Y20 + all docNotes; league-rules
   gamePoints), adversarial review of combined diff, final model rerun, merge #88.
+- 09:00Z: PR #88 squash-merged to main c1dd538 (tree == c66da69). Local claude/full-model-audit reset to origin/main (not pushed yet;
+  remote still has old history -> push with --force-with-lease when the follow-up commits exist). Round-2 branches audit-fix3/* are
+  based on c66da69 (same tree as main): cherry-pick their commits onto the new branch, then open a NEW PR.
