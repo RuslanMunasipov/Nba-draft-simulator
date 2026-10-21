@@ -114,8 +114,10 @@ class SportsCurrentTest(unittest.TestCase):
 
     def test_games_only_current_season(self):
         games = collector.parse_games(GAMES)
+        # The played row's own score (home first: 120 : 110 at home, a win) takes Sports.ru's +2 off its 48.
         self.assertEqual([(g['date'], g['played'], g['points'], g['price']) for g in games],
-                         [('2026-10-23', False, 0, 3500), ('2026-10-25', True, 48, 3600)])
+                         [('2026-10-23', False, 0, 3500), ('2026-10-25', True, 46, 3600)])
+        self.assertEqual((games[1]['sportsPoints'], games[1]['result'], games[1]['pointsSource']), (48, 'W', 'ROW_SCORE'))
 
     def test_team_profile_and_journal(self):
         profile = """<h1><b>The Balkan Murderers</b></h1><table class="profile-table"><tr><th>Место</th><td>586 из 1280 </tr></table>

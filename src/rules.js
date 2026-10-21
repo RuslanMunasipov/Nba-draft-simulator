@@ -80,8 +80,12 @@ export function checkRules({rosters,byId,transfers=[],white=[],checked=[],today,
   const roster=(rosters[team]||[]).map(id=>byId.get(id)).filter(Boolean),violations=[];
   const rookies=roster.filter(p=>p.isRookie===true),whites=roster.filter(p=>whiteSet.has(String(p.id)));
   const undecided=checked.length?roster.filter(p=>!decided.has(String(p.id))):[];
-  if(!rookies.length)violations.push({rule:'rookie',vid:'rookie',key:`rookie:${team}:${roster.map(p=>p.id).sort().join(',')}`,
-   text:'в составе нет ни одного новичка (rookie) — нарушено правило обязательного новичка'});
+  // A player only the Sports.ru market knows (not in the database) has no known rookie status: without a marked rookie
+  // the lawyer checks him, it is no certain breach.
+  const unknown=roster.filter(p=>p.isRookie!==true&&p.rookieStatus==='NOT_SHOWN_BY_SPORTS_RU');
+  if(!rookies.length)violations.push({rule:'rookie',vid:'rookie',certain:!unknown.length,key:`rookie:${team}:${roster.map(p=>p.id).sort().join(',')}`,
+   text:unknown.length?`в составе нет отмеченного новичка (rookie): статус ${unknown.map(nameOf).join(', ')} базе не известен — проверьте правило обязательного новичка`
+    :'в составе нет ни одного новичка (rookie) — нарушено правило обязательного новичка'});
   const lastOut=[...transfers].reverse().find(x=>x.team===team&&whiteSet.has(String(x.outId)));
   const fullyDecided=checked.length>0&&roster.length>0&&!undecided.length;
   const whiteState=whites.length?'ok':whiteSet.has(`none:${team}`)||fullyDecided?'none':lastOut?'sold':'unmarked';
@@ -148,9 +152,10 @@ export function firstHolder(a,b){
 }
 // What a team's check asks of the league. An obvious breach (no rookie, the club or transfer limit, a team the league
 // found without a white player, a transfer outside the hours, a player another team holds) is for the lawyer to investigate; a sold white player with
-// no other one marked, a roster the league has not decided on, a transfer whose time window crosses 08:00 or 22:00, or a
-// week over the limit only by deals made at the pre-season deadline needs his check; otherwise the roster stands approved.
-export const isDoubt=(v,check)=>(v.rule==='white'&&check.whiteState==='sold')||(['time','transfers','duplicate'].includes(v.rule)&&v.certain===false);
+// no other one marked, a roster the league has not decided on, a transfer whose time window crosses 08:00 or 22:00, a
+// week over the limit only by deals made at the pre-season deadline, or no marked rookie beside a player whose rookie
+// status the database does not know needs his check; otherwise the roster stands approved.
+export const isDoubt=(v,check)=>(v.rule==='white'&&check.whiteState==='sold')||(['time','transfers','duplicate','rookie'].includes(v.rule)&&v.certain===false);
 export function verdict(check){
  const doubtful=v=>isDoubt(v,check);
  const breaches=check.violations.filter(v=>!doubtful(v)),doubts=check.violations.filter(doubtful);

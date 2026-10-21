@@ -159,3 +159,20 @@ test('every violation carries a stable identity: the rule and what it is about',
  const sold=checkRules({rosters:[[5],...Array(7).fill([])],byId,transfers:[{team:0,outId:3,inId:5,date:'2026-10-27'}],white:[3],today:'2026-10-27'})[0];
  assert.deepEqual(sold.violations.map(v=>[v.rule,v.vid]),[['rookie','rookie'],['white','white']]);
 });
+test('no marked rookie beside a market-only player whose rookie status the database does not know is a doubt, not a breach',async()=>{
+ const {isDoubt}=await import('../src/rules.js');
+ // withMarket's Sports.ru players missing from the database: isRookie false, rookieStatus NOT_SHOWN_BY_SPORTS_RU.
+ const market={id:'sports:2176977',name:'Тамар Бэйтс',isRookie:false,rookieStatus:'NOT_SHOWN_BY_SPORTS_RU'};
+ const byId=new Map([[1,{id:1,name:'Rookie',isRookie:true}],[2,{id:2,name:'Vet',isRookie:false,rookieStatus:'HISTORICAL_NBA_PLAYER'}],[market.id,market]]);
+ const at=roster=>checkRules({rosters:[roster,...Array(7).fill([])],byId,white:[2],today:'2026-10-21'})[0];
+ // The team's only rookie sold for the market-only player: the lawyer checks his status.
+ const unsure=at([2,market.id]),v=unsure.violations.find(v=>v.rule==='rookie');
+ assert.equal(v.certain,false);assert.equal(v.vid,'rookie');assert.match(v.text,/статус Тамар Бэйтс базе не известен/);
+ assert.ok(isDoubt(v,unsure));assert.equal(verdict(unsure).kind,'check');assert.deepEqual(verdict(unsure).doubts,[v]);
+ // Nobody of unknown status: still a certain breach, as before.
+ const sure=at([2]),w=sure.violations.find(v=>v.rule==='rookie');
+ assert.equal(w.certain,true);assert.equal(w.text,'в составе нет ни одного новичка (rookie) — нарушено правило обязательного новичка');
+ assert.equal(verdict(sure).kind,'violation');
+ // A marked rookie settles it whoever else is there.
+ assert.ok(!at([1,2,market.id]).violations.some(v=>v.rule==='rookie'));
+});
