@@ -20,6 +20,10 @@ try{
  await page.getByRole('button',{name:'Правила'}).first().click();await page.waitForTimeout(1500);
  const ruleRows=await page.locator('.sp-table tr').count();assert.ok(ruleRows>=9,'rules table has eight teams: '+ruleRows);
  await page.getByRole('button',{name:'Драфт'}).first().click();await page.waitForTimeout(2000);
+ // The real draft is restored from the official picks of 18.10 and is complete, so its search is closed; the rookie filter
+ // and the player cards are checked in a training draft.
+ assert.ok(await page.locator('#draft-desk').isHidden(),'the restored real draft is complete');
+ await page.locator('#settings > summary').click();await page.selectOption('#draft-mode','INTERACTIVE');await page.waitForTimeout(2000);
  await page.locator('#rookies-only').check();await page.waitForTimeout(1500);
  const found=Number((await page.evaluate(()=>document.body.innerText)).match(/Найдено (\d+)/)?.[1]);
  assert.ok(found>=8,'rookie filter shows rookies: '+found);
