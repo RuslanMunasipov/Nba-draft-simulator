@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {withMarket,allTransfers,stints,seasonRosters} from '../src/season.js';
-import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,SETTLE_MS,addDays,daysBetween,moscowDay,reportDay,deadline,weekOf,
+import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,SETTLE_MS,addDays,daysBetween,moscowDay,reportDay,weekOf,
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
@@ -135,34 +135,43 @@ async function monthly(day,ctx,archive,state,mark){
  await post(monthText(month,monthFive(lines,{heldAtEnd,positionOf:a=>ctx.league.positionOf(ctx.league.player(a))}),ctx.who));
  if(mark)state.posted.monthly[month]=live?'sent':'preview';
 }
-const dayPost=(day,lines,ctx,missing)=>{
+const dayPost=(day,lines,ctx,postponed)=>{
  const mine=lines.filter(l=>l.d===day),before=lines.filter(l=>l.d<day);
  const news=daysBetween(SEASON_START,day)>=RECORD_ALERTS_FROM_DAY?recordNews(before,mine):[];
- return dailyText(day,dailyBlocks(mine),ctx.who,{news,missing,today:moscowDay(NOW)});
+ return dailyText(day,dailyBlocks(mine),ctx.who,{news,postponed,today:moscowDay(NOW)});
 };
 
+// A day's post once all of its games are over and settled, then the week after a Sunday and the month after its last day.
+// Returns false while the day is still being played.
+async function postDay(day,ctx,archive,state){
+ const rec=state.days[day],games=Object.values(rec?.games||{});
+ if(!state.posted.daily[day]){
+  if(!games.length)state.posted.daily[day]='no games';
+  else{
+   const left=games.filter(g=>!g.final&&!g.off).length;
+   if(left||!rec.allFinalAt||NOW-Date.parse(rec.allFinalAt)<SETTLE_MS){console.log(`${day}: ${left} game(s) still to finish${left?'':', settling'}.`);return false;}
+   await post(dayPost(day,archive.lines,ctx,games.filter(g=>g.off)));
+   state.posted.daily[day]=live?'sent':'preview';
+  }
+  save(state,archive);
+ }
+ if(isSunday(day)&&!state.posted.weekly[weekOf(day).start]){await weekly(day,ctx,archive,state,true);save(state,archive);}
+ if(isMonthEnd(day)&&!state.posted.monthly[day.slice(0,7)]){await monthly(day,ctx,archive,state,true);save(state,archive);}
+ return true;
+}
 async function scheduled(){
  const state=read('state.json',fresh()),archive=read('archive.json',{lines:[]}),ctx=await loadLeague();
  const D=reportDay(NOW)>SEASON_END?SEASON_END:reportDay(NOW);
  if(D<SEASON_START){console.log(`Season starts ${SEASON_START}: nothing to do.`);return;}
- let pending=[];
+ // Posts start from the bot's first day: the days before it are archived without a post.
+ state.firstDay||=Object.keys(state.posted.daily).sort()[0]||D;
  for(let day=SEASON_START;day<=D;day=addDays(day,1)){
   if(state.days[day]?.done)continue;
-  const p=await archiveDay(day,state,archive,ctx.league);if(day===D)pending=p;
+  await archiveDay(day,state,archive,ctx.league);
   save(state,archive);
  }
- const rec=state.days[D],games=Object.keys(rec?.games||{}).length;
- if(!state.posted.daily[D]){
-  if(!games){state.posted.daily[D]='no games';}
-  else{
-   const settled=rec.allFinalAt&&NOW-Date.parse(rec.allFinalAt)>=SETTLE_MS,late=NOW>=deadline(D);
-   if(!settled&&!late){console.log(`${D}: ${pending.length} game(s) still to finish${rec.allFinalAt?', settling':''}.`);save(state,archive);return;}
-   await post(dayPost(D,archive.lines,ctx,pending));
-   state.posted.daily[D]=live?'sent':'preview';save(state,archive);
-  }
- }
- if(isSunday(D)&&state.posted.daily[D]&&!state.posted.weekly[weekOf(D).start]){await weekly(D,ctx,archive,state,true);save(state,archive);}
- if(isMonthEnd(D)&&state.posted.daily[D]&&!state.posted.monthly[D.slice(0,7)]){await monthly(D,ctx,archive,state,true);save(state,archive);}
+ // Yesterday too: a day whose last game ended after the morning's last run is posted the next morning, in order.
+ for(const day of [addDays(D,-1),D])if(day>=state.firstDay&&day>=SEASON_START&&!(await postDay(day,ctx,archive,state)))break;
  save(state,archive);
 }
 // The posts of a past day rebuilt from ESPN with today's transfer journals: nothing saved or sent.

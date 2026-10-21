@@ -25,10 +25,10 @@ export const addDays=(day,n)=>new Date(Date.parse(day+'T12:00:00Z')+n*864e5).toI
 export const daysBetween=(a,b)=>Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T12:00:00Z'))/864e5);
 export const usDay=(ms=Date.now())=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));
 export const moscowDay=(ms=Date.now())=>new Date(ms+3*3600e3).toISOString().slice(0,10);
-// The game day the morning run reports: at 06:00-12:00 Moscow time the US evening twelve hours earlier.
+// The game day the morning run reports: from 06:00 to 14:00 Moscow time, the US evening twelve hours earlier.
 export const reportDay=(ms=Date.now())=>usDay(ms-12*3600e3);
-// The post of day D waits until 11:45 Moscow time of the morning after it at the latest (D+1 in Moscow).
-export const deadline=day=>Date.parse(`${addDays(day,1)}T11:45:00+03:00`);
+// The post of a day waits for every game of it (league chat, 21.10.2026: every number goes into the summary), then this
+// long for late box-score corrections. Only a postponed or cancelled game is not waited for.
 export const SETTLE_MS=15*60e3;
 // Weeks run Monday to Sunday in US game days; week 1 is the one the season opens in.
 const monday=day=>addDays(day,-((new Date(day+'T12:00:00Z').getUTCDay()+6)%7));

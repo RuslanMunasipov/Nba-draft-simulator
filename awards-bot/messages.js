@@ -26,14 +26,14 @@ const gameRow=(who,l,i,{medals,free})=>`${place(i,medals)} ${head(who,l,{free})}
 const block=(title,rows)=>rows.length?`<b>${title}</b>\n${rows.join('\n')}`:'';
 const join=parts=>parts.filter(Boolean).join('\n\n');
 
-export function dailyText(day,blocks,who,{news=[],missing=[],today}={}){
+export function dailyText(day,blocks,who,{news=[],postponed=[],today}={}){
  const parts=[
   block(`⭐ Герои дня · ${dayLabel(day)}`,blocks.heroes.map((l,i)=>gameRow(who,l,i,{medals:true}))),
   block('💩 Провалы дня',blocks.flops.map((l,i)=>gameRow(who,l,i,{}))),
   block('🆓 Золотая жила',blocks.gold.map((l,i)=>gameRow(who,{...l,h:[]},i,{medals:true}))),
   block('🤡 Антитоп НБА',blocks.antitop.map((l,i)=>gameRow(who,l,i,{free:true}))),
   ...news.map(x=>recordAlert(x,who,today))];
- if(missing.length)parts.push(`⏳ Не вошли незавершённые матчи: ${missing.map(g=>esc(`${g.away} — ${g.home}`)).join(', ')}. Они попадут в итоги недели.`);
+ if(postponed.length)parts.push(`⏸ Перенесены: ${postponed.map(g=>esc(`${g.away} — ${g.home}`)).join(', ')}.`);
  if(!parts.some(Boolean))return '';
  return join(parts);
 }
