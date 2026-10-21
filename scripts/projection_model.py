@@ -749,8 +749,8 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
         elif healthy:model_games=chain.healthy_mean(pid,TARGET,model_games,82)
         espn=f if f.get('origin')=='ESPN_INDIVIDUAL' else None
         # Without any archive of ESPN projections their relative accuracy cannot be fitted: an equal-weight combination
-        # per game (the league owner, 21.10.2026), the standard choice for two unvalidated forecasts, until the 2026/27
-        # season measures it.
+        # per game, the standard choice for two unvalidated forecasts, until the 2026/27 season measures it. This is the
+        # project's default since the first ESPN import, not a league owner decision (the owner, 21.10.2026).
         espn_rate=espn['meanPerGame'] if espn else None
         rate=(model_rate+espn_rate)/2 if espn else model_rate
         espn_games=min(espn['games'],left) if espn else None
