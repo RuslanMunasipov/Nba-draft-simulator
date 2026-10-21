@@ -112,14 +112,15 @@ test('awards bot: report day, weeks, month ends and the posting deadline',()=>{
  assert.equal(new Date(deadline('2026-10-21')).toISOString(),'2026-10-22T08:45:00.000Z');
 });
 
-test('awards bot: texts bold outstanding numbers, escape names and fit Telegram',()=>{
- assert.equal(statLine({pts:31,reb:14,ast:9,stl:3,blk:1,tov:4}),'<b>31 очк</b> · <b>14 подб</b> · 9 пер · <b>3 перехв</b> · 1 блок · <b>4 пот</b>');
+test('awards bot: texts bold only titles, names and points, keep rows together, escape names and fit Telegram',()=>{
+ assert.equal(statLine({pts:31,reb:14,ast:9,stl:3,blk:1,tov:4}),'31 очк · 14 подб · 9 пер · 3 перехв · 1 блок · 4 пот');
  assert.equal(esc('A<b>&'),'A&lt;b&gt;&amp;');
  assert.equal(dayLabel('2026-10-20'),'20 октября');
  const parts=split(['a'.repeat(3000),'b'.repeat(3000),'c'].join('\n\n'));
  assert.equal(parts.length,2);assert.ok(parts.every(p=>p.length<=4096));
  const text=dailyText('2026-10-21',dailyBlocks([line('a',40,{h:[0]}),line('d',30)]),who,{missing:[{home:'LAL',away:'GS'}]});
- assert.match(text,/⭐ Герои дня · 21 октября/);assert.match(text,/🥇 <b>Pa<\/b> · DEN 🐎 — <b>40<\/b>/);
+ assert.match(text,/<b>⭐ Герои дня · 21 октября<\/b>\n🥇 /,'no empty line under a title');
+ assert.ok(!/\d пот\n\n🥈|\d пот\n\n\d\./.test(text),'no empty line between players');assert.match(text,/🥇 <b>Pa<\/b> · DEN 🐎 — <b>40<\/b>/);
  assert.match(text,/🆓 Золотая жила/);assert.match(text,/GS — LAL/);
  assert.equal(dailyText('2026-10-21',{heroes:[],flops:[],gold:[],antitop:[]},who),'');
  const r=races([line('a',40,{h:[0],b:[0]})],{rostered:new Map([['a',[0]]]),rookies:new Set(),mef:new Map()});
