@@ -28,10 +28,11 @@ export const injuryWarning=state=>state.fresh?null:state.feed?`⚠️ Отчёт
 // Out (or suspended) and not a game-time decision: only such a player can "return"; day-to-day players are never news.
 export const isOut=injury=>/out|suspension/i.test(String(injury?.status||''))&&injury?.fantasyStatus!=='GTD';
 // The decision line of a return alert, by the model's confidence: sure → buy, between the bars → offered as not sure,
-// below the lower bar → no alert at all (the same bars as the other advice).
-export function returnHead(confidence,{sure,maybe,now=false}){
- if(confidence>=sure)return now?'🎯 <b>Тебе: забирай</b>':'🎯 <b>Тебе: можно брать</b>';
- return confidence>=maybe?'🤔 <b>Тебе: можно брать, но не уверенно</b>':null;
+// below the lower bar → no alert at all (the same bars as the other advice). `when`: outside the transfer hours, when to
+// make the move (a move made then is a certain breach).
+export function returnHead(confidence,{sure,maybe,now=false,when=''}){
+ if(confidence>=sure)return (now?'🎯 <b>Тебе: забирай</b>':'🎯 <b>Тебе: можно брать</b>')+when;
+ return confidence>=maybe?'🤔 <b>Тебе: можно брать, но не уверенно</b>'+when:null;
 }
 // One "скоро вернётся" per injury: the key is the player, so a new status or return date of the same injury is not news
 // again. Older keys ("id:status:date") still count for their player.
