@@ -7,6 +7,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {seasonRosters,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
+import {recommendPackage,packageVerdict,dealGroups,takenIds,contestedBy,transferWindow,confidencePercent,confidenceLevel} from '../src/season.js';
+import {count} from '../src/format.js';
+import {signed} from './telegram-format.mjs';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers} from '../src/rules.js';
@@ -34,19 +37,24 @@ const money=bankOf(team),left=leftOf(team);
 for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
 const alerts=marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20});
-const pack=left>1?bestPackage(ctx,{team,bankMoney:money,k:left,sort}):null;
-// Only a package the model is sure of starts a new message; a doubtful one is shown with its confidence when one is sent.
-const packWhy=pack?.pairs.length>1?explainSwap(ctx,null,null,sort,pack.pairs.map(x=>[x.out.id,x.in.id])):null;
+// The same package as the app's recommendation card (recommendPackage). Only a confident one starts a new message; a
+// borderline one (60-69%) is shown as "можно, но не уверенно" when a message is sent anyway; a doubtful one is not shown.
+const rec=left>0?recommendPackage(ctx,{team,bankMoney:money,left,sort}):{best:null,borderline:null},pack=rec.best||rec.borderline,packWhy=pack?.why;
+// Transfers count only from 08:00 to 22:00 Moscow time: outside them the advice says when to make the move.
+const hours=transferWindow(),when=hours.open?'':` · сделать с ${hours.from} МСК`;
+// Other FBL teams the model also tells to buy a player of the package: the first buyer gets him.
+const rivalsFor=id=>contestedBy(ctx,{team,playerId:id,bankOf,sort});
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
  .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${i.returnDate?' до '+i.returnDate.slice(8,10)+'.'+i.returnDate.slice(5,7):''}`};});
-const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?.pairs.length>1&&packWhy.confidence>=CONFIDENT?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
+const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(rec.best?[rec.best.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
 const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=hurt.filter(h=>!previous.injuries?.includes(h.key));
 const day=d=>d?`${d.slice(8,10)}.${d.slice(5,7)}`:'';
 const link=`<a href="${SITE}">Открыть помощника</a>`;
 const swapPairs=x=>[{out:current(byId.get(x.outId),ctx).name,in:x.player.name}];
 // How sure the model is about a deal over the season, and the main caveats, for the collapsed details.
 const dealPairs=d=>d.pack?d.pack.pairs.map(q=>[q.out.id,q.in.id]):[[d.swap.outId,d.swap.player.id]];
-const sureness=why=>`Уверенность ${Math.round(why.confidence*100)}%: ${why.level==='CONFIDENT'?'уверенно':why.level==='MODERATE'?'умеренно':'сомнительно'}`;
+// The app's rounding (down) and the level of that percent: "70%" never comes with "умеренно".
+const sureness=why=>{const l=confidenceLevel(why.confidence);return `Уверенность ${confidencePercent(why.confidence)}%: ${l==='CONFIDENT'?'уверенно':l==='MODERATE'?'умеренно':'сомнительно'}`;};
 const whyLines=why=>[sureness(why),`Откуда: ${Math.round(why.parts.perGame)} ФО/матч · ${Math.round(why.parts.availability)} доля матчей · ${Math.round(why.parts.schedule)} календарь`,...why.flags.slice(0,3).map(f=>'⚠️ '+esc(f))];
 // Latest ESPN fantasy news headline of a player from the last three days, if any.
 const news=new Map();
@@ -56,8 +64,10 @@ async function headline(p){
  const n=await news.get(p.espnId);if(!n)return null;
  return Date.now()-Date.parse(n.published||n.lastModified)<3*864e5?`📰 ${esc(n.headline)}`:null;
 }
-// A deal for my team: the gain, then the numbered moves.
-const dealLines=d=>d.pack?[gains(d.pack.gains.season,d.pack.gains.month),...moveLines(d.pack.pairs.map(q=>({out:q.out.name,in:q.in.name})),d.pack.bankAfter)]
+// A deal for my team: the gain, then the numbered moves. A package also says what the player himself adds over the best
+// use of the same transfers without him: the other moves are no reason to buy him.
+const edgeLine=d=>Number.isFinite(d.edge)?[`Сам игрок: ${signed(d.edge)} ФО за сезон к лучшему ходу без него`]:[];
+const dealLines=d=>d.pack?[gains(d.pack.gains.season,d.pack.gains.month),...edgeLine(d),...moveLines(d.pack.pairs.map(q=>({out:q.out.name,in:q.in.name})),d.pack.bankAfter)]
  :[gains(d.swap.gain.season,d.swap.gain.month),...moveLines(swapPairs(d.swap),d.swap.bankAfter)];
 // One pro and one risk from the player cards, with the current per-game estimate and injury.
 async function brief(p){
@@ -69,9 +79,13 @@ async function brief(p){
 
 // My team: the best move first, then single upgrades, budget problems and injuries.
 const mine=[`🏀 <b>${esc(teamLabel(team))}</b>`,`Банк ${money} · трансферов ${left}/${WEEKLY_TRANSFERS}`];
-if(pack?.pairs.length>1&&pack.gain>0)mine.push('',`🧩 <b>Лучший ход: ${pack.pairs.length} трансфера</b> · ${sureness(packWhy).toLowerCase()}`,
- gains(pack.gains.season,pack.gains.month),...moveLines(pack.pairs.map(x=>({out:x.out.name,in:x.in.name})),pack.bankAfter));
-if(alerts.length)mine.push('','📈 <b>Отдельные усиления</b>',...alerts.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)} · ${Math.round(a.why.confidence*100)}%`));
+if(pack){const n=count(pack.pairs.length,'трансфер','трансфера','трансферов');
+ mine.push('',rec.best?`🧩 <b>Лучший ход: ${n}</b> · ${sureness(packWhy).toLowerCase()}${when}`:`🤔 <b>Можно, но не уверенно: ${n}</b> · ${sureness(packWhy).toLowerCase()}${when}`,
+  gains(pack.gains.season,pack.gains.month),...moveLines(pack.pairs.map(x=>({out:x.out.name,in:x.in.name})),pack.bankAfter),
+  ...pack.pairs.map(x=>({p:x.in,rivals:rivalsFor(x.in.id)})).filter(x=>x.rivals.length).map(x=>`⚠️ ${esc(x.p.name)} по модели нужен ещё ${count(x.rivals.length,'команде','командам','командам')} лиги: в FBL игрок может быть только в одной команде, кто купит позже — нарушит правило`));}
+// The single upgrades besides the package (one that is the package itself is not repeated).
+const singles=alerts.filter(a=>!(pack?.pairs.length===1&&pack.pairs[0].out.id===a.outId&&pack.pairs[0].in.id===a.player.id));
+if(singles.length)mine.push('','📈 <b>Отдельные усиления</b>',...singles.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)} · ${confidencePercent(a.why.confidence)}%`));
 if(budget.length)mine.push('','⚠️ <b>Бюджет по ценам Sports.ru</b>',...budget.map(w=>`${esc(teamLabel(w.team))}: ${esc(w.message)}`));
 if(hurt.length)mine.push('','🩹 <b>Травмы</b>',...hurt.map(h=>esc(h.text)));
 mine.push('',link);
@@ -87,17 +101,28 @@ function decision(p){
  if(!p)return {head:null,why:[]};
  return decide(p);
 }
+// My best season package of the transfers left, once: a released player is worth buying only for what he adds to it.
+let seasonBest;const bestSeason=()=>seasonBest===undefined?(seasonBest=bestPackage(ctx,{team,bankMoney:money,k:left,sort:'season'})):seasonBest;
 function decide(p){
- if(ctx.rosters.flat().includes(p.id))return {head:`🔒 <b>${esc(p.name)} уже в другой команде FBL</b>`,why:[]};
+ if(takenIds(ctx).has(p.id))return {kind:'taken',head:`🔒 <b>${esc(p.name)} уже в другой команде FBL</b>`,why:[]};
  // With no transfers left this week nothing can be bought now: say so first, and what the deal would be next week.
- const d=acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:Math.max(1,left)});
- if(!left)return {head:'⛔ <b>Тебе: трансферы на неделе закончились</b>',why:d.worth?[`Если ${esc(p.name)} останется свободным, на новой неделе:`,...dealLines(d)]:[]};
- // A deal the model is not sure of is offered, not ordered.
+ const d=acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:Math.max(1,left),...(left>1?{best:bestSeason()}:{})});
+ if(!left)return {kind:'spent',head:'⛔ <b>Тебе: трансферы на неделе закончились</b>',why:d.worth?[`Если ${esc(p.name)} останется свободным, на новой неделе:`,...dealLines(d)]:[]};
+ // A deal the model is not sure of (below 70%) is offered, not ordered.
  if(d.worth){const why=explainSwap(ctx,null,null,'season',dealPairs(d));
-  return why.confidence>=CONFIDENT?{head:message(`🎯 <b>Тебе: забирай ${esc(p.name)}</b>`,dealLines(d)),why:whyLines(why)}
-   :{head:message(`🤔 <b>Тебе: можно взять ${esc(p.name)}, но не уверенно</b>`,dealLines(d)),why:whyLines(why)};}
- if(d.swap)return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`Если всё же брать ${esc(p.name)}: ${esc(current(byId.get(d.swap.outId),ctx).name)} → ${esc(p.name)}, ${gains(d.swap.gain.season,d.swap.gain.month)}`]};
- return {head:'🙅 <b>Тебе: ничего не делать</b>',why:[`${esc(p.name)} не влезает по позиции, бюджету или правилу rookie.`]};
+  return confidenceLevel(why.confidence)==='CONFIDENT'?{kind:'take',head:message(`🎯 <b>Тебе: забирай ${esc(p.name)}</b>${when}`,dealLines(d)),why:whyLines(why)}
+   :{kind:'take',head:message(`🤔 <b>Тебе: можно взять ${esc(p.name)}, но не уверенно</b>${when}`,dealLines(d)),why:whyLines(why)};}
+ if(d.swap)return {kind:'none',head:'🙅 <b>Тебе: ничего не делать</b>',why:[`Если всё же брать ${esc(p.name)}: ${esc(current(byId.get(d.swap.outId),ctx).name)} → ${esc(p.name)}, ${gains(d.swap.gain.season,d.swap.gain.month)}`,...(left>1?edgeLine(d):[])]};
+ return {kind:'none',head:'🙅 <b>Тебе: ничего не делать</b>',why:[`${esc(p.name)} не влезает по позиции, бюджету или правилу rookie.`]};
+}
+// The heads for several players a package let go: each deal worth taking on its own; the rest in one line each kind.
+function heads(players){
+ const ds=players.map(p=>({p,d:decision(p)})).filter(x=>x.d.head);if(ds.length<2)return ds.map(x=>x.d);
+ const names=kind=>ds.filter(x=>x.d.kind===kind).map(x=>esc(x.p.name)).join(', ');
+ return [...ds.filter(x=>x.d.kind==='take').map(x=>x.d),
+  ...(names('spent')?[{head:'⛔ <b>Тебе: трансферы на неделе закончились</b>',why:ds.filter(x=>x.d.kind==='spent').flatMap(x=>x.d.why)}]:[]),
+  ...(names('none')?[{head:`🙅 <b>Тебе: ничего не делать</b> (${names('none')})`,why:ds.filter(x=>x.d.kind==='none').flatMap(x=>x.d.why)}]:[]),
+  ...(names('taken')?[{head:`🔒 <b>${names('taken')}: уже в другой команде FBL</b>`,why:[]}]:[])];
 }
 // Every new transfer of the other teams, one message each: who moved, what it gives them, what I should do.
 // Not yet reported, matched by sale and purchase: Sports.ru re-pairs a day's journal rows.
@@ -106,26 +131,26 @@ function decide(p){
 const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`;
 state.transferEvents=capEvents(reportedEvents(transfers,{events:previous.transferEvents,reported:previous.transfers}),[...journalEvents(live),...transfers.filter(x=>x.source!=='sports.ru').flatMap(dealEvents)]);
 const pending=unreported(transfers,[],state.transferEvents),told=x=>{state.transfers.push(transferKey(x));state.transferEvents.push(...dealEvents(x));};
-const rival=transfers.filter(x=>x.team!==team&&pending.has(x));
-for(const x of rival){
- const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:bankOf(x.team)}),mineNow=decision(out);
- const briefs=[...await brief(joined),...await brief(out)];
- const effect=v?`${v.gain.season>=0?'📈':'📉'} Им: ${gains(v.gain.season,v.gain.month)} · ${v.label}`:null;
- await report(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${x.seenAt?moscow(x.seenAt):day(x.date)}`,`${esc(out?.name)} → <b>${esc(joined?.name)}</b>`,effect,'',mineNow.head,
-  details([...mineNow.why,...briefs,
-   ...(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[]),
-   `У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>told(x));
+// A package (the deals the watcher saw together) is judged as its net change: a chain of legs is one move, a round trip
+// none. The verdict is the expected gain, with the model's certainty of its sign next to it.
+const nameOf=id=>esc(byId.get(id)?.name);
+const verdictLine=(v,who)=>v?.verdict==='none'?v.label:v?.gain?`${v.gain.season>=0?'📈':'📉'} ${who}: ${gains(v.gain.season,v.gain.month)} · ${v.label}${v.sure!=null?` (${confidencePercent(v.sure)}%)`:''}`:null;
+const netLine=(group,v)=>v.net.pairs.length&&v.net.pairs.length<group.length?`Итог: ${v.net.pairs.map(p=>`${nameOf(p.outId)} → ${nameOf(p.inId)}`).join(', ')}`:null;
+const betterLine=v=>v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[];
+for(const group of dealGroups(transfers.filter(x=>x.team!==team&&pending.has(x)))){
+ const x=group[0],v=packageVerdict(ctx,group,{bankMoney:bankOf(x.team)}),mineNow=heads(v.net.outs.map(id=>byId.get(id)));
+ const briefs=[];for(const p of v.net.pairs)briefs.push(...await brief(byId.get(p.inId)),...await brief(byId.get(p.outId)));
+ await report(message(`🔄 <b>${esc(teamLabel(x.team))}</b> · ${x.seenAt?moscow(x.seenAt):day(x.date)}`,group.map(d=>`${nameOf(d.outId)} → <b>${nameOf(d.inId)}</b>`).join('\n'),netLine(group,v),verdictLine(v,'Им'),'',...mineNow.map(d=>d.head),
+  details([...mineNow.flatMap(d=>d.why),...briefs,...betterLine(v),`У них: банк ${bankOf(x.team)}, трансферов ${leftOf(x.team)}/${WEEKLY_TRANSFERS}`])),()=>group.forEach(told));
 }
-// My own transfers, once each, as the watcher saw them: what was done, when, what it gives by the model, and where the
-// bank and the week's transfers stand. Only those seen live (seenAt); older ones were never news.
+// My own transfers, once each package, as the watcher saw them: what was done, when, what it gives by the model, and where
+// the bank and the week's transfers stand. Only those seen live (seenAt); older ones were never news.
 const leftLabel=t=>live.teams?.[t]?.transfersUnlimited?'∞ (предсезонье)':`${leftOf(t)}/${WEEKLY_TRANSFERS}`;
-for(const x of transfers.filter(x=>x.team===team&&x.seenAt&&pending.has(x))){
- const out=byId.get(x.outId),joined=byId.get(x.inId),v=transferVerdict(ctx,x,{bankMoney:money});
- const effect=v?`${v.gain.season>=0?'📈':'📉'} По модели: ${gains(v.gain.season,v.gain.month)} · ${v.label}`:null;
- await report(message(`✅ <b>Твой трансфер зафиксирован</b> · ${moscow(x.seenAt)}`,`${esc(out?.name)} (${x.outPrice}) → <b>${esc(joined?.name)}</b> (${x.inPrice})`,effect,'',
-  `Банк: ${money} · трансферов осталось: ${leftLabel(team)}`,
-  details(v?.best?[`Лучше было за те же деньги: ${esc(v.best.player.name)} (${v.best.player.price}), ${gains(v.best.gain.season,v.best.gain.month)}`]:[])),
-  ()=>told(x));
+for(const group of dealGroups(transfers.filter(x=>x.team===team&&x.seenAt&&pending.has(x)))){
+ const x=group[0],v=packageVerdict(ctx,group,{bankMoney:money});
+ await report(message(`✅ <b>${group.length>1?'Твои трансферы зафиксированы':'Твой трансфер зафиксирован'}</b> · ${moscow(x.seenAt)}`,group.map(d=>`${nameOf(d.outId)} (${d.outPrice}) → <b>${nameOf(d.inId)}</b> (${d.inPrice})`).join('\n'),
+  netLine(group,v),verdictLine(v,'По модели'),'',`Банк: ${money} · трансферов осталось: ${leftLabel(team)}`,details(betterLine(v))),
+  ()=>group.forEach(told));
 }
 // League protocols not posted because they were too late (an outage or an update) that held a breach or a doubt: the
 // league chat stays quiet, the owner hears of them here, once, to decide whether Зак Онн should announce them.
