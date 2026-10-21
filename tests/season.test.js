@@ -20,7 +20,7 @@ test('transfers move players between the draft roster and the free agent pool',(
  const both=stints([...t,{team:1,outId:2,inId:81,date:'2026-10-23'}],picks).filter(x=>x.playerId===81);
  assert.deepEqual(both.map(x=>[x.team,x.from,x.to]).sort(),[[0,'2026-10-22',null],[1,'2026-10-23',null]]);
  assert.throws(()=>seasonRosters([{team:0,outId:2,inId:82,date:'2026-10-23'}],picks),/нет в составе/);
- const s=stints(t,picks);assert.deepEqual(s.find(x=>x.playerId===1),{team:0,playerId:1,from:'2026-10-18',to:'2026-10-22'});
+ const s=stints(t,picks);assert.deepEqual(s.find(x=>x.playerId===1),{team:0,playerId:1,from:'2026-10-18',fromAt:null,to:'2026-10-22',toAt:null});
  assert.equal(bank(0,t,()=>1500,picks),20000-15000+100);
 });
 test('without a calendar the week runs Tuesday to Monday in Moscow dates',()=>{
@@ -64,8 +64,11 @@ test('minutes move the estimate before points per minute do',()=>{
  const vet={forecast:{meanPerGame:30,minutes:30}},rookie={...vet,isRookie:true};
  const games=Array.from({length:5},(_,i)=>({played:true,points:40,minutes:'40:00',date:'2026-10-2'+i}));
  const v=perGame(vet,{games}),r=perGame(rookie,{games});
- // Same 1 FP per minute: the estimate is exactly the expected minutes, between forecast and new role.
- assert.ok(Math.abs(v.value-v.minutes)<1e-9&&v.minutes>30&&v.minutes<40);
+ // The same counting rate in a bigger role (28 points per 30 minutes plus the +2): without the early-season lift the
+ // estimate is that rate times the expected minutes, between forecast and new role, plus the +2, which minutes do not scale.
+ const same=games.map(g=>({...g,points:28/30*40+2})),e=perGame(vet,{games:same},{...CALIBRATION.points,offsets:null});
+ assert.ok(Math.abs(e.value-(28/30*e.minutes+2))<1e-9&&e.minutes>30&&e.minutes<40);
+ assert.ok(v.minutes>30&&v.minutes<40);
  assert.ok(r.value>v.value,'newcomers adapt to a new role faster');
  assert.equal(perGame(vet,{games:[...games,{played:true,points:10,minutes:''}]}).value,(10*30+210)/16);
 });
@@ -270,7 +273,8 @@ test('a healthy player is expected in the next games more often than his season 
  const week=expectedPoints(p,base,'2026-10-21','2026-10-27'),all=expectedPoints(p,base,'2026-10-21','2027-12-31');
  assert.ok(week.games/4>share+.05,`next games ${week.games/4} vs share ${share}`);
  assert.ok(all.games/60<week.games/4&&Math.abs(all.games/60-share)<.08);
- const hurt={...base,injuries:new Map([[String(p.espnId),{status:'Out',returnDate:'2026-10-29'}]])};
+ // ESPN dates the return by the US day: 28.10 is the evening game Sports.ru files under 29.10.
+ const hurt={...base,injuries:new Map([[String(p.espnId),{status:'Out',returnDate:'2026-10-28'}]])};
  assert.equal(expectedPoints(p,hurt,'2026-10-21','2026-10-27').games,0);
  // After the return he starts healthy again: the first week back is worth the same as a healthy week now.
  assert.ok(Math.abs(expectedPoints(p,hurt,'2026-10-29','2026-11-04').games-expectedPoints(p,base,'2026-10-21','2026-10-27').games)<1e-9);

@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "fitSeasons": [
   "2023-24",
   "2024-25"
@@ -12,24 +12,76 @@
  "points": {
   "established": {
    "rateGames": 20,
-   "minuteGames": 5,
-   "minuteHalfLife": 20
+   "minuteGames": 3,
+   "minuteHalfLife": 12,
+   "offsetScale": 0.75
   },
   "newcomer": {
-   "rateGames": 30,
-   "minuteGames": 2,
-   "minuteHalfLife": 5
+   "rateGames": 20,
+   "minuteGames": 1,
+   "minuteHalfLife": 5,
+   "offsetScale": 1
+  },
+  "offsets": {
+   "counting": [
+    1.499,
+    0.39,
+    0.402,
+    0.254,
+    0.297
+   ],
+   "minutes": [
+    1.824,
+    0.709,
+    0.254,
+    -0.034,
+    -0.063
+   ],
+   "buckets": [
+    [
+     1,
+     5
+    ],
+    [
+     6,
+     10
+    ],
+    [
+     11,
+     20
+    ],
+    [
+     21,
+     40
+    ],
+    [
+     41,
+     null
+    ]
+   ],
+   "season": "2025-26",
+   "note": "Added to each played game by its place in the season (times offsetScale): counting points (FBL points without the participation term) and minutes."
   }
  },
  "availability": {
-  "priorGames": 20
+  "priorGames": 20,
+  "spellMisses": 4,
+  "spellGames": 10
  },
  "holdout": {
   "established": {
    "cases": 3550,
    "players": 351,
    "currentMAE": 2.3444,
-   "calibratedMAE": 2.2833,
+   "calibratedMAE": 2.2695,
+   "currentBias": -0.2459,
+   "calibratedBias": 0.035,
+   "currentRMSE": 2.9746,
+   "calibratedRMSE": 2.8721,
+   "maeGain95": [
+    0.0282,
+    0.1196
+   ],
    "currentByCheckpoint": {
     "0": 2.6369,
     "1": 2.5706,
@@ -45,21 +97,30 @@
    },
    "calibratedByCheckpoint": {
     "0": 2.6369,
-    "1": 2.5314,
-    "2": 2.4407,
-    "3": 2.3749,
-    "5": 2.2801,
-    "8": 2.3137,
-    "12": 2.1439,
-    "16": 2.0695,
-    "20": 2.0283,
-    "30": 2.0219,
-    "40": 2.138
+    "1": 2.5249,
+    "2": 2.4252,
+    "3": 2.3671,
+    "5": 2.2953,
+    "8": 2.3053,
+    "12": 2.1391,
+    "16": 2.0309,
+    "20": 2.0092,
+    "30": 1.9686,
+    "40": 2.114
    },
-   "maeGain95": [
-    0.0292,
-    0.0937
-   ],
+   "calibratedBiasByCheckpoint": {
+    "0": 0.1435,
+    "1": 0.0961,
+    "2": 0.0445,
+    "3": 0.0997,
+    "5": 0.1208,
+    "8": 0.0586,
+    "12": 0.0504,
+    "16": -0.0734,
+    "20": -0.0133,
+    "30": -0.1388,
+    "40": -0.0743
+   },
    "checkpoints": [
     0,
     1,
@@ -78,7 +139,15 @@
    "cases": 701,
    "players": 83,
    "currentMAE": 2.8367,
-   "calibratedMAE": 2.6762,
+   "calibratedMAE": 2.5464,
+   "currentBias": -1.3727,
+   "calibratedBias": -1.1628,
+   "currentRMSE": 3.7563,
+   "calibratedRMSE": 3.3449,
+   "maeGain95": [
+    0.134,
+    0.4708
+   ],
    "currentByCheckpoint": {
     "0": 3.2984,
     "1": 3.2434,
@@ -94,21 +163,30 @@
    },
    "calibratedByCheckpoint": {
     "0": 3.2984,
-    "1": 2.7736,
-    "2": 2.6804,
-    "3": 2.7049,
-    "5": 2.5883,
-    "8": 2.5089,
-    "12": 2.4961,
-    "16": 2.443,
-    "20": 2.4688,
-    "30": 2.5009,
-    "40": 2.6554
+    "1": 2.6616,
+    "2": 2.5824,
+    "3": 2.5912,
+    "5": 2.3827,
+    "8": 2.3288,
+    "12": 2.3642,
+    "16": 2.2741,
+    "20": 2.3327,
+    "30": 2.3081,
+    "40": 2.4757
    },
-   "maeGain95": [
-    0.037,
-    0.2913
-   ],
+   "calibratedBiasByCheckpoint": {
+    "0": -0.5925,
+    "1": -1.2925,
+    "2": -1.4294,
+    "3": -1.4303,
+    "5": -1.1722,
+    "8": -1.0481,
+    "12": -1.0934,
+    "16": -1.3717,
+    "20": -1.4593,
+    "30": -0.9237,
+    "40": -0.8779
+   },
    "checkpoints": [
     0,
     1,
@@ -128,6 +206,14 @@
    "players": 319,
    "currentMAE": 0.2237,
    "calibratedMAE": 0.1896,
+   "currentBias": 0.0797,
+   "calibratedBias": 0.0702,
+   "currentRMSE": 0.2921,
+   "calibratedRMSE": 0.249,
+   "maeGain95": [
+    0.0254,
+    0.044
+   ],
    "currentByCheckpoint": {
     "0": 0.2113,
     "3": 0.2134,
@@ -148,10 +234,16 @@
     "30": 0.1821,
     "40": 0.1895
    },
-   "maeGain95": [
-    0.0254,
-    0.044
-   ],
+   "calibratedBiasByCheckpoint": {
+    "0": 0.0692,
+    "3": 0.0717,
+    "5": 0.0717,
+    "10": 0.0742,
+    "15": 0.074,
+    "20": 0.0691,
+    "30": 0.0657,
+    "40": 0.0663
+   },
    "checkpoints": [
     0,
     3,
@@ -162,6 +254,31 @@
     30,
     40
    ]
+  },
+  "availabilityAtReturn": {
+   "cases": 121,
+   "players": 101,
+   "currentMAE": 0.2828,
+   "calibratedMAE": 0.2393,
+   "currentBias": -0.1353,
+   "calibratedBias": 0.0425,
+   "currentRMSE": 0.3378,
+   "calibratedRMSE": 0.2945,
+   "maeGain95": [
+    0.0084,
+    0.0792
+   ],
+   "currentBiasBySpell": {
+    "10-19": -0.069,
+    "20-34": -0.18,
+    "35+": -0.357
+   },
+   "calibratedBiasBySpell": {
+    "10-19": 0.0463,
+    "20-34": 0.0449,
+    "35+": 0.0236
+   },
+   "note": "First game back after a spell of 10+ missed team games; current = every missed game counted, calibrated = the spell counts at most spellMisses."
   }
  },
  "current": {
@@ -172,6 +289,7 @@
   "Backtest prior is the previous season; a stronger pre-season forecast deserves more weight than fitted here.",
   "Newcomers are players absent from the previous supplied season, a proxy for rookies and group priors.",
   "Availability excludes traded players and players who never appeared; no injury report is used in the backtest.",
+  "The spell weight is fitted at the first game back; in the app it applies while an injury report keeps the player out.",
   "One fit pair and one test pair: the calibrated rule is evidence-based, not a guarantee for 2026/27."
  ]
 }
