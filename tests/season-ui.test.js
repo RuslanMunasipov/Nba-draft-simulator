@@ -64,18 +64,18 @@ test('health: own logged absence rates are "по логам"; scaled hazards are
  assert.equal(plain(absenceShort(scaled,61)),'Темп пропусков под прогноз 61 матч: больше 82 коротких и 39,9 длинных за 82 матча.');
  assert.match(plain(absenceShort({...scaled,ownShortPer82:7,ownLongPer82:2},61)),/^Пропуски по логам 5 последних сезонов \(каждый более ранний — с весом 0,6 от следующего\): 7,0 коротких и 2,0 длинных за 82 матча \(у ровесников 6,9 и 1,7\)/);
 });
-test('Sports.ru seasons next to FBL forecasts: without the result bonus when known, labelled otherwise',()=>{
+test('Sports.ru seasons next to FBL forecasts: by the league formula when known, labelled as Sports.ru\'s own otherwise',()=>{
  const hist=[['2024-25',{perGame:18.2,games:70,fblPerGame:17.4}],['2025-26',{perGame:19,games:65,fblPerGame:19.6}]];
- assert.equal(sportsSeasonsLine(hist),'Sports.ru по формуле FBL (без бонуса за результат, +1 за матч): 24/25 — 17,4 × 70 · 25/26 — 19,6 × 65');
- assert.equal(sportsSeasonsLine([['2025-26',{perGame:19,games:65}]]),'Sports.ru, с бонусом за результат: 25/26 — 19,0 × 65');
+ assert.equal(sportsSeasonsLine(hist),'По формуле FBL (Yahoo: +1 за матч, без бонусов Sports.ru): 24/25 — 17,4 × 70 · 25/26 — 19,6 × 65');
+ assert.equal(sportsSeasonsLine([['2025-26',{perGame:19,games:65}]]),'ФО Sports.ru по его формуле (с бонусом за результат и +2 за 10+ минут): 25/26 — 19,0 × 65');
  assert.equal(sportsSeasonsLine([]),'');
  const fbl=sportsCheckLine({season:'2025-26',perGame:9.08,sportsPerGame:6.62,basis:'FBL_NO_RESULT_BONUS',gap:.07,flag:false});
- assert.match(fbl,/^\+7 % к сезону 25\/26 по формуле FBL \(Sports\.ru без бонуса за результат и с \+1 за матч: 9,1 за матч, у Sports\.ru 6,6\)\.$/);
+ assert.match(fbl,/^\+7 % к сезону 25\/26 по формуле FBL \(9,1 за матч; ФО Sports\.ru с его бонусами — 6,6\)\.$/);
  const old=sportsCheckLine({season:'2025-26',perGame:6.62,gap:.37,flag:true});
- assert.match(old,/^⚠ \+37 % к сезону 25\/26 на Sports\.ru \(6,6 за матч, с бонусом за результат, которого в FBL нет\)\. Проверь роль/);
+ assert.match(old,/^⚠ \+37 % к сезону 25\/26 по ФО Sports\.ru \(6,6 за матч, с его бонусом за результат и \+2 за 10\+ минут, которых в FBL нет\)\. Проверь роль/);
  const cons=b=>playerInsights({name:'X',positions:['C'],sportsCheck:{gap:.37,flag:true,...b}},[]).cons.join(' ');
- assert.match(cons({}),/Sports\.ru \(с бонусом за результат, которого в FBL нет\) на \+37%/);
- assert.match(cons({basis:'FBL_NO_RESULT_BONUS'}),/\(Sports\.ru по формуле FBL\) на \+37%/);
+ assert.match(cons({}),/по ФО Sports\.ru \(с его бонусом за результат и \+2 за 10\+ минут, которых в FBL нет\) на \+37%/);
+ assert.match(cons({basis:'FBL_NO_RESULT_BONUS'}),/\(по формуле FBL\) на \+37%/);
 });
 test('the season tab\'s method notes come from the calibration and the league limits',()=>{
  const m=seasonMethod(),all=plain([...m.overview,...m.transfers,...m.teams].join('\n'));

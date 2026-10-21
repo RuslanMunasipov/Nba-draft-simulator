@@ -1,9 +1,9 @@
 import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
 import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
-import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,CONFIDENT,DOUBTFUL} from './season.js';
+import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,seasonEnding,CONFIDENT,DOUBTFUL} from './season.js';
 import {recommendPackage,contestedBy,transferWindow} from './season.js';
-import {leagueRace,teamPlace,placeLabel,chanceText,periodWindows,windowFact,windowAhead,shadowedHoldings,CHANCE_RUNS} from './standings.js';
+import {leagueRace,teamPlace,placeLabel,chanceText,periodWindows,windowFact,windowAhead,shadowedHoldings,runningCredit,soldRunning,fblGame,CHANCE_RUNS} from './standings.js';
 import {combineNote,absenceShort,sportsSeasonsLine,seasonMethod,espnNumbers,injuryUntil} from './forecast-text.js';
 import {fetchLiveGames,moscowDate,nextLiveDelay,LIVE_MS} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
@@ -54,6 +54,10 @@ const draftPrice=id=>{const p=byId.get(id);return live?.players?.[p?.sportsId]?.
 function teamBank(t,list=transfers()){const sports=sportsTeam(t)?.balance;if(Number.isFinite(sports))return sports;const local=readJson('fbl-bank',{})[t];if(Number.isFinite(local))return local;const shared=league.banks?.[t];if(Number.isFinite(shared))return shared;return bank(t,list,draftPrice);}
 function context(){const m=merged(),list=m.transfers;return {players,live,injuries,today:moscowToday(),rosters:seasonRosters(list),transfers:list,warnings:m.warnings,connected:m.connected,
  white:new Set(whiteList().filter(x=>!x.startsWith('none:')))};}
+// Transfer gains count only games a move can still win: one that has tipped off by now scores for the seller (season.js
+// inStint), so the views that weigh moves give expectedPoints the clock (ctx.now). The league race and the team
+// forecasts do not: there a tipped game still counts for a holder who has not checked in yet.
+const forGains=ctx=>ctx.now?ctx:{...ctx,now:Date.now()};
 function owners(ctx){const m=new Map();ctx.rosters.forEach((ids,t)=>ids.forEach(id=>m.set(id,t)));return m;}
 const clubOf=p=>live?.players?.[p.sportsId]?.club||p.sportsClub;
 function issueUrl(title,payload){
@@ -66,12 +70,15 @@ const liveAgeHours=()=>live?(Date.now()-Date.parse(live.collectedAt))/36e5:0;
 // ---------- Data ----------
 async function fetchJson(url,opts){const r=await fetch(url,opts);if(!r.ok)throw Error(String(r.status));return r.json();}
 async function fetchLive(){for(const url of LIVE_URLS){try{const d=await fetchJson(url,{cache:'no-cache'});if(d?.players&&d?.clubs)return d;}catch{}}return null;}
+const hasInjuryRows=feed=>Boolean(feed?.injuries?.some?.(t=>t?.injuries?.length));
 export async function refreshSeason(){
  if(loading)return loading;
  const refresh=$('season-refresh');refresh.disabled=true;refresh.setAttribute('aria-busy','true');
  loading=Promise.all([fetchLive(),fetchJson(INJURY_URL).catch(()=>null),fetchJson(LEAGUE_URL,{cache:'no-cache'}).catch(()=>null)]).then(async([l,inj,lg])=>{
   if(l){rawLive=live=l;src.live='ok';addMarket();}else src.live=live?'stale':'error';
-  if(inj){injuries=parseInjuries(inj);src.injuries='ok';src.injuriesAt=new Date().toISOString();}
+  // A report that lists nobody is a broken feed, never «all healthy» (the collector's rule, espn_injuries): like a
+  // failed fetch it falls back to the collector's kept report.
+  if(hasInjuryRows(inj)){injuries=parseInjuries(inj);src.injuries='ok';src.injuriesAt=new Date().toISOString();}
   // The collector keeps its last good report when ESPN fails (espnInjuriesOk false): used, but shown as old, as is any
   // report older than 6 hours (the Telegram advisor's bar).
   else if(live?.espnInjuries){injuries=parseInjuries(live.espnInjuries);src.injuriesAt=live.espnInjuries.fetchedAt;
@@ -96,7 +103,7 @@ async function liveTick(){
  if(tab()!=='season'||document.visibilityState==='hidden'||document.activeElement?.closest?.('#season-body input')){liveTimer=setTimeout(liveTick,LIVE_MS);return;}
  await refreshGames();renderSeason();
 }
-// Finished games Sports.ru has not counted yet are scored from the ESPN box scores (season.js withBoxScores).
+// Finished games of the last two days are scored from the ESPN box scores (season.js withBoxScores).
 function scoreBoxes(){if(rawLive&&players.length){live=withBoxScores(rawLive,games,players);addMarket();}}
 export function setSeasonPlayers(list,cardFn){
  if(cardFn)card=cardFn;
@@ -120,7 +127,8 @@ function injuryInfo(p){
 }
 const injuryText=p=>injuryInfo(p)?.text||'';
 function injuryChip(p){const i=injuryInfo(p);return i?el('span',i.text,'chip '+(i.level==='out'?'chip--danger':'chip--warn')):null;}
-// Running points from ESPN box scores for games Sports.ru has not counted yet.
+// Running points of the games in progress, from the ESPN box scores (a final game is a played row by then, scored from
+// its box score: season.js withBoxScores).
 function livePoints(){
  const out=new Map();
  for(const g of games){if(!g.points)continue;const day=moscowDate(g.date);
@@ -131,7 +139,7 @@ function livePoints(){
 }
 
 // ---------- The player's season so far (player cards) ----------
-// His 2026/27 games from Sports.ru (a finished game Sports.ru has not counted yet is scored from the ESPN box score) and
+// His 2026/27 games with their FBL points (from the Sports.ru game table; the last two days' from the ESPN box score) and
 // the game he is playing now with its stat line. Null until the season data is loaded.
 export function seasonLivePanel(p){
  if(!live||!p)return null;
@@ -140,12 +148,14 @@ export function seasonLivePanel(p){
  if(!row&&!box.length)return null;
  const block=el('div',null,'pc-block season-live');block.append(el('h4','Сезон 2026/27 · лайв'));
  if(played.length){
-  const total=played.reduce((s,g)=>s+g.points,0),minutes=played.reduce((s,g)=>s+clockMin(g.minutes),0);
-  block.append(el('p',`${count(played.length,'матч','матча','матчей')} · ${int(total)} ФО · ${dec(total/played.length)} за матч · ${dec(minutes/played.length)} мин`,'season-live-sum'));
+  // Only FBL points are summed (standings.js fblGame): a game Sports.ru listed without its box score has none yet.
+  const scored=played.filter(fblGame),total=scored.reduce((s,g)=>s+g.points,0),minutes=played.reduce((s,g)=>s+clockMin(g.minutes),0),missing=played.length-scored.length;
+  block.append(el('p',`${count(played.length,'матч','матча','матчей')} · ${scored.length?int(total):'—'} ФО · ${scored.length?dec(total/scored.length):'—'} за матч · ${dec(minutes/played.length)} мин`,'season-live-sum'));
   const t=el('table',null,'sports-table'),h=el('tr');for(const x of ['Дата','Соперник','Мин','ФО'])h.append(el('th',x));t.append(h);
-  for(const g of played.slice(-5).reverse()){const tr=el('tr');for(const v of [ddmm(g.date),g.opponent||'—',String(g.minutes??'—'),int(g.points)+(g.source==='ESPN'?' *':'')])tr.append(el('td',v));t.append(tr);}
+  for(const g of played.slice(-5).reverse()){const tr=el('tr');for(const v of [ddmm(g.date),g.opponent||'—',String(g.minutes??'—'),fblGame(g)?int(g.points)+(g.source==='ESPN'?' *':''):'—'])tr.append(el('td',v));t.append(tr);}
   block.append(t);
-  if(played.some(g=>g.source==='ESPN'))block.append(el('p','* по протоколу ESPN: Sports.ru этот матч ещё не посчитал.','muted'));
+  if(played.some(g=>g.source==='ESPN'&&fblGame(g)))block.append(el('p','* по протоколу ESPN: матчи последних двух дней считаются по нему сразу после финальной сирены.','muted'));
+  if(missing)block.append(el('p',`${scored.length?`ФО — по ${count(scored.length,'матчу','матчам','матчам')}: у`:'У'} ${count(missing,'матча','матчей','матчей')} нет подробной статистики Sports.ru («—»), очки по формуле лиги появятся вместе с ней.`,'muted'));
  }else if(!now)block.append(el('p','В этом сезоне ещё не играл.','muted'));
  if(now)block.append(el('p',`Сейчас в игре: ${int(now.x.points)} ФО · ${gameStatus(now.g)} · обновляется каждые ${LIVE_MS/1e3} с`,'season-live-now'),lineTable(now.x));
  const last=box.filter(o=>o.g.state==='post').at(-1);
@@ -172,10 +182,11 @@ function confidenceBadge(why){const [word,cls]=confidenceWord[level(why)];const 
 // ---------- Overview ----------
 // The table and the Teams tab read one league race (src/standings.js): shared places for equal points, the model's
 // chances of the final place. It is computed once per change of its inputs (80 outlooks and 20 000 draws take a
-// noticeable moment on a phone), not on every re-render of the same screen.
+// noticeable moment on a phone), not on every re-render of the same screen. The rest of a running game follows ESPN's
+// clock and his minutes (season.js expectedPoints), so both are in the key with his points.
 let raceKey=null,raceValue=null;
 function race(ctx,running){
- const key=[ctx.players,ctx.live,ctx.injuries,ctx.transfers,ctx.today,[...running].map(([id,x])=>`${id}:${x.points}:${x.day}`).join()];
+ const key=[ctx.players,ctx.live,ctx.injuries,ctx.transfers,ctx.today,[...running].map(([id,x])=>`${id}:${x.points}:${x.day}:${x.minutes}:${x.game?.detail}`).join()];
  if(!raceKey||key.some((v,i)=>v!==raceKey[i])){raceKey=key;raceValue=leagueRace(ctx,running);}
  return raceValue;
 }
@@ -185,7 +196,7 @@ function standingsTable(ctx,running){
  const rows=[...all].sort((a,b)=>b.points-a.points||b.total-a.total),anyLive=rows.some(r=>r.now);
  const table=el('table',null,'standings-table'),head=el('tr'),week=currentWeek(ctx.today);
  const cols=[['#',''],['Команда',''],...(started?[['Очки','num']]:[]),...(anyLive?[['В игре','num']]:[]),[`Игр до ${ddmm(week?.end||h.week.to)}`,'num wide-only'],[started?'Прогноз':'Прогноз сезона','num'],['1-е','num'],['Топ-3','num wide-only']];
- const tips={'1-е':'Шанс занять 1-е место — оценка модели','Топ-3':'Шанс попасть в первую тройку — оценка модели'};
+ const tips={'Очки':'Сыгранные матчи по формуле лиги (Yahoo)','В игре':'Матчи, которые идут сейчас: очки по протоколу ESPN, предварительно','1-е':'Шанс занять 1-е место — оценка модели','Топ-3':'Шанс попасть в первую тройку — оценка модели'};
  for(const [x,c] of cols){const th=el('th',x,c);th.scope='col';if(tips[x])th.title=tips[x];head.append(th);}table.append(head);
  rows.forEach(r=>{const tr=el('tr',null,'clickable'+(r.t===0?' mine':''));
   const name=el('td',null,'team');name.append(teamName(r.t));if(r.t===0)name.append(' ',el('span','ты','chip chip--accent'));
@@ -198,14 +209,14 @@ function standingsTable(ctx,running){
   const open=()=>{team=r.t;writeStored('fbl-season-team',String(team));setView('teams');};
   tr.onclick=open;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};table.append(tr);});
  const box=el('div',null,'sp-block');const head2=el('div',null,'sp-block-head');head2.append(el('h3',started?'Таблица лиги':'Прогноз сезона'));box.append(head2);
- const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap,el('p',(started?'Очки — по формуле лиги; матчи последних двух дней — сразу по протоколам ESPN (категории Yahoo), пока Sports.ru их не посчитал. ':'')+'Нажми на команду, чтобы открыть состав. '+CHANCE_NOTE,'sp-note'));
+ const wrap=el('div',null,'table-scroll');wrap.append(table);box.append(wrap,el('p',(started?'Очки — по формуле лиги на Yahoo из статистики каждого матча: за последние два дня — по протоколам ESPN сразу после финальной сирены, раньше — по таблице матча Sports.ru. «В игре» — матчи, которые идут сейчас, предварительно. ':'')+'Нажми на команду, чтобы открыть состав. '+CHANCE_NOTE,'sp-note'));
  return box;
 }
 // "Сезон стартует 21.10" from the Sports.ru calendar, never a hard-coded date.
 function seasonStart(){const days=Object.values(live?.clubs||{}).flat().map(g=>g.date).filter(Boolean).sort();return days[0]||null;}
 function topPlayers(ctx){
  const own=owners(ctx),rows=[];
- for(const p of players){const g=(live?.players?.[p.sportsId]?.games||[]).filter(x=>x.played);if(g.length)rows.push({p,total:g.reduce((s,x)=>s+x.points,0),games:g.length});}
+ for(const p of players){const g=(live?.players?.[p.sportsId]?.games||[]).filter(fblGame);if(g.length)rows.push({p,total:g.reduce((s,x)=>s+x.points,0),games:g.length});}
  const box=el('div',null,'sp-block sp-top');
  const list=(items,line,value)=>{const ol=el('ol');for(const r of items){const li=el('li'),who=el('div');who.append(el('strong',r.p.name),el('small',line(r)));li.append(who,el('span',value(r),'val'));ol.append(li);}return ol;};
  const free=(p)=>!own.has(p.id);
@@ -290,7 +301,7 @@ function gamesToday(ctx,compact,focus){
 }
 function alertsBlock(ctx){
  const box=el('div',null,'sp-alerts'),money=teamBank(0,ctx.transfers);
- const alerts=marketAlerts(ctx,{team:0,bankMoney:money,sort:'month',minGain:20});
+ const alerts=marketAlerts(forGains(ctx),{team:0,bankMoney:money,sort:'month',minGain:20});
  const hurt=ctx.rosters[0].map(id=>byId.get(id)).filter(p=>p&&injuries.get(String(p.espnId)));
  if(!alerts.length&&!hurt.length)return box;
  const head=el('div',null,'sp-block-head');head.append(el('h3','Для тебя'));box.append(head);
@@ -316,22 +327,24 @@ function overview(ctx){
 // by the league table's own rule: src/standings.js.
 const windows=periodWindows,teamFact=(ctx,t,w)=>windowFact(ctx,t,w);
 const playerFact=(p,t,ctx,w)=>p.sportsId?windowFact(ctx,t,w,p.sportsId):0;
-// Still to come in a window for the chosen team: a shadowed holding brings it nothing (standings.js windowAhead).
-const ahead=(p,ctx,w,running,shadow)=>windowAhead(ctx,team,p,w,running,shadow);
+// Still to come in a window for the chosen team: a shadowed holding brings it nothing, a game that tipped off before he
+// was bought is the seller's (standings.js windowAhead, runningCredit).
+const ahead=(p,ctx,w,running,shadow,credit)=>windowAhead(ctx,team,p,w,running,shadow,credit);
 function factForecast(fact,forecast){const v=el('strong',null,'fact');v.append(int(fact),el('span',' / '+int(forecast),'fc'));v.title='Факт / прогноз';return v;}
 // The league race of one team, from the same numbers as the overview table: shared place, gap to the 1st or the 2nd, chances.
 const leaguePlace=(ctx,t,running)=>teamPlace(race(ctx,running),t);
-// `shadow`: the holdings that score for the team that had the player first (standings.js shadowedHoldings).
-function playerRow(p,ctx,running,shadow){
- const live1=live?.players?.[p.sportsId],c=current(p,ctx),g=perGame(p,live1),inj=injuryInfo(p),now=running?.get(p.id);
+// `shadow`: the holdings that score for the team that had the player first (standings.js shadowedHoldings); `credit`:
+// whose each running game is (standings.js runningCredit).
+function playerRow(p,ctx,running,shadow,credit){
+ const live1=live?.players?.[p.sportsId],c=current(p,ctx),g=perGame(p,live1),inj=injuryInfo(p),now=credit.has(`${team}:${p.id}`)?running.get(p.id):null;
  const box=el('details',null,'season-player');box.open=openRows.has(p.id)||replacing===p.id;
  const sum=el('summary'),row=el('div',null,'sp-row');
  const name=el('span',null,'sp-name'),meta=el('small',`${c.positions.join('/')} · ${p.team||'—'}${p.isRookie?' · rookie':''}`);name.append(el('strong',p.name),meta);
  const price=el('span',null,'sp-price'),delta=Number.isFinite(live1?.price)&&Number.isFinite(live1?.initialPrice)?live1.price-live1.initialPrice:0;
  price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
- const form=el('span',null,'sp-form'),last=(live1?.games||[]).filter(x=>x.played).slice(-3).map(x=>int(x.points));
+ const form=el('span',null,'sp-form'),last=(live1?.games||[]).filter(fblGame).slice(-3).map(x=>int(x.points));
  form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
- const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running,shadow),first=shadow.get(`${team}:${p.id}`),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
+ const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running,shadow,credit),first=shadow.get(`${team}:${p.id}`),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
  left.title='Ожидаемых матчей до конца периода';next.append(factForecast(fact,fact+rest.points),left);
  row.append(name,price,form,next);
  if(inj){const line=el('span',null,'sp-injury'+(inj.level==='out'?' out':''));line.append(`🩹 ${inj.text}`);row.append(line);}
@@ -423,7 +436,8 @@ function newsBlock(p){
  box.addEventListener('toggle',fill);
  return box;
 }
-function replacementPanel(p,ctx){
+function replacementPanel(p,base){
+ const ctx=forGains(base);
  const box=el('div',null,'sp-replace'),money=teamBank(team,ctx.transfers),price=current(p,ctx).price,st=sportsTeam(team);
  box.append(el('h4',`Замена для ${p.name}`),el('p',`Бюджет до ${int(money+price)} (банк ${int(money)} + продажа ${int(price)}) · трансферов: ${transfersLeft(ctx,team)===Infinity?'без лимита':transfersLeft(ctx,team)+' из '+WEEKLY_TRANSFERS}. Цифры — сколько ФО ты получишь (+) или потеряешь (−) по сравнению с ${p.name}.`));
  if(st)box.append(el('p','Команда подключена к Sports.ru: трансфер делается там, здесь он появится сам примерно через минуту.','muted'));
@@ -453,9 +467,11 @@ function controls(ctx){
  head.append(teamSelect(),wrap);
  return head;
 }
-function teamKpis(ctx,roster,running,shadow){
+function teamKpis(ctx,roster,running,shadow,credit){
  const st=sportsTeam(team),spent=roster.reduce((s,p)=>s+(current(p,ctx).price||0),0),left=transfersLeft(ctx,team),fbl=fblTransfers(ctx.transfers,team,ctx.today);
- const w=windows(ctx)[horizon],fact=teamFact(ctx,team,w),forecast=fact+roster.reduce((s,p)=>s+ahead(p,ctx,w,running,shadow).points,0),race=leaguePlace(ctx,team,running);
+ // A player sold after the tip-off of the game he is playing still brings that game to this team (soldRunning).
+ const w=windows(ctx)[horizon],fact=teamFact(ctx,team,w),sold=soldRunning(ctx,team,running,credit,w.to),race=leaguePlace(ctx,team,running);
+ const forecast=fact+sold.now+sold.rest+roster.reduce((s,p)=>s+ahead(p,ctx,w,running,shadow,credit).points,0);
  // The league race and the period's points come first, money and transfers below them.
  const main=el('div',null,'kpis kpis--main'),kpis=el('div',null,'kpis');let into=main;
  const kpi=(label,value,title)=>{const k=el('div',null,'kpi');k.append(el('small',label),el('strong',value));if(title)k.title=title;into.append(k);return k;};
@@ -477,12 +493,12 @@ function teamKpis(ctx,roster,running,shadow){
 }
 function teams(ctx){
  const wait=needsLive('Состав');if(wait)return [controls(ctx),...wait];
- const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),running=livePoints(),st=sportsTeam(team),shadow=shadowedHoldings(ctx);
- const out=[controls(ctx),teamKpis(ctx,roster,running,shadow)];
+ const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),running=livePoints(),st=sportsTeam(team),shadow=shadowedHoldings(ctx),credit=runningCredit(ctx,running);
+ const out=[controls(ctx),teamKpis(ctx,roster,running,shadow,credit)];
  if(st){const info=el('div',null,'sp-team-info');info.append(link('Команда на Sports.ru ↗',TEAM_URL(st.sportsTeamId)));out.push(info);}
  const list=el('div',null,'sp-roster'),header=el('div',null,'sp-header');
  for(const t of ['Игрок','Цена','За матч','Факт / прогноз'])header.append(el('span',t));
- list.append(header,...roster.map(p=>playerRow(p,ctx,running,shadow)));out.push(list);
+ list.append(header,...roster.map(p=>playerRow(p,ctx,running,shadow,credit)));out.push(list);
  return out;
 }
 
@@ -493,7 +509,7 @@ function teams(ctx){
 // buys carry the other FBL teams the same model advises to buy them.
 function recommendation(ctx,money,left){
  const {best,borderline,options}=recommendPackage(ctx,{team,bankMoney:money,left,sort:horizon}),shown=best||borderline;
- if(shown)shown.contested=new Map(shown.pairs.map(x=>[x.in.id,contestedBy(ctx,{team,playerId:x.in.id,bankOf:t=>teamBank(t,ctx.transfers),sort:horizon})]));
+ if(shown)shown.contested=new Map(shown.pairs.map(x=>[x.in.id,contestedBy(ctx,{team,playerId:x.in.id,bankOf:t=>teamBank(t,ctx.transfers),leftOf:t=>transfersLeft(ctx,t),sort:horizon})]));
  return {best,options:borderline?[borderline,...options.filter(o=>o!==borderline)]:options};
 }
 function packageMoves(p){const ul=el('ul',null,'moves');for(const x of p.pairs){const li=el('li'),rivals=p.contested?.get(x.in.id)||[];li.append(el('span',x.out.name,'out'),el('span','→','arrow'),el('span',x.in.name,'in'),el('small',`${x.in.positions.join('/')} · ${int(x.in.price)}${injuryText(x.in)?' · '+injuryText(x.in):''}`));
@@ -507,8 +523,8 @@ function packageCard(p,ctx,left){
  if(p.pairs.length<=left)item.append(takeAction(p.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx,'Записать пакет'));
  return item;
 }
-function transfersView(ctx){
- const wait=needsLive('Помощник по трансферам');if(wait)return [controls(ctx),...wait];
+function transfersView(base){
+ const ctx=forGains(base),wait=needsLive('Помощник по трансферам');if(wait)return [controls(ctx),...wait];
  const money=teamBank(team,ctx.transfers),left=transfersLeft(ctx,team),fbl=fblTransfers(ctx.transfers,team,ctx.today),st=sportsTeam(team),out=[controls(ctx)];
  const {best,options}=recommendation(ctx,money,left);
  const pickCard=el('div',null,'sp-pick'+(best?'':' hold'));
@@ -585,7 +601,9 @@ function injuriesView(ctx){
  for(const [k,label] of [['league',`Лига (${league.length})`],['market',`Свободные (${market.length})`]]){const b=button(label,()=>{injuryScope=k;renderSeason();},'');b.setAttribute('aria-pressed',String(injuryScope===k));scope.append(b);}
  const rows=injuryScope==='league'?league:market;
  const group=r=>injuryScope==='league'?own.get(r.p.id):9;
- rows.sort((a,b)=>group(a)-group(b)||String(a.i.returnDate||'9').localeCompare(String(b.i.returnDate||'9')));
+ // By return date; a season-ending report's date is ESPN's placeholder, so those players come last.
+ const back=r=>seasonEnding(r.i)?'99':String(r.i.returnDate||'9');
+ rows.sort((a,b)=>group(a)-group(b)||back(a).localeCompare(back(b)));
  const list=el('div',null,'sp-injuries');let last=null;
  for(const r of rows){const g=group(r);
   if(g!==last&&injuryScope==='league'){const h=el('h3',teamName(g));if(g===0)h.append(' ',el('span','ты','chip chip--accent'));list.append(h);last=g;}
@@ -658,7 +676,10 @@ function rulesView(ctx){
   // On phones each row becomes a card: the label comes from data-label and the content sits in one inner block.
   const cell=(label,value,cls)=>{const td=el('td',null,cls),inner=el('div');td.dataset.label=label;if(value!=null)inner.append(value);td.append(inner);tr.append(td);return inner;};
   const name=cell('Команда',teamName(c.team),'team');if(c.team===0)name.append(' ',el('span','ты','chip chip--accent'));
-  cell('Rookie',has('rookie')?'❌ нет':'✅ '+c.rookies.map(p=>p.name).join(', '),has('rookie')?'bad':'');
+  // No marked rookie beside a player whose rookie status the database does not know is a check, not a breach (rules.js).
+  const rk=c.violations.find(x=>x.rule==='rookie'),unsure=rk?.certain===false;
+  const rc=cell('Rookie',!rk?'✅ '+c.rookies.map(p=>p.name).join(', '):unsure?'⏳ не отмечен':'❌ нет',!rk?'':unsure?'wait':'bad');
+  if(unsure)rc.append(el('small',`статус ${c.roster.filter(p=>p.isRookie!==true&&p.rookieStatus==='NOT_SHOWN_BY_SPORTS_RU').map(p=>p.name).join(', ')} базе не известен`));
   // One player per team is enough: the select names who satisfies the rule for this team, or the league's finding of none.
   const w=cell('Белое правило'),select=el('select');select.setAttribute('aria-label','Белое правило: '+teamName(c.team));
   const decided=c.whites[0]||marks.has(`none:${c.team}`);
@@ -709,6 +730,10 @@ function warnings(ctx){
  if(src.injuries==='error'&&view!=='injuries')out.push('Отчёт ESPN о травмах недоступен: шансы сыграть считаются без него.');
  else if(src.injuries==='stale')out.push(`Отчёт ESPN о травмах не обновился${src.injuriesAt?' с '+stampMsk(src.injuriesAt):''}: шансы сыграть — по последнему полученному.`);
  if(live&&ctx.connected.size<8)out.push(`К Sports.ru подключено ${ctx.connected.size} из 8 команд: остальные трансферы — из журнала лиги.`);
+ // A played game of a rostered player without FBL points (Sports.ru listed it without its box score) is left out of
+ // every total until the box score comes: the screens say so instead of counting Sports.ru's own number.
+ const missing=live?[...new Set(ctx.rosters.flat())].reduce((n,id)=>n+(live.players?.[byId.get(id)?.sportsId]?.games||[]).filter(g=>g.played&&!fblGame(g)).length,0):0;
+ if(missing)out.push(`Sports.ru не дал подробной статистики ${count(missing,'матча','матчей','матчей')} игроков FBL: их очки по формуле лиги пока не посчитаны.`);
  return out.map(w=>{const n=el('p',null,'notice notice--warn');n.append(el('p',w));return n;});
 }
 function setView(v){view=v;writeStored('fbl-season-view',v);renderSeason();window.scrollTo({top:0});}
