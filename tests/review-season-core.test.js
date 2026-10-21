@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {playRate,perGame,expectedPoints,seasonEnding,injuryFactor,playerPicture,horizons,CALIBRATION} from '../src/season.js';
 // Review findings on src/season.js (audit 21.10.2026): R10-R12/R33 known absences, R11 the spell after the return, R14 GTD
 // at night, R15 running games, R16 season-ending wording, R18/R07 club games with the NBA Cup placeholders, R19 0 minutes.
@@ -129,4 +129,8 @@ test('an ESPN line with MIN 0 keeps the calibrated estimate, as a few seconds on
  assert.ok(Number.isFinite(zero.minutes));near(zero.value,sec.value,.01);
  // A row with no minutes at all still falls back to the plain shrink.
  assert.equal(cameo(undefined).minutes,undefined);
+});
+test('season-ending wording: the app reads the ESPN report exactly as the projection model does (shared fixture)',()=>{
+ const {cases}=JSON.parse(readFileSync(new URL('./fixtures/season-ending-comments.json',import.meta.url),'utf8'));
+ for(const c of cases)assert.equal(seasonEnding(c),c.ending,c.comment);
 });
