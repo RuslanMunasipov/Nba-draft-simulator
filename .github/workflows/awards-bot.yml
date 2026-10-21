@@ -14,6 +14,10 @@ on:
         description: 'US game day to preview, YYYY-MM-DD (nothing saved or sent). Empty: a normal run.'
         required: false
         default: ''
+      resend:
+        description: 'US game day whose post is sent to the league again, YYYY-MM-DD (nothing else posted or saved).'
+        required: false
+        default: ''
 permissions:
   contents: write
 concurrency:
@@ -55,10 +59,11 @@ jobs:
           AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
-        run: node awards-bot/bot.mjs --state "$RUNNER_TEMP/awards"
+          RESEND: ${{ inputs.resend }}
+        run: node awards-bot/bot.mjs --state "$RUNNER_TEMP/awards" ${RESEND:+--resend "$RESEND"}
       - name: Save the bot's state
         # The bot saves after every post, so a run that failed halfway still keeps what it posted.
-        if: inputs.preview == '' && (success() || failure())
+        if: inputs.preview == '' && inputs.resend == '' && (success() || failure())
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

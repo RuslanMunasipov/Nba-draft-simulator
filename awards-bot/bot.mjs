@@ -6,6 +6,9 @@
 //
 // Usage:
 //   node awards-bot/bot.mjs --state DIR             scheduled run: archive finished games, post once the day is over
+//   node awards-bot/bot.mjs --state DIR --resend DAY
+//                                                   the day's post sent again from the archive (a corrected layout); the
+//                                                   state is not changed
 //   node awards-bot/bot.mjs --preview DAY [--week] [--month]
 //                                                   the posts of US game day DAY rebuilt from ESPN; nothing saved or sent
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
@@ -171,7 +174,16 @@ async function preview(day){
  if(flag('--month')||isMonthEnd(day))await monthly(day,ctx,archive,state,false);
 }
 
-const day=opt('--preview');
+// The day's post once more, as the archive has it now: nothing in the state changes, so nothing else is posted.
+async function resend(day){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('--resend: a US game day, YYYY-MM-DD');
+ const archive=read('archive.json',{lines:[]});
+ if(!archive.lines.some(l=>l.d===day))throw Error(`--resend: no archived games of ${day}`);
+ await post(dayPost(day,archive.lines,await loadLeague(),[]));
+}
+
+const day=opt('--preview'),again=opt('--resend');
 if(day)await preview(day);
+else if(STATE_DIR&&again)await resend(again);
 else if(STATE_DIR)await scheduled();
-else{console.error('Usage: bot.mjs --state DIR | --preview YYYY-MM-DD [--week] [--month]');process.exit(2);}
+else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD] | --preview YYYY-MM-DD [--week] [--month]');process.exit(2);}
