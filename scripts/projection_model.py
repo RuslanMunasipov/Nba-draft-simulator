@@ -289,12 +289,14 @@ class Rookie:
         near=sorted([r for r in self.rows if r.get('perMinuteStats') and r['games']>=10],key=lambda r:abs(math.log(r['pick'] or 75)-math.log(pick or 75)))[:15]
         if near:out['stats']={k:statistics.mean(r['perMinuteStats'][k] for r in near)*out['minutes'] for k in STAT_KEYS}
         return out
-def rookie_rows(drafts,season_rows_by_year,index=None,first=None):
+def rookie_rows(drafts,season_rows_by_year,index=None,first=None,known=None):
     """Complete draft classes: every drafted player's first season (zero games when he did not play), and undrafted
     debutants. A pick is matched to the league player by NBA id (official index: draft year and number) before the name,
     because names differ ('Ron Holland' / 'Ronald Holland II', 'Yang Hansen' / 'Hansen Yang'): unmatched, he counted as a
     0-game pick and again as an undrafted debutant. An undrafted debutant has no earlier NBA season (`first`: first
-    season in the career logs) and no pick in this or an earlier class."""
+    season in the career logs) and no pick in this or an earlier class. With `known` (players whose career logs were
+    collected) he must be among them: without logs an earlier season cannot be ruled out (Patty Mills, in the league since
+    2009, counted as a 2023 undrafted debutant)."""
     index=index or {};first=first or {};named=lambda n:normalize(html.unescape(n or ''))
     out=[]
     for year,(rows,earlier) in season_rows_by_year.items():
@@ -315,6 +317,7 @@ def rookie_rows(drafts,season_rows_by_year,index=None,first=None):
         for pid,s in rows.items():
             o=index.get(str(pid),{})
             if pid in seen or pid in earlier or named(s['name']) in drafted or first.get(str(pid),year)<year:continue
+            if known is not None and str(pid) not in known:continue
             if isinstance(o.get('DRAFT_YEAR'),int) and o['DRAFT_YEAR']<year and o.get('DRAFT_NUMBER'):continue
             out.append(dict(year=year,pick=None,name=s['name'],games=s['games'],share=min(1,s['games']/82),rate=s['rate'],minutes=s['minutes'],perMinuteStats=s['perMinuteStats']))
     return out
@@ -619,9 +622,11 @@ def load():
     people=json.loads(PEOPLE.read_text())['players']
     births={p['playerId']:p['birthDate'] for p in people if p.get('birthDate')}
     first=min(SEASON_FILES)
-    rows=[r for r in pq.read_table(CAREER,filters=[('competition','=','nba'),('season_type','=','REGULAR')]).to_pylist() if r['season']<first and r['team'] not in EXHIBITION]+league_rows()
+    career=pq.read_table(CAREER,filters=[('competition','=','nba'),('season_type','=','REGULAR')]).to_pylist()
+    rows=[r for r in career if r['season']<first and r['team'] not in EXHIBITION]+league_rows()
     seasons,team_games=season_table(rows,lambda r:r['player_id'])
     history=History(seasons,team_games,births);history.spells=av.spells(rows)
+    history.collected={r['player_id'] for r in career}  # players whose career logs were collected (any season)
     index=json.loads(INDEX.read_text())['players'] if INDEX.exists() else []
     return history.impute_ages({p['playerId']:p['name'] for p in people},draft_years(json.loads(DRAFTS.read_text())['drafts']),
                                {str(p['PERSON_ID']):p['DRAFT_YEAR'] for p in index if isinstance(p.get('DRAFT_YEAR'),int)})
@@ -656,14 +661,15 @@ def run(data=None):
     drafts=json.loads(DRAFTS.read_text())['drafts']
     league={y:league_seasons(p,y) for y,p in SEASON_FILES.items()}
     index={str(p['PERSON_ID']):p for p in json.loads(INDEX.read_text())['players']}
-    rookie_fit=rookie_rows(drafts,{2025:(league[2025],league[2024])},index,history.first)
-    rookie_test=rookie_rows(drafts,{2026:(league[2026],{**league[2024],**league[2025]})},index,history.first)
+    known=getattr(history,'collected',None)
+    rookie_fit=rookie_rows(drafts,{2025:(league[2025],league[2024])},index,history.first,known)
+    rookie_test=rookie_rows(drafts,{2026:(league[2026],{**league[2024],**league[2025]})},index,history.first,known)
     rookie_frozen=Rookie(rookie_fit)
     def rookie_err(model,rows,key):return statistics.mean(abs(model.predict(r['pick'])[key]-r[key]) for r in rows if r[key] is not None)
     flat={k:statistics.mean(r[k] for r in rookie_fit if r[k] is not None) for k in ('rate','minutes','share')}
     rookie_holdout={k:dict(modelMAE=rookie_err(rookie_frozen,rookie_test,k),flatPriorMAE=statistics.mean(abs(flat[k]-r[k]) for r in rookie_test if r[k] is not None)) for k in ('rate','minutes','share')}
     rookie_holdout.update(players=len(rookie_test),drafted=sum(bool(r['pick']) for r in rookie_test))
-    rookie_holdout['rangeCoverage']=rookie_range_check({2023:rookie_rows(drafts,{2024:(league[2024],{})},index,history.first),2024:rookie_fit,2025:rookie_test})
+    rookie_holdout['rangeCoverage']=rookie_range_check({2023:rookie_rows(drafts,{2024:(league[2024],{})},index,history.first,known),2024:rookie_fit,2025:rookie_test})
     report=dict(status='TRAINED_AND_HELD_OUT',fitTargets=[FIT_FROM,TEST-1],testTarget=TEST,fitTransitions=len(fit),testPlayers=len(test),
                 ageImputation=dict(players=len(history.imputed),fitTransitions=sum(e['x']['ageImputed'] for e in fit),testPlayers=sum(e['x']['ageImputed'] for e in test),
                                    withoutAge=sum(e['x']['age'] is None for e in fit+test)),
@@ -679,7 +685,8 @@ def run(data=None):
                              'The participation term is 1 per game played (Yahoo GP), so minutes enter only through the counting stats.',
                              'No team result bonus: the FBL formula is Sports.ru\'s without it (the league scores on Yahoo, which cannot award it).',
                              'Rookie rows match picks to league players by NBA id, then by name; ambiguous names are skipped. Drafted players who never played '
-                             'count as zero games.'])
+                             'count as zero games. An undrafted debutant needs collected career logs (without them an earlier season cannot be ruled out); '
+                             'a late debutant drafted under another name (Aleksandar/Sasha Vezenkov, 2017) still counts as undrafted.'])
     if data is None:return report
     production=Veteran(fit+test);pool=forward(fit+test,range(TARGET-POOL,TARGET),history);prod_ranges=Ranges(pool)
     prod_chain=availability(history,TARGET)
@@ -721,7 +728,9 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
         # entries do not block; an Out without a return date has no known length (league start distribution).
         dates=schedule.get(player.get('team'))
         blocked,until,starts_healthy=known_absence(player.get('injuries'),today,dates)
-        left=82-blocked
+        # In season the club games before today are neither blocked nor playable: a known absence leaves the games from
+        # his return to the end (none after a season-ending one), not 82 minus the block.
+        left=blocked_games(until,'9999-12-31',dates) if blocked else 82
         healthy=bool(x and chain and player.get('currentRosterStatus')=='SOURCE_REPORTED' and starts_healthy and not blocked)
         if blocked:model_games=0.0 if left<=0 else chain.healthy_mean(pid,TARGET,unconditional_games*left/82,left) if x and chain else unconditional_games*left/82
         elif healthy:model_games=chain.healthy_mean(pid,TARGET,model_games,82)
@@ -736,7 +745,7 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
         share=games/82
         # The chain is anchored to the published games; after a known absence only over the games it leaves.
         if x and chain:
-            if blocked:after_return(p,chain,pid,games,blocked,unconditional_games)
+            if blocked:after_return(p,chain,pid,games,blocked,unconditional_games,left=left)
             else:with_games(p,chain,pid,TARGET,games,healthy)
         # Replacement credit only for players with an NBA record (the held-out check covers them). A rookie's missing games
         # are mostly a rotation question, and the rookie rule keeps one on every roster, so he is not simply swapped out.
@@ -787,7 +796,8 @@ def apply(data,history,model,ranges,rookies,index,draft_names,game_ratios,chain=
                      'откалибрована отдельно (проверка на 2025/26). Риск короткого сезона — вероятность цепи сыграть меньше четверти матчей. '
                      'У новичков диапазон из ошибок модели драфта на классе 2025.',
         gamesMeaning='Число матчей — среднее модели и ESPN, где ESPN даёт прогноз, иначе модели. Пропуск с датой возвращения из отчёта '
-                     'ESPN вычитает матчи клуба до неё, после возвращения сезон идёт от здорового старта. Игрок вне ростеров NBA — '
+                     'ESPN вычитает матчи клуба до неё, после возвращения сезон идёт от здорового старта; по ходу сезона у такого игрока '
+                     'в прогнозе только матчи после возвращения, при травме до конца сезона — ни одного. Игрок вне ростеров NBA — '
                      'оценка на случай контракта.')
     if chain:
         # Spell lengths for the in-season chain (src/season.js imports them at build time, like the in-season calibration).
@@ -818,23 +828,42 @@ def draft_pick(player,index,draft_names,played):
     return draft_names.get(normalize(player['name']),(None,None))
 
 SEASON_DATES=('2026-10-20','2027-04-11')  # NBA 2026/27 regular season (also the Yahoo league's scoring period)
-ENDING=re.compile(r'out for (the )?season|miss the (entire|rest of the|20\d\d-\d\d) season',re.I)
+SEASON_TAG=f'{TARGET-1}-{TARGET%100:02d}'  # how ESPN comments name this season ("2026-27")
+_THIS=rf'(?:{SEASON_TAG} )?(?:regular[- ])?season\b(?![- ]opener)'
+# ESPN keeps some season-ending injuries OUT with a placeholder return date and says it only in the comment (Furphy:
+# 2027-01-02, "will miss the remainder of the season"; Hukporti: "a season-ending ruptured right Achilles"), never "the
+# season opener". The wording of src/season.js seasonEnding.
+ENDING=re.compile(rf'\bout for (?:the )?{_THIS}|\bseason[- ]ending\b|\bmiss(?:es)? the (?:entire |rest of the |remainder of the )?{_THIS}|'
+                  rf'\b(?:remainder|rest|entirety|balance) of the {_THIS}',re.I)
+# A clause about an earlier injury says nothing of this season ("last season's season-ending surgery", "who missed the
+# remainder of the season last year", "returning from a season-ending tear suffered in 2025", "the 2025-26 season").
+EARLIER=re.compile(r'\b(?:last|previous|past|prior) (?:season|year)\b|\ba year ago\b|'
+                   r'\b(?:return(?:s|ed|ing)?|recover(?:s|ed|ing|y)?|work(?:s|ed|ing)?(?: his way)? back|coming back) from\b',re.I)
+YEAR=re.compile(r'\b(?:in|during) (?:[a-z]+ )?(20\d\d)\b(?!-)|\b(20\d\d)-\d\d\b',re.I)  # "in May 2025", "the 2025-26 season"
+CLAUSES=re.compile(r'[.;,!?]+|\s[-–—]+\s')
+def earlier(clause):return bool(EARLIER.search(clause)) or any(int(a or b)<TARGET-1 for a,b in YEAR.findall(clause))
+def kept_out(injury):return bool(re.search('out|suspension',injury.get('status') or '',re.I)) and injury.get('fantasyStatus')!='GTD'
+def season_ending(injury):
+    """OFS, or an entry that keeps the player out and says so in a clause about this season."""
+    if injury.get('fantasyStatus')=='OFS':return True
+    return kept_out(injury) and any(ENDING.search(c) and not earlier(c) for c in CLAUSES.split(injury.get('comment') or ''))
 def absence(injury):
-    """(kind, return date) of one ESPN report entry, read as src/season.js injuryFactor reads it: 'ending' (OFS or the
-    wording: out until the return date, or for good), 'out' (Out or Suspension, not GTD: out until the return date, of
+    """(kind, return date) of one ESPN report entry, read as src/season.js injuryFactor reads it: 'ending' (season_ending:
+    out for good, whatever placeholder date ESPN shows), 'out' (Out or Suspension, not GTD: out until the return date, of
     unknown length without one) or 'minor' (day-to-day, GTD)."""
     back=str(injury.get('returnDate') or '')[:10] or None
-    if injury.get('fantasyStatus')=='OFS' or ENDING.search(injury.get('comment') or ''):return 'ending',back or '9999-12-31'
-    if re.search('out|suspension',injury.get('status') or '',re.I) and injury.get('fantasyStatus')!='GTD':return 'out',back
+    if season_ending(injury):return 'ending',back or '9999-12-31'
+    if kept_out(injury):return 'out',back
     return 'minor',back
 def known_absence(injuries,today,dates=None,L=82):
     """(club games blocked, return date, healthy start) from a player's report entries. The block counts the club games
-    from today (or the opener) to the return date; an absence already over blocks nothing; an Out without a date gives
-    neither a block nor a healthy start."""
+    from today (or the opener) to the return date, to the season's end for a season-ending entry; an absence already
+    over blocks nothing; an Out without a date gives neither a block nor a healthy start."""
     until=None;healthy=True
     for i in injuries or []:
         kind,back=absence(i)
         if kind=='minor':continue
+        if kind=='ending' and back<=SEASON_DATES[1]:back='9999-12-31'  # a placeholder date inside the season is no return
         if not back:healthy=False;continue
         until=max(until or back,back)
     start=max(today,SEASON_DATES[0])
@@ -851,11 +880,11 @@ def blocked_games(start,until,dates=None,L=82):
     opener,end=(date.fromisoformat(d) for d in SEASON_DATES);days=(end-opener).days+1;begin=date.fromisoformat(start)
     if until>SEASON_DATES[1]:return L-min(L,round(L*(begin-opener).days/days))
     return max(0,min(L,round(L*(date.fromisoformat(until)-begin).days/days)))
-def after_return(p,chain,pid,games,blocked,unconditional,L=82,delay=av.REPLACE_DELAY):
+def after_return(p,chain,pid,games,blocked,unconditional,L=82,delay=av.REPLACE_DELAY,left=None):
     """The chain after a known absence: a block of `blocked` club games, then the healthy-start chain (he is back) over
-    the games left, anchored to `games`. This equals the chain started inside a spell of that length; the block counts
-    as replaced after the delay like any long absence."""
-    left=L-blocked
+    the `left` games after it (L - blocked before the season), anchored to `games`. This equals the chain started inside
+    a spell of that length; the block counts as replaced after the delay like any long absence."""
+    left=L-blocked if left is None else left
     if left>0:pmf,info=chain.distribution(pid,TARGET,mean=games,L=left,healthy=True)
     else:
         # Out for the season: no games; the hazards stay those of his record (anchored to the unconditional games).
@@ -879,7 +908,7 @@ def forecast_basis(espn,x,p,absence,conditional):
     text+='; веса модели подобраны на сезонах до 2024/25 и проверены на 2025/26'
     if absence:
         back=absence['returnDate']
-        text+=('; по отчёту ESPN вне игры до конца сезона' if absence['seasonEnding'] else
+        text+=('; по отчёту ESPN вне игры до конца сезона' if absence['seasonEnding'] or not back else
                f'; по отчёту ESPN пропустит {games_ru(absence["blockedGames"])} клуба (до {back[8:10]}.{back[5:7]})')
     if conditional:text+='; нет в действующем ростере NBA — оценка на случай контракта'
     return text
