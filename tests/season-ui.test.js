@@ -81,10 +81,10 @@ test('the season tab\'s method notes come from the calibration and the league li
  const m=seasonMethod(),all=plain([...m.overview,...m.transfers,...m.teams].join('\n'));
  assert.match(all,new RegExp(`с весом прогноза ${CALIBRATION.points.established.rateGames} матчей \\(у новичков ${CALIBRATION.points.newcomer.rateGames}\\)`));
  assert.doesNotMatch(all,/официальн|10 матчей\)|вес прогноза — 10/);
- assert.match(all,/не больше 2 игроков одного клуба NBA/);assert.match(all,/«белому правилу»/);assert.match(all,/цепи коротких и длинных пропусков/);
+ assert.match(all,/не больше 2 игроков одного клуба NBA/);assert.match(all,/«белому правилу»/);assert.match(all,/Травмы — только по отчёту ESPN: здоровый игрок играет каждый матч/);assert.doesNotMatch(all,/цепи коротких/);
  assert.match(all,/«4 недели» — 28 дней начиная с сегодня/);assert.match(all,/Официальная таблица лиги — на Yahoo/);assert.match(all,/Шансы на 1-е место и топ-3/);
  const other=seasonMethod({...CALIBRATION,points:{established:{rateGames:7,minuteGames:3},newcomer:{rateGames:9,minuteGames:1}},availability:{priorGames:11}});
- assert.match(plain(other.transfers.join(' ')),/с весом прогноза 7 матчей \(у новичков 9\).*вес прогноза 3, у новичков 1.*с весом 11 матчей/);
+ assert.match(plain(other.transfers.join(' ')),/с весом прогноза 7 матчей \(у новичков 9\).*вес прогноза 3, у новичков 1/);
 });
 test('no stale claims are left in the screens',()=>{
  for(const f of ['src/season-ui.js','src/main.js','src/forecast-text.js'])
@@ -128,4 +128,16 @@ test('the notifier holds return alerts during an ESPN outage and keys them by pl
  assert.match(s,/const back=!left\|\|!feedOk\?\[\]/);assert.match(s,/const soon=feedOk\?targets\.filter\(x=>x\.soon&&isOut\(x\.injury\)&&!warnedFor\(previous\.returns,x\.player\.id\)\):\[\]/);
  assert.match(s,/state\.watch=feedOk\?/);assert.match(s,/state\.returns\.push\(returnKey\(x\.player\.id\)\)/);
  assert.doesNotMatch(s,/parseInjuries\(live\.espnInjuries\)/);
+});
+test('games from the ESPN injury report: the card says so and quotes no model or ESPN games',async()=>{
+ const {combineNote,forecastSources,REPORT_GAMES}=await import('../src/forecast-text.js');
+ const f={version:4,gamesBasis:'ESPN_REPORT',meanPerGame:24.25,games:82,sources:{model:{perGame:21,games:58},espn:{perGame:27.5,games:66}}};
+ assert.equal(combineNote(f),`ФО за матч — среднее модели и ESPN, ${REPORT_GAMES}`);
+ const text=forecastSources(f);assert.doesNotMatch(text,/58|66 матч/);assert.match(text,/итог 24,3 × 82\sматча/);
+ assert.equal(combineNote({...f,sources:{model:{perGame:20,games:58}}}),REPORT_GAMES);
+});
+test('a short season by the ESPN injury report is named as the report\'s, not as a model risk',()=>{
+ const f={version:4,gamesBasis:'ESPN_REPORT',meanPerGame:30,games:12,meanSeason:360,seasonFloor:300,shortSeasonRisk:1,availability:null};
+ const cons=playerInsights({name:'X',positions:['C'],forecast:f},[]).cons.join(' ');
+ assert.match(plain(cons),/Короткий сезон по отчёту ESPN о травмах: 12 матчей\./);assert.doesNotMatch(cons,/похожих случаев|цепь/);
 });

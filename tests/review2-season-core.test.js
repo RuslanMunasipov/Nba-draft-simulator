@@ -35,11 +35,10 @@ test('the in-season update leaves a game with unknown points out instead of read
   const x=perGame(p,{games:[...box,extra]});
   near(x.value,scored.value);assert.equal(x.games,4);assert.equal(x.unscored,1);near(x.average,25);
  }
- // Availability counts the game: the share is the one of a scored game, not that of a missed one.
  const calendar=days('2026-10-22',30).map((date,i)=>({date,week:1+Math.floor(i/3),...(i<5?{score:'100:90'}:{})}));
  const ctx={players:[p],live:{clubs:{X:calendar},players:{}},injuries:new Map(),today:'2026-10-31',rosters:[]};
- const withBox=playRate(p,{games:[...box,row(late,30,{pointsSource:'BOX'})]},ctx),noBox=playRate(p,{games:[...box,row(late,null,{pointsSource:'NO_BOX'})]},ctx);
- near(noBox,withBox);assert.ok(noBox>playRate(p,{games:[...box,{date:late,played:false}]},ctx));
+ // Every club game is his (absences only from the ESPN report), a game with unknown points or a missed one alike.
+ for(const extra of [row(late,30,{pointsSource:'BOX'}),row(late,null,{pointsSource:'NO_BOX'}),{date:late,played:false}])assert.equal(playRate(p,{games:[...box,extra]},ctx),1);
  // The player picture tells the games played from those its average is over.
  const pic=playerPicture(p,{...ctx,live:{...ctx.live,players:{s1:{games:[...box,row(late,null,{pointsSource:'NO_BOX'})]}}}},'season');
  assert.equal(pic.played,5);assert.equal(pic.scored,4);near(pic.average,25);
@@ -138,27 +137,19 @@ test('contestedBy counts only the rivals that still have a transfer this week',(
 });
 
 // ---------- A known absence once the report has cleared, before the next build ----------
-test('a known absence cleared early: the blocked games still ahead come back at the report-free share, not the post-return one',()=>{
+test('a known absence cleared early: the blocked games still ahead are his again, every one',()=>{
  // ESPN dates the return by US day, the day before the Moscow date the calendar files a US-evening game under.
- const b=12,left=82-b,U=55,F=(U*left/82+60)/2,back=new Date(Date.parse(cal[b].date+'T00:00:00Z')-864e5).toISOString().slice(0,10);
- const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{origin:'ESPN_MODEL_COMBINED',gamesBasis:'MEAN_ESPN_MODEL',meanPerGame:20,minutes:30,games:F,
-  availability:{unconditionalGames:U},knownAbsence:{returnDate:back,blockedGames:b,gamesLeft:left,unconditionalGames:U},sources:{model:{games:U*left/82},espn:{games:60}}}};
+ const b=12,left=82-b,back=new Date(Date.parse(cal[b].date+'T00:00:00Z')-864e5).toISOString().slice(0,10);
+ const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{gamesBasis:'ESPN_REPORT',meanPerGame:20,minutes:30,games:left,
+  knownAbsence:{returnDate:back,blockedGames:b,gamesLeft:left,unconditionalGames:82}}};
  const ctx=(injuries=[],extra={})=>({players:[p],live:{clubs:{X:extra.calendar||cal},players:extra.players||{}},injuries:new Map(injuries),today:extra.today||'2026-10-21',rosters:[]});
  const games=c=>expectedPoints(p,c,c.today,'2027-12-31').games;
- // Still reported out: the published forecast, the share being F over the games after the return.
- near(games(ctx([['e1',{status:'Out',fantasyStatus:'OUT',returnDate:back,comment:'(knee) out until November'}]])),F);
- // Cleared: the 12 blocked games are his again at U/82 each (before: all 82 at F/70, 62.6 games).
- near(games(ctx([['e9',{status:'Out',fantasyStatus:'OUT',returnDate:back}]])),F+U*b/82);
- near(games(ctx()),F+U*b/82);
- // Only a day-to-day entry left: the blocked games come back too, the doubtful ones at half.
- const gtd=games(ctx([['e1',{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:'2026-10-21'}]]));
- near(gtd,(F+U*b/82)*(1-.5/82));
- // Back after 6 of the 12 blocked games and playing every one since: 6 blocked games are still ahead.
- const k=CALIBRATION.availability.priorGames,played=cal.slice(0,6).map(g=>row(g.date,25,{pointsSource:'BOX'}));
- const now=ctx([],{today:cal[6].date,calendar:cal.map((g,i)=>i<6?{...g,score:'100:90'}:g),players:{s1:{games:played}}});
- const prior=(F+U*6/82)/(left+6);near(playRate(p,{games:played},now),(k*prior+6)/(k+6));
+ near(games(ctx([['e1',{status:'Out',fantasyStatus:'OUT',returnDate:back,comment:'(knee) out until November'}]])),left);
+ near(games(ctx([['e9',{status:'Out',fantasyStatus:'OUT',returnDate:back}]])),82);
+ near(games(ctx()),82);
+ // Only a day-to-day entry left: every game, the doubtful one at half.
+ near(games(ctx([['e1',{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:'2026-10-21'}]])),82-.5);
 });
-
 // ---------- live.js: an ESPN call that never answers fails, it does not hold the notifier ----------
 test('a hung ESPN request is aborted after the timeout: the scoreboard fails, a summary leaves the game without points',{timeout:5000},async()=>{
  // A request ESPN never answers: it settles only when its signal aborts it.

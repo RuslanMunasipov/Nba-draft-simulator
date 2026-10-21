@@ -3,7 +3,6 @@ import {rosterFits,POSITIONS,TEAM_COUNT,DEFAULT_CAP,CLUB_LIMIT as RULE_CLUB_LIMI
 import {DRAFT_PICKS,DRAFT_DATE} from './fbl-draft-2026.js';
 import {FBL_TRANSFERS,TRANSFER_HOURS,mskTime,firstHolder} from './rules.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
-import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 import RULES from '../data/league-rules.json' with {type:'json'};
 import {GAME_PLAYED} from './fbl-scoring.js';
 import {plural} from './format.js';
@@ -170,68 +169,10 @@ export function perGame(player,live,points=CALIBRATION.points){
  const rate=(c.rateGames*(prior-part)+counts.reduce((s,x)=>s+x,0))/(c.rateGames*priorMinutes+mins.reduce((s,m)=>s+m,0));
  return {...out,minutes:expectedMinutes,value:rate*expectedMinutes+bonus};
 }
-// Share of team games a player plays: his forecast of games, updated by games played and missed so far. The forecast is
-// already fitted, so it is not floored (scripts/inseason_calibration.py's [.5,.97] clamp regularises its raw previous-
-// season prior; it counted a 16-game forecast as 41 games, +100-240 FP a season). Missed games count against the club calendar
-// too, in case Sports.ru lists only appearances.
-// The report alone removes the games until his return (injuryFactor), so the share for the games after it must not count
-// that absence again. An absence the build knew (forecast.knownAbsence, ESPN's dated return) is already out of
-// forecast.games, which covers only the games it leaves (the mean of ESPN's and the model's, owner decision 4): while a
-// report keeps him out the share is games/gamesLeft (a rookie's model games are cut by the block too). Once none does
-// (ESPN cleared him early, or only a day-to-day entry is left; the next build drops the block) the blocked games still
-// ahead, the club's games left beyond gamesLeft, come back at his report-free share (unconditionalGames/82). Spread over
-// them, the post-return share of a short window overstated the rest of the season (21.10 build, report cleared:
-// DiVincenzo, 5 of 5 games after an April return, 79.5 games against 61.7 report-free, now 63.0; Mark Williams 61.4, now
-// 55.8). For a report the build did not see the prior is never below the model's own games (which never see the report; a forecast under them has
-// priced the absence in, as ESPN's totals for known long injuries do). The current run of missed games counts at most
-// CALIBRATION.availability.spellMisses while a report (or the build's block) covers it, fitted at the first game back;
-// once he has played again his latest spell of spellGames+ misses keeps counting at most spellMissesAfterReturn
-// (spellMisses until that is fitted), no report needed: counted in full, the share fell by about 40% the day he came
-// back, and replayed on 2023-26 the share after a return is closer capped (2025/26: MAE 0.264 -> 0.245, t+1..t+40).
-export function playRate(player,live,ctx){
- const f=player.forecast,injury=ctx?.injuries?.get?.(String(player.espnId)),ending=Boolean(injury)&&seasonEnding(injury),out=Boolean(injury)&&keptOut(injury)&&!ending;
- const ka=f?.knownAbsence,left=ka?.gamesLeft>0&&Number.isFinite(f?.games)?ka.gamesLeft:0,today=ctx?.today,key=live?.club||player.sportsClub;
- const free=f?.availability?.unconditionalGames??ka?.unconditionalGames??f?.sources?.model?.games;
- const blocked=left&&!out&&!ending&&Number.isFinite(free)?Math.max(0,seasonCalendar(ctx?.live,key).filter(x=>!(x.score||x.gone)&&(!today||x.date>=today)).length-left):0;
- const g=left?82*(f.games+(blocked?free*blocked/82:0))/(left+blocked):out&&Number.isFinite(free)?Math.max(Number.isFinite(f?.games)?f.games:0,free):f?.games;
- const prior=Number.isFinite(g)?Math.min(.97,Math.max(.01,g/82)):.85;
- const rows=(live?.games||[]).filter(x=>x.played||today&&x.date<today),on=rows.filter(x=>x.played).length;
- const club=ctx?.live?.clubs?.[key]||[],finished=club.filter(x=>x.score&&(!today||x.date<=today));
- let team=Math.max(rows.length,finished.length,on);const {priorGames:k,spellMisses:cap,spellGames:spell}=CALIBRATION.availability,back=CALIBRATION.availability.spellMissesAfterReturn??cap;
- if(Number.isFinite(cap)){
-  const seen=new Set(rows.filter(x=>x.played).map(x=>x.date)),last=[...seen].reduce((m,d)=>d>m?d:m,'');
-  const run=Math.max(finished.filter(x=>x.date>last).length,rows.filter(x=>!x.played&&x.date>last).length);
-  // Misses before his last game, over the club's finished games and his listed rows (a traded player's old club too).
-  let r=0,spellRun=0;
-  if(last){for(const d of [...new Set([...finished,...rows].map(x=>x.date))].filter(d=>d<last).sort()){if(seen.has(d)){if(r>=spell)spellRun=r;r=0;}else r++;}if(r>=spell)spellRun=r;}
-  const excess=(injury?!ending:left)?run-Math.min(run,cap):0;
-  team=Math.max(on,team-excess-(spellRun-Math.min(spellRun,back)));
- }
- return (k*prior+on)/(k+team);
-}
-// Chance to play each of the next n club games for a player available now: the absence chain (short and long spells
-// with the player's hazards, league spell lengths) scaled so that over a season it plays `share` of the games. A healthy
-// player plays the next games more often than his season share, because long absences have not started yet; replayed on
-// 2025/26 (audit, 21.10.2026) the chain runs 1-2 points of share high over a week or a month and about 3 over the rest of a
-// season, still closer than the flat share. Hazards that cannot reach the share (zero after rounding in the database) give
-// the flat share.
-const curves=new Map();
-function chainCurve(h,share,n){
- const flat=()=>Array(n).fill(share);
- if(!(h[0]+h[1]>0))return flat();
- const key=`${h[0]},${h[1]},${share.toFixed(3)}`;let c=curves.get(key);
- if(c===undefined){
-  const run=(m,len)=>{const hs=h[0]*m,hl=h[1]*m,stay=Math.max(0,1-hs-hl),out=[];let p=new Float64Array(LENGTHS.longLengths.length);p[0]=1;
-   for(let j=0;j<len;j++){const a=p[0],q=new Float64Array(p.length);out.push(a*stay);for(let r=1;r<p.length;r++)q[r-1]=p[r];q[0]+=a*stay;
-    for(let k=1;k<p.length;k++)q[k-1]+=a*(hs*(LENGTHS.shortLengths[k]||0)+hl*LENGTHS.longLengths[k]);p=q;}
-   return out;};
-  const mean=m=>run(m,82).reduce((s,x)=>s+x,0)/82;let lo=-6,hi=6;
-  if(mean(Math.exp(hi))>=share||mean(Math.exp(lo))<=share)c=null;
-  else{for(let i=0;i<22;i++){const m=(lo+hi)/2;if(mean(Math.exp(m))>share)lo=m;else hi=m;}c=run(Math.exp((lo+hi)/2),82);}
-  curves.set(key,c);
- }
- return c?Array.from({length:n},(_,j)=>c[Math.min(j,c.length-1)]):flat();
-}
+// Share of the club's games a player plays: every one (the league owner, 21.10.2026: absences only from the ESPN injury
+// report, which expectedPoints applies game by game through injuryFactor; the model of absences predicted too few
+// games, and the report and that model at once counted an injury twice).
+export function playRate(){return 1;}
 // Injuries named in a player's ESPN fantasy news ("Zubac (ankle) will play…"): body part, how often, first and last
 // mention. Descriptive only: about nine months of news exist, too few seasons to fit a risk per body part.
 const BODY={ankle:'голеностоп',knee:'колено',achilles:'ахилл',foot:'стопа',toe:'палец ноги',hamstring:'бицепс бедра',calf:'икра',groin:'пах',hip:'бедро',
@@ -304,8 +245,7 @@ function gameLeft(run,minutes){
 // the calendar has its score or marks it gone (dropped from Sports.ru's calendar), its day has passed, Sports.ru lists it
 // for the player, it is running (ctx.running), or it has tipped off by ctx.now (a time, when given: such a game can no
 // longer be gained by a move). A game counts in the window of its Sports.ru tour (tourDate). Each game counts with the
-// injury report's factor times the chain's chance to be available that many healthy games on (counted from today, or
-// from the return of an injured player); without hazards (rookies, market players) it is the flat season share.
+// ESPN injury report's factor alone (playRate is every game: no model of absences, 21.10.2026).
 // A game he is playing now (ctx.running, which the standings and the team forecast pass with its points so far; transfer
 // gains never do, a move cannot gain it) adds the rest of it: his counting points per game times the share still to
 // play, the game point being in the running points already. It is not a game left. clubGames: the club games left in
@@ -313,17 +253,16 @@ function gameLeft(run,minutes){
 export function expectedPoints(player,ctx,from,to){
  const live=ctx.live?.players?.[player.sportsId],club=live?.club||player.sportsClub,calendar=seasonCalendar(ctx.live,club),weeks=weeksOf(ctx.live);
  const share=playRate(player,live,ctx),pg=perGame(player,live),value=pg.value,injury=ctx.injuries?.get(String(player.espnId));
- const run=ctx.running?.get(player.id),done=new Set((live?.games||[]).map(x=>x.date)),running=run?.day,h=player.forecast?.availability?.hazards;
+ const run=ctx.running?.get(player.id),done=new Set((live?.games||[]).map(x=>x.date)),running=run?.day;
  const ahead=calendar.filter(g=>!(g.score||g.gone||(ctx.today&&g.date<ctx.today)||done.has(g.date)||g.date===running||ctx.now&&tipOf(g)<=ctx.now)).sort((a,b)=>a.date<b.date?-1:1);
  // ESPN's return dates are US days. The US day now: from ctx.now when given; else the Moscow date, or the day before
  // while a US evening game filed under today's Moscow date has no score yet (from 00:00 MSK until its result is in).
  const usToday=!injury?ctx.today:ctx.now?new Date(ctx.now-5*3600e3).toISOString().slice(0,10):ctx.today&&calendar.some(g=>g.date===ctx.today&&!g.score&&!g.gone&&usDay(g)<g.date)?addDays(ctx.today,-1):ctx.today;
- const curve=Array.isArray(h)?chainCurve(h,share,ahead.length):null;
- let games=0,points=0,healthy=0,clubGames=0;
+ let games=0,points=0,clubGames=0;
  for(const g of ahead){
   const day=tourDate(g,weeks),inside=day>=from&&day<=to;if(inside)clubGames++;
   const f=injury?injuryFactor(injury,usDay(g),ctx.today,usToday):1;if(!f)continue;
-  const p=f*(curve?curve[healthy++]:share);
+  const p=f*share;
   if(inside){games+=p;points+=value*p;}
  }
  if(running){const now=calendar.find(g=>g.date===running),day=now?tourDate(now,weeks):running;
@@ -704,6 +643,8 @@ export function splitProduct(before,after){
 // owner decision 4 (gamesBasis 'MEAN_ESPN_MODEL'; older databases took ESPN's). ESPN's own figure is projectedGames when a
 // known absence capped the games it adds to the mean (sources.espn.games).
 function gamesFlag(name,f){
+ // Games from the ESPN injury report alone (21.10.2026): neither the model's games nor ESPN's projected ones are used.
+ if(f?.gamesBasis==='ESPN_REPORT')return null;
  const e=f?.sources?.espn,m=f?.sources?.model;if(!e||!m||!(Math.abs(e.games-m.games)>=12))return null;
  if(f.gamesBasis!=='MEAN_ESPN_MODEL')return `${name}: в расчёте ${Math.round(f.games)} матчей по ESPN; по истории пропусков модель ждала бы ${Math.round(m.games)}.`;
  const capped=Number.isFinite(e.projectedGames)&&Math.round(e.projectedGames)!==Math.round(e.games),n=Math.round(capped?e.projectedGames:e.games);

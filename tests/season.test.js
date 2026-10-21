@@ -72,13 +72,13 @@ test('minutes move the estimate before points per minute do',()=>{
  assert.ok(r.value>v.value,'newcomers adapt to a new role faster');
  assert.equal(perGame(vet,{games:[...games,{played:true,points:10,minutes:''}]}).value,(10*30+210)/16);
 });
-test('missed games lower the play rate, also when only appearances are listed',()=>{
- const p={forecast:{games:78},sportsClub:'X'},k=CALIBRATION.availability.priorGames,prior=78/82;
- assert.equal(playRate(p,null,null),prior);
+test('missed games never lower the play rate: absences come only from the ESPN injury report',()=>{
+ const p={forecast:{games:78},sportsClub:'X'};
+ assert.equal(playRate(p,null,null),1);
  const games=[{date:'2026-10-22',played:true},{date:'2026-10-24',played:false},{date:'2026-10-26',played:false}];
- assert.equal(playRate(p,{games},{today:'2026-10-27'}),(k*prior+1)/(k+3));
+ assert.equal(playRate(p,{games},{today:'2026-10-27'}),1);
  const clubs={X:Array.from({length:6},(_,i)=>({date:'2026-10-2'+i,score:'100:90'}))};
- assert.equal(playRate(p,{games:[games[0]],club:'X'},{today:'2026-10-27',live:{clubs}}),(k*prior+1)/(k+6));
+ assert.equal(playRate(p,{games:[games[0]],club:'X'},{today:'2026-10-27',live:{clubs}}),1);
 });
 test('injury report removes games until the return date',()=>{
  assert.equal(injuryFactor({status:'Out',returnDate:'2026-10-28'},'2026-10-25','2026-10-20'),0);
@@ -276,25 +276,22 @@ test('a swap explanation splits the gain exactly and grows surer with a bigger g
  const big=explainSwap(c,1,81,'season'),small=explainSwap(c,1,82,'season');
  assert.ok(Math.abs(big.parts.perGame+big.parts.availability+big.parts.schedule-big.gain)<1e-6);
  assert.ok(big.gain>small.gain&&big.confidence>small.confidence&&big.confidence<1);
- assert.ok(big.parts.availability>0&&big.parts.perGame>0);
+ // Both play every club game (no injury on the report): the gain is the points per game alone.
+ assert.ok(Math.abs(big.parts.availability)<1e-9&&big.parts.perGame>0);
  assert.equal(big.sides[0].out.player.id,1);assert.equal(big.sides[0].in.player.id,81);
  const pack=explainSwap(c,null,null,'season',[[1,81],[2,82]]);assert.equal(pack.sides.length,2);
 });
 
-test('a healthy player is expected in the next games more often than his season share; an injured one from his return',()=>{
+test('a healthy player is expected in every club game; an injured one from his return on, every game again',()=>{
  const p={...players[0],forecast:{...players[0].forecast,games:62,availability:{hazards:[.09,.03]}}};
  const cal=Array.from({length:60},(_,i)=>({date:new Date(Date.UTC(2026,9,21+2*i)).toISOString().slice(0,10)}));
- const base={...ctx({today:'2026-10-21'}),live:{clubs:{[p.sportsClub]:cal},players:{}}},share=playRate(p,undefined,base);
- const week=expectedPoints(p,base,'2026-10-21','2026-10-27'),all=expectedPoints(p,base,'2026-10-21','2027-12-31');
- assert.ok(week.games/4>share+.05,`next games ${week.games/4} vs share ${share}`);
- assert.ok(all.games/60<week.games/4&&Math.abs(all.games/60-share)<.08);
+ const base={...ctx({today:'2026-10-21'}),live:{clubs:{[p.sportsClub]:cal},players:{}}};
+ assert.equal(expectedPoints(p,base,'2026-10-21','2026-10-27').games,4);assert.equal(expectedPoints(p,base,'2026-10-21','2027-12-31').games,60);
  // ESPN dates the return by the US day: 28.10 is the evening game Sports.ru files under 29.10.
  const hurt={...base,injuries:new Map([[String(p.espnId),{status:'Out',returnDate:'2026-10-28'}]])};
  assert.equal(expectedPoints(p,hurt,'2026-10-21','2026-10-27').games,0);
- // After the return he starts healthy again: the first week back is worth the same as a healthy week now.
- assert.ok(Math.abs(expectedPoints(p,hurt,'2026-10-29','2026-11-04').games-expectedPoints(p,base,'2026-10-21','2026-10-27').games)<1e-9);
+ assert.equal(expectedPoints(p,hurt,'2026-10-29','2026-11-04').games,expectedPoints(p,base,'2026-10-21','2026-10-27').games);
 });
-
 test('injuries named in ESPN news are summarised by body part with first and last mention',()=>{
  const feed=[{headline:'Zubac (ankle) is questionable',published:'2026-03-16T10:00Z'},{headline:'x',story:'<p>Zubac (ankle) will play</p>',published:'2026-03-12T10:00Z'},
   {headline:'Zubac (ribs) collected 24 points',published:'2026-07-07T10:00Z'},{headline:'Zubac (personal) is out',published:'2026-01-01T10:00Z'}];

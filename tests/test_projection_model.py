@@ -98,6 +98,14 @@ class HeldOutModelTests(unittest.TestCase):
         self.assertLess(abs(h['healthyStart']['healthyStartBias']), 1.0)
         self.assertLess(h['healthyStart']['healthyStartMAE'], 13.5)
 
+    def test_the_published_games_rule_is_measured_on_the_held_out_season(self):
+        # League owner, 21.10.2026: games only from the ESPN injury report. Healthy starters at every club game is a
+        # ceiling, so the check must show it above the outcome; the model's healthy-start games on the same players stay near it.
+        r = self.report['holdout']['reportGames']
+        self.assertGreater(r['players'], 250)
+        self.assertLess(r['gamesBias'], 0); self.assertAlmostEqual(r['gamesMAE'], -r['gamesBias'])
+        self.assertLess(abs(r['modelGamesBias']), 1.5)
+
     def test_slot_value_with_replacements_ranks_slots_better(self):
         # The top-40/top-80 slot points are reported with bootstrap intervals that include zero, so only the ranking and
         # the MAE against the fair baseline (own forecast plus the average replacement credit) are asserted.

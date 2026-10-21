@@ -128,11 +128,15 @@
   "forecastBasis": {
     "espnCovered": {
       "perGame": "MEAN_OF_ESPN_AND_MODEL",
-      "games": "MEAN_OF_ESPN_AND_MODEL"
+      "games": "ESPN_INJURY_REPORT"
     },
-    "otherPlayers": "MODEL",
+    "otherPlayers": {
+      "perGame": "MODEL",
+      "games": "ESPN_INJURY_REPORT"
+    },
+    "injuries": "ESPN_INJURY_REPORT_ONLY",
     "decidedBy": "league owner, 2026-10-21",
-    "note": "For a player ESPN projects, points per game and games are each the equal-weight mean of ESPN's projection and the model's, as first documented in docs/ACCEPTANCE.md. Neither ESPN's games nor the mean are validated (no archive of past ESPN projections); the weight is to be fitted on 2026/27 with the frozen snapshot data/forecast-snapshots/2026-27/2026-10-17.json."
+    "note": "Points per game of a player ESPN projects are the equal-weight mean of ESPN's projection and the model's. Games, for every player, come only from the ESPN injury report (league owner, 2026-10-21, later the same day, replacing the mean of ESPN's and the model's games): a player with no entry plays every remaining club game; out with a return date misses the club games before it; out for the season plays 0; day-to-day misses half of the next games. The model's absence chain and ESPN's projected games are not used. Held out 2025/26 (scripts/projection_model.py, holdout.reportGames): the 296 players who started healthy played 59.9 of 82 games on average, so the rule runs 22.1 games and 222 FP a season above the outcome (season MAE 297, against 232 for the model's healthy-start games)."
   },
   "objective": {
     "advice": "EXPECTED_POINTS",

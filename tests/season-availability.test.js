@@ -76,40 +76,28 @@ test('when the watcher cannot tell who bought first, both keep the points and bo
 const cal82=days('2026-10-22',82).map(date=>({date}));
 const ctxWith=(p,extra={})=>({players:[p],live:{clubs:{X:extra.calendar||cal82},players:extra.players||{}},injuries:new Map(extra.injuries||[]),today:extra.today||'2026-10-21',rosters:[]});
 const season=(p,c)=>expectedPoints(p,c,c.today,'2027-12-31').games;
-test('an ESPN total that priced the reported absence is not cut again after the return',()=>{
- const butler={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:39,availability:{unconditionalGames:44},sources:{espn:{games:39},model:{games:44}}}};
- // Out until the US day of the 35th game: 48 games are left after the return.
+test('the ESPN report alone takes games: out until a return date, every game after it, whatever the forecast\'s games',()=>{
+ const butler={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:39}};
+ // Out until the US day of the 35th game: 48 games are left after the return, all his.
  const back=new Date(Date.parse(cal82[34].date)-864e5).toISOString().slice(0,10),out=[['e1',{status:'Out',returnDate:back}]];
- const c=ctxWith(butler,{injuries:out});
- assert.ok(Math.abs(season(butler,c)-48*44/82)<1e-9,`${season(butler,c)} vs ${48*44/82}`);
- // A fresh injury the forecast never saw (ESPN 69, model 58.8) keeps the forecast's share: no switch to the lower model.
- const claxton={...butler,forecast:{meanPerGame:16,games:69,availability:{unconditionalGames:58.8}}};
- assert.ok(Math.abs(season(claxton,ctxWith(claxton,{injuries:out}))-48*69/82)<1e-9);
- // Without a report, and with a game-time decision, the forecast decides as before.
- assert.ok(Math.abs(season(butler,ctxWith(butler))-82*39/82)<1e-9);
+ assert.ok(Math.abs(season(butler,ctxWith(butler,{injuries:out}))-48)<1e-9);
+ // Without a report every club game; a game-time decision halves only the doubtful game.
+ assert.ok(Math.abs(season(butler,ctxWith(butler))-82)<1e-9);
  const gtd=[['e1',{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:'2026-10-21'}]];
- assert.ok(Math.abs(playRate(butler,undefined,ctxWith(butler,{injuries:gtd}))-39/82)<1e-12);
+ assert.equal(playRate(butler,undefined,ctxWith(butler,{injuries:gtd})),1);
 });
-test('while a report keeps him out, the games he has missed in this absence count as a few misses, not one each',()=>{
+test('games missed so far, reported or not, never lower the play rate',()=>{
  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:70}};
  const played=cal82.slice(0,10).map(x=>({...x,score:'100:90'})),missed=cal82.slice(10,40).map(x=>({...x,score:'100:90'}));
- const calendar=[...played,...missed,...cal82.slice(40)],today=cal82[40].date,k=CALIBRATION.availability.priorGames,cap=CALIBRATION.availability.spellMisses;
+ const calendar=[...played,...missed,...cal82.slice(40)],today=cal82[40].date;
  const live={games:played.map(x=>({date:x.date,played:true,points:20,minutes:'30:00'}))};
  const c=ctxWith(p,{calendar,today,players:{s1:live},injuries:[['e1',{status:'Out',returnDate:'2027-01-20'}]]});
- assert.ok(Number.isInteger(cap)&&cap<30);
- assert.ok(Math.abs(playRate(p,live,c)-(k*70/82+10)/(k+10+cap))<1e-12);
- // Without the report every missed game counts, as the calibration measured for unreported absences.
- assert.ok(Math.abs(playRate(p,live,{...c,injuries:new Map()})-(k*70/82+10)/(k+40))<1e-12);
+ assert.equal(playRate(p,live,c),1);assert.equal(playRate(p,live,{...c,injuries:new Map()}),1);
 });
-test('the forecast share is not floored at 41 games; the .97 cap stays',()=>{
- assert.equal(playRate({forecast:{games:20}},null,null),20/82);
- assert.equal(playRate({forecast:{games:82}},null,null),.97);
- assert.equal(playRate({forecast:{games:0.2}},null,null),.01);
- const fringe={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:10,games:20}};
- assert.ok(Math.abs(season(fringe,ctxWith(fringe))-20)<1e-9);
- // The absence chain is scaled to that low share too.
- const chained={...fringe,forecast:{...fringe.forecast,availability:{hazards:[.05,.01]}}};
- assert.ok(Math.abs(season(chained,ctxWith(chained))-20)<1);
+test('every player\'s share is every club game, whatever his forecast games (no model of absences)',()=>{
+ for(const games of [20,82,0.2])assert.equal(playRate({forecast:{games}},null,null),1);
+ const fringe={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:10,games:20,availability:{hazards:[.05,.01]}}};
+ assert.ok(Math.abs(season(fringe,ctxWith(fringe))-82)<1e-9);
 });
 test('a day-to-day player is a half chance for the game ESPN dates his return by (its US day)',()=>{
  const gtd={status:'Day-To-Day',fantasyStatus:'GTD',returnDate:'2026-10-21'};
@@ -128,10 +116,10 @@ test('an ESPN return date is a US day: the night game Sports.ru files under it i
  const out={status:'Out',returnDate:'2026-11-20'};
  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:82}};
  const calendar=[{date:'2026-11-20'},{date:'2026-11-21'}],c=ctxWith(p,{calendar,today:'2026-11-01',injuries:[['e1',out]]});
- assert.ok(Math.abs(expectedPoints(p,c,'2026-11-01','2026-11-30').games-.97)<1e-12);
+ assert.ok(Math.abs(expectedPoints(p,c,'2026-11-01','2026-11-30').games-1)<1e-12);
  // A matinee of the return day itself (tip stored, 13:00 ET) is played.
  const matinee=ctxWith(p,{calendar:[{date:'2026-11-20',tip:'2026-11-20T18:00:00Z'}],today:'2026-11-01',injuries:[['e1',out]]});
- assert.ok(Math.abs(expectedPoints(p,matinee,'2026-11-01','2026-11-30').games-.97)<1e-12);
+ assert.ok(Math.abs(expectedPoints(p,matinee,'2026-11-01','2026-11-30').games-1)<1e-12);
 });
 test('season-ending wording without the OFS flag ends the season, whatever placeholder return date ESPN shows',()=>{
  const out=comment=>({status:'Out',fantasyStatus:'OUT',returnDate:'2027-01-02',comment});
@@ -150,25 +138,22 @@ test('season-ending wording without the OFS flag ends the season, whatever place
 });
 
 // ---------- The absence chain and the calendar ----------
-test('zero hazards (rounded away in the database) give the flat share, not every game',()=>{
- const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:78,availability:{hazards:[0,0]}}};
- assert.ok(Math.abs(season(p,ctxWith(p))-78)<1e-9);
-});
-test('a healthy player\'s rest-of-season games stay close to his share (the chain\'s front-loading is pinned)',()=>{
+test('absence hazards of an older database are not used: a healthy player plays every club game',()=>{
  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:.74*82,availability:{hazards:[.08,.022]}}};
- const c=ctxWith(p,{calendar:cal82.slice(42)});
- assert.ok(season(p,c)>.74*40&&season(p,c)<=1.06*.74*40,String(season(p,c)));
+ assert.ok(Math.abs(season(p,ctxWith(p))-82)<1e-9);
+ assert.ok(Math.abs(season(p,ctxWith(p,{calendar:cal82.slice(42)}))-40)<1e-9);
 });
+
 test('the 2 NBA Cup games Sports.ru has not listed yet are counted in the club\'s December break',()=>{
  const dates=[...days('2026-10-22',22),...days('2026-12-13',58)];assert.equal(dates.length,80);
  const live={clubs:{X:dates.map(date=>({date}))}},full=seasonCalendar(live,'X');
  const extra=full.filter(x=>x.placeholder);assert.equal(full.length,82);
  assert.deepEqual(extra.map(x=>x.date),['2026-12-06','2026-12-10']);
  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:72}};
- assert.ok(Math.abs(season(p,ctxWith(p,{calendar:live.clubs.X}))-72)<1e-9);
+ assert.ok(Math.abs(season(p,ctxWith(p,{calendar:live.clubs.X}))-82)<1e-9);
  // Once the games are listed nothing is added; placeholders in the past are not expected any more; other calendars are left alone.
  assert.equal(seasonCalendar({clubs:{X:cal82}},'X'),cal82);
- assert.ok(Math.abs(season(p,ctxWith(p,{calendar:live.clubs.X,today:'2026-12-20'}))-72/82*dates.filter(d=>d>='2026-12-20').length)<1e-9);
+ assert.ok(Math.abs(season(p,ctxWith(p,{calendar:live.clubs.X,today:'2026-12-20'}))-dates.filter(d=>d>='2026-12-20').length)<1e-9);
  const short={clubs:{X:cal82.slice(0,60)}};assert.equal(seasonCalendar(short,'X'),short.clubs.X);
 });
 test('a US-afternoon game of a tour\'s first day counts in that tour, not in the one ending on its Moscow date',()=>{
@@ -179,9 +164,9 @@ test('a US-afternoon game of a tour\'s first day counts in that tour, not in the
  const mk=club=>({id:club,sportsId:club,espnId:club,sportsClub:club,forecast:{meanPerGame:20,games:82}});
  const ctx={players:[],live:{clubs,players:{}},injuries:new Map(),today:'2027-01-18'},h=horizons(ctx);
  assert.equal(h.week.to,'2027-01-18');
- assert.ok(Math.abs(expectedPoints(mk('A'),ctx,h.week.from,h.week.to).games-.97)<1e-12);
+ assert.ok(Math.abs(expectedPoints(mk('A'),ctx,h.week.from,h.week.to).games-1)<1e-12);
  assert.equal(expectedPoints(mk('B'),ctx,h.week.from,h.week.to).games,0);
- assert.ok(Math.abs(expectedPoints(mk('B'),ctx,'2027-01-19','2027-01-25').games-2*.97)<1e-12);
+ assert.ok(Math.abs(expectedPoints(mk('B'),ctx,'2027-01-19','2027-01-25').games-2)<1e-12);
 });
 test('a postponed game keeps its tour number without stretching that tour over the next ones',()=>{
  const clubs={X:[{date:'2026-10-20',week:1},{date:'2026-10-26',week:1},{date:'2026-10-27',week:2},{date:'2026-11-02',week:2},{date:'2026-11-03',week:3},{date:'2026-11-09',week:3},{date:'2026-11-12',week:2},{date:'2026-11-10',week:4}]};
@@ -192,8 +177,8 @@ test('a postponed game keeps its tour number without stretching that tour over t
 test('a game that has already tipped off is not expected any more when the time is known',()=>{
  const p={id:1,sportsId:'s1',espnId:'e1',sportsClub:'X',forecast:{meanPerGame:20,games:82}};
  const c=ctxWith(p,{calendar:[{date:'2026-10-22',tip:'2026-10-21T23:30:00Z'},{date:'2026-10-24'}],today:'2026-10-22'});
- assert.ok(Math.abs(season(p,c)-2*.97)<1e-12);
- assert.ok(Math.abs(season(p,{...c,now:Date.parse('2026-10-22T07:00:00Z')})-.97)<1e-12);
+ assert.ok(Math.abs(season(p,c)-2)<1e-12);
+ assert.ok(Math.abs(season(p,{...c,now:Date.parse('2026-10-22T07:00:00Z')})-1)<1e-12);
 });
 
 // ---------- Points per game: participation not scaled by minutes, early games lifted, pinned to Python ----------
