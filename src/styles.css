@@ -198,7 +198,7 @@ footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s1) v
 .boot-failed #draft-view,.boot-failed #season{display:none!important}
 
 /* ===== Draft: sticky status bar ===== */
-.status-bar{position:sticky;top:0;z-index:30;margin:0 calc(-1*var(--gutter));padding:10px var(--gutter) 0;background:var(--bar);color:var(--bar-text);box-shadow:var(--shadow-2)}
+.status-bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;margin:0 calc(-1*var(--gutter));padding:10px var(--gutter) 0;background:var(--bar);color:var(--bar-text);box-shadow:var(--shadow-2)}
 @media(min-width:1288px){.status-bar{margin:0;border-radius:0 0 var(--r-lg) var(--r-lg)}}
 .status-row{display:flex;align-items:center;gap:var(--s2);min-width:0}
 #turn{flex:1;min-width:0;font-size:var(--fs-lg);line-height:1.3;font-weight:800;color:var(--bar-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -381,7 +381,7 @@ body.is-replacing .plan-box button{display:none}
 .season-section>.section-heading{margin-bottom:var(--s1)}
 .season-status{margin:0 0 var(--s4);font-size:var(--fs-sm);color:var(--text-2)}
 .season-status:empty{display:none}
-.season-nav{position:sticky;top:max(8px,env(safe-area-inset-top));z-index:20;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 var(--s4);box-shadow:inset 0 0 0 1px var(--line),var(--shadow-2)}
+.season-nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 var(--s4);box-shadow:inset 0 0 0 1px var(--line),var(--shadow-2)}
 .season-nav button{padding:6px 8px;font-size:var(--fs-sm)}
 .season-nav button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-line),var(--shadow-1)}
 [data-theme=dark] .season-nav button[aria-pressed=true]{background:var(--raised)}
@@ -648,3 +648,27 @@ body[data-tab=season] #startup-banner.notice--error{display:none}
 .sp-all{margin-top:var(--s2)}
 .sp-all ul{margin-top:var(--s2)}
 .season-live-now{font-weight:700;color:var(--accent-text)}
+
+/* iOS draws the page under the status bar: a strip of page background keeps scrolled text out from under the clock. */
+body::before{content:'';position:fixed;top:0;left:0;right:0;z-index:50;height:env(safe-area-inset-top,0px);background:var(--bg);pointer-events:none}
+
+/* Tables in cards never push the card wider than the screen: long headers wrap, and a block scrolls if it must. */
+.pc-block,.forecast-panel,.sp-side{min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.sports-table th{white-space:normal;vertical-align:bottom}
+.sports-table td:nth-child(2){white-space:normal}
+.card-body,.card-details{min-width:0}
+
+/* Sheet: a player's full card over the page, full width on a phone */
+.sheet{width:min(680px,100%);max-width:100%;max-height:min(90vh,100%);margin:auto auto 0;padding:0;overflow:auto;overscroll-behavior:contain;border:1px solid var(--line);border-bottom:0;border-radius:var(--r-xl) var(--r-xl) 0 0;background:var(--bg);color:var(--text);box-shadow:var(--shadow-2)}
+@media(min-width:720px){.sheet{margin:auto;border-bottom:1px solid var(--line);border-radius:var(--r-xl)}}
+.sheet::backdrop{background:rgb(0 0 0/.6)}
+.sheet[open]{animation:sheet-in .2s ease-out}
+@keyframes sheet-in{from{transform:translateY(24px);opacity:0}}
+body:has(.sheet[open]){overflow:hidden}
+.sheet-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:var(--s3);padding:var(--s3) var(--s4);background:var(--bg);border-bottom:1px solid var(--line)}
+.sheet-head h3{margin:0;font-size:var(--fs-lg);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-close{flex:none;font-size:18px}
+.sheet-body{padding:var(--s3) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom,0px))}
+.sheet-body>.player-card{padding:0;border:0;background:none}
+.sheet-body>.player-card .player-toggle{pointer-events:none}
+.sheet-body>.player-card .pc-chevron{display:none}

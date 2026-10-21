@@ -8,6 +8,7 @@ import {combineNote,absenceShort,sportsSeasonsLine,seasonMethod,espnNumbers,inju
 import {fetchLiveGames,moscowDate,nextLiveDelay,LIVE_MS} from './live.js';
 import {int,dec,signed,count,ddmm,timeMsk,stampMsk,weekday,injuryStatus} from './format.js';
 import {statLine} from './stat-line.js';
+import {openPlayerSheet} from './sheet.js';
 
 const $=id=>document.getElementById(id);
 const REPO='RuslanMunasipov/Nba-draft-simulator';
@@ -352,9 +353,10 @@ function playerRow(p,ctx,running,shadow,credit){
  sum.append(row);box.append(sum);
  const actions=el('div',null,'sp-actions');
  actions.append(button(replacing===p.id?'Скрыть замены':'Найти замену',e=>{e.preventDefault();replacing=replacing===p.id?null:p.id;query='';openRows.add(p.id);renderSeason();}),link('Sports.ru ↗',SPORTS_URL(p.sportsId)));
+ // The full card opens over the page: inside a roster row it would be squeezed to a fraction of the screen.
+ actions.append(button('Досье игрока',()=>openPlayerSheet(p,card),'btn-ghost btn-sm'));
  box.append(actions);
  if(replacing===p.id)box.append(replacementPanel(p,ctx));
- const dossier=el('details',null,'inline');dossier.dataset.key='dossier:'+p.id;dossier.append(el('summary','Досье игрока'));dossier.addEventListener('toggle',()=>{if(dossier.open&&!dossier.querySelector('.player-card'))dossier.append(card(p,null,true));});box.append(dossier);
  box.addEventListener('toggle',()=>{if(box.open)openRows.add(p.id);else openRows.delete(p.id);});
  return box;
 }
@@ -412,7 +414,7 @@ function sideBlock(label,x){
   const src2=sourcesLine(f);if(src2)more.append(el('p',src2));
   if(f.availability)more.append(el('p',absenceShort(f.availability,f.games)));
   more.append(newsBlock(p));
-  const full=el('details');full.append(el('summary','Полная карточка игрока'));full.addEventListener('toggle',()=>{if(full.open&&!full.querySelector('.player-card'))full.append(card(p,null,true));});more.append(full);
+  more.append(button('Полная карточка игрока',()=>openPlayerSheet(p,card),'btn-ghost btn-sm'));
  });
  box.append(more);
  return box;
