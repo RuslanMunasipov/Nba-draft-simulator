@@ -15,7 +15,8 @@ import LEAGUE from '../data/fbl-league.json' with {type:'json'};
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {riskProfile} from './analysis.js';
 import {pickCompletion,completionPlan} from './completion.js';
-import {installDatabase,restartDraft,compactDraft} from './database.js';
+import {installDatabase,restartDraft,compactDraft,seasonCatalog} from './database.js';
+import {forecastSources,healthLine,seasonRangeLine,rangeMethod,sportsCheckLine} from './forecast-text.js';
 import {int,dec,signed,signedDec,pct,count,stampMsk,injuryStatus} from './format.js';
 // The league's «белое правило» list (players who count; "none:<team>" entries are findings about rosters, not players).
 const WHITE=(LEAGUE.white||[]).filter(x=>!String(x).startsWith('none:'));
@@ -182,13 +183,15 @@ function cardBody(p,risk,readonly){
  body.append(more);
  return body;
 }
-// Official Sports.ru fantasy points are the reference the forecast is checked against: the last three seasons.
+// Sports.ru's own fantasy points by season (with its team result bonus), and the same seasons without the bonus — the
+// FBL formula the forecast uses — when the database has them (fblPerGame).
 function sportsHistoryPanel(p){
  const seasons=Object.entries(p.sportsHistory||{}).reverse();if(!seasons.length)return null;
+ const clean=seasons.some(([,s])=>Number.isFinite(s.fblPerGame));
  const box=el('div',null,'pc-block');box.append(el('h4','Sports.ru · ФО по сезонам'));
- const table=el('table',null,'sports-table'),head=el('tr');for(const h of ['Сезон','Матчи','За матч','Всего'])head.append(el('th',h));table.append(head);
- const row=([season,s])=>{const tr=el('tr');for(const v of [season.replace(/^20(\d\d)-(\d\d)$/,'$1/$2'),String(s.games),dec(s.perGame),int(s.points)])tr.append(el('td',v));return tr;};
- for(const s of seasons.slice(0,3))table.append(row(s));box.append(table,el('p','По формуле Sports.ru, с бонусом за результат команды; в FBL его нет.','muted'));
+ const table=el('table',null,'sports-table'),head=el('tr');for(const h of ['Сезон','Матчи','За матч',...(clean?['Без бонуса']:[]),'Всего'])head.append(el('th',h));table.append(head);
+ const row=([season,s])=>{const tr=el('tr');for(const v of [season.replace(/^20(\d\d)-(\d\d)$/,'$1/$2'),String(s.games),dec(s.perGame),...(clean?[dec(s.fblPerGame)]:[]),int(s.points)])tr.append(el('td',v));return tr;};
+ for(const s of seasons.slice(0,3))table.append(row(s));box.append(table,el('p',clean?'«За матч» и «Всего» — по формуле Sports.ru, с бонусом за результат команды; «Без бонуса» — как считает FBL.':'По формуле Sports.ru, с бонусом за результат команды; в FBL его нет.','muted'));
  if(seasons.length>3){const all=el('details',null,'inline'),t=el('table',null,'sports-table');for(const s of seasons.slice(3))t.append(row(s));all.append(el('summary',`Ещё ${count(seasons.length-3,'сезон','сезона','сезонов')}`),t);box.append(all);}
  return box;
 }
@@ -204,27 +207,15 @@ function forecastSummary(p){
  const personal=p.espnContext?.individualProjection;
  if(f){
   box.append(el('p',`${int(f.meanSeason)} ФО за сезон = ${dec(f.meanPerGame)} за матч × ${count(Math.round(f.games),'матч','матча','матчей')}.`));
-  if(Number.isFinite(f.seasonFloor)&&Number.isFinite(f.seasonCeiling))box.append(el('p',`Слабый сезон ${int(f.seasonFloor)}, сильный ${int(f.seasonCeiling)}: в 8 сезонах из 10 результат между ними.`));
-  if(c)box.append(el('p',`${c.flag?'⚠ ':''}${signed(c.gap*100)}${' '}% к сезону ${String(c.season).replace(/^20(\d\d)-(\d\d)$/,'$1/$2')} на Sports.ru (${dec(c.perGame)} за матч).${c.flag?' Проверь роль, состав и здоровье и при необходимости задай поправку.':''}`));
+  if(Number.isFinite(f.seasonFloor)&&Number.isFinite(f.seasonCeiling))box.append(el('p',seasonRangeLine(f,database?.projectionModelAudit)));
+  if(c)box.append(el('p',sportsCheckLine(c)));
  }else if(personal)box.append(el('p',`Индивидуальный прогноз ESPN: ${dec(personal.componentFPPerGame)} ФО за матч без фолов и бонусов.`));
  else if(p.projectionStatus==='EMPIRICAL_ROOKIE_PRIOR'&&Number.isFinite(p.projectedFP))box.append(el('p',`Групповой ориентир для rookie: ${dec(p.projectedFP)} ФО за матч. Это не персональный прогноз.`));
  else if(Number.isFinite(p.projectedFP))box.append(el('p',`Историческая основа: ${dec(p.projectedFP,2)} ФО за матч.`));
  else box.append(el('p','Прогноза нет.'));
  return box;
 }
-// Where a forecast comes from, in one sentence: the career model, ESPN, the draft-pick model and their numbers.
-function forecastSources(f){
- if(f.version!==4)return `Основа: ${f.origin==='ESPN_INDIVIDUAL'?'индивидуальный прогноз ESPN':'исторический ориентир'}.${f.rookieExtrapolation&&f.analogs?.length?' Похожие игроки для оценки разброса: '+f.analogs.map(a=>a.name).join(', ')+'.':''}`;
- const m=f.sources?.model,e=f.sources?.espn,parts=[];
- if(m)parts.push(`${f.draftPick?`модель новичков (пик №${f.draftPick})`:f.origin==='UNDRAFTED_ROOKIE_MODEL'?'модель незадрафтованных новичков':'модель по карьере'}: ${dec(m.perGame)} × ${count(Math.round(m.games),'матч','матча','матчей')}`);
- if(e)parts.push(`ESPN: ${dec(e.perGame)} × ${Math.round(e.games)}`);
- return `Основа: ${parts.join('; ')}${e?' — итог их среднее':''}.${Number.isFinite(f.shortSeasonRisk)?` Риск короткого сезона (меньше четверти матчей): ${pct(f.shortSeasonRisk)}.`:''}`;
-}
-const SEASON_END={healthy:'прошлый сезон закончил в строю',endedOut:'прошлый сезон закончил с пропуском 10+ матчей',noGames:'прошлый сезон пропустил целиком'};
-// Health in numbers: the absence chain's personal spell rates against the league and the games range they imply.
-function healthLine(a){
- return `Здоровье по логам 2002–2026: коротких пропусков (1–3 матча) ${dec(a.shortSpellsPer82)} за 82 матча при ${dec(a.leagueShortSpellsPer82)} у ровесников, длинных (4+) ${dec(a.longSpellsPer82)} при ${dec(a.leagueLongSpellsPer82)}; ${SEASON_END[a.lastSeasonEnd]??'конец прошлого сезона неизвестен'}. С вероятностью 80% сыграет ${a.gamesRange[0]}–${a.gamesRange[1]} матчей, медиана ${a.gamesMedian}.`;
-}
+// Where a forecast comes from, its range and the player's absences: src/forecast-text.js, shared with the season tab.
 function forecastCard(p){
  const f=p.forecast,box=el('div',null,'forecast-panel');
  if(f.conditionalOnRoster)box.append(el('p','Условная оценка при возвращении в ротацию NBA: действующий ростер не подтверждён.','warning'));
@@ -234,11 +225,11 @@ function forecastCard(p){
   const cell=el('div');cell.append(el('small',label),el('strong',value));grid.append(cell);
  }
  box.append(grid);
- box.append(el('p',f.version===4?'Потолок матча — 90-й процентиль собственных матчей игрока за два сезона (у новичков — игроков того же уровня). Слабый и сильный сезон — 10-й и 90-й процентили, проверенные на прошлых сезонах.':'Ролевой ориентир сравнивает средние показатели похожих игроков; сезонный диапазон для такой оценки не откалиброван.'));
- if(f.version===4&&f.availability)box.append(el('p',healthLine(f.availability)));
+ box.append(el('p',f.version===4?'Потолок матча — 90-й процентиль собственных матчей игрока за два сезона (у новичков — игроков того же уровня). '+rangeMethod(f,database?.projectionModelAudit):'Ролевой ориентир сравнивает средние показатели похожих игроков; сезонный диапазон для такой оценки не откалиброван.'));
+ if(f.version===4&&f.availability)box.append(el('p',healthLine(f.availability,f,database?.projectionModelAudit)));
  if(f.transfer)box.append(el('p',`С заменами при травмах: ${int(f.slotSeason)} ФО = ${int(f.meanSeason)} своих + ${int(f.transfer.value)} от замены. Длинные пропуски закрывает трансфер: в среднем ${dec(f.transfer.replacedGames)} матча по ${dec(f.transfer.replacementPerGame)} ФО. По этой ценности строится рейтинг драфта.`));
  if(f.scoringBreakdown){
-  const table=el('table',null,'scoring-breakdown');table.append(el('caption','Формула Sports.ru · вклад за матч'));
+  const table=el('table',null,'scoring-breakdown');table.append(el('caption','Формула FBL (Sports.ru без бонуса за результат) · вклад за матч'));
   const labels={points:'Очки',rebounds:'Подборы',assists:'Передачи',steals:'Перехваты',blocks:'Блоки',fieldGoalMisses:'Промахи с игры',freeThrowMisses:'Промахи штрафных',turnovers:'Потери (×2)',personalFouls:'Фолы',participation:'Бонус за минуты',historicalAdjustment:'Историческая поправка',adjustment:'Поправка (возраст, ESPN)'};
   for(const [key,value] of Object.entries(f.scoringBreakdown)){const row=el('tr');row.append(el('th',labels[key]||key),el('td',signedDec(value,2)));table.append(row);}
   const total=el('tr');total.append(el('th','Итого за матч'),el('td',dec(f.meanPerGame,2)));table.append(total);
@@ -405,7 +396,7 @@ function renderPostDraft(){
  $('standings-note').hidden=!complete;
  if(complete&&sim){
   const table=el('table',null,'standings-table'),head=el('tr');
-  for(const [h,cls] of [['#',''],['Команда',''],['Прогноз','num'],['8 сезонов из 10','num wide-only'],['1-е место','num']]){const th=el('th',h,cls);th.scope='col';head.append(th);}table.append(head);
+  for(const [h,cls] of [['#',''],['Команда',''],['Прогноз','num'],['80% сценариев','num wide-only'],['1-е место','num']]){const th=el('th',h,cls);th.scope='col';head.append(th);}table.append(head);
   rows.forEach((t,rank)=>{const tr=el('tr');if(t.team===1)tr.className='mine';
    const team=el('th',null,'team');team.scope='row';team.append(teamName(t.team-1));if(t.team===1)team.append(' ',el('span','ты','chip chip--accent'));
    tr.append(el('td',String(rank+1)),team,el('td',int(t.sim.mean),'num total'),el('td',`${int(t.sim.p10)}–${int(t.sim.p90)}`,'num wide-only'),el('td',dec(t.sim.firstPlaceShare)+' %','num'));table.append(tr);});
@@ -451,8 +442,8 @@ function renderScenarioAnalysis(){
   box.replaceChildren(el('h4','Кто чаще лидирует, если остальные пики сделают боты'),table,el('p','Меняются только пики ботов; матчи не моделируются.','muted'));return;
  }
  $('simulation-status').textContent=`Готово: ${int(result.runs)} сценариев сезона.`;
- const table=el('table',null,'standings-table'),head=el('tr');for(const [h,c] of [['Команда',''],['Прогноз','num'],['8 из 10','num wide-only'],['1-е место','num']])head.append(el('th',h,c));table.append(head);
- for(const t of [...result.teams].sort((a,b)=>b.base-a.base)){const tr=el('tr');if(t.team===1)tr.className='mine';const first=el('td',dec(t.firstPlaceShare)+' %','num');first.title=`95% доверительный интервал: ${t.firstPlaceCI.map(x=>dec(x)).join('–')}%`;
+ const table=el('table',null,'standings-table'),head=el('tr');for(const [h,c] of [['Команда',''],['Прогноз','num'],['80% сценариев','num wide-only'],['1-е место','num']])head.append(el('th',h,c));table.append(head);
+ for(const t of [...result.teams].sort((a,b)=>b.base-a.base)){const tr=el('tr');if(t.team===1)tr.className='mine';const first=el('td',dec(t.firstPlaceShare)+' %','num');first.title=`Точность расчёта (Монте-Карло, 95%): ${t.firstPlaceCI.map(x=>dec(x)).join('–')}%. Не учитывает неточность самой модели.`;
   tr.append(el('td',teamName(t.team-1)),el('td',int(t.base),'num'),el('td',`${int(t.p10)}–${int(t.p90)}`,'num wide-only'),first);table.append(tr);}
  const details=el('details',null,'method');details.append(el('summary','Как читать'),el('p',`${result.assumptions.range}. Корреляция: ${result.assumptions.correlation}. «1-е место» — доля первых мест в этих модельных сценариях, а не вероятность победы в FBL.`));
  const wrap=el('div',null,'table-scroll');wrap.append(table);box.replaceChildren(wrap,details);
@@ -492,7 +483,8 @@ function renderStatus(){
 }
 function render(){
  renderStatus();renderRoster();renderHistory();renderCandidates();renderPlan();renderPostDraft();renderPractice();renderScenarioAnalysis();
- setSeasonPlayers(state.players,card);
+ // The season tab scores the league with the latest installed forecasts; pick snapshots stay with the draft tab.
+ setSeasonPlayers(seasonCatalog(state,database),card);
 }
 
 // ---------- Database ----------

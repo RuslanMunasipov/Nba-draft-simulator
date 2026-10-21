@@ -1,19 +1,19 @@
 // Transfer alerts for one FBL team, sent to Telegram when something new appears on the market,
 // a verdict on every new transfer of the other teams (and whether to grab the player they let go), a confirmation of
 // each of my own transfers,
-// and injured free agents about to return or just back.
+// and injured free agents (out, not day-to-day) about to return or just back, once per injury.
 // Usage: notify-transfers.mjs <sports-current.json> <notify-state.json>
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
 import path from 'node:path';
-import {seasonRosters,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,explainSwap,CONFIDENT,DOUBTFUL,WEEKLY_TRANSFERS} from '../src/season.js';
 import {recommendPackage,packageVerdict,dealGroups,takenIds,contestedBy,transferWindow,confidencePercent,confidenceLevel} from '../src/season.js';
 import {count} from '../src/format.js';
 import {signed} from './telegram-format.mjs';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
 import {fblTransfers} from '../src/rules.js';
-import {esc,gains,moveLines,details,message,sender,moscow} from './telegram-format.mjs';
+import {esc,gains,moveLines,details,message,sender,moscow,injuryFeed,injuryWarning,isOut,returnHead,returnKey,warnedFor,stillInjured} from './telegram-format.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -28,7 +28,12 @@ const league=JSON.parse(fs.readFileSync(new URL('../data/fbl-league.json',import
 const previous=fs.existsSync(statePath)?JSON.parse(fs.readFileSync(statePath,'utf8')):await json(RAW+'data/season-live/notify-state.json').catch(()=>({sent:[],injuries:[]}));
 const players=withMarket(db.players,live),byId=new Map(players.map(p=>[p.id,p])),today=moscowToday();
 const {transfers,warnings}=allTransfers(players,live,league);
-const ctx={players,live,injuries:parseInjuries(live.espnInjuries),today,rosters:seasonRosters(transfers),white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
+// The collector's ESPN injury report; when its fetch failed, one more try from here, then the report it kept (old, and
+// said so) — never an empty one that reads as "everyone is healthy".
+let injuryState=injuryFeed(live);
+if(!injuryState.fresh){const now=await json('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries').catch(()=>null),at=new Date().toISOString();
+ if(now?.injuries)injuryState={feed:{...now,fetchedAt:at},fresh:true,fetchedAt:at};}
+const ctx={players,live,injuries:parseInjuries(injuryState.feed),today,rosters:seasonRosters(transfers),white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
 const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
 // Both limits bind: Sports.ru's own weekly count (∞ in pre-season) and the FBL week (pre-season moves are free).
 const leftOf=t=>{const x=live.teams?.[t],sports=x?.transfersUnlimited?Infinity:Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));
@@ -47,7 +52,8 @@ const rivalsFor=id=>contestedBy(ctx,{team,playerId:id,bankOf,sort});
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
  .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${i.returnDate?' до '+i.returnDate.slice(8,10)+'.'+i.returnDate.slice(5,7):''}`};});
 const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(rec.best?[rec.best.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
-const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=hurt.filter(h=>!previous.injuries?.includes(h.key));
+// Injuries of my roster are news only from a fresh report: an old or missing one neither adds nor clears them.
+const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=injuryState.fresh?hurt.filter(h=>!previous.injuries?.includes(h.key)):[];
 const day=d=>d?`${d.slice(8,10)}.${d.slice(5,7)}`:'';
 const link=`<a href="${SITE}">Открыть помощника</a>`;
 const swapPairs=x=>[{out:current(byId.get(x.outId),ctx).name,in:x.player.name}];
@@ -88,6 +94,7 @@ const singles=alerts.filter(a=>!(pack?.pairs.length===1&&pack.pairs[0].out.id===
 if(singles.length)mine.push('','📈 <b>Отдельные усиления</b>',...singles.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)} · ${confidencePercent(a.why.confidence)}%`));
 if(budget.length)mine.push('','⚠️ <b>Бюджет по ценам Sports.ru</b>',...budget.map(w=>`${esc(teamLabel(w.team))}: ${esc(w.message)}`));
 if(hurt.length)mine.push('','🩹 <b>Травмы</b>',...hurt.map(h=>esc(h.text)));
+const injuryLine=injuryWarning(injuryState);if(injuryLine)mine.push('',injuryLine);
 mine.push('',link);
 const changed=fresh.length>0||freshHurt.length>0;
 console.log(message(mine),'\n\nnew:',fresh,freshHurt.map(h=>h.key));
@@ -166,21 +173,27 @@ for(const u of unannounced.filter(u=>!(previous.silent||[]).includes(silentKey(u
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
 for(const w of unknown.filter(w=>!(previous.unknown||[]).includes(unknownKey(w))))
  await report(message(`❓ <b>${esc(teamLabel(w.team))}</b>`,esc(w.message),'Игрока нет в нашей базе: оценки нет, проверь на Sports.ru.'),()=>state.unknown.push(unknownKey(w)));
-if(changed)await report(message(mine),()=>{state.sent=[...new Set([...state.sent,...keys])].slice(-200);state.injuries=hurt.map(h=>h.key);});
+if(changed)await report(message(mine),()=>{state.sent=[...new Set([...state.sent,...keys])].slice(-200);state.injuries=injuryState.fresh?hurt.map(h=>h.key):(previous.injuries||[]);});
 else console.log('Nothing new for my team: no message.');
-// Injured free agents worth a season transfer: warn when one is about to return, and again the moment he is back.
-const targets=left?injuredTargets(ctx,{team,bankMoney:money,k:left}):[],injuryKey=x=>`${x.player.id}:${x.injury.status}:${x.injury.returnDate||''}`;
-const warned=new Set(previous.returns||[]),soon=targets.filter(x=>x.soon&&!warned.has(injuryKey(x)));
+// Injured free agents worth a season transfer: warn once per injury when one who is out (never a day-to-day or
+// game-time decision) is about to return, and again the moment he is back. Without a fresh ESPN report nobody is about
+// to return or back, and the watch list waits for the next good report.
+const feedOk=injuryState.fresh,targets=left?injuredTargets(ctx,{team,bankMoney:money,k:left}):[];
+const soon=feedOk?targets.filter(x=>x.soon&&isOut(x.injury)&&!warnedFor(previous.returns,x.player.id)):[];
 // Back on the injury-free list and still free: buy now if it pays over the next 4 weeks too.
-const back=!left?[]:(previous.watch||[]).map(id=>byId.get(id)).filter(p=>p&&!ctx.injuries.get(String(p.espnId))&&!ctx.rosters.flat().includes(p.id))
+const back=!left||!feedOk?[]:(previous.watch||[]).map(id=>byId.get(id)).filter(p=>p&&!ctx.injuries.get(String(p.espnId))&&!ctx.rosters.flat().includes(p.id))
  .map(p=>({player:current(p,ctx),...acquisition(ctx,{team,playerId:p.id,bankMoney:money,k:left})})).filter(x=>x.worth);
-for(const x of back){const why=explainSwap(ctx,null,null,'season',dealPairs(x)),sure=why.confidence>=CONFIDENT;
- await report(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',sure?'🎯 <b>Тебе: забирай</b>':'🤔 <b>Тебе: можно брать, но не уверенно</b>',dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>{});}
-for(const x of soon){const why=explainSwap(ctx,null,null,'season',dealPairs(x));
+// Both alerts follow the same bars as the other advice: sure → buy, moderate → not sure, doubtful → no message.
+for(const x of back){const why=explainSwap(ctx,null,null,'season',dealPairs(x)),head=returnHead(why.confidence,{sure:CONFIDENT,maybe:DOUBTFUL,now:true});if(!head)continue;
+ await report(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',head,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>{});}
+for(const x of soon){const why=explainSwap(ctx,null,null,'season',dealPairs(x)),head=returnHead(why.confidence,{sure:CONFIDENT,maybe:DOUBTFUL});if(!head)continue;
  await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${x.injury.returnDate?' до '+day(x.injury.returnDate):''}`,'',
- `🎯 <b>Тебе: можно брать</b> · ${sureness(why).toLowerCase()}`,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>state.returns.push(injuryKey(x)));}
+ `${head} · ${sureness(why).toLowerCase()}`,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>state.returns.push(returnKey(x.player.id)));}
 // Remember what was already reported so the same advice is not sent again. Until Telegram is configured nothing
 // counts as reported: the first messages arrive once the secrets are set. Transfers already in the journal count as seen.
-state.transfers=[...new Set([...state.transfers,...transfers.map(transferKey)])];state.transferEvents=transfers.flatMap(dealEvents);state.returns=state.returns.slice(-500);state.unknown=state.unknown.slice(-200);
-state.watch=targets.map(x=>x.player.id);
+// A return warning is forgotten once the player is off the report, so a new injury warns again; an injured player stays
+// watched through out → day-to-day until he is back.
+const injuredIds=players.filter(p=>p.espnId&&ctx.injuries.has(String(p.espnId))).map(p=>p.id);
+state.transfers=[...new Set([...state.transfers,...transfers.map(transferKey)])];state.transferEvents=transfers.flatMap(dealEvents);state.returns=(feedOk?stillInjured(state.returns,injuredIds):state.returns).slice(-500);state.unknown=state.unknown.slice(-200);
+state.watch=feedOk?targets.filter(x=>isOut(x.injury)||(previous.watch||[]).includes(x.player.id)).map(x=>x.player.id):(previous.watch||[]);
 if(configured)save();else fs.writeFileSync(statePath,JSON.stringify({...previous,updatedAt:new Date().toISOString()}));
