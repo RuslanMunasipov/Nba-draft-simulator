@@ -69,3 +69,6 @@ Base: main f5c0328. Working branch for fixes: `claude/full-model-audit`. This br
   wf_85863c51-544 [telegram R01-R08,R23,R34; model R30-32,R35,R38,R40]; script workflows/scripts/fbl-review-fix-wf_e843cb60-4a2.js;
   branches audit-fix2/<group>. Then merge, checks, ACCEPTANCE final section, merge #88 (before 04:00Z 22.10).
 - Still running: wf_885a01d4-281 (collection-rules, draft-docs review).
+- 08:40Z: merged audit-fix2/season-core (9f591b9) + audit-fix2/season-ui (4cabd9e) -> 1a686c2 pushed; npm 300, py 193 ok.
+  Their crossGroupNotes/docNotes: synth/fix2-round1-season.json. Pending: telegram+model (wf_85863c51-544), conformance audit
+  (wf_e76ac352-d8a). Collection/draft review: synth/review-results-2.json (C01-C13). Round 2 then docs pass then merge #88.
