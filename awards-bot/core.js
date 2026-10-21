@@ -30,6 +30,20 @@ export const reportDay=(ms=Date.now())=>usDay(ms-12*3600e3);
 // The post of a day waits for every game of it (league chat, 21.10.2026: every number goes into the summary), then this
 // long for late box-score corrections. Only a postponed or cancelled game is not waited for.
 export const SETTLE_MS=15*60e3;
+// The bot stays on a day from this long before its last game tips off (an hourly run starts it), then follows it.
+export const LEAD_MS=75*60e3;
+// What to do about a game day now, from ESPN's games of it (tip, final, off) and when all of them were first seen final:
+// 'none' (no games), 'later' (the last game tips off more than LEAD_MS from now: a later run takes it), 'wait' (until the
+// last tip-off), 'poll' (games still running: check again), 'settle' (all over: wait for corrections) or 'post'.
+export function nextStep(games,now,allFinalAt){
+ if(!games.length)return {do:'none'};
+ const pending=games.filter(g=>!g.final&&!g.off);
+ if(!pending.length){const at=Date.parse(allFinalAt||new Date(now).toISOString())+SETTLE_MS;return now>=at?{do:'post'}:{do:'settle',until:at};}
+ const last=Math.max(...pending.map(g=>Date.parse(g.tip)));
+ if(last-now>LEAD_MS)return {do:'later',until:last};
+ if(now<last)return {do:'wait',until:last,left:pending.length};
+ return {do:'poll',left:pending.length};
+}
 // Weeks run Monday to Sunday in US game days; week 1 is the one the season opens in.
 const monday=day=>addDays(day,-((new Date(day+'T12:00:00Z').getUTCDay()+6)%7));
 export const weekOf=day=>({n:Math.floor(daysBetween(monday(SEASON_START),day)/7)+1,start:monday(day),end:addDays(monday(day),6)});

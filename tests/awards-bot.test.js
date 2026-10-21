@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseScoreboard,parseSummary,makeLeague,benchOf,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,sixthRace,monthFive,
- moved,withoutRookie,reportDay,weekOf,isMonthEnd,isSunday,daysBetween,special} from '../awards-bot/core.js';
+ moved,withoutRookie,reportDay,nextStep,weekOf,isMonthEnd,isSunday,daysBetween,special} from '../awards-bot/core.js';
 import {statLine,split,esc,dailyText,racesText,recordsText,monthText,rookieAlert,dayLabel} from '../awards-bot/messages.js';
 
 const line=(a,p,extra={})=>({d:'2026-10-21',e:'g1',a,n:'P'+a,c:'DEN',t:'2026-10-22T00:00Z',m:30,p,h:[],b:[],
@@ -102,6 +102,17 @@ test('awards bot: the month five takes the best of each position held at the mon
  const five=monthFive(lines,{heldAtEnd:new Map([['a',[0]],['b',[1]],['c',[2]]]),positionOf:a=>({a:'C',b:'C',c:'PG',d:'C'})[a]});
  assert.deepEqual(five.map(x=>[x.pos,x.row?.a]),[['PG','c'],['SG',undefined],['SF',undefined],['PF',undefined],['C','b']]);
  assert.deepEqual(withoutRookie([[{isRookie:true}],[{isRookie:false}]],p=>p.isRookie),[1]);
+});
+test('awards bot: a day is followed from its last tip-off until its last game is over',()=>{
+ const at=s=>Date.parse(s),g=(tip,final=false,off=false)=>({tip,final,off});
+ const day=[g('2026-10-21T23:00Z',true),g('2026-10-22T02:30Z'),g('2026-10-22T03:00Z',false,true)];
+ assert.deepEqual(nextStep(day,at('2026-10-21T22:00Z')),{do:'later',until:at('2026-10-22T02:30Z')},'hours before the last tip-off');
+ assert.deepEqual(nextStep(day,at('2026-10-22T01:30Z')),{do:'wait',until:at('2026-10-22T02:30Z'),left:1},'the postponed game is not waited for');
+ assert.deepEqual(nextStep(day,at('2026-10-22T04:40Z')),{do:'poll',left:1},'the last game runs long: keep checking');
+ const over=day.map(x=>({...x,final:!x.off}));
+ assert.deepEqual(nextStep(over,at('2026-10-22T05:00Z'),'2026-10-22T04:55:00Z'),{do:'settle',until:at('2026-10-22T05:10Z')});
+ assert.deepEqual(nextStep(over,at('2026-10-22T05:10Z'),'2026-10-22T04:55:00Z'),{do:'post'});
+ assert.deepEqual(nextStep([],at('2026-10-22T05:10Z')),{do:'none'});
 });
 test('awards bot: report day, weeks and month ends',()=>{
  assert.equal(reportDay(Date.parse('2026-10-22T04:00:00Z')),'2026-10-21','07:00 Moscow reports the US evening before');
