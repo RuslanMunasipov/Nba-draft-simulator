@@ -106,7 +106,7 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  assert.match(looks(person('mike-roffon')),/white gloves and a vintage chrome microphone, always/);
  assert.doesNotMatch(person('mike-roffon').keep,/helmet/,'the helmet is one of his outfits, not his signature');
  const p=zakPicture({kind:'violation',team:4,no:3,seed:'s',rules:['time']});
- assert.deepEqual(p.images.map(i=>i.name),['check.jpg','captain-torres-new-win.jpg']);
+ assert.deepEqual(p.images.map(i=>i.name),['check.jpg','captain-torres-new-win.jpg','5.jpg'],'his photo, then the Volga Pirates logo');
  assert.match(p.prompt,/GENERAL MANAGER: the exact person from reference image 2.*cartoon/);
  assert.match(p.prompt,/SCENE:.*Captain Torres New-Win \(the general manager, reference image 2\)/);
 });
@@ -114,9 +114,14 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
 test('a GM drawn as a child is never restrained or hurt in Zak Onn\'s scenes, only a belt shaken at him; the others have no such block',()=>{
  for(const [kind,story] of [['violation',{rules:['rookie']}],['violation',{standing:true}],['check',{rules:['time']}],['approved',{}]]){
   const p=zakPicture({kind,team:7,no:5,seed:'s',...story}).prompt;
-  assert.deepEqual(zakPicture({kind,team:7,no:5,seed:'s',...story}).images.map(i=>i.name).slice(1),['headshot-vanshotovich.jpg']);
+  assert.deepEqual(zakPicture({kind,team:7,no:5,seed:'s',...story}).images.map(i=>i.name).slice(1),['headshot-vanshotovich.jpg'],'no logo of crosshairs beside the boy');
   assert.match(p,/HEADSHOT VANSHOTOVICH IS DRAWN AS A CHILD \(this overrides the scene\): he is never handcuffed/);
   assert.match(p,/no weapon anywhere in the picture/);assert.match(p,/stern father: he holds a folded leather belt.*never striking/);
  }
  assert.doesNotMatch(zakPicture({kind:'violation',team:2,no:5,seed:'s'}).prompt,/AS A CHILD/);
+});
+
+test('the league\'s team logos: one per team, in draft order, as the pictures and the awards cards read them',async()=>{
+ const {teamLogo}=await import('../scripts/image-pipeline.mjs');
+ for(let t=0;t<8;t++)assert.equal(teamLogo(t)?.name,`${t+1}.jpg`,`team ${t+1}`);
 });

@@ -12,9 +12,16 @@
 //   node awards-bot/bot.mjs --preview DAY [--week] [--month] [--cards DIR] [--holiday KEY]
 //                                                   the posts of US game day DAY rebuilt from ESPN; nothing saved or sent
 //                                                   (--cards: the albums' cards as PNG files in DIR, with their captions;
-//                                                   --holiday: the cards dressed for that holiday of holidays.js;
+//                                                   --holiday: the cards dressed for that holiday of holidays.js,
+//                                                   none: without any holiday decor;
+//                                                   --prompts: the prompts of the day's two pictures (free);
+//                                                   --pictures: the pictures drawn by OpenAI, ~$0.16, into --cards;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
-//                                                   OPENAI_API_KEY, drawn, ~$0.03)
+//                                                   OPENAI_API_KEY, drawn, ~$0.04)
+//   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--cards DIR]
+//                                                   Mike Roffon's interview of an archived day by hand (workflow
+//                                                   mike-roffon.yml): written and drawn, posted into the league chat
+//                                                   by his bot with --send; the state is only read, never saved
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
@@ -32,6 +39,7 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
+import {dayPictures,momentFacts,momentProblems,writeMoments} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
 import {generate,cost} from '../scripts/image-pipeline.mjs';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
@@ -126,6 +134,8 @@ async function post(text,chat=CHAT,label='league chat'){
 // --- Albums: a post's cards drawn and sent as one Telegram media group, the caption (with its hashtags) on the first.
 // A post never gets lost to its cards: when they cannot be drawn or sent, its text goes instead.
 const CARDS_DIR=opt('--cards'),FORCED=opt('--holiday');
+// --holiday KEY dresses the cards for that holiday whatever the day; --holiday none: no holiday decor at all.
+if(FORCED&&FORCED!=='none'&&!HOLIDAYS.some(h=>h.key===FORCED))throw Error(`--holiday: ${FORCED} is not a key of holidays.js (or none)`);
 const holidayFor=day=>FORCED?HOLIDAYS.find(h=>h.key===FORCED)||null:holidayOf(day);
 async function sendAlbum(pngs,caption){
  const one=pngs.length===1;
@@ -216,7 +226,7 @@ async function monthly(day,ctx,archive,state,mark){
 // (MIKE_ROFFON_BOT_TOKEN): his picture with the interview's headline, the interview as a reply under it. Written by Claude
 // through the owner's subscription (CLAUDE_CODE_OAUTH_TOKEN), drawn by OpenAI (OPENAI_API_KEY: without it the interview
 // goes alone); without his token or the subscription's the facts are only printed. A preview writes it with --mike (the
-// picture costs about $0.03). Never holds the awards: a failure is logged.
+// picture costs about $0.04). Never holds the awards: a failure is logged.
 const MIKE=env.MIKE_ROFFON_BOT_TOKEN,OPENAI_KEY=env.OPENAI_API_KEY;
 async function telegram(token,method,body){
  const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,body instanceof FormData?{method:'POST',body}
@@ -225,18 +235,17 @@ async function telegram(token,method,body){
  if(!r.ok||!out.ok)throw Error(`Telegram ${method}: ${r.status} ${out.description||''}`);
  return out.result;
 }
-async function mikeInterview(day,lines,ctx,state){
+async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigured(env),write=flag('--mike')}={}){
  const hero=dailyBlocks(lines.filter(l=>l.d===day)).heroes[0];
  if(!hero)return null;
  const g=state?.days?.[day]?.games?.[hero.e],opponent=g?(g.home===hero.c?g.away:g.home):null;
  const facts=interviewFacts(day,hero,ctx.who,{form:form(lines,day),opponent,holiday:holidayFor(day)});
- const send=live&&MIKE&&claudeConfigured(env);
- if(!send&&!flag('--mike')){console.log(`\n===== Mike Roffon (not written) =====\n${JSON.stringify(facts)}\n`);return null;}
+ if(!send&&!write){console.log(`\n===== Mike Roffon (not written) =====\n${JSON.stringify(facts)}\n`);return null;}
  try{
   const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
   let spent=0,picture=null;
-  if(OPENAI_KEY)try{const r=await generate(interviewPicture(facts,day),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
+  if(OPENAI_KEY)try{const r=await generate(interviewPicture(facts,day,{team:hero.h?.[0]}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
   catch(e){console.warn(`${day}: Mike Roffon's picture failed (${e.message}): the interview goes alone.`);}
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
@@ -250,6 +259,41 @@ async function mikeInterview(day,lines,ctx,state){
   console.log(`${day}: Mike Roffon's interview sent, $${spent.toFixed(3)}.`);
   return {status:'sent',cost:Math.round(spent*1e4)/1e4};
  }catch(e){console.warn(`${day}: Mike Roffon failed (${e.message}).`);return {status:'failed'};}
+}
+
+// --- The day's pictures (images.js): the heroes in one picture and the flops in another, their moments written by Claude
+// through the owner's subscription (free; the code's own without it), drawn by OpenAI (about $0.07 each) and sent by
+// the awards bot after the day's album, before Mike Roffon. recent: the ideas of the last days, not to repeat. Only with DAY_PICTURES=1 and
+// OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and draws them with --pictures (paid; without the
+// key the request goes out bare, for a proxy that adds it). Never holds the awards: a failure is logged.
+const PICTURES=env.DAY_PICTURES==='1'&&!!OPENAI_KEY;
+async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true,recent=[]}={}){
+ const blocks=dailyBlocks(lines.filter(l=>l.d===day)),f=form(lines,day),written={};
+ // --moments FILE (a preview): the moments as JSON {hero, flop} in Claude's shape, checked like his.
+ const given=opt('--moments')?JSON.parse(fs.readFileSync(opt('--moments'),'utf8')):null;
+ if(given)for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]]){const facts=momentFacts(kind,rows,{form:f}),x=given[kind];
+  const problems=x?momentProblems(x,facts):['none given'];if(problems.length)console.warn(`--moments ${kind}: ${problems.join('; ')}`);else written[kind]=x;}
+ else if(claudeConfigured(env))for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]])if(rows.length)
+  try{written[kind]=await writeMoments(momentFacts(kind,rows,{form:f}),{recent});}
+  catch(e){console.warn(`${day}: Claude did not write the ${kind} moments (${e.message}); the code's go instead.`);}
+ const ids=[...new Set([...blocks.heroes.slice(0,3),...blocks.flops.slice(0,3)].map(l=>String(l.a)))];
+ const {headshot}=await import('./render.mjs');
+ const faces=new Map((await Promise.all(ids.map(async a=>[a,await headshot(a)]))).filter(([,f])=>f));
+ const pictures=dayPictures(blocks,ctx.who,{faces,form:f,written}),ideas=pictures.flatMap(p=>p.ideas);
+ if(!draw){for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]])if(rows.length)console.log(`\n===== ${day} ${kind} facts =====\n${JSON.stringify(momentFacts(kind,rows,{form:f}).players)}`);
+  for(const p of pictures)console.log(`\n===== ${day} ${p.kind} picture (${p.ideas.length?'Claude\'s moments':'the code\'s moments'}, ${p.images.length} references) =====\n${p.prompt}\n\n${p.caption}\n`);return {status:'prompts',ideas};}
+ let spent=0,sent=0,drawn=0;
+ for(const p of pictures){
+  try{
+   const r=await generate(p,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});spent+=cost(r.usage);drawn++;
+   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});const f=path.join(CARDS_DIR,`picture-${day}-${p.kind}.png`);fs.writeFileSync(f,r.png);
+    fs.writeFileSync(f.replace(/png$/,'txt'),p.caption+'\n\n'+p.prompt+'\n');console.log('picture: '+f);}
+   if(send){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',p.caption);form.append('parse_mode','HTML');
+    form.append('photo',new Blob([r.png],{type:'image/png'}),`fbl-${p.kind}-${day}.png`);await telegram(TOKEN,'sendPhoto',form);sent++;}
+  }catch(e){console.warn(`${day}: the ${p.kind} picture failed (${e.message}).`);}
+ }
+ console.log(`${day}: ${drawn} of ${pictures.length} picture(s) drawn${send?`, ${sent} sent`:''}, $${spent.toFixed(3)}.`);
+ return {status:send?(sent?'sent':'failed'):(drawn?'preview':'failed'),cost:Math.round(spent*1e4)/1e4,ideas};
 }
 
 // The day's post: its album, its text as the fallback.
@@ -273,6 +317,9 @@ async function watchDay(day,ctx,archive,state){
    await refresh([day],archive);
    await dayPost(day,archive.lines,ctx,Object.values(rec.games).filter(g=>g.off));
    state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);
+   if(PICTURES&&!state.posted.pictures?.[day]){
+    const recent=Object.keys(state.posted.pictures||{}).sort().slice(-7).flatMap(d=>state.posted.pictures[d].ideas||[]);
+    (state.posted.pictures||={})[day]=await picturesPost(day,archive.lines,ctx,{recent});pushState(state,archive);}
    if(!state.posted.mike?.[day]){const m=await mikeInterview(day,archive.lines,ctx,state);if(m){(state.posted.mike||={})[day]=m;pushState(state,archive);}}
    break;
   }
@@ -338,6 +385,7 @@ async function preview(day){
  const ctx=await loadLeague(),state=fresh(),archive={lines:[]};
  for(let d=SEASON_START;d<=day;d=addDays(d,1))await archiveDay(d,state,archive,ctx.league);
  await dayPost(day,archive.lines,ctx,[]);
+ if(flag('--prompts')||flag('--pictures'))await picturesPost(day,archive.lines,ctx,{send:false,draw:flag('--pictures')});
  await mikeInterview(day,archive.lines,ctx,state);
  if(flag('--week')||isSunday(day))await weekly(day,ctx,archive,state,false);
  if(flag('--month')||isMonthEnd(day))await monthly(day,ctx,archive,state,false);
@@ -351,8 +399,23 @@ async function resend(day){
  await dayPost(day,archive.lines,await loadLeague(),[]);
 }
 
-const day=opt('--preview'),again=opt('--resend');
-if(day)await preview(day);
+// Mike Roffon's interview of an archived day by hand: written, drawn and, with --send, posted by his bot. The state is
+// only read (the awards bot's chain may hold it): nothing is saved, so each run with --send posts again.
+async function mikeByHand(day){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('--mike-day: a US game day, YYYY-MM-DD');
+ const state=read('state.json',fresh()),archive=read('archive.json',{lines:[]});
+ if(!archive.lines.some(l=>l.d===day))throw Error(`--mike-day: no archived games of ${day}`);
+ const send=flag('--send');
+ if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)]].filter(x=>!x[1]).map(x=>x[0]);
+  if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
+ const m=await mikeInterview(day,archive.lines,await loadLeague(),state,{send,write:true});
+ if(!m)throw Error(`${day}: no hero of the day`);
+ if(m.status!==(send?'sent':'preview'))process.exitCode=1;
+}
+
+const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day');
+if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
+else if(day)await preview(day);
 else if(STATE_DIR&&again)await resend(again);
 else if(STATE_DIR)await scheduled();
-else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD] | --preview YYYY-MM-DD [--week] [--month]');process.exit(2);}
+else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD | --mike-day YYYY-MM-DD [--send]] | --preview YYYY-MM-DD [--week] [--month]');process.exit(2);}

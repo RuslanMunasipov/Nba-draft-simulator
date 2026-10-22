@@ -13,8 +13,17 @@ import path from 'node:path';
 
 // An alias of the CLI (sonnet, opus, haiku) or a full model name.
 export const CLAUDE_MODEL=process.env.CLAUDE_TEXT_MODEL||'sonnet';
+// The subscription token as pasted into the secret: spaces, line breaks and quotes around it are not part of it.
+export const subscriptionToken=(env=process.env)=>String(env.CLAUDE_CODE_OAUTH_TOKEN||'').trim().replace(/^["']+|["']+$/g,'').trim();
 // Whether a run can write at all: the subscription token is set (CI). Without it the bots write nothing.
-export const claudeConfigured=(env=process.env)=>Boolean(env.CLAUDE_CODE_OAUTH_TOKEN);
+export const claudeConfigured=(env=process.env)=>Boolean(subscriptionToken(env));
+// What a refused token is, without showing it: `claude setup-token` prints one that starts with sk-ant-oat.
+export function tokenHint(token){
+ if(!token)return 'the secret is empty';
+ if(/^sk-ant-oat\d*-/.test(token))return `the secret holds a setup-token token (${token.length} characters): it was revoked, expired or cut short`;
+ if(/^sk-ant-api/.test(token))return 'the secret holds an API key, not a subscription token';
+ return `the secret does not hold a \`claude setup-token\` token (those start with sk-ant-oat01-; this one has ${token.length} characters)`;
+}
 
 export class ClaudeError extends Error{
  constructor(message,{status=null,detail=''}={}){super(`Claude Code: ${message}`);this.name='ClaudeError';this.status=status;this.detail=detail;}
@@ -36,12 +45,12 @@ export function answerJSON(text){
 }
 
 // The CLI's result object as {data, text, usage, costUsd}, or a ClaudeError that says what went wrong.
-export function readResult(stdout,{code=0,stderr='',schema}={}){
+export function readResult(stdout,{code=0,stderr='',schema,token}={}){
  let r;try{r=JSON.parse(stdout);}catch{
   throw new ClaudeError(`no JSON result (exit ${code})${stderr.trim()?`: ${stderr.trim().slice(-500)}`:''}`,{detail:stdout.slice(-500)});}
  if(r.is_error||r.subtype!=='success'){
   const status=r.api_error_status??null,text=String(r.result||r.errors?.join('; ')||r.subtype||'error').slice(0,500);
-  const hint=status===401?' — the subscription token is invalid or expired: run `claude setup-token` and update the CLAUDE_CODE_OAUTH_TOKEN secret'
+  const hint=status===401?` — the subscription token is invalid or expired${token!==undefined?` (${tokenHint(token)})`:''}: run \`claude setup-token\` and update the CLAUDE_CODE_OAUTH_TOKEN secret`
    :status===429?' — the subscription\'s usage limit is reached, try later':'';
   throw new ClaudeError(`${status?`${status} `:''}${text}${hint}`,{status,detail:text});
  }
@@ -57,8 +66,8 @@ export function readResult(stdout,{code=0,stderr='',schema}={}){
 export async function claudeJSON({system,prompt,schema,model=CLAUDE_MODEL,timeoutMs=180e3,bin=process.env.CLAUDE_BIN||'claude',env=process.env}={}){
  if(!prompt)throw new ClaudeError('no prompt');
  const cwd=fs.mkdtempSync(path.join(os.tmpdir(),'claude-text-'));
- const {ANTHROPIC_API_KEY,ANTHROPIC_AUTH_TOKEN,...rest}=env;
- const childEnv={...rest,CLAUDE_CODE_DISABLE_CLAUDE_MDS:'1',DISABLE_UPDATES:'1',CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC:'1'};
+ const {ANTHROPIC_API_KEY,ANTHROPIC_AUTH_TOKEN,...rest}=env,token=subscriptionToken(env);
+ const childEnv={...rest,...token?{CLAUDE_CODE_OAUTH_TOKEN:token}:{},CLAUDE_CODE_DISABLE_CLAUDE_MDS:'1',DISABLE_UPDATES:'1',CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC:'1'};
  try{
   const {stdout,stderr,code,timedOut}=await new Promise((resolve,reject)=>{
    const child=spawn(bin,claudeArgs({system,model,schema}),{cwd,env:childEnv,stdio:['pipe','pipe','pipe']});
@@ -71,6 +80,6 @@ export async function claudeJSON({system,prompt,schema,model=CLAUDE_MODEL,timeou
    child.stdin.on('error',()=>{});child.stdin.end(prompt);
   });
   if(timedOut)throw new ClaudeError(`no answer in ${Math.round(timeoutMs/1e3)} s`);
-  return readResult(stdout,{code,stderr,schema});
+  return readResult(stdout,{code,stderr,schema,token});
  }finally{fs.rmSync(cwd,{recursive:true,force:true});}
 }

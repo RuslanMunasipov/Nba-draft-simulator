@@ -104,7 +104,8 @@ export function zakPicture({kind,team,no,seed,root,...story}){
  const gm=gmOf(team),gmName=gm?.en||LEAGUE_TEAMS[team]?.gm;
  const refs=references([{key:'zak',image:zakPhoto(ZAK_MOOD[kind]||'check',root),what:'Zak Onn, the league lawyer'},
   {key:'gm',image:gmPhoto(team,root),what:`the general manager of the fantasy team${gmName?` (${gmName})`:''}`},
-  {key:'logo',image:teamLogo(team,root),what:'the fantasy team logo'}]);
+  // A GM drawn as a child never shares a scene with a logo of crosshairs (School Shooters Team): his scenes go without one.
+  {key:'logo',image:gm?.child?null:teamLogo(team,root),what:'the fantasy team logo'}]);
  const G=refs.has.gm?`${gm?.en||'the general manager'} (the general manager, ${refs.has.gm})`:'the team\'s general manager, seen only from behind';
  // Who the GM is and what never changes about them, in a block of its own (the scene names them only).
  const who=refs.has.gm?`GENERAL MANAGER: the exact person from ${refs.has.gm}, face preserved and recognizable${gm?`: ${looks(gm)}`:''}.`:'';

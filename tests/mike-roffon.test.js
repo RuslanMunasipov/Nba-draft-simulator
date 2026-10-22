@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
-import {interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA} from '../awards-bot/mike-roffon.js';
+import {interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
 
 const s={pts:45,reb:10,ast:3,stl:2,blk:1,tov:4,fgm:16,fga:29,ftm:4,fta:5,pf:1};
 const line={d:'2026-10-21',e:'g1',a:'4594268',n:'A. Edwards',c:'MIN',t:'2026-10-22T00:00Z',m:36.4,p:fblFormula(s),h:[5],b:[],s};
@@ -33,6 +33,17 @@ test('Mike Roffon: his voice is described, his old pieces are never quoted, and 
  assert.deepEqual(copiedLines({...good,afterword:'Тихий пол, громкий потолок.'}),[],'single words are free');
 });
 
+test('Mike Roffon: numbers in words are numbers too, and only the facts may hold them',()=>{
+ assert.deepEqual(wordNumbers('Сорок пять очков, тридцатью девятью ФО, двести тридцать один, тринадцатый промах'),['45','39','231','13']);
+ assert.deepEqual(wordNumbers('пять сорок'),['5','40'],'a row adds up only from bigger places to smaller');
+ assert.deepEqual(wordNumbers('Семья, пятно, вторник, сторона и пятерка — не числа'),[]);
+ assert.deepEqual(wordNumbers('первый раз, на пятом месте, шестнадцать зашло'),['1','5','16']);
+ assert.equal(facts.game.fgMissed,13);assert.equal(facts.game.ftMissed,1);
+ assert.deepEqual(strayNumbers({...good,qa:[...good.qa,{q:'Двадцать девять бросков, тринадцать мимо?',a:'Сорок пять очков.'}]},facts),[],'the facts: 29 FGA, 13 missed, 45 points');
+ assert.deepEqual(strayNumbers({...good,afterword:'В среднем двадцать восемь за сезон.'},facts),['28']);
+ assert.deepEqual(strayNumbers({...good,afterword:'Третья игра подряд с тридцатью очками.'},facts),['30']);
+});
+
 test('Mike Roffon: the interview as Telegram HTML, marked as fiction, with the hashtags',()=>{
  const t=interviewText({...good,title:'«Когда темп мой»'},facts);
  assert.match(t,/<b>🎙 Inside FBL • Флеш-интервью<\/b>\n<i>«Когда темп мой»<\/i>/,'one pair of quotes');
@@ -45,7 +56,7 @@ test('Mike Roffon: the interview as Telegram HTML, marked as fiction, with the h
 test('Mike Roffon: his picture keeps his gloves and microphone, the real player and the league logo',()=>{
  const p=interviewPicture(facts,'2026-10-21');
  assert.equal(p.images.length,2);assert.match(p.prompt,/white gloves and a vintage chrome microphone, always/);
- assert.match(p.prompt,/the real NBA player A\. Edwards of the MIN/);assert.match(p.prompt,/INSIDE FBL/);assert.doesNotMatch(p.prompt,/undefined/);
+ assert.match(p.prompt,/the real NBA player A\. Edwards, exactly as he really looks/);assert.match(p.prompt,/in the uniform of the MIN/);assert.match(p.prompt,/INSIDE FBL/);assert.doesNotMatch(p.prompt,/undefined/);
 });
 
 test('Mike Roffon: at the arena, under the stands and at the press conference he is a sports reporter, never in a helmet',()=>{
@@ -59,6 +70,20 @@ test('Mike Roffon: at the arena, under the stands and at the press conference he
   assert.doesNotMatch(p.prompt.replace(/No helmet, no military uniform, no camouflage, no PRESS or tactical vest\./,''),/helmet|camouflage|military|\bwar\b|BORN TO ASK|PRESS vest/i);
  }
  assert.ok([...seen].some(s=>/outside the arena/.test(s))&&[...seen].some(s=>/tunnel under the stands/.test(s))&&[...seen].some(s=>/press conference/.test(s)),[...seen].join(' / '));
+});
+
+test('Mike Roffon: the hero wears his FBL team: its colors and its logo, the logo as the third reference',()=>{
+ for(let d=1;d<=12;d++){
+  const day=`2026-11-${String(d).padStart(2,'0')}`,p=interviewPicture(facts,day,{team:5});
+  assert.equal(p.images.length,3,'Mike, the league logo, the team logo');
+  assert.match(p.prompt,/reference image 3 is the logo of Texas 76 Citrus, the player's fantasy team/);
+  assert.match(p.prompt,/dressed not in his NBA club's uniform but in the kit of his fantasy team Texas 76 Citrus: its colors and its logo exactly as in reference image 3, no NBA club logos/);
+  assert.match(p.prompt,/fantasy team Texas 76 Citrus[^.]*in the colors of the logo in reference image 3, that logo on the chest/);
+  assert.match(p.prompt,/the lettering inside the team logo, exactly as in reference image 3/);
+  assert.doesNotMatch(p.prompt,/KIT|WARMUP|of the MIN/);
+ }
+ const none=interviewPicture(facts,'2026-11-01');
+ assert.equal(none.images.length,2);assert.match(none.prompt,/in the uniform of the MIN/);assert.doesNotMatch(none.prompt,/fantasy team|reference image 3/);
 });
 
 test('Mike Roffon: written by Claude (the subscription module, JSON by the schema), again on its own numbers or old lines, then dropped',async()=>{
