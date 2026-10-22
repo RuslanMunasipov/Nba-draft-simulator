@@ -95,8 +95,6 @@ jobs:
             public/data/projection-model-audit.json
             public/data/default-draft.json
           if-no-files-found: warn
-      - name: Slim the site's player database (after the artifact keeps it whole)
-        run: python scripts/slim_database.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -104,6 +102,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Test, build and verify
         run: npm run verify
+      - name: Slim the site's player database (after the build's checks; the artifact above keeps it whole)
+        run: python scripts/slim_database.py dist/data/default-draft.json
       - name: Browser smoke test on a phone viewport
         timeout-minutes: 10
         run: |
