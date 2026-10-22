@@ -1,0 +1,21 @@
+{
+ "about": "The league's people for the pictures (league chat, 22.10.2026): who they are, their photo in scripts/assets/, and what a picture must always keep. style: how a person is always drawn, whatever the scene. team: the league team's index (0-7, src/teams.js) of a GM.",
+ "people": [
+  {"id": "zak-onn", "name": "Зак Онн", "en": "Zak Onn", "role": "lawyer", "photo": "zak-onn/check.jpg",
+   "keep": "tailored charcoal-grey suit, white shirt, plain black tie and the bright red baseball cap with white embroidered text \"God Bless America\""},
+  {"id": "adam-silverov", "name": "Адам Сильверов", "en": "Adam Silverov", "role": "commissioner", "photo": "people/adam-silverov.jpg",
+   "keep": "bald head, thin metal-rimmed glasses, white shirt with rolled sleeves and a dark red tie"},
+  {"id": "franky-murder", "name": "Фрэнки Мердер", "aliases": ["Фрэнки Скайнет", "Franky Skynet"], "en": "Franky Murder", "role": "gm", "team": 0, "photo": "people/franky-murder.jpg",
+   "keep": "curly dark hair, full beard, dark aviator sunglasses, black leather jacket, red tartan scarf, gold rings and a cigar"},
+  {"id": "captain-torres-new-win", "name": "Капитан Торрес Нью-Вин", "en": "Captain Torres New-Win", "role": "gm", "team": 4, "photo": "people/captain-torres-new-win.jpg",
+   "style": "always drawn exactly as in his photo: a flat hand-drawn cartoon character, even inside a photographic scene",
+   "keep": "black tricorn pirate hat with gold trim, red bandana, navy pirate coat with gold trim and buttons, short reddish beard"},
+  {"id": "coach-i", "name": "Коуч I", "aliases": ["Коуч Первый", "Коуч 1"], "en": "Coach I", "role": "gm", "team": 1, "photo": "people/coach-i.jpg",
+   "style": "always rendered as a classical oil painting, exactly as in his photo, even inside a photographic scene",
+   "keep": "curly dark hair, short beard, imperial dark-green velvet uniform with gold embroidery, a blue sash and an ermine mantle"},
+  {"id": "jonathan-zhopa", "name": "Джонатан Жопа", "en": "Jonathan Zhopa", "role": "reserve", "photo": "people/jonathan-zhopa.jpg",
+   "keep": "curly brown hair, large metal-frame glasses, a red velour pullover with stripes"},
+  {"id": "mike-roffon", "name": "Майк Роффон", "en": "Mike Roffon", "role": "reporter", "photo": "people/mike-roffon.jpg",
+   "keep": "an elderly war correspondent: camouflage helmet reading \"BORN TO ASK\", white shirt with a polka-dot tie, a PRESS vest, and always white gloves and a vintage chrome microphone"}
+ ]
+}

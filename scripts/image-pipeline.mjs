@@ -25,7 +25,15 @@ export function readImage(file){
 const find=(dir,base)=>{for(const ext of Object.keys(TYPES)){const f=path.join(dir,base+ext);if(fs.existsSync(f))return f;}return null;};
 // team: the league team's index (0 to 7), as everywhere in the code; the files are numbered from 1.
 export const zakPhoto=(mood,root=ASSETS)=>readImage(find(path.join(root,'zak-onn'),mood));
-export const gmPhoto=(team,root=ASSETS)=>Number.isInteger(team)?readImage(find(path.join(root,'gm'),String(team+1))):null;
+// The league's people (assets/people.json): name, role, photo, and what a picture keeps of them (keep, style).
+export const PEOPLE=JSON.parse(fs.readFileSync(path.join(ASSETS,'people.json'),'utf8')).people;
+export const person=id=>PEOPLE.find(p=>p.id===id)||null;
+export const gmOf=team=>PEOPLE.find(p=>p.role==='gm'&&p.team===team)||null;
+// A GM's photo: gm/<team number> when the league put one there, else their photo in the people.
+export const gmPhoto=(team,root=ASSETS)=>!Number.isInteger(team)?null:
+ readImage(find(path.join(root,'gm'),String(team+1)))||(gmOf(team)?readImage(path.join(root,gmOf(team).photo)):null);
+// How a prompt describes a person of the people next to their reference: name, what never changes, how they are drawn.
+export const looks=p=>p?`${p.en}${p.keep?`; always with: ${p.keep}`:''}${p.style?`; ${p.style}`:''}`:'';
 export const teamLogo=(team,root=ASSETS)=>Number.isInteger(team)?readImage(find(path.join(root,'team-logos'),String(team+1))):null;
 
 // The references of a picture in order, with the words a prompt uses for each ("reference image 2"): only the ones that
