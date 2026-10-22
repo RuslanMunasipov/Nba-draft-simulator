@@ -1,6 +1,7 @@
 // FBL awards bot, the cards drawn: cards.js writes them as HTML, Chromium (Playwright's) takes each as a 1080×1350 PNG.
 // Everything a card shows is embedded before it is drawn: the fonts (assets/fonts, OFL), the players' ESPN headshots,
-// the team logos (scripts/assets/team-logos) and the emoji (Twemoji), so a card never depends on a page load.
+// the team logos (scripts/assets/team-logos), the holiday frames (assets/holidays) and the emoji (Twemoji), so a card
+// never depends on a page load.
 // A headshot or an emoji that cannot be fetched is drawn without it (initials, the plain character).
 import fs from 'node:fs';
 import {chromium} from '@playwright/test';
@@ -26,7 +27,11 @@ export async function loadLook(athletes,{root}={}){
  await Promise.all(CARD_EMOJI.map(async e=>{const x=await fetchBytes(TWEMOJI+twemojiName(e)+'.svg');if(x)emoji.set(e,dataUri(x.bytes,'image/svg+xml'));}));
  const logos=new Map();
  for(let t=0;t<8;t++){const l=teamLogo(t,root);if(l)logos.set(t,dataUri(l.bytes,l.type));}
- return {photo:a=>photos.get(String(a))||null,logo:t=>logos.get(t)||null,
+ // The holiday frames (holiday-frames.mjs), read when a card asks for one.
+ const frames=new Map(),frame=key=>{
+  if(!frames.has(key)){const f=new URL(`./assets/holidays/${key}.webp`,import.meta.url);frames.set(key,fs.existsSync(f)?dataUri(fs.readFileSync(f),'image/webp'):null);}
+  return frames.get(key);};
+ return {photo:a=>photos.get(String(a))||null,logo:t=>logos.get(t)||null,frame,
   emoji:e=>emoji.has(e)?`<img class="emo" src="${emoji.get(e)}">`:`<span class="emo">${e}</span>`};
 }
 

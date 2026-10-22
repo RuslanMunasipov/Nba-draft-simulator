@@ -42,6 +42,8 @@ test('image pipeline: an edit with every reference and the key, a generation wit
  assert.deepEqual([form.get('model'),form.get('quality'),form.get('size'),form.get('prompt')],[MODEL,QUALITY,SIZE,'P']);
  assert.deepEqual(form.getAll('image[]').map(f=>[f.name,f.type]),[['1.png','image/png'],['1.jpg','image/jpeg']]);
  await generate({prompt:'Q'},{fetchImpl:ok});
+ await generate({prompt:'F',size:'1024x1536',background:'transparent'},{fetchImpl:ok});
+ assert.deepEqual(JSON.parse(calls[2].init.body),{model:MODEL,prompt:'F',size:'1024x1536',quality:QUALITY,n:1,background:'transparent',output_format:'png'},'a holiday frame: a transparent portrait');
  assert.equal(calls[1].url,'https://api.openai.com/v1/images/generations');
  assert.deepEqual(JSON.parse(calls[1].init.body),{model:MODEL,prompt:'Q',size:SIZE,quality:QUALITY,n:1});
  assert.deepEqual(calls[1].init.headers,{'content-type':'application/json'},'without a key the request goes out bare (a proxy adds it)');

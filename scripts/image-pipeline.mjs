@@ -45,24 +45,27 @@ export function cost(usage){
 
 // One picture: the references edited by the prompt (without references, drawn from the prompt alone). Answers the PNG and
 // the usage. key: the OpenAI API key (without it the request goes out bare, for a proxy that adds it). A refused prompt,
-// a bad key or an empty balance is not tried again.
-export async function generate({prompt,images=[]},{key,fetchImpl=fetch,timeoutMs=180e3,attempts=3}={}){
+// a bad key or an empty balance is not tried again. size and background (transparent) override the defaults: a holiday
+// frame of the cards is a transparent portrait.
+export async function generate({prompt,images=[],size=SIZE,background},{key,fetchImpl=fetch,timeoutMs=180e3,attempts=3}={}){
  const auth=key?{authorization:`Bearer ${key}`}:{},edit=images.length>0;
  let last;
  for(let attempt=0;attempt<attempts;attempt++){
   let body;
   if(edit){
    body=new FormData();
-   body.append('model',MODEL);body.append('prompt',prompt);body.append('size',SIZE);body.append('quality',QUALITY);body.append('n','1');
+   body.append('model',MODEL);body.append('prompt',prompt);body.append('size',size);body.append('quality',QUALITY);body.append('n','1');
+   if(background)body.append('background',background);
    for(const im of images)body.append('image[]',new Blob([im.bytes],{type:im.type||'image/jpeg'}),im.name);
-  }else body=JSON.stringify({model:MODEL,prompt,size:SIZE,quality:QUALITY,n:1});
+  }else body=JSON.stringify({model:MODEL,prompt,size,quality:QUALITY,n:1,...background?{background,output_format:'png'}:{}});
   try{
    const r=await fetchImpl(`https://api.openai.com/v1/images/${edit?'edits':'generations'}`,{method:'POST',body,
     headers:edit?auth:{...auth,'content-type':'application/json'},signal:AbortSignal.timeout(timeoutMs)});
    const out=await r.json().catch(()=>({}));
    if(r.ok&&out.data?.[0]?.b64_json)return {png:Buffer.from(out.data[0].b64_json,'base64'),usage:out.usage||null};
    last=Error(`OpenAI images: ${r.status} ${out.error?.message||''}`.trim());
-   if(r.status!==429&&r.status<500)break;
+   // An answer without a picture (it happens, once in a while) is tried again like a server error.
+   if(!r.ok&&r.status!==429&&r.status<500)break;
    if(out.error?.code==='credit_balance_exhausted'||out.error?.type==='insufficient_quota')break;
   }catch(e){last=e;}
   if(attempt<attempts-1)await new Promise(r=>setTimeout(r,5000*(attempt+1)));
