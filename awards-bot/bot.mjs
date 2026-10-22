@@ -12,7 +12,8 @@
 //   node awards-bot/bot.mjs --preview DAY [--week] [--month] [--cards DIR] [--holiday KEY]
 //                                                   the posts of US game day DAY rebuilt from ESPN; nothing saved or sent
 //                                                   (--cards: the albums' cards as PNG files in DIR, with their captions;
-//                                                   --holiday: the cards dressed for that holiday of holidays.js;
+//                                                   --holiday: the cards dressed for that holiday of holidays.js,
+//                                                   none: without any holiday decor;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
 //                                                   OPENAI_API_KEY, drawn, ~$0.03)
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--cards DIR]
@@ -130,6 +131,8 @@ async function post(text,chat=CHAT,label='league chat'){
 // --- Albums: a post's cards drawn and sent as one Telegram media group, the caption (with its hashtags) on the first.
 // A post never gets lost to its cards: when they cannot be drawn or sent, its text goes instead.
 const CARDS_DIR=opt('--cards'),FORCED=opt('--holiday');
+// --holiday KEY dresses the cards for that holiday whatever the day; --holiday none: no holiday decor at all.
+if(FORCED&&FORCED!=='none'&&!HOLIDAYS.some(h=>h.key===FORCED))throw Error(`--holiday: ${FORCED} is not a key of holidays.js (or none)`);
 const holidayFor=day=>FORCED?HOLIDAYS.find(h=>h.key===FORCED)||null:holidayOf(day);
 async function sendAlbum(pngs,caption){
  const one=pngs.length===1;
