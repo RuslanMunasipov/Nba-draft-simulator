@@ -2,10 +2,10 @@
 // of the Teams tab. Shared by the Overview table and the Teams tab, so both screens always agree.
 import {teamPoints,playerOutlook,pointsSpread,expectedPoints,gameWeeks,horizons,periodList,stints,shadowed,inStint,tourDate,fblPoints} from './season.js';
 
-// A played row's points count only when they are FBL points: the league's Yahoo formula on that game's own box score
-// (ESPN's: the collector's pointsSource ESPN or the overlay's source 'ESPN'; else Sports.ru's game table, BOX). A row
-// Sports.ru listed without readable box columns (NO_BOX) or still carrying its result bonus (SPORTS_WITH_BONUS) has no
-// FBL points yet; a row without a source (older snapshots) counts as before. The rule itself is season.js fblPoints.
+// A played row's points count only when they are FBL points: the official formula on ESPN's box score of that game (the
+// collector's pointsSource ESPN or the overlay's source 'ESPN'), the one source of FBL points (league owner, 22.10.2026).
+// A row ESPN has no line for yet (AWAITING_ESPN) or Sports.ru's own table (BOX, a check only) has none; a row without any
+// source (hand-made) counts as given. The rule itself is season.js fblPoints.
 export const fblGame=g=>Boolean(g?.played)&&fblPoints(g)!==null;
 
 // Competition ranking: equal totals share a place ("1, 2, 2, 4"), so a tie is never broken by team order or forecast.

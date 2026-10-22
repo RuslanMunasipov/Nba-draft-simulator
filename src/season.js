@@ -132,13 +132,13 @@ export function transfersThisWeek(transfers,team,today,weeks){
  return transfers.filter(x=>x.team===team&&x.date<=today&&transferWeek(x.date,weeks)?.start===week.start).length;
 }
 
-// A played game's FBL points, or null when they are not known: the league's Yahoo formula on the game's own box score,
-// ESPN's for every game ESPN lists for the player (the collector's pointsSource 'ESPN', withBoxScores' source 'ESPN'),
-// else the Sports.ru game table's (pointsSource 'BOX').
-// A row without readable box columns ('NO_BOX') or with Sports.ru's result bonus in it ('SPORTS_WITH_BONUS') is a game
-// played whose points are unknown: Sports.ru's ФО is never FBL points. A row without a source (an older snapshot) counts.
-const NOT_FBL=new Set(['NO_BOX','SPORTS_WITH_BONUS']);
-export const fblPoints=g=>Number.isFinite(g?.points)&&(g.source==='ESPN'||!NOT_FBL.has(g.pointsSource))?g.points:null;
+// A played game's FBL points, or null when they are not known: the league's official formula on ESPN's box score of the
+// game, the only source of FBL points (league owner, 22.10.2026; the collector's pointsSource 'ESPN', withBoxScores'
+// source 'ESPN'), so the site, the standings, the personal bot and the awards bot count the same number for every game.
+// A row ESPN has no line for yet ('AWAITING_ESPN'), the Sports.ru game table's own box score ('BOX', kept by the
+// collector as sportsBoxPoints for the reconciliation) and Sports.ru's ФО are never FBL points. A row without any
+// source (hand-made rows of the tests and the league log) counts as given.
+export const fblPoints=g=>Number.isFinite(g?.points)&&(g.source==='ESPN'||g.pointsSource==='ESPN'||g.source==null&&g.pointsSource==null)?g.points:null;
 // Points per game: the pre-season full-formula forecast updated by the games played, as they arrive (each game's FBL
 // points, fblPoints: a game whose points are not known yet is left out of the update, not read as 0).
 // Weights come from scripts/inseason_calibration.py (fitted 2023/24->2024/25 on squared error, tested on 2025/26), which

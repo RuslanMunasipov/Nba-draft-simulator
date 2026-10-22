@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 
@@ -256,6 +257,13 @@ class EspnBoxScoreTests(unittest.TestCase):
         self.assertEqual(list(lines), ['4251'])
         self.assertEqual(collector.fbl_points(lines['4251']), 31)
 
+    def test_the_collector_scores_an_espn_box_score_as_the_awards_archive_did(self):
+        # tests/game-points-consistency.test.js holds the site's overlay and the awards bot to the same golden points.
+        fixtures = Path(__file__).parent / 'fixtures'
+        summary = json.loads((fixtures / 'espn-summary-401909088.json').read_text(encoding='utf-8'))
+        golden = json.loads((fixtures / 'espn-points-golden.json').read_text(encoding='utf-8'))['points']
+        self.assertEqual({a: collector.fbl_points(line) for a, line in collector.espn_lines(summary).items()}, golden)
+
     def test_finished_games_are_indexed_by_moscow_date_and_clubs(self):
         sched = {'BOS': {'events': [
             {'id': '1', 'date': '2026-10-20T23:00Z', 'competitions': [{'status': {'type': {'completed': True}}, 'competitors': [{'team': {'abbreviation': 'DET'}}, {'team': {'abbreviation': 'BOS'}}]}]},
@@ -267,11 +275,27 @@ class EspnBoxScoreTests(unittest.TestCase):
         players = {'s1': {'games': [{'date': '2026-10-21', 'opponent': 'Детройт', 'played': True, 'points': 32, 'pointsSource': 'BOX'},
                                     {'date': '2026-10-23', 'opponent': 'Нью-Йорк', 'played': True, 'points': 10, 'pointsSource': 'BOX'}]},
                    's2': {'games': [{'date': '2026-10-21', 'opponent': 'Бостон', 'played': True, 'points': 7, 'pointsSource': 'BOX'}]}}
-        self.assertEqual(collector.apply_espn(players, cache, {'s1': '4251', 's2': '77'}), 1)
+        scored, report = collector.apply_espn(players, cache, {'s1': '4251', 's2': '77'})
+        self.assertEqual(scored, 1)
         george = players['s1']['games']
-        self.assertEqual((george[0]['points'], george[0]['pointsSource'], george[0]['boxPoints'], george[0]['espnEvent']), (31, 'ESPN', 32, '1'))
-        self.assertEqual(george[1]['pointsSource'], 'BOX', 'a game ESPN has not finished keeps the Sports.ru box score')
-        self.assertEqual(players['s2']['games'][0]['pointsSource'], 'BOX', 'a player ESPN does not list keeps the Sports.ru box score')
+        self.assertEqual((george[0]['points'], george[0]['pointsSource'], george[0]['sportsBoxPoints'], george[0]['espnEvent']), (31, 'ESPN', 32, '1'))
+        # Sports.ru's game table is a check only (league owner, 22.10.2026): a game ESPN has not read waits for it.
+        self.assertEqual((george[1]['points'], george[1]['pointsSource'], george[1]['espnStatus'], george[1]['sportsBoxPoints']), (None, 'AWAITING_ESPN', 'GAME_NOT_READ', 10))
+        s2 = players['s2']['games'][0]
+        self.assertEqual((s2['points'], s2['pointsSource'], s2['espnStatus']), (None, 'AWAITING_ESPN', 'NO_LINE'))
+        self.assertEqual([(r['sportsId'], r['espn'], r['sports']) for r in report], [('s1', 31, 32), ('s2', None, 7)])
+
+    def test_a_player_without_a_reviewed_id_is_found_by_his_box_score_and_espn_only_games_are_added(self):
+        lines = collector.espn_lines(self.summary())
+        cache = {'events': {'1': {'tip': '2026-10-20T23:00:00+00:00', 'day': '2026-10-21', 'teams': ['BOS', 'DET'], 'players': lines},
+                            '2': {'tip': '2026-10-22T23:00:00+00:00', 'day': '2026-10-23', 'teams': ['BOS', 'NY'], 'players': lines}}}
+        players = {'new': {'name': 'Джордж', 'games': [{'date': '2026-10-21', 'opponent': 'Детройт', 'played': True, 'points': 31, 'pointsSource': 'BOX', 'minutes': lines['4251']['min']}]}}
+        scored, report = collector.apply_espn(players, cache, {})
+        self.assertEqual((players['new']['espnId'], players['new']['espnIdSource']), ('4251', 'BOX_MATCH'))
+        games = players['new']['games']
+        self.assertEqual([(g['date'], g['points'], g['pointsSource']) for g in games], [('2026-10-21', 31, 'ESPN'), ('2026-10-23', 31, 'ESPN')])
+        self.assertEqual(games[1]['sportsRow'], False)
+        self.assertEqual(report[-1]['differs'], ['missing at Sports.ru'])
 
     def test_the_cache_reads_new_and_recent_finals_only(self):
         from datetime import datetime, timezone

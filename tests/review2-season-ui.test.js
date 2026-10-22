@@ -58,9 +58,9 @@ test('the Teams tab and the race read the same credit: rows, KPIs and sold playe
 });
 
 // ---------- Y10 (app side): only FBL points are counted and shown ----------
-test('a played row counts only with FBL points: its own box score (BOX or the ESPN overlay), never Sports.ru\'s number',()=>{
+test('a played row counts only with FBL points: ESPN\'s box score (the collector\'s or the overlay\'s), never Sports.ru\'s number',()=>{
  const row=(o)=>({date:'2026-10-21',played:true,points:20,...o});
- assert.equal(ST.fblGame(row({pointsSource:'BOX'})),true);assert.equal(ST.fblGame(row({})),true,'older rows without a source count as before');
+ assert.equal(ST.fblGame(row({pointsSource:'ESPN'})),true);assert.equal(ST.fblGame(row({pointsSource:'BOX'})),false,'the Sports.ru table is a check only');assert.equal(ST.fblGame(row({})),true,'older rows without a source count as before');
  assert.equal(ST.fblGame(row({pointsSource:'NO_BOX',points:null})),false);assert.equal(ST.fblGame(row({pointsSource:'SPORTS_WITH_BONUS',points:31})),false);
  assert.equal(ST.fblGame(row({pointsSource:'NO_BOX',points:null,source:'ESPN'})),false,'no points, no game');
  assert.equal(ST.fblGame(row({pointsSource:'NO_BOX',points:24,source:'ESPN'})),true,'the ESPN box score scores it');

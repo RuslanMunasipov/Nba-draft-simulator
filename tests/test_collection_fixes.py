@@ -241,9 +241,10 @@ class CollectionRunTests(unittest.TestCase):
         self.assertNotIn('tip', snap['clubs']['Денвер'][1])
         self.assertEqual(snap['players']['1']['games'][0]['tip'], '2026-10-24T00:30:00+00:00')
         self.assertEqual((snap['tips']['clubs'], snap['tips']['games'], snap['tips']['of']), (1, 1, 2))
-        self.assertEqual({k: snap['gamePoints'][k] for k in ('played', 'gamesWithResult', 'gamesWithoutBox', 'uncounted', 'mismatches')},
-                         {'played': 2, 'gamesWithResult': 2, 'gamesWithoutBox': 0, 'uncounted': 0, 'mismatches': 0})
-        self.assertEqual([g['points'] for g in snap['players']['1']['games']], [28, 0])
+        self.assertEqual({k: snap['gamePoints'][k] for k in ('played', 'gamesWithResult', 'awaitingEspn', 'uncounted', 'mismatches')},
+                         {'played': 2, 'gamesWithResult': 2, 'awaitingEspn': 2, 'uncounted': 0, 'mismatches': 0})
+        # ESPN's box scores are the only FBL points: without them the games wait, Sports.ru's own box score kept for the check.
+        self.assertEqual([(g['points'], g['pointsSource'], g['sportsBoxPoints']) for g in snap['players']['1']['games']], [(None, 'AWAITING_ESPN', 28), (None, 'AWAITING_ESPN', 0)])
 
     def test_failing_schedules_never_fail_the_collection(self):
         def boom(url):

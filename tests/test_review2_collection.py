@@ -188,23 +188,25 @@ class CollectionRunTests(unittest.TestCase):
         # Player 2's game table lost its ФО head.
         snap = self.run_main(previous, {'1': ('Денвер', fixes.table(OPENING)), '2': ('Бостон', fixes.table(OPENING).replace('<td>ФО</td>', '<td>ФО*</td>'))})
         jokic, brown = snap['players']['1'], snap['players']['2']
-        self.assertEqual(view(jokic['games'][0]), (28, 'BOX', 0, 'W', 'UNCOUNTED'))
+        # ESPN is down: the game waits for its box score; Sports.ru's own (28) is kept for the check only.
+        self.assertEqual(view(jokic['games'][0]), (None, 'AWAITING_ESPN', 0, 'W', 'UNCOUNTED'))
+        self.assertEqual(jokic['games'][0]['sportsBoxPoints'], 28)
         # C04: the calendar no longer lists the played game and ESPN is down: the previous calendar's tip stands.
         self.assertEqual(jokic['games'][0]['tip'], '2026-10-20T01:30:00+00:00')
         self.assertEqual((snap['clubs']['Денвер'][0]['date'], snap['clubs']['Денвер'][0]['tip'], snap['clubs']['Денвер'][0]['gone']), ('2026-10-20', '2026-10-20T01:30:00+00:00', True))
         # C05: player 2's table is unreadable: his previous games stand, the older collector's row without points.
         self.assertEqual((brown['gameTable'], brown['gamesKeptFrom']), ('UNREADABLE', '2026-10-21T06:00:00+00:00'))
-        self.assertEqual([(g['points'], g['pointsSource']) for g in brown['games']], [(20, 'BOX'), (None, 'NO_BOX')])
+        self.assertEqual([(g['points'], g['pointsSource'], g.get('sportsBoxPoints')) for g in brown['games']], [(None, 'AWAITING_ESPN', 20), (None, 'AWAITING_ESPN', None)])
         self.assertIn({'sportsId': '2', 'error': 'game table unread; kept the games of 2026-10-21T06:00:00+00:00'}, snap['errors'])
         # Y08/Y11: the published formula is Yahoo's, 1 point per game played, on each row's box score.
         self.assertEqual(snap['gamePoints']['formula'], c.FORMULA)
         self.assertIn('+1 per game played', c.FORMULA)
         self.assertNotIn('+2', c.FORMULA)
         self.assertNotIn('scoreOrientation', snap['gamePoints'])
-        self.assertEqual({k: snap['gamePoints'][k] for k in ('played', 'sources', 'gamesWithoutBox', 'uncounted', 'mismatches')},
-                         {'played': 3, 'sources': {'BOX': 2, 'NO_BOX': 1}, 'gamesWithoutBox': 1, 'uncounted': 1, 'mismatches': 0})
+        self.assertEqual({k: snap['gamePoints'][k] for k in ('played', 'sources', 'awaitingEspn', 'uncounted', 'mismatches')},
+                         {'played': 3, 'sources': {'AWAITING_ESPN': 3}, 'awaitingEspn': 3, 'uncounted': 1, 'mismatches': 0})
         played = [g for p in snap['players'].values() for g in p['games'] if g['played']]
-        self.assertTrue(all(g.get('pointsSource') in ('BOX', 'NO_BOX') for g in played), 'no published played row lacks a source')
+        self.assertTrue(all(g.get('pointsSource') in ('ESPN', 'AWAITING_ESPN') for g in played), 'no published played row lacks a source')
 
     def test_tables_that_lost_the_box_score_are_refused_before_earlier_points_could_mask_them(self):
         # The previous snapshot scored the same game of every player: the guard sees the raw collection, not kept points.

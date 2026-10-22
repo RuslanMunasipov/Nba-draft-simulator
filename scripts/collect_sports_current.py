@@ -185,13 +185,14 @@ SEASON_END = season_end()
 BOX = {'fgm2': ('2О',), 'fga2': ('В20', 'В2О'), 'fgm3': ('3О',), 'fga3': ('В3О',), 'ftm': ('Ш',), 'fta': ('ВШ',), 'pts': ('О',),
        'reb': ('ПБ',), 'ast': ('ПР',), 'stl': ('ПХ',), 'blk': ('БШ',), 'tov': ('П',), 'pf': ('Ф',)}
 FORMULA = ("FBL (Yahoo): PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF+1 per game played, on ESPN's box score of the game "
-           "(pointsSource ESPN); a game ESPN does not list for the player falls back to the Sports.ru row's box score (2О+3О of "
-           "В20+В3О, Ш of ВШ, О, ПБ, ПР, ПХ, БШ, П, Ф; BOX); a played row with neither has no points (NO_BOX)")
+           "(pointsSource ESPN), the only source of FBL points (league owner, 22.10.2026). A played Sports.ru row ESPN has no line "
+           "for yet has no points (AWAITING_ESPN); the Sports.ru game table's own box score (2О+3О of В20+В3О, Ш of ВШ, О, ПБ, ПР, "
+           "ПХ, БШ, П, Ф) is kept as sportsBoxPoints for the reconciliation only")
 
 
-def box_points(cs, col):
-    """FBL points of a game from its own box score: PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF, plus 1 for the game
-    played (Yahoo GP, league settings 21.10.2026). None when a column is missing or unreadable."""
+def box_stats(cs, col):
+    """The game table row's box score in the formula's terms (pts, reb, ast, stl, blk, tov, pf, fgm, fga, ftm, fta), None
+    when a column is missing or unreadable."""
     v = {}
     for key, names in BOX.items():
         i = next((col[n] for n in names if n in col), None)
@@ -199,7 +200,15 @@ def box_points(cs, col):
         if x is None:
             return None
         v[key] = x
-    return fbl_points(dict(v, fgm=v['fgm2'] + v['fgm3'], fga=v['fga2'] + v['fga3']))
+    fgm, fga = v.pop('fgm2') + v.pop('fgm3'), v.pop('fga2') + v.pop('fga3')
+    return dict(v, fgm=fgm, fga=fga)
+
+
+def box_points(cs, col):
+    """FBL points of a game from its own box score: PTS+REB+AST+STL+BLK-(FGA-FGM)-(FTA-FTM)-2*TOV-PF, plus 1 for the game
+    played (Yahoo GP, league settings 21.10.2026). None when a column is missing or unreadable."""
+    v = box_stats(cs, col)
+    return None if v is None else fbl_points(v)
 
 
 def row_points(game, cs, col, sports):
@@ -214,7 +223,10 @@ def row_points(game, cs, col, sports):
     i = next((col[n] for n in ('Счет', 'Счёт') if n in col), None)
     score = parse_score(cs[i]) if i is not None and len(cs) > i else None
     won = None if not score or score[0] == score[1] else (score[0] > score[1] if game['home'] else score[1] > score[0])
-    box = box_points(cs, col)
+    stats = box_stats(cs, col)
+    box = None if stats is None else fbl_points(stats)
+    if stats is not None:
+        game['sportsBox'] = stats
     game['sportsPoints'] = sports
     if won is not None:
         game['result'] = 'W' if won else 'L'
@@ -332,7 +344,8 @@ def game_points_summary(players):
     sources = Counter(g.get('pointsSource') or 'UNMARKED' for g in games)
     checks = Counter(g.get('pointsCheck') for g in games)
     return {'played': len(games), 'sources': dict(sorted(sources.items())), 'gamesWithResult': sum(1 for g in games if g.get('result')),
-            'gamesWithoutBox': sum(1 for g in games if g.get('pointsSource') not in SCORED), 'uncounted': checks['UNCOUNTED'],
+            'gamesWithoutBox': sum(1 for g in games if g.get('pointsSource') not in SCORED), 'awaitingEspn': sources.get('AWAITING_ESPN', 0),
+            'uncounted': checks['UNCOUNTED'],
             'mismatches': checks['MISMATCH'], 'seasonEnd': SEASON_END}
 
 
@@ -463,8 +476,8 @@ def add_tips(clubs, players, schedules, previous=None):
 
 
 def espn_lines(summary):
-    """Every player who took the floor in an ESPN summary: {athlete id: the box-score numbers the formula reads, and the
-    minutes}. A DNP has no stats and no line."""
+    """Every player who took the floor in an ESPN summary: {athlete id: the box-score numbers the formula reads, the
+    minutes, his team and short name}. A DNP has no stats and no line."""
     made = lambda v: [int(x) for x in str(v or '0-0').split('-')[:2]] if re.fullmatch(r'\d+-\d+', str(v or '')) else [0, 0]
     num = lambda v: int(v) if re.fullmatch(r'-?\d+', str(v or '')) else 0
     out = {}
@@ -479,7 +492,8 @@ def espn_lines(summary):
                 out[str(a['athlete']['id'])] = {'pts': num(x.get('PTS')), 'reb': num(x.get('REB')), 'ast': num(x.get('AST')),
                                                 'stl': num(x.get('STL')), 'blk': num(x.get('BLK')), 'tov': num(x.get('TO')),
                                                 'pf': num(x.get('PF')), 'fgm': fgm, 'fga': fga, 'ftm': ftm, 'fta': fta,
-                                                'min': str(x.get('MIN') or '')}
+                                                'min': str(x.get('MIN') or ''), 'team': ((team.get('team') or {}).get('abbreviation') or '').upper(),
+                                                'name': (a.get('athlete') or {}).get('shortName') or (a.get('athlete') or {}).get('displayName') or ''}
     return out
 
 
@@ -547,33 +561,117 @@ def sports_to_espn(path=PLAYER_MAP):
         return {}
 
 
-def apply_espn(players, cache, espn_of):
-    """Every played row whose game ESPN lists for the player gets the league's formula on ESPN's box score (pointsSource
-    ESPN). The row is matched by its Moscow date and its opponent: a club plays once a day, so that is its game whoever
-    the player's club was. The Sports.ru table's own points stay as boxPoints where they differ; a row ESPN does not
-    list for him keeps Sports.ru's box score. Returns the number of rows scored from ESPN."""
-    games = {(g.get('day'), t): (eid, g) for eid, g in (cache.get('events') or {}).items() for t in g.get('teams') or []}
-    scored = 0
+STAT_KEYS = ('pts', 'reb', 'ast', 'stl', 'blk', 'tov', 'pf', 'fgm', 'fga', 'ftm', 'fta')
+
+
+def espn_ids(players, cache, espn_of, previous=None):
+    """ESPN athlete id of every Sports.ru player: the reviewed map, the id an earlier snapshot found, else the one athlete
+    whose ESPN line equals the player's Sports.ru box score in every game both list (FBL points and minutes within one;
+    players new to the market reach the pool through FBL rosters without a reviewed id). Returns {sportsId: (id, how)}."""
+    games = {(g.get('day'), t): g for g in (cache.get('events') or {}).values() for t in g.get('teams') or []}
+    old = (previous or {}).get('players') or {}
+    out = {sid: (espn, 'MAP') for sid, espn in espn_of.items()}
+    for sid, info in old.items():
+        if sid not in out and info.get('espnId') and sid in players:
+            out[sid] = (str(info['espnId']), info.get('espnIdSource') or 'BOX_MATCH')
+    taken = {e for e, _ in out.values()}
     for sid, info in players.items():
-        espn = espn_of.get(sid)
-        if not espn:
+        if sid in out:
             continue
+        candidates = None
+        for g in info.get('games') or []:
+            box = g.get('sportsBoxPoints', g.get('points') if g.get('pointsSource') == 'BOX' else None)
+            ev = games.get((g.get('date'), ESPN_ABBR.get(g.get('opponent'))))
+            if not g.get('played') or not isinstance(box, (int, float)) or not ev:
+                continue
+            minutes = clock(g.get('minutes'))
+            near = {a for a, line in (ev.get('players') or {}).items() if a not in taken and fbl_points(line) == box
+                    and (minutes is None or clock(line.get('min')) is None or abs(clock(line['min']) - minutes) <= 1)}
+            candidates = near if candidates is None else candidates & near
+        if candidates and len(candidates) == 1:
+            out[sid] = (candidates.pop(), 'BOX_MATCH')
+            taken.add(out[sid][0])
+    return out
+
+
+def awaiting(players):
+    """Without the ESPN box scores every played row not scored from ESPN before waits for it."""
+    for info in players.values():
+        for g in info.get('games') or []:
+            if g.get('played') and g.get('pointsSource') != 'ESPN':
+                if g.get('pointsSource') in ('BOX', 'NO_BOX'):
+                    g['sportsBoxPoints'] = g.get('points')
+                g['points'], g['pointsSource'], g['espnStatus'] = None, 'AWAITING_ESPN', 'GAME_NOT_READ'
+
+
+def clock(v):
+    """Minutes of '31:12', '31' or 31.2; None when unreadable."""
+    m = re.fullmatch(r'(\d+):(\d\d)', str(v or '').strip())
+    if m:
+        return int(m[1]) + int(m[2]) / 60
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def apply_espn(players, cache, espn_of, previous=None):
+    """FBL points of every played game from ESPN's box score alone (league owner, 22.10.2026): a row whose game ESPN lists
+    for the player gets the official formula on ESPN's line (pointsSource ESPN). A played row ESPN has no line for (game
+    not read yet, a player without an ESPN id, ESPN shows no minutes) has no points (AWAITING_ESPN) until it does: the
+    Sports.ru game table's own box score stays only as sportsBoxPoints, for the reconciliation. A game ESPN lists for a
+    player and Sports.ru does not is added as a row. The row is matched by its Moscow date and its opponent: a club plays
+    once a day, so that is its game whoever the player's club was. Returns (rows scored from ESPN, reconciliation)."""
+    games = {(g.get('day'), t): (eid, g) for eid, g in (cache.get('events') or {}).items() for t in g.get('teams') or []}
+    by_event = {eid: g for eid, g in (cache.get('events') or {}).items()}
+    club_of = {abbr: club for club, abbr in ESPN_ABBR.items()}
+    ids = espn_ids(players, cache, espn_of, previous)
+    scored, report = 0, []
+    for sid, info in players.items():
+        espn, how = ids.get(sid, (None, None))
+        if espn:
+            info['espnId'], info['espnIdSource'] = espn, how
+        seen = set()
         for g in info.get('games') or []:
             if not g.get('played'):
                 continue
+            if g.get('pointsSource') in ('BOX', 'NO_BOX'):
+                g['sportsBoxPoints'] = g.get('points')
+            g.pop('boxPoints', None)
             eid, ev = games.get((g.get('date'), ESPN_ABBR.get(g.get('opponent'))), (None, None))
-            line = (ev or {}).get('players', {}).get(espn)
-            if not line:
-                continue
-            points = fbl_points(line)
-            if g.get('pointsSource') == 'BOX' and g.get('points') != points:
-                g['boxPoints'] = g['points']
+            line = (ev or {}).get('players', {}).get(espn) if espn else None
+            if line:
+                seen.add(eid)
+                points = fbl_points(line)
+                g['points'], g['pointsSource'], g['espnEvent'] = points, 'ESPN', eid
+                g.pop('pointsKeptFrom', None)
+                sports = g.get('sportsBoxPoints')
+                if isinstance(sports, (int, float)) and sports != points:
+                    report.append({'sportsId': sid, 'name': info.get('name'), 'date': g.get('date'), 'opponent': g.get('opponent'), 'espn': points,
+                                   'sports': sports, 'differs': [k for k in STAT_KEYS if (g.get('sportsBox') or {}).get(k) not in (None, line.get(k))]})
+                scored += 1
             else:
-                g.pop('boxPoints', None)
-            g['points'], g['pointsSource'], g['espnEvent'] = points, 'ESPN', eid
-            g.pop('pointsKeptFrom', None)
+                g['points'], g['pointsSource'] = None, 'AWAITING_ESPN'
+                g['espnStatus'] = 'NO_ESPN_ID' if not espn else 'GAME_NOT_READ' if not ev else 'NO_LINE'
+                if ev and espn:
+                    report.append({'sportsId': sid, 'name': info.get('name'), 'date': g.get('date'), 'opponent': g.get('opponent'), 'espn': None,
+                                   'sports': g.get('sportsBoxPoints'), 'differs': ['played']})
+        # Games ESPN lists for him that the Sports.ru table does not.
+        if not espn:
+            continue
+        for eid, ev in by_event.items():
+            line = (ev.get('players') or {}).get(espn)
+            if eid in seen or not line or not line.get('team') or any(r.get('date') == ev.get('day') for r in info.get('games') or []):
+                continue
+            other = [t for t in ev.get('teams') or [] if t != line['team']]
+            row = {'date': ev.get('day'), 'opponent': club_of.get(other[0]) if other else None, 'played': True, 'minutes': line.get('min'),
+                   'points': fbl_points(line), 'pointsSource': 'ESPN', 'espnEvent': eid, 'tip': ev.get('tip'), 'sportsRow': False}
+            info.setdefault('games', []).append(row)
+            info['games'].sort(key=lambda r: r.get('date') or '')
+            report.append({'sportsId': sid, 'name': info.get('name'), 'date': row['date'], 'opponent': row['opponent'], 'espn': row['points'],
+                           'sports': None, 'differs': ['missing at Sports.ru']})
             scored += 1
-    return scored
+    return scored, report
 
 
 # A club's game missing from its calendar is rebuilt from its players' game rows when at least this many of the club's
@@ -978,20 +1076,22 @@ def main():
     if len(schedules) < len(set(ESPN_ABBR.values())):
         errors.append({'error': f'ESPN schedules of {len(schedules)} of {len(set(ESPN_ABBR.values()))} clubs read; other tip-off times kept from the previous snapshot'})
     # Every played game's FBL points from ESPN's box score; the box scores read before are kept beside the snapshot.
-    cache_path, box_read, from_espn = OUT.parent / 'espn-box.json', 0, 0
+    cache_path, box_read, from_espn, reconciliation = OUT.parent / 'espn-box.json', 0, 0, None
     try:
         cache = load_box_cache(cache_path)
         box_read = update_box_cache(cache, finished_games(schedules), datetime.now(timezone.utc))
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         cache_path.write_text(json.dumps(cache, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
-        from_espn = apply_espn(players, cache, sports_to_espn())
+        from_espn, reconciliation = apply_espn(players, cache, sports_to_espn(), previous)
     except Exception as e:  # noqa: BLE001
-        # Without ESPN the rows keep Sports.ru's box score: a collection never fails for it.
-        errors.append({'error': f'ESPN box scores unavailable ({str(e)[:120]}); game points from the Sports.ru game tables'})
+        # Without ESPN no new game has FBL points: the rows wait for it (the Sports.ru table never scores a game).
+        errors.append({'error': f'ESPN box scores unavailable ({str(e)[:120]}); games without an ESPN line have no points yet'})
+        reconciliation = None
+        awaiting(players)
     points = game_points_summary(players)
-    if points['gamesWithoutBox'] or points['mismatches']:
-        errors.append({'error': f"{points['gamesWithoutBox']} played games without a readable box score (no FBL points), "
-                                f"{points['mismatches']} box scores disagree with Sports.ru's counted points"})
+    if points['awaitingEspn'] or points['mismatches']:
+        errors.append({'error': f"{points['awaitingEspn']} played games without an ESPN line yet (no FBL points), "
+                                f"{points['mismatches']} Sports.ru box scores disagree with Sports.ru's counted points"})
     out = {'source': BASE_URL.format(t=TOURNAMENT, pid='<sportsId>'), 'season': SEASON_LABEL,
            'collectedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
            'weeks': week_ranges(clubs.values()), 'clubs': clubs, 'players': players, 'teams': teams, 'errors': errors,
@@ -1001,6 +1101,8 @@ def main():
                           'check': "sportsPoints = box score + Sports.ru's result bonus (+2/+3 home/away win, -3/-2 home/away loss) "
                                    "+ 1 for 10+ minutes once Sports.ru counts the game: MISMATCH when not, UNCOUNTED while ФО is 0",
                           'espnBoxScores': {'read': box_read, 'rows': from_espn, 'source': SUMMARY_URL.format(id='<event>')},
+                          # The Sports.ru game table against ESPN, row by row: a check only, never FBL points.
+                          'reconciliation': reconciliation,
                           **points},
            'tips': {'source': SCHEDULE_URL.format(abbr='<club>', year=SEASON_LABEL[-4:]), 'clubs': len(schedules), 'games': tipped, 'of': sum(len(g) for g in clubs.values()),
                     'fetchedAt': datetime.now(timezone.utc).isoformat(timespec='seconds') if schedules else (previous.get('tips') or {}).get('fetchedAt')}}
@@ -1020,7 +1122,7 @@ def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     print(f"Sports.ru: {len(players)} players, {len(clubs)} club calendars ({tipped} games with a tip-off time), {points['played']} played games "
-          f"({from_espn} scored from ESPN box scores, {box_read} read now; {points['gamesWithoutBox']} without a box score, {points['uncounted']} not counted by Sports.ru yet, {points['mismatches']} mismatches), "
+          f"({from_espn} scored from ESPN box scores, {box_read} read now; {points['awaitingEspn']} awaiting ESPN, {points['uncounted']} not counted by Sports.ru yet, {points['mismatches']} mismatches), "
           f"{len(errors)} errors -> {OUT}")
 
 

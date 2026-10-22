@@ -148,7 +148,7 @@ function livePoints(){
 }
 
 // ---------- The player's season so far (player cards) ----------
-// His 2026/27 games with their FBL points (from the Sports.ru game table; the last two days' from the ESPN box score) and
+// His 2026/27 games with their FBL points (ESPN's box score of each game: the collector's, the last two days' from ESPN live) and
 // the game he is playing now with its stat line. Null until the season data is loaded.
 export function seasonLivePanel(p){
  if(!live||!p)return null;

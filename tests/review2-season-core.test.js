@@ -11,8 +11,11 @@ const days=(from,n,step=2)=>Array.from({length:n},(_,i)=>new Date(Date.parse(fro
 
 // ---------- Y01: a played row counts its points only when they are FBL points ----------
 const row=(date,points,extra={})=>({date,played:true,minutes:'30:00',points,...extra});
-test('only box-score points are FBL points: NO_BOX and SPORTS_WITH_BONUS rows are games played whose points are unknown',()=>{
- assert.equal(fblPoints(row('2026-10-22',20,{pointsSource:'BOX'})),20);
+test('only ESPN box-score points are FBL points: Sports.ru\'s game table (BOX), NO_BOX, AWAITING_ESPN and SPORTS_WITH_BONUS rows are games played whose points are unknown',()=>{
+ // League owner, 22.10.2026: ESPN's protocol is the one source; Sports.ru's own box score is a check only.
+ assert.equal(fblPoints(row('2026-10-22',20,{pointsSource:'ESPN'})),20);
+ assert.equal(fblPoints(row('2026-10-22',20,{pointsSource:'BOX'})),null);
+ assert.equal(fblPoints(row('2026-10-22',null,{pointsSource:'AWAITING_ESPN',sportsBoxPoints:21})),null);
  assert.equal(fblPoints(row('2026-10-22',null,{pointsSource:'NO_BOX',sportsPoints:0})),null);
  assert.equal(fblPoints(row('2026-10-22',27,{pointsSource:'SPORTS_WITH_BONUS',sportsPoints:28})),null);
  // A row of an older snapshot (no source) counts as before; ESPN's line counts whatever the Sports.ru row said.
@@ -22,14 +25,14 @@ test('only box-score points are FBL points: NO_BOX and SPORTS_WITH_BONUS rows ar
 });
 test('the league table adds a team\'s box-score points only, never Sports.ru\'s ФО with its result bonus',()=>{
  const picks=[1,2,3,4,5,6,7,8],players=picks.map(id=>({id,sportsId:'s'+id}));
- const live={players:{s1:{games:[row('2026-10-22',20,{pointsSource:'BOX'}),row('2026-10-24',25,{pointsSource:'SPORTS_WITH_BONUS',sportsPoints:28}),
+ const live={players:{s1:{games:[row('2026-10-22',20,{pointsSource:'ESPN'}),row('2026-10-24',25,{pointsSource:'SPORTS_WITH_BONUS',sportsPoints:28}),
   row('2026-10-26',null,{pointsSource:'NO_BOX',sportsPoints:0}),row('2026-10-28',15)]}}};
  // Before: 20+25+0+15 = 60, Sports.ru's result bonus included and the unknown game read as 0.
  assert.equal(teamPoints({players,live},[],picks)[0],35);
 });
 test('the in-season update leaves a game with unknown points out instead of reading it as 0; it is still a game played',()=>{
  const p={id:1,sportsId:'s1',sportsClub:'X',forecast:{meanPerGame:20,minutes:30,games:70}};
- const box=days('2026-10-22',4).map(d=>row(d,25,{pointsSource:'BOX'})),late='2026-10-30';
+ const box=days('2026-10-22',4).map(d=>row(d,25,{pointsSource:'ESPN'})),late='2026-10-30';
  const scored=perGame(p,{games:box});
  for(const extra of [row(late,null,{pointsSource:'NO_BOX',sportsPoints:0}),row(late,40,{pointsSource:'SPORTS_WITH_BONUS',sportsPoints:43})]){
   const x=perGame(p,{games:[...box,extra]});
@@ -38,7 +41,7 @@ test('the in-season update leaves a game with unknown points out instead of read
  // Availability counts the game: the share is the one of a scored game, not that of a missed one.
  const calendar=days('2026-10-22',30).map((date,i)=>({date,week:1+Math.floor(i/3),...(i<5?{score:'100:90'}:{})}));
  const ctx={players:[p],live:{clubs:{X:calendar},players:{}},injuries:new Map(),today:'2026-10-31',rosters:[]};
- const withBox=playRate(p,{games:[...box,row(late,30,{pointsSource:'BOX'})]},ctx),noBox=playRate(p,{games:[...box,row(late,null,{pointsSource:'NO_BOX'})]},ctx);
+ const withBox=playRate(p,{games:[...box,row(late,30,{pointsSource:'ESPN'})]},ctx),noBox=playRate(p,{games:[...box,row(late,null,{pointsSource:'NO_BOX'})]},ctx);
  near(noBox,withBox);assert.ok(noBox>playRate(p,{games:[...box,{date:late,played:false}]},ctx));
  // The player picture tells the games played from those its average is over.
  const pic=playerPicture(p,{...ctx,live:{...ctx.live,players:{s1:{games:[...box,row(late,null,{pointsSource:'NO_BOX'})]}}}},'season');
@@ -154,7 +157,7 @@ test('a known absence cleared early: the blocked games still ahead come back at 
  const gtd=games(ctx([['e1',{status:'Day-To-Day',fantasyStatus:'GTD',returnDate:'2026-10-21'}]]));
  near(gtd,(F+U*b/82)*(1-.5/82));
  // Back after 6 of the 12 blocked games and playing every one since: 6 blocked games are still ahead.
- const k=CALIBRATION.availability.priorGames,played=cal.slice(0,6).map(g=>row(g.date,25,{pointsSource:'BOX'}));
+ const k=CALIBRATION.availability.priorGames,played=cal.slice(0,6).map(g=>row(g.date,25,{pointsSource:'ESPN'}));
  const now=ctx([],{today:cal[6].date,calendar:cal.map((g,i)=>i<6?{...g,score:'100:90'}:g),players:{s1:{games:played}}});
  const prior=(F+U*6/82)/(left+6);near(playRate(p,{games:played},now),(k*prior+6)/(k+6));
 });

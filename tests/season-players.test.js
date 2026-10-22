@@ -10,7 +10,7 @@ const players=Array.from({length:100},(_,i)=>({id:i+1,name:'P'+(i+1),sportsId:St
 const calendar=[{date:'2026-10-23',week:1},{date:'2026-10-25',week:1},{date:'2026-10-28',week:2},{date:'2026-11-20',week:5}];
 const live={clubs:Object.fromEntries(players.map(p=>[p.sportsClub,calendar])),players:{}};
 const ctx=(extra={})=>({players,live,injuries:new Map(),today:'2026-10-20',rosters:seasonRosters([],picks),...extra});
-const game=(date,points,extra={})=>({date,played:true,points,minutes:'30:00',pointsSource:'BOX',...extra});
+const game=(date,points,extra={})=>({date,played:true,points,minutes:'30:00',pointsSource:'ESPN',...extra});
 const norm20={forecast:{meanPerGame:20}};
 
 // ---------- seasonForm: this season's average and the streak ----------
