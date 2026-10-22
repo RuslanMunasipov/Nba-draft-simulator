@@ -86,11 +86,12 @@ def render():
         lines.append(f"  - Rivals that use the decision themselves (`--rivals rivalsPlan`, {riv['design']['leaguesPerSeason']} leagues a season, `data/transfer-backtest-rivals.json`): the decision against the old rule on the same model "
                      + '; '.join(f"{tag(s)} {diff(R[s]['differences']['plan-currentNewModel'])}" for s in R if s != 'all' and 'plan-currentNewModel' in R[s]['differences'])
                      + f"; all seasons {diff(R['all']['differences']['plan-currentNewModel'])}.")
-    lines.append(f"  - Tuning (`data/transfer-policy.json`): {len(pol['table'])} variants; shipped {pol['chosen']}; season by season, the variant chosen on the other seasons and its points there against the best there: "
+    earlier = ' on the earlier backtest of 2024/25-2025/26 (prices fixed, no injury report)' if pol.get('version', 1) < 2 else ''
+    lines.append(f"  - Tuning (`data/transfer-policy.json`{earlier}): {len(pol['table'])} variants; shipped {pol['chosen']}; season by season, the variant chosen on the other seasons and its points there against the best there: "
                  + '; '.join(f"{tag(s)} {c['variant']} {c['points']} vs {c['bestHere']} {c['bestHerePoints']}" for s, c in pol['crossSeason'].items()) + '.')
     if cal and 'heldOut' not in cal:
         ins = cal['inSample']
-        lines.append(f"  - Confidence (`data/confidence-calibration.json`, {cal['method']}; {cal['source']}): in sample, swaps shown at 70-79% gained "
+        lines.append(f"  - Confidence (`data/confidence-calibration.json`, fitted on the earlier backtest of 2024/25-2025/26 (prices fixed, no injury report): {cal['method']}): in sample, swaps shown at 70-79% gained "
                      + ', '.join(f"{ins[h]['after']['at70']['actual']}% ({h})" for h in H) + '; fitted on one season and tested on the other: Brier '
                      + '; '.join(f"{tag(t)} " + ' / '.join(f"{v[h]['before']['brier']:.3f} → {v[h]['after']['brier']:.3f}" for h in H) for t, v in cal['crossSeason'].items())
                      + ' (raw → calibrated; week / 4 weeks / season).')
@@ -104,7 +105,7 @@ def render():
             + f". Shipped: {form}. Held out, its largest decile gap (deciles of 100+ swaps) is {' / '.join(str(ho[form]['maxGap'][h]) for h in H)} points; on all seasons together "
             + ', '.join(f"{h} {cal['inSample'][h]['after']['at70']['actual']}% of swaps shown at 70-79% gained" for h in H if cal['inSample'][h]['after'].get('at70'))
             + '.')
-    lines.append("  - Limits: the NBA's report has no return dates (ESPN's, which the app reads, has); positions of players gone from Sports.ru's market come from their stat profile; 2023/24's fits come from survivor-selected career logs; the rivals follow one rule (and, as a check, the decision itself); the leagues of a season share its games, so the bootstrap over leagues understates the uncertainty of a season, and three seasons are three samples.")
+    lines.append("  - Limits: the NBA's report has no return dates (ESPN's, which the app reads, has); positions of players gone from Sports.ru's market come from their stat profile; 2023/24's fits come from survivor-selected career logs; the rivals follow one rule" + (" (and, as a check, the decision itself)" if riv else '') + "; the leagues of a season share its games, so the bootstrap over leagues understates the uncertainty of a season, and three seasons are three samples.")
     return '\n'.join(lines)
 
 

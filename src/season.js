@@ -223,7 +223,7 @@ export function playRate(player,live,ctx){
 // A player missing games with no report on him (`away`: the club games in a row he has missed, absenceRun) starts the
 // chain inside an absence spell of at least that length: the next games follow the league's spell lengths conditional on
 // the spell having lasted `away` games so far (short and long spells weighted by his hazards). Without it the chain read
-// such a player as available now, and the backtest of 2024/25-2025/26 (which has no injury report) bought and kept players
+// such a player as available now, and the backtest of 2024/25-2025/26 (which then had no injury report) bought and kept players
 // in the middle of a long absence. ctx.noAbsenceRun: the chain as shipped on 22.10.2026 (the backtest's baseline).
 const scales=new Map(),curves=new Map();
 // p[r]: chance the player is r games from being available (0: available now). A step plays a game with a*stay, moves
