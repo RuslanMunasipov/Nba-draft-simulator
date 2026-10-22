@@ -63,6 +63,8 @@ jobs:
           AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
+          # The day's pictures of Зак Онн (awards-bot/images.js); without the key the bot posts the texts only.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           RESEND: ${{ inputs.resend }}
           # One run follows a day for at most this long, then saves; the next hourly run goes on.
           WATCH_MINUTES: '330'
