@@ -25,7 +25,7 @@ import {execFileSync} from 'node:child_process';
 import {withMarket,allTransfers,stints,seasonRosters} from '../src/season.js';
 import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextStep,addDays,daysBetween,moscowDay,usDay,weekOf,
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
- withoutRookie} from './core.js';
+ withoutRookie,siteSummary} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
 import {dayImages,mediaGroup} from './images.js';
 import {generate,cost} from '../scripts/image-pipeline.mjs';
@@ -71,10 +71,17 @@ const boxScore=(game,day)=>json(ESPN+'summary?event='+game.id).then(j=>parseSumm
 const STATE_DIR=opt('--state');
 const read=(f,empty)=>{try{return JSON.parse(fs.readFileSync(path.join(STATE_DIR,f),'utf8'));}catch{return empty;}};
 const fresh=()=>({version:1,days:{},posted:{daily:{},weekly:{},monthly:{},rookies:{}},slots:{},ranks:{},updatedAt:null});
+// The league of the current pass (loadLeague), for the site's races; until the first one site.json keeps its races.
+let siteLeague=null;
 function save(state,archive){
  if(!STATE_DIR)return;fs.mkdirSync(STATE_DIR,{recursive:true});state.updatedAt=new Date().toISOString();
  fs.writeFileSync(path.join(STATE_DIR,'state.json'),JSON.stringify(state,null,1));
  fs.writeFileSync(path.join(STATE_DIR,'archive.json'),JSON.stringify(archive));
+ const ctx=siteLeague,before=read('site.json',null);
+ const who=a=>{const p=ctx?.league.player(a);return p?{id:p.id,sid:p.sportsId?String(p.sportsId):null}:null;};
+ const site=siteSummary(archive.lines,state,ctx?{rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef,who}:{});
+ if(!site.races&&before?.races)site.races=before.races;
+ fs.writeFileSync(path.join(STATE_DIR,'site.json'),JSON.stringify(site));
 }
 
 // What was posted reaches the state branch at once (a run stays for hours; one cut short after a post must not lead
@@ -86,7 +93,7 @@ function pushState(state,archive){
  try{
   if(!fs.existsSync(path.join(STATE_DIR,'.git'))){git('init','-q','-b','data/awards-bot');git('config','user.name','github-actions[bot]');
    git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com');}
-  git('add','state.json','archive.json');git('commit','-q','--allow-empty','-m',`Awards bot state ${new Date().toISOString().slice(0,16)}Z`);
+  git('add','state.json','archive.json','site.json');git('commit','-q','--allow-empty','-m',`Awards bot state ${new Date().toISOString().slice(0,16)}Z`);
   git('push','-qf',`https://x-access-token:${token}@github.com/${repo}.git`,'data/awards-bot');
  }catch{console.warn('State push failed: the end of the run saves it.');}
 }
@@ -257,7 +264,7 @@ async function nextWake(state){
 async function scheduled(){
  const state=read('state.json',fresh()),archive=read('archive.json',{lines:[]});
  for(;;){
-  await pass(state,archive,await loadLeague());
+  siteLeague=await loadLeague();await pass(state,archive,siteLeague);
   if(!env.CHAIN)return;
   const wake=await nextWake(state),left=START+WATCH_MS-now()-10*60e3;
   if(wake===null||wake-now()>left){

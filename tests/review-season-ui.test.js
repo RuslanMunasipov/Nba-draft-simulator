@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import * as ST from '../src/standings.js';
 import * as FT from '../src/forecast-text.js';
 import {seasonRosters,playerOutlook,pointsSpread,expectedPoints,gameWeeks,parseInjuries,injuryFactor,teamPoints} from '../src/season.js';
-const source=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'),plain=s=>s.replace(/\u00a0/g,' ');
+// The season tab is src/season-ui.js and its view modules in src/season-ui/: read as one text.
+const read=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'),source=f=>f==='src/season-ui.js'?[f,...fs.readdirSync(new URL('../src/season-ui/',import.meta.url)).sort().map(x=>'src/season-ui/'+x)].map(read).join('\n'):read(f),plain=s=>s.replace(/\u00a0/g,' ');
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 const picks=Array.from({length:80},(_,i)=>i+1);
 const add=(d,n)=>new Date(Date.parse(d+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);

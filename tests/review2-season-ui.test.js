@@ -5,7 +5,8 @@ import * as FT from '../src/forecast-text.js';
 import {riskAdjustedValue} from '../src/valuation.js';
 import {seasonRosters,expectedPoints,teamPoints} from '../src/season.js';
 import {checkRules,verdict} from '../src/rules.js';
-const source=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'),plain=s=>s.replace(/ /g,' ');
+// The season tab is src/season-ui.js and its view modules in src/season-ui/: read as one text.
+const read=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'),source=f=>f==='src/season-ui.js'?[f,...fs.readdirSync(new URL('../src/season-ui/',import.meta.url)).sort().map(x=>'src/season-ui/'+x)].map(read).join('\n'):read(f),plain=s=>s.replace(/ /g,' ');
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 const picks=Array.from({length:80},(_,i)=>i+1);
 const add=(d,n)=>new Date(Date.parse(d+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
@@ -68,7 +69,7 @@ test('a played row counts only with FBL points: ESPN\'s box score (the collector
  const ui=source('src/season-ui.js');
  assert.match(ui,/const scored=played\.filter\(fblGame\),total=scored\.reduce/);assert.match(ui,/fblGame\(g\)\?int\(g\.points\)/);
  assert.match(ui,/\.games\|\|\[\]\)\.filter\(fblGame\);if\(g\.length\)rows\.push/);assert.match(ui,/last=\(live1\?\.games\|\|\[\]\)\.filter\(fblGame\)/);
- assert.match(ui,/filter\(g=>g\.played&&!fblGame\(g\)\)/);assert.match(ui,/Sports\.ru не дал подробной статистики/);
+ assert.match(ui,/filter\(g=>g\.played&&!fblGame\(g\)\)/);assert.match(ui,/Протокола ESPN пока нет/);
  assert.doesNotMatch(ui,/\.filter\(x=>x\.played\)\.slice\(-3\)/);
 });
 
@@ -76,13 +77,13 @@ test('a played row counts only with FBL points: ESPN\'s box score (the collector
 test('the season tab says the league counts on Yahoo from each game\'s own statistics, and what «В игре» is',()=>{
  const m=FT.seasonMethod(),all=plain([...m.overview,...m.teams].join('\n'));
  for(const term of ['+1 за сыгранный матч','FGM−FGA','FTM−FTA','PTS','REB','AST','ST','BLK','TO −2','PF −1'])assert.ok(m.overview[0].includes(term),term);
- assert.match(m.overview[0],/по протоколу ESPN/);assert.match(m.overview[0],/по таблице матча Sports\.ru/);
+ assert.match(m.overview[0],/по протоколу ESPN/);assert.match(m.overview[0],/таблица матча Sports\.ru — только сверка/);
  assert.match(m.overview[0],/ФО Sports\.ru по его собственной формуле \(бонус за результат команды, \+2 за 10\+ минут\) в очки FBL не входят/);
  assert.match(m.overview[1],/^«В игре» — матчи, которые идут сейчас/);
  assert.doesNotMatch(all,/вычитаются|ещё не засчитал|не засчитанными/);assert.match(m.teams[0],/очки идущих сейчас матчей/);
  const ui=source('src/season-ui.js');
  assert.doesNotMatch(ui,/Sports\.ru этот матч ещё не посчитал|пока Sports\.ru их не посчитал/);
- assert.match(ui,/за последние два дня — по протоколам ESPN сразу после финальной сирены, раньше — по таблице матча Sports\.ru/);
+ assert.match(ui,/из протокола ESPN каждого матча \(сразу после финальной сирены\)/);
 });
 test('the card history names the league-formula column and what Sports.ru\'s own numbers include',()=>{
  const main=source('src/main.js');

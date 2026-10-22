@@ -95,6 +95,8 @@ jobs:
             public/data/projection-model-audit.json
             public/data/default-draft.json
           if-no-files-found: warn
+      - name: Slim the site's player database (after the artifact keeps it whole)
+        run: python scripts/slim_database.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

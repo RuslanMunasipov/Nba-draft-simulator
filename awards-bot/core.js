@@ -198,3 +198,22 @@ export function monthFive(lines,{heldAtEnd,positionOf}){
 }
 // Teams with no rookie in their current roster (the league requires at least one).
 export const withoutRookie=(rosters,isRookie)=>rosters.map((r,t)=>({t,ok:r.some(isRookie)})).filter(x=>!x.ok).map(x=>x.t);
+
+// --- The site's summary (site.json beside the archive on data/awards-bot): what the Awards page shows, ranked by the code
+// above, so the page reads a few hundred kilobytes instead of the whole archive (about 6 MB by the season's end).
+// who(a): {id, sid} of the league's player (the database id and the Sports.ru id) for the page's names, or null.
+const slim=(l,who)=>{const w=who(l.a);return {a:l.a,n:l.n,c:l.c,m:l.m,s:l.s,p:l.p,h:l.h,...(w?.sid?{sid:w.sid}:{})};};
+export function siteSummary(lines,state,{rostered,rookies,mef,who=()=>null,now=new Date().toISOString()}={}){
+ const byDay=new Map();for(const l of lines)(byDay.get(l.d)||byDay.set(l.d,[]).get(l.d)).push(l);
+ const days={};
+ for(const [d,ls] of [...byDay].sort()){
+  const {top,antitop}=dayLists(ls,10),rec=state?.days?.[d],games=Object.values(rec?.games||{});
+  days[d]={players:ls.length,top:top.map(l=>slim(l,who)),antitop:antitop.map(l=>slim(l,who)),
+   done:Boolean(rec?.done),final:games.filter(g=>g.final).length,left:games.filter(g=>!g.final&&!g.off).length};
+ }
+ const row=r=>{const w=who(r.a);return {...r,s:undefined,h:undefined,...(w?.sid?{sid:w.sid}:{})};};
+ const r=rostered?races(lines,{rostered,rookies,mef}):null,rec=records(lines);
+ return {version:1,updatedAt:now,stateUpdatedAt:state?.updatedAt||null,mefPrice:MEF_PRICE,days,
+  races:r?Object.fromEntries(Object.entries(r).map(([k,list])=>[k,list.map(row)])):null,ranks:state?.ranks||{},
+  records:{best:rec.best.map(l=>({...slim(l,who),d:l.d})),worst:rec.worst.map(l=>({...slim(l,who),d:l.d}))}};
+}
