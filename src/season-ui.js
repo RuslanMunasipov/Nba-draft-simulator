@@ -262,11 +262,21 @@ function lineTable(x){
  const total=el('tr',null,'total');total.append(el('th','ФО'),el('td',x.final?'финал':'матч идёт','v'),el('td',int(s.total),'num'));t.append(total);
  return t;
 }
-// A player's line in a game card: tap to open his stat line, which stays open while the scores refresh.
-function lineRow(key,who,x,status,cls){
+// On the floor or on the bench right now (ESPN's lineup, refreshed with the scores): null outside a running game and in a
+// break, when nobody is on the floor. dot: the mark alone, its words in the tooltip, for the long all-players list.
+function court(x,g,dot=false){
+ if(!x||x.final||g?.state!=='in'||g.pause)return null;
+ const label=x.onCourt?'на паркете':'на скамейке',s=el('span',dot?null:label,'court'+(x.onCourt?' on':'')+(dot?' dot':''));
+ s.title=x.onCourt?'Сейчас на площадке (по протоколу ESPN)':'Сейчас на скамейке (по протоколу ESPN)';if(dot)s.setAttribute('aria-label',label);return s;
+}
+const courtWord=x=>x?.game?.state==='in'&&!x.game.pause&&!x.final?(x.onCourt?' · на паркете':' · на скамейке'):'';
+// A player's line in a game card: tap to open the stat line, which stays open while the scores refresh.
+function lineRow(key,who,x,status,cls,badge=null){
  if(!x){const li=el('li',null,cls);li.append(who,el('span',status,'pts'));return li;}
  const li=el('li',null,cls),d=el('details',null,'line-details'),sum=el('summary');d.dataset.key=key;
- sum.append(who,el('span',`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'),'pts'));d.append(sum,lineTable(x));li.append(d);return li;
+ // The words go under the name, so a long name keeps its room; the bare mark leads the row, in one column for the list.
+ if(badge?.classList.contains('dot'))sum.append(badge,who);else if(badge){const col=el('span',null,'who-col');col.append(who,badge);sum.append(col);}else sum.append(who);
+ sum.append(el('span',`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'),'pts'));d.append(sum,lineTable(x));li.append(d);return li;
 }
 function gameCard(g,focus,own,full=false){
  const item=el('div',null,'sp-game'+(g.state==='in'?' is-live':'')),head=el('div',null,'sp-game-head');
@@ -279,14 +289,14 @@ function gameCard(g,focus,own,full=false){
   ours.sort((a,b)=>(pts(b)?.points||0)-(pts(a)?.points||0));
   const ul=el('ul');
   for(const p of ours){const x=pts(p),inj=injuryText(p);
-   ul.append(lineRow(`line:${g.id}:${p.espnId}`,el('span',p.name+(g.state==='pre'&&inj?` (${inj.toLowerCase()})`:''),'who'),x,g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','mine-player'));}
+   ul.append(lineRow(`line:${g.id}:${p.espnId}`,el('span',p.name+(g.state==='pre'&&inj?` (${inj.toLowerCase()})`:''),'who'),x,g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','mine-player',court(x,g)));}
   item.append(ul);
  }
  // Every player of the game, best first: tap anyone to follow his stat line.
  const everyone=Object.entries(g.points||{}).sort((a,b)=>b[1].points-a[1].points);
  if(full&&everyone.length){
   const all=el('details',null,'inline sp-all');all.dataset.key='all:'+g.id;all.append(el('summary',`Все игроки матча (${everyone.length})`));
-  const ul=el('ul');for(const [id,x] of everyone)ul.append(lineRow(`all:${g.id}:${id}`,el('span',`${x.name||'—'} · ${x.team}`,'who'),x,'',''));
+  const ul=el('ul');for(const [id,x] of everyone)ul.append(lineRow(`all:${g.id}:${id}`,el('span',`${x.name||'—'} · ${x.team}`,'who'),x,'','',court(x,g,true)));
   all.append(ul);item.append(all);
  }
  return item;
@@ -301,7 +311,7 @@ function gamesToday(ctx,compact,focus){
  for(const g of list.slice(0,compact?4:99))box.append(gameCard(g,focus,own,!compact));
  if(compact&&shown.length>Math.min(list.length,4)){const more=button(`Все матчи (${shown.length})`,()=>setView('games'),'btn-ghost btn-sm');head.append(more);}
  if(!list.length)box.append(el('p',`Сегодня ${count(shown.length,'матч','матча','матчей')}, ${whose} в них нет.`,'muted'));
- if(list.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки предварительные, по протоколу ESPN. Нажми на игрока — откроется его статлиния по формуле.','sp-note'));
+ if(list.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки предварительные, по протоколу ESPN. «На паркете» и «на скамейке» — по составу на площадке в протоколе ESPN, обновляется вместе со счётом (каждые 20 с; ESPN может отставать на минуту), в перерывах не показывается. Нажми на игрока — откроется его статлиния по формуле.','sp-note'));
  return box;
 }
 function alertsBlock(ctx){
@@ -348,7 +358,7 @@ function playerRow(p,ctx,running,shadow,credit){
  const price=el('span',null,'sp-price'),delta=Number.isFinite(live1?.price)&&Number.isFinite(live1?.initialPrice)?live1.price-live1.initialPrice:0;
  price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
  const form=el('span',null,'sp-form'),last=(live1?.games||[]).filter(fblGame).slice(-3).map(x=>int(x.points));
- form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
+ form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}${courtWord(now)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
  const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running,shadow,credit),first=shadow.get(`${team}:${p.id}`),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
  left.title='Ожидаемых матчей до конца периода';next.append(factForecast(fact,fact+rest.points),left);
  row.append(name,price,form,next);
@@ -700,7 +710,7 @@ function marketRow(r,i,ctx,analyse,running){
  who.append(el('strong',p.name));if(row.fullName)who.append(el('small',row.fullName,'mk-ru'));
  const tags=[];
  if(form.streak)tags.push(streakChip(form.streak,form.norm));
- if(now)tags.push(el('span',`в игре ${int(now.points)}`,'chip chip--live'));
+ if(now)tags.push(el('span',`в игре ${int(now.points)}${courtWord(now)}`,'chip chip--live'));
  if(inj)tags.push(el('span',inj.text,'chip '+(inj.level==='out'?'chip--danger':'chip--warn')));
  if(p.isRookie)tags.push(el('span','rookie','chip'));
  if(r.owner!==null)tags.push(el('span',r.owner===team?'твой':r.owner>=0?teamName(r.owner):'в FBL','chip chip--info'));

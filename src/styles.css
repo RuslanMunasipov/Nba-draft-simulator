@@ -417,6 +417,16 @@ body.is-replacing .plan-box button{display:none}
 .sp-game li .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-game li .pts{flex:none;font-weight:700;color:var(--text-2)}
 .sp-game li.mine-player .who{color:var(--accent-text);font-weight:700}
+/* On the floor / on the bench during a running game: a filled pulsing dot and its words, or a hollow one. */
+.court{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);font-weight:700;color:var(--text-3);white-space:nowrap}
+.court::before{content:'';flex:none;width:9px;height:9px;border-radius:50%;border:2px solid var(--text-3);box-sizing:border-box}
+.court.on{color:var(--accent-text)}
+.court.on::before{border:0;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);animation:pulse 1.4s ease-in-out infinite}
+.court.dot{gap:0;width:12px;justify-content:center}
+.who-col{display:grid;min-width:0;margin-right:auto}
+.who-col .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line-details>summary>.who{margin-right:auto}
+.sp-game li>.line-details{flex:1;min-width:0}
 .sp-top ol{list-style:none;padding:0;margin:0;counter-reset:top}
 .sp-top li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:var(--s2);align-items:baseline;margin:0;padding:8px 0;border-bottom:1px solid var(--line);counter-increment:top}
 .sp-top li:last-child{border-bottom:0}
