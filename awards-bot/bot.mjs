@@ -14,6 +14,8 @@
 //                                                   (--cards: the albums' cards as PNG files in DIR, with their captions;
 //                                                   --holiday: the cards dressed for that holiday of holidays.js,
 //                                                   none: without any holiday decor;
+//                                                   --prompts: the prompts of the day's two pictures (free);
+//                                                   --pictures: the pictures drawn by OpenAI, ~$0.16, into --cards;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
 //                                                   OPENAI_API_KEY, drawn, ~$0.04)
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--cards DIR]
@@ -37,6 +39,7 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
+import {dayPictures} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
 import {generate,cost} from '../scripts/image-pipeline.mjs';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
@@ -258,6 +261,32 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  }catch(e){console.warn(`${day}: Mike Roffon failed (${e.message}).`);return {status:'failed'};}
 }
 
+// --- The day's pictures (images.js): the heroes in one picture and the flops in another, drawn by OpenAI (about $0.08
+// each) and sent by the awards bot after the day's album, before Mike Roffon. Only with DAY_PICTURES=1 and
+// OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and draws them with --pictures (paid; without the
+// key the request goes out bare, for a proxy that adds it). Never holds the awards: a failure is logged.
+const PICTURES=env.DAY_PICTURES==='1'&&!!OPENAI_KEY;
+async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true}={}){
+ const blocks=dailyBlocks(lines.filter(l=>l.d===day));
+ const ids=[...new Set([...blocks.heroes.slice(0,3),...blocks.flops.slice(0,3)].map(l=>String(l.a)))];
+ const {headshot}=await import('./render.mjs');
+ const faces=new Map((await Promise.all(ids.map(async a=>[a,await headshot(a)]))).filter(([,f])=>f));
+ const pictures=dayPictures(blocks,ctx.who,{faces,form:form(lines,day)});
+ if(!draw){for(const p of pictures)console.log(`\n===== ${day} ${p.kind} picture (prompt, ${p.images.length} references) =====\n${p.prompt}\n\n${p.caption}\n`);return {status:'prompts'};}
+ let spent=0,sent=0;
+ for(const p of pictures){
+  try{
+   const r=await generate(p,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});spent+=cost(r.usage);
+   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});const f=path.join(CARDS_DIR,`picture-${day}-${p.kind}.png`);fs.writeFileSync(f,r.png);
+    fs.writeFileSync(f.replace(/png$/,'txt'),p.caption+'\n\n'+p.prompt+'\n');console.log('picture: '+f);}
+   if(send){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',p.caption);form.append('parse_mode','HTML');
+    form.append('photo',new Blob([r.png],{type:'image/png'}),`fbl-${p.kind}-${day}.png`);await telegram(TOKEN,'sendPhoto',form);sent++;}
+  }catch(e){console.warn(`${day}: the ${p.kind} picture failed (${e.message}).`);}
+ }
+ console.log(`${day}: ${pictures.length} picture(s) drawn${send?`, ${sent} sent`:''}, $${spent.toFixed(3)}.`);
+ return {status:send?(sent?'sent':'failed'):'preview',cost:Math.round(spent*1e4)/1e4};
+}
+
 // The day's post: its album, its text as the fallback.
 function dayPost(day,lines,ctx,postponed){
  const mine=lines.filter(l=>l.d===day),before=lines.filter(l=>l.d<day),blocks=dailyBlocks(mine);
@@ -279,6 +308,7 @@ async function watchDay(day,ctx,archive,state){
    await refresh([day],archive);
    await dayPost(day,archive.lines,ctx,Object.values(rec.games).filter(g=>g.off));
    state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);
+   if(PICTURES&&!state.posted.pictures?.[day]){(state.posted.pictures||={})[day]=await picturesPost(day,archive.lines,ctx);pushState(state,archive);}
    if(!state.posted.mike?.[day]){const m=await mikeInterview(day,archive.lines,ctx,state);if(m){(state.posted.mike||={})[day]=m;pushState(state,archive);}}
    break;
   }
@@ -344,6 +374,7 @@ async function preview(day){
  const ctx=await loadLeague(),state=fresh(),archive={lines:[]};
  for(let d=SEASON_START;d<=day;d=addDays(d,1))await archiveDay(d,state,archive,ctx.league);
  await dayPost(day,archive.lines,ctx,[]);
+ if(flag('--prompts')||flag('--pictures'))await picturesPost(day,archive.lines,ctx,{send:false,draw:flag('--pictures')});
  await mikeInterview(day,archive.lines,ctx,state);
  if(flag('--week')||isSunday(day))await weekly(day,ctx,archive,state,false);
  if(flag('--month')||isMonthEnd(day))await monthly(day,ctx,archive,state,false);
