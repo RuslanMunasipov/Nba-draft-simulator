@@ -7,12 +7,14 @@
 // Env: LEAGUE_TELEGRAM_CHAT_ID and LEAGUE_TELEGRAM_BOT_TOKEN, the league's own bot (never the personal one: the league
 // chat must not share a bot or a chat with the personal advice). Without them nothing is
 // marked as posted, so the feed starts complete once the chat is set. OPENAI_API_KEY: each protocol gets a picture of
-// Зак Онн with the team's GM and logo (scripts/zak-pictures.mjs) instead of his usual photo.
+// Зак Онн with the team's GM and logo (scripts/zak-pictures.mjs) instead of his usual photo. CLAUDE_CODE_OAUTH_TOKEN: his
+// lines are written by Claude through the owner's subscription (scripts/claude-text.mjs), else they come from his bank.
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
 import {checkRules,verdict,isDoubt,transferTime,timeLabel,TRANSFER_HOURS,LAWYER,COMMISSIONER,LEAGUE_FEED,WATCHLIST,isFreeTransfer,FBL_TRANSFERS} from '../src/rules.js';
-import {HEADINGS,remarkLines,circumstances,joke,signature} from './zak-voice.mjs';
+import {HEADINGS,remarkLines,circumstance,circumstances,tellsJoke,joke,signature,voiceFacts,writeVoice} from './zak-voice.mjs';
+import {claudeConfigured} from './claude-text.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow,fitsCaption} from './telegram-format.mjs';
@@ -139,12 +141,24 @@ function rulesOf(v,c){
  return [];
 }
 // His remark, then the extra lines (circumstances, a joke), which are dropped again when the protocol would not fit
-// under his photo (the caption holds 1024 visible characters, including the sending time).
-function voice(v,c,moves,team,money,t){
- const seed=key(moves[0]),[main,...more]=remarkLines(v.kind,rulesOf(v,c),Boolean(watched(team)),seed);
- const extra=[circumstances({left:t.left,used:t.used,bank:money,moves:moves.length,maxPrice:Math.max(...moves.map(m=>m.inPrice||0))},seed),joke(seed)].filter(Boolean);
+// under his photo (the caption holds 1024 visible characters, including the sending time), and his signature. Claude
+// writes them from the protocol's facts (CLAUDE_CODE_OAUTH_TOKEN, scripts/zak-voice.mjs); the bank of lines speaks when
+// it cannot. A failed call (no CLI, the token, the limit, no answer in time) leaves the rest of this run to the bank, and
+// so does a run that has spent its few minutes on Claude: the feed runs every minute and must not fall behind.
+let claudeUntil=claudeConfigured()?Date.now()+4*60e3:0;
+async function voice(v,c,moves,team,money,t,fixed){
+ const seed=key(moves[0]),rules=rulesOf(v,c),w=Boolean(watched(team));
+ const deal={left:t.left,used:t.used,bank:money,moves:moves.length,maxPrice:Math.max(...moves.map(m=>m.inPrice||0))};
+ if(Date.now()<claudeUntil){
+  try{
+   const z=await writeVoice(voiceFacts({kind:v.kind,rules,watched:w,standing:v.standingOnly,fixed,team,circumstance:circumstance(deal),joke:tellsJoke(seed)}),{timeoutMs:45e3});
+   if(z)return {lines:z.lines.map(l=>typeof l==='string'?esc(l):`<i>${esc(l.extra)}</i>`),signature:esc(z.signature)};
+  }catch(e){claudeUntil=0;console.warn(`Зак Онн (Claude) unavailable (${e.message}): his lines from the bank.`);}
+ }
+ const [main,...more]=remarkLines(v.kind,rules,w,seed);
+ const extra=[circumstances(deal,seed),joke(seed)].filter(Boolean);
  // Dropped from the end when too long: the joke first, then the circumstances, then the second remark line.
- return [main,...more,...extra.map(l=>`<i>${esc(l)}</i>`)];
+ return {lines:[...[main,...more].map(esc),...extra.map(l=>`<i>${esc(l)}</i>`)],signature:signature(seed)};
 }
 // Protocol numbers count posted messages (kept in the state): a day's package is posted again, with a new number,
 // when the same team adds a deal that day. Before the count was kept, every reported team-day was one protocol.
@@ -214,7 +228,7 @@ for(const idx of groups.values()){
   continue;
  }
  const no=`📜 <b>ПРОТОКОЛ ТРАНСФЕРА № ${preview?number:issued+1}</b>`,teamLine=`<b>Команда:</b> ${esc(teamLabel(x.team).replace(/^\d+\.\s*/,''))}`;
- const conclusion=CONCLUSION[v.kind](v.items,v.doubts,v.standingOnly),lines=voice(v,c,news,x.team,money,t),items=checkItems(c,news);
+ const conclusion=CONCLUSION[v.kind](v.items,v.doubts,v.standingOnly),{lines,signature:sign}=await voice(v,c,news,x.team,money,t,fixed),items=checkItems(c,news);
  // The protocol, shortened step by step only while it does not fit under the photo (Telegram's caption limit, counted on
  // the exact text sent): Зак Онн's extra lines (the joke first), the season line, the tags on one line, the passed checks
  // on one line, the deals without remarks as a count. The heading, every deal with ❌ or ⏳, every failed check and the
@@ -230,7 +244,7 @@ for(const idx of groups.values()){
    // Зак Онн's own word on it (the facts above are the rules check's): his remark on the verdict, then, while the
    // protocol still fits under his photo, a word on the circumstances and now and then a joke; then his signature.
    ...lines.slice(0,1+o.extras),
-   v.kind==='approved'?`<i>✅ Одобрено. ${signature(key(news[0]))}</i>`:`<i>${signature(key(news[0]))}</i>`);
+   v.kind==='approved'?`<i>✅ Одобрено. ${sign}</i>`:`<i>${sign}</i>`);
  };
  let o={extras:lines.length-1,season:true,tags:false,passed:false,fold:false},text=build(o);
  const shorter=[...lines.slice(1).map(()=>o=>({...o,extras:o.extras-1})),o=>({...o,season:false}),o=>({...o,tags:true}),o=>({...o,passed:true}),o=>({...o,fold:true})];

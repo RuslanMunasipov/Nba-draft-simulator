@@ -1,7 +1,12 @@
 // The voice of Зак Онн, the league's lawyer: the facts of a protocol stay as the rules check found them, he only adds
 // his remark, a word on the deal's circumstances, now and then a lawyer joke, and his signature. His lines read like a
-// 90s American action film where the only plot is law and order. Every choice is picked by the protocol's own key, so
-// a protocol always reads the same.
+// 90s American action film where the only plot is law and order. Claude writes them through the owner's subscription
+// (scripts/claude-text.mjs, writeVoice below) from the protocol's facts; the bank of lines here is his voice whenever
+// Claude cannot write. Every choice of the bank is picked by the protocol's own key, so a protocol always reads the same.
+import {claudeJSON} from './claude-text.mjs';
+import {TRANSFER_HOURS,FBL_TRANSFERS} from '../src/rules.js';
+import {CLUB_LIMIT} from '../src/engine.js';
+import {LEAGUE_TEAMS} from '../src/teams.js';
 const pick=(lines,seed)=>{let h=0;for(const ch of String(seed))h=(h*31+ch.codePointAt(0))>>>0;return lines[h%lines.length];};
 
 // A clean roster: he approves, without warmth.
@@ -162,11 +167,89 @@ export function remarkLines(kind,rules=[],watched=false,seed=''){
  if(kind==='check'){const r=rules.find(r=>CHECK_BY[r]);return [pick(r?CHECK_BY[r]:CHECK,seed+(r||''))];}
  return [pick(watched?APPROVED_WATCHED:APPROVED,seed)];
 }
-// circumstances({left, used, bank, moves, maxPrice}, seed) → a word on the deal, or null.
-export function circumstances({left,used,bank,moves=1,maxPrice=0},seed=''){
- const key=left===0?'lastTransfer':bank!=null&&bank<200?'emptyBank':maxPrice>=2200?'bigBuy':moves>1?'package':bank>=3000?'richBank':used===1?'firstOfWeek':null;
- return key?pick(CONTEXT[key],seed+key):null;
-}
+// circumstance({left, used, bank, moves, maxPrice}) → which circumstance of the deal he speaks to, or null;
+// circumstances(…, seed) → his word on it.
+export const circumstance=({left,used,bank,moves=1,maxPrice=0})=>
+ left===0?'lastTransfer':bank!=null&&bank<200?'emptyBank':maxPrice>=2200?'bigBuy':moves>1?'package':bank>=3000?'richBank':used===1?'firstOfWeek':null;
+export function circumstances(deal,seed=''){const key=circumstance(deal);return key?pick(CONTEXT[key],seed+key):null;}
 // A joke for every other protocol.
-export const joke=seed=>pick([true,false],seed+'j')?pick(JOKES,seed+'joke'):null;
+export const tellsJoke=seed=>pick([true,false],seed+'j');
+export const joke=seed=>tellsJoke(seed)?pick(JOKES,seed+'joke'):null;
 export const signature=seed=>pick(SIGNATURES,seed);
+
+// His voice written by Claude. The facts are the protocol's own (the verdict, the rules, the case, the circumstance),
+// in words: no player, no money, no count of the protocol is given, so none can come back wrong.
+const RULE={rookie:'правило новичка: в составе всегда есть новичок',
+ white:'белое правило: в составе есть засчитываемый игрок из белого списка лиги',
+ unmarked:'белое правило: по игрокам состава ещё нет решения лиги',
+ club:`лимит клуба NBA: не больше ${CLUB_LIMIT} игроков одного клуба`,
+ transfers:`лимит трансферов: ${FBL_TRANSFERS.perWeek} в неделю`,
+ time:`время сделок: только с ${TRANSFER_HOURS.from} до ${TRANSFER_HOURS.to} по Москве`,
+ duplicate:'уникальность игроков: игрок может быть только в одной команде лиги'};
+const CIRCUMSTANCE={lastTransfer:'это последний трансфер команды на этой неделе: до понедельника рынок для неё закрыт',
+ emptyBank:'в банке команды почти не осталось денег',bigBuy:'дорогая покупка',package:'несколько сделок одним пакетом',
+ richBank:'в банке команды ещё приличная сумма',firstOfWeek:'первый трансфер команды на этой неделе'};
+const VERDICT={violation:'нарушение регламента',check:'нужна проверка: явного нарушения нет, но есть сомнение',approved:'одобрено: состав соответствует регламенту'};
+// voiceFacts({kind, rules, watched, standing, fixed, team, circumstance, joke}) → the facts Claude writes from. rules: the
+// rules broken (a breach) or in doubt (a check), the first is the one his remark speaks to; standing: a breach the
+// roster already had; fixed: the rules the deals repaired.
+export function voiceFacts({kind,rules=[],watched=false,standing=false,fixed=[],team,circumstance:c=null,joke:j=false}){
+ const t=LEAGUE_TEAMS[team];
+ return {verdict:VERDICT[kind]||VERDICT.check,
+  case:kind==='violation'?(standing?'нарушение не устранено: команда уже нарушала, это рецидив':'новое нарушение: дело открыто')
+   :fixed.length?`прежнее нарушение устранено (${fixed.map(r=>RULE[r]?.split(':')[0]||r).join(', ')}): дело закрыто`:null,
+  rules:rules.filter(r=>RULE[r]).map(r=>RULE[r]),
+  watched:watched?'команда под прицелом Зака Онна':null,
+  team:t?.name||null,gm:t?.gm||null,
+  circumstance:c?CIRCUMSTANCE[c]||null:null,
+  secondLine:kind==='violation'&&(watched||rules.length>1),joke:Boolean(j)};
+}
+
+const VOICE=`Ты — Зак Онн, юрист фэнтези-лиги FBL (Fantasy Brothers League) по баскетболу NBA. Адвокат с большой буквы, всегда в красной кепке «God Bless America».
+Ты пишешь свою реплику под протоколом трансфера. Факты протокола (сделки, баланс, лимиты, проверка регламента, вердикт) уже написаны ботом: ты их не пересказываешь и не меняешь вердикт.
+Твой голос — американский боевик 90-х, где весь сюжет — закон и порядок: короткие рубленые фразы, часто о себе в третьем лице («Зак Онн»), холодная ирония, суровость без грубости и мата. Твой мир — значок, наручники, тёмные очки, ночной город, погоня, допрос, досье, прицел, суд. Грозишь ты только законом.
+Ты отвечаешь только за закон: регламент лиги, составы, трансферы, лимиты, время сделок. О наградах, ФО, очках и игре игроков, прогнозах и советах ты не говоришь: это не твоё дело.
+Тон по вердикту: одобрено — одобряешь без тепла, подозрительность остаётся; одобрено, а команда под прицелом — чисто, но прицел остаётся; дело закрыто — закрываешь, но не улыбаешься; проверка — не обвиняешь, а проверяешь то, что под сомнением; нарушение — жёстко, о нарушенном правиле (первом в списке); рецидив или команда под прицелом — ещё жёстче, ты предупреждал.
+Примеры тона (не повторяй их, пиши свои): «Регламент соблюдён. Это не похвала. Это норма.» «Зак Онн обещал вернуться. Зак Онн вернулся.» «Зак Онн. Закон и порядок. Именно в таком порядке.»`;
+const RULES=`Правила:
+- remark: одна-две короткие фразы о вердикте, до 110 знаков.
+- remark2: если secondLine = true — вторая реплика до 110 знаков: для команды под прицелом — о прицеле и рецидиве, иначе о том, что нарушено сразу несколько правил; иначе пустая строка.
+- circumstance: если в фактах есть circumstance — одна фраза о нём, до 110 знаков; иначе пустая строка.
+- joke: если joke = true — одна тупая шутка про американских юристов и суд в духе 90-х, до 120 знаков; иначе пустая строка.
+- signature: подпись — «Зак Онн» и короткий девиз закона и порядка, до 80 знаков.
+- Никаких цифр, кроме тех, что есть в фактах. Не называй игроков. Команду и GM называй только так, как в фактах.
+- Без эмодзи, HTML и markdown. Ответь строго JSON: {"remark": "...", "remark2": "...", "circumstance": "...", "joke": "...", "signature": "..."}`;
+export const VOICE_SCHEMA={type:'object',additionalProperties:false,required:['remark','remark2','circumstance','joke','signature'],
+ properties:{remark:{type:'string'},remark2:{type:'string'},circumstance:{type:'string'},joke:{type:'string'},signature:{type:'string'}}};
+export const voicePrompt=facts=>({system:`${VOICE}\n\n${RULES}`,prompt:`Протокол трансфера. Факты:\n${JSON.stringify(facts,null,1)}`});
+
+// His lines from Claude's answer, or the reason they cannot go out: a line too long or empty, a number the facts do not
+// have, awards or fantasy points (not his business), an approval in a breach, or a signature that is not his.
+const LONG=120,cyr='А-Яа-яЁё';
+const OFF_DUTY=new RegExp(`(^|[^${cyr}])ФО([^${cyr}]|$)|наград|фэнтези-очк|MVP|прогноз`,'i');
+export function voiceLines(x,facts){
+ const t=v=>typeof v==='string'?v.replace(/\s+/g,' ').trim():'';
+ const remark=t(x?.remark),remark2=facts.secondLine?t(x?.remark2):'',said=facts.circumstance?t(x?.circumstance):'',told=facts.joke?t(x?.joke):'',sign=t(x?.signature);
+ const all=[remark,remark2,said,told,sign].filter(Boolean);
+ if(!remark)return {error:'no remark'};
+ if(!sign||!/Зак Онн/.test(sign)||sign.length>90)return {error:`signature: ${sign||'none'}`};
+ const long=all.find(l=>l.length>LONG);if(long)return {error:`too long: ${long}`};
+ const allowed=new Set(JSON.stringify(facts).match(/\d+/g)||[]),stray=all.join(' ').match(/\d+/g)?.filter(n=>!allowed.has(n));
+ if(stray?.length)return {error:`numbers not in the facts: ${stray.join(', ')}`};
+ const off=all.find(l=>OFF_DUTY.test(l));if(off)return {error:`not his business: ${off}`};
+ if(facts.verdict===VERDICT.violation&&/одобр/i.test(all.join(' ')))return {error:'approves a breach'};
+ if(all.some(l=>/<[a-z/]|[*_`]{2}/i.test(l)))return {error:'markup'};
+ return {lines:[remark,...remark2?[remark2]:[],...[said,told].filter(Boolean).map(l=>({extra:l}))],signature:sign};
+}
+// writeVoice(facts) → {lines, signature}: his remark (and second line), then the extra lines ({extra}: the circumstance,
+// a joke) the protocol may drop to fit under his photo, and his signature. An answer that breaks a rule is written once
+// more, then null (the bank speaks). A ClaudeError (no CLI, the token, the limit, no answer in time) is thrown.
+export async function writeVoice(facts,{write=claudeJSON,attempts=2,timeoutMs=60e3,log=console.warn}={}){
+ for(let i=0;i<attempts;i++){
+  const {data}=await write({...voicePrompt(facts),schema:VOICE_SCHEMA,timeoutMs});
+  const out=voiceLines(data,facts);
+  if(!out.error)return out;
+  log(`Зак Онн (Claude): answer dropped (${out.error})`);
+ }
+ return null;
+}
