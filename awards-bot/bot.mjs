@@ -15,9 +15,9 @@
 //                                                   --holiday: the cards dressed for that holiday of holidays.js,
 //                                                   none: without any holiday decor;
 //                                                   --prompts: the prompts of the day's two pictures (free);
-//                                                   --pictures: the pictures drawn by OpenAI, ~$0.16, into --cards;
+//                                                   --pictures: the pictures drawn by OpenAI, ~$0.05, into --cards;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
-//                                                   OPENAI_API_KEY, drawn, ~$0.04)
+//                                                   OPENAI_API_KEY, drawn, ~$0.02)
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
 //                                                   mike-roffon.yml): written and drawn, posted into the league chat
@@ -226,7 +226,7 @@ async function monthly(day,ctx,archive,state,mark){
 // (MIKE_ROFFON_BOT_TOKEN): his picture with the interview's headline, the interview as a reply under it. Written by Claude
 // through the owner's subscription (CLAUDE_CODE_OAUTH_TOKEN), drawn by OpenAI (OPENAI_API_KEY: without it the interview
 // goes alone); without his token or the subscription's the facts are only printed. A preview writes it with --mike (the
-// picture costs about $0.04). Never holds the awards: a failure is logged.
+// picture costs about $0.02). Never holds the awards: a failure is logged.
 const MIKE=env.MIKE_ROFFON_BOT_TOKEN,OPENAI_KEY=env.OPENAI_API_KEY;
 async function telegram(token,method,body){
  const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,body instanceof FormData?{method:'POST',body}
@@ -262,7 +262,7 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
 }
 
 // --- The day's pictures (images.js): the heroes in one picture and the flops in another, their moments written by Claude
-// through the owner's subscription (free; the code's own without it), drawn by OpenAI (about $0.07 each) and sent by
+// through the owner's subscription (free; the code's own without it), drawn by OpenAI (about $0.03 each) and sent by
 // the awards bot after the day's album, before Mike Roffon. recent: the ideas of the last days, not to repeat. Only with DAY_PICTURES=1 and
 // OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and draws them with --pictures (paid; without the
 // key the request goes out bare, for a proxy that adds it). Never holds the awards: a failure is logged.
