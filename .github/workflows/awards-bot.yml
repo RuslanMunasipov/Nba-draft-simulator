@@ -3,7 +3,7 @@ name: Awards bot
 # chat, where Zak Onn's feed posts too (LEAGUE_TELEGRAM_CHAT_ID, unless AWARDS_CHAT_ID names another chat), with its own
 # token: nothing else is shared with the season watcher or its bots, and it only reads the project's data. A run every
 # hour reads the day's schedule from ESPN; once the day's last game is about to tip off, the run stays: it waits for the
-# tip-off, checks every minute until every game is over, waits 15 minutes for corrections and posts the game day. Then the
+# tip-off, checks every minute until every game is over and posts the game day at once. Then the
 # week and the awards race after Sunday's games, and the month's five after its last game day.
 # Run it by hand with a US game day to preview that day's posts (nothing saved or sent).
 on:

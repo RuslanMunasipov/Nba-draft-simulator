@@ -110,8 +110,7 @@ test('awards bot: a day is followed from its last tip-off until its last game is
  assert.deepEqual(nextStep(day,at('2026-10-22T01:30Z')),{do:'wait',until:at('2026-10-22T02:30Z'),left:1},'the postponed game is not waited for');
  assert.deepEqual(nextStep(day,at('2026-10-22T04:40Z')),{do:'poll',left:1},'the last game runs long: keep checking');
  const over=day.map(x=>({...x,final:!x.off}));
- assert.deepEqual(nextStep(over,at('2026-10-22T05:00Z'),'2026-10-22T04:55:00Z'),{do:'settle',until:at('2026-10-22T05:10Z')});
- assert.deepEqual(nextStep(over,at('2026-10-22T05:10Z'),'2026-10-22T04:55:00Z'),{do:'post'});
+ assert.deepEqual(nextStep(over,at('2026-10-22T04:58Z')),{do:'post'},'the last game over: post at once');
  assert.deepEqual(nextStep([],at('2026-10-22T05:10Z')),{do:'none'});
 });
 test('awards bot: report day, weeks and month ends',()=>{
