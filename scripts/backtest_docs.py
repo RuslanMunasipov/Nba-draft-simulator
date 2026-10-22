@@ -41,6 +41,10 @@ def brier(v):
     return ' / '.join(f"{v['brier'][h]:.4f}" for h in H)
 
 
+def scores(ins, key):
+    return ' / '.join(f"{ins[h][key]['brier']:.4f}" for h in H)
+
+
 def render():
     b, pol, cal, riv = load('transfer-backtest.json'), load('transfer-policy.json'), load('confidence-calibration.json'), load('transfer-backtest-rivals.json')
     S = b['seasons']
@@ -96,15 +100,19 @@ def render():
                      + '; '.join(f"{tag(t)} " + ' / '.join(f"{v[h]['before']['brier']:.3f} → {v[h]['after']['brier']:.3f}" for h in H) for t, v in cal['crossSeason'].items())
                      + ' (raw → calibrated; week / 4 weeks / season).')
     if cal and 'heldOut' in cal:
-        ho = cal['heldOut']
-        form = cal['form']
+        ho, form, ins, cross = cal['heldOut'], cal['form'], cal['inSample'], cal['crossSeason']
+        b70 = lambda r: f"{r['at70']['actual']}%" if r.get('at70') else '—'
+        params = '; '.join(f"{h} b = {cal['maps'][h]['early']['b']}" for h in H) if form == 'scale' else ''
         lines.append(
             f"  - Confidence (`data/confidence-calibration.json`, `node scripts/confidence_calibration.mjs`): {cal['samples'] // 3:,} candidate swaps per horizon (the best swap for every roster player at every decision of the hold runs) map the model's z (expected gain over its spread) to the share that really gained. "
             f"Each form fitted on two seasons and tested on the third (Brier week / 4 weeks / season, mean over the held-out seasons): "
             + '; '.join(f"{f} {brier(v)}" for f, v in ho.items())
-            + f". Shipped: {form}. Held out, its largest decile gap (deciles of 100+ swaps) is {' / '.join(str(ho[form]['maxGap'][h]) for h in H)} points; on all seasons together "
-            + ', '.join(f"{h} {cal['inSample'][h]['after']['at70']['actual']}% of swaps shown at 70-79% gained" for h in H if cal['inSample'][h]['after'].get('at70'))
-            + '.')
+            + f". Shipped: {form}" + (f" (Φ(b·z): {params}; the model's spread is too narrow)" if params else '') + ". "
+            f"On all seasons together, swaps shown at 70-79% gained {' / '.join(b70(ins[h]['after']) for h in H)} of the time (week / 4 weeks / season), Brier {scores(ins, 'after')} against {scores(ins, 'before')} for Φ(z); "
+            f"deciles of 400+ swaps within {max(abs(d['gap']) for h in H for d in ins[h]['after']['deciles'] if d['n'] >= 400):.1f} points. "
+            f"Season by season (fitted on the other two) the share of swaps shown at 70-79% that gained over the season was "
+            + ', '.join(f"{tag(t)} {b70(v['season']['after'])}" for t, v in cross.items())
+            + ": the seasons differ more than any map fitted on the others can follow, so «70%» is 70% over the three seasons, not in each.")
     lines.append("  - Limits: the NBA's report has no return dates (ESPN's, which the app reads, has); positions of players gone from Sports.ru's market come from their stat profile; 2023/24's fits come from survivor-selected career logs; the rivals follow one rule" + (" (and, as a check, the decision itself)" if riv else '') + "; the leagues of a season share its games, so the bootstrap over leagues understates the uncertainty of a season, and three seasons are three samples.")
     return '\n'.join(lines)
 

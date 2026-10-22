@@ -835,9 +835,9 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null,team=null){
   if(b.player.depth?.rank>=3)flags.push(`${b.player.name}: по составу ESPN №${b.player.depth.rank} на ${b.player.depth.position} — роль и минуты не гарантированы.`);
   if(b.played<5&&a.played<5&&ctx.today)flags.push('Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.');
  }
- // The chance it really gains: the model's z (gain over its spread) through the backtest's calibration for this horizon and
- // phase of the season (data/confidence-calibration.json: 2024/25 and 2025/26 replayed, «70%» is 70% of such swaps that
- // gained); ctx.rawConfidence: Φ(z) as shipped on 22.10.2026 (the backtest's baseline).
+ // The chance it really gains: the model's z (gain over its spread) through the backtest's calibration for this horizon
+ // (data/confidence-calibration.json: 2023/24-2025/26 replayed, «70%» is 70% of such swaps that gained over the three
+ // seasons); ctx.rawConfidence: Φ(z) as shipped on 22.10.2026 (the backtest's baseline).
  const sd=Math.sqrt(variance),z=sd>0?gain/sd:null,confidence=z===null?(gain>0?1:0):ctx.rawConfidence?normalCdf(z):calibrated(CONFIDENCE.maps,z,key,ctx.today);
  const total=Math.abs(parts.perGame)+Math.abs(parts.availability)+Math.abs(parts.schedule)||1;
  if(gain>0&&(parts.availability-held)/total>.5)flags.unshift('Больше половины выигрыша — из прогноза числа сыгранных матчей, а не из игры за матч: это самая неточная часть прогноза.');

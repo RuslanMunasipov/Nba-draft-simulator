@@ -1,6 +1,8 @@
 // Confidence of a transfer: the chance that it really gains over a horizon. The model's own z (expected gain over its
-// spread) is mapped to the share of such swaps that gained in the backtest of 2024/25 and 2025/26
-// (data/confidence-calibration.json, scripts/confidence_calibration.mjs), per horizon and phase of the season.
+// spread) is mapped to the share of such swaps that gained in the backtest of 2023/24-2025/26
+// (data/confidence-calibration.json, scripts/confidence_calibration.mjs): the form that did best on each season held out
+// (on 22.10: Φ(b·z) per horizon, the model's spread widened). A share over three seasons, not of one: a season's own
+// share of «75%» swaps that gained over the season was 93%, 53% and 82%.
 export const HORIZONS=['week','month','season'],PHASES=['early','mid','late'];
 export function normalCdf(z){const t=1/(1+.2316419*Math.abs(z)),d=.3989423*Math.exp(-z*z/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
 // Phase of the season of a date (Moscow or US, YYYY-MM-DD): October-November, December-January, February on.

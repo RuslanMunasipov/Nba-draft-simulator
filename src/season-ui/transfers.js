@@ -39,7 +39,7 @@ function recommendationCard(ctx,plan,left,fbl){
  card.append(el('p','Рекомендация','eyebrow'),el('h3',plan.pairs.length===1?'Сделай этот трансфер':`Сделай ${count(plan.pairs.length,'трансфер','трансфера','трансферов')}`),packageMoves(plan));
  const kpis=el('div',null,'kpis'),kpi=(l,v,t)=>{const k=el('div',null,'kpi');k.append(el('small',l),el('strong',v));if(t)k.title=t;kpis.append(k);};
  for(const h of ['week','month','season'])kpi('ФО · '+SHORT[h],signed(plan.gains[h]));
- kpi('Уверенность',Math.floor(plan.confidence.season*100)+' %',`За сезон; за 4 недели ${Math.floor(plan.confidence.month*100)}%, за неделю ${Math.floor(plan.confidence.week*100)}%. Доля похожих обменов, давших плюс в прогоне советов на сезонах 2024/25 и 2025/26.`);
+ kpi('Уверенность',Math.floor(plan.confidence.season*100)+' %',`За сезон; за 4 недели ${Math.floor(plan.confidence.month*100)}%, за неделю ${Math.floor(plan.confidence.week*100)}%. Доля похожих обменов, давших плюс в прогоне советов на сезонах 2023/24–2025/26, в среднем за три сезона.`);
  kpi('Банк после',int(plan.bankAfter));
  const actions=el('div',null,'actions'),act=takeAction(plan.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx,'Записать');act.classList.replace('btn-secondary','btn-primary');actions.append(act);
  card.append(kpis,actions);
