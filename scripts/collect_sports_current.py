@@ -644,6 +644,13 @@ def apply_espn(players, cache, espn_of, previous=None):
                 seen.add(eid)
                 points = fbl_points(line)
                 g['points'], g['pointsSource'], g['espnEvent'] = points, 'ESPN', eid
+                # Minutes are ESPN's too: Sports.ru's exact mm:ss stays only when it agrees with ESPN's within a minute
+                # (its table once had 57:00 beside an all-zero line, Acuff 22.10, and the in-season update read 57).
+                espn_min, row_min = clock(line.get('min')), clock(g.get('minutes'))
+                if espn_min is not None and (row_min is None or abs(row_min - espn_min) > 1):
+                    if g.get('minutes') not in (None, ''):
+                        g['sportsMinutes'] = g['minutes']
+                    g['minutes'] = line.get('min')
                 g.pop('pointsKeptFrom', None)
                 sports = g.get('sportsBoxPoints')
                 if isinstance(sports, (int, float)) and sports != points:

@@ -257,6 +257,16 @@ class EspnBoxScoreTests(unittest.TestCase):
         self.assertEqual(list(lines), ['4251'])
         self.assertEqual(collector.fbl_points(lines['4251']), 31)
 
+    def test_minutes_are_espns_unless_sports_ru_agrees_within_a_minute(self):
+        lines = collector.espn_lines(self.summary())
+        cache = {'events': {'1': {'tip': '2026-10-20T23:00:00+00:00', 'day': '2026-10-21', 'teams': ['BOS', 'DET'], 'players': lines}}}
+        row = lambda minutes: {'s1': {'games': [{'date': '2026-10-21', 'opponent': 'Детройт', 'played': True, 'points': 32, 'pointsSource': 'BOX', 'minutes': minutes}]}}
+        bad, good = row('57:00'), row('31:12')
+        collector.apply_espn(bad, cache, {'s1': '4251'});collector.apply_espn(good, cache, {'s1': '4251'})
+        self.assertEqual((bad['s1']['games'][0]['minutes'], bad['s1']['games'][0]['sportsMinutes']), ('31', '57:00'))
+        self.assertEqual(good['s1']['games'][0]['minutes'], '31:12')
+        self.assertNotIn('sportsMinutes', good['s1']['games'][0])
+
     def test_the_collector_scores_an_espn_box_score_as_the_awards_archive_did(self):
         # tests/game-points-consistency.test.js holds the site's overlay and the awards bot to the same golden points.
         fixtures = Path(__file__).parent / 'fixtures'
