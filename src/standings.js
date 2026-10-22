@@ -3,7 +3,7 @@
 import {teamPoints,playerOutlook,pointsSpread,expectedPoints,gameWeeks,horizons,periodList,stints,shadowed,inStint,tourDate,fblPoints} from './season.js';
 
 // A played row's points count only when they are FBL points: the league's Yahoo formula on that game's own box score
-// (the collector's pointsSource BOX, from Sports.ru's game table, or the ESPN box-score overlay, source 'ESPN'). A row
+// (ESPN's: the collector's pointsSource ESPN or the overlay's source 'ESPN'; else Sports.ru's game table, BOX). A row
 // Sports.ru listed without readable box columns (NO_BOX) or still carrying its result bonus (SPORTS_WITH_BONUS) has no
 // FBL points yet; a row without a source (older snapshots) counts as before. The rule itself is season.js fblPoints.
 export const fblGame=g=>Boolean(g?.played)&&fblPoints(g)!==null;

@@ -133,7 +133,8 @@ export function transfersThisWeek(transfers,team,today,weeks){
 }
 
 // A played game's FBL points, or null when they are not known: the league's Yahoo formula on the game's own box score,
-// which the collector reads from Sports.ru's table (pointsSource 'BOX') and withBoxScores from ESPN's (source 'ESPN').
+// ESPN's for every game ESPN lists for the player (the collector's pointsSource 'ESPN', withBoxScores' source 'ESPN'),
+// else the Sports.ru game table's (pointsSource 'BOX').
 // A row without readable box columns ('NO_BOX') or with Sports.ru's result bonus in it ('SPORTS_WITH_BONUS') is a game
 // played whose points are unknown: Sports.ru's ФО is never FBL points. A row without a source (an older snapshot) counts.
 const NOT_FBL=new Set(['NO_BOX','SPORTS_WITH_BONUS']);
