@@ -11,7 +11,7 @@ import {EARLY,controls,optionRow,replacementPanel,takeAction,whyBox} from './wid
 // ---------- Transfers assistant ----------
 // The answer to "what should I do now", the same as Telegram's: src/transfer-plan.js weighs every package of up to the
 // transfers left over the week, 4 weeks and the season (the weights and the price of a transfer chosen on the backtest of
-// 2024/25 and 2025/26) and never lowers the season's expectation. A move comes with its gains, its calibrated confidence,
+// 2023/24-2025/26) and never lowers the season's expectation. A move comes with its gains, its calibrated confidence,
 // the main risks, what would change it and the best alternative; no move worth a transfer says «держать» and why.
 const SHORT={week:'неделя',month:'4 недели',season:'сезон'};
 function packageMoves(p){const ul=el('ul',null,'moves');for(const x of p.pairs){const li=el('li'),rivals=p.contested?.get(x.in.id)||[];li.append(el('span',x.out.name,'out'),el('span','→','arrow'),el('span',x.in.name,'in'),el('small',`${x.in.positions.join('/')} · ${int(x.in.price)}${injuryText(x.in)?' · '+injuryText(x.in):''}`));
