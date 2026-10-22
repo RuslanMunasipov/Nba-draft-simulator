@@ -1,0 +1,1185 @@
+{
+ "version": 1,
+ "generatedBy": "scripts/transfer_backtest.mjs",
+ "inputs": [
+  "2024-25.json",
+  "2025-26.json"
+ ],
+ "design": {
+  "leaguesPerSeason": 32,
+  "seeds": 4,
+  "slots": 8,
+  "policies": [
+   "hold",
+   "current"
+  ],
+  "decisions": "Moscow Monday 12:00 (after the week's last games; moves count for the next week) and Moscow Thursday 12:00",
+  "rivals": "seven teams drafted with noisy valuations (sd 15%); once a week each makes the best one-for-one swap over the season when it gains 40+ and does not lose the next 4 weeks",
+  "realGain": "points the newcomer really scored minus the points the player sold really scored, over the window the move was judged on (Moscow dates after the decision)"
+ },
+ "seasons": {
+  "2024-25": {
+   "policies": {
+    "hold": {
+     "runs": 32,
+     "points": 11890.9,
+     "rank": 4.56,
+     "monthly": {
+      "2024-10": 688.8,
+      "2024-11": 2192.3,
+      "2024-12": 1909.1,
+      "2025-01": 2194.5,
+      "2025-02": 1776,
+      "2025-03": 2133.7,
+      "2025-04": 996.5
+     },
+     "movesPerSeason": 0,
+     "moves": null
+    },
+    "current": {
+     "runs": 32,
+     "points": 12446.4,
+     "rank": 3.38,
+     "monthly": {
+      "2024-10": 694.8,
+      "2024-11": 2317.6,
+      "2024-12": 2001.4,
+      "2025-01": 2378.7,
+      "2025-02": 1867.3,
+      "2025-03": 2168.9,
+      "2025-04": 1017.8
+     },
+     "movesPerSeason": 7.4,
+     "moves": {
+      "week": {
+       "meanRealGain": 18.1,
+       "ci95": [
+        14.8,
+        21.2
+       ],
+       "positive": 68.6,
+       "meanPredicted": 23.1
+      },
+      "month": {
+       "meanRealGain": 48,
+       "ci95": [
+        38.1,
+        58.1
+       ],
+       "positive": 71.2,
+       "meanPredicted": 89.7
+      },
+      "season": {
+       "meanRealGain": 75.3,
+       "ci95": [
+        46,
+        109.3
+       ],
+       "positive": 56.8,
+       "meanPredicted": 274.8
+      }
+     }
+    }
+   },
+   "differences": {
+    "current-hold": {
+     "mean": 555.5,
+     "ci95": [
+      326.2,
+      811.4
+     ],
+     "leagues": 32,
+     "better": 25
+    }
+   }
+  },
+  "2025-26": {
+   "policies": {
+    "hold": {
+     "runs": 32,
+     "points": 9696.2,
+     "rank": 7.09,
+     "monthly": {
+      "2025-10": 648.1,
+      "2025-11": 1938,
+      "2025-12": 1623.3,
+      "2026-01": 1779.6,
+      "2026-02": 1090.7,
+      "2026-03": 1919.2,
+      "2026-04": 697.4
+     },
+     "movesPerSeason": 0,
+     "moves": null
+    },
+    "current": {
+     "runs": 32,
+     "points": 10961.8,
+     "rank": 5.88,
+     "monthly": {
+      "2025-10": 676.8,
+      "2025-11": 2128.7,
+      "2025-12": 1868.9,
+      "2026-01": 2144.6,
+      "2026-02": 1320.8,
+      "2026-03": 2061.8,
+      "2026-04": 760.2
+     },
+     "movesPerSeason": 9.5,
+     "moves": {
+      "week": {
+       "meanRealGain": 20.9,
+       "ci95": [
+        18,
+        23.8
+       ],
+       "positive": 78,
+       "meanPredicted": 26
+      },
+      "month": {
+       "meanRealGain": 59.7,
+       "ci95": [
+        50.8,
+        69.4
+       ],
+       "positive": 73.4,
+       "meanPredicted": 87
+      },
+      "season": {
+       "meanRealGain": 132.8,
+       "ci95": [
+        98.7,
+        168
+       ],
+       "positive": 67.5,
+       "meanPredicted": 270.5
+      }
+     }
+    }
+   },
+   "differences": {
+    "current-hold": {
+     "mean": 1265.6,
+     "ci95": [
+      940.1,
+      1589.2
+     ],
+     "leagues": 32,
+     "better": 31
+    }
+   }
+  },
+  "both": {
+   "policies": {
+    "hold": {
+     "runs": 64,
+     "points": 10793.5,
+     "rank": 5.83,
+     "monthly": {
+      "2024-10": 688.8,
+      "2024-11": 2192.3,
+      "2024-12": 1909.1,
+      "2025-01": 2194.5,
+      "2025-02": 1776,
+      "2025-03": 2133.7,
+      "2025-04": 996.5,
+      "2025-10": 648.1,
+      "2025-11": 1938,
+      "2025-12": 1623.3,
+      "2026-01": 1779.6,
+      "2026-02": 1090.7,
+      "2026-03": 1919.2,
+      "2026-04": 697.4
+     },
+     "movesPerSeason": 0,
+     "moves": null
+    },
+    "current": {
+     "runs": 64,
+     "points": 11704.1,
+     "rank": 4.63,
+     "monthly": {
+      "2024-10": 694.8,
+      "2024-11": 2317.6,
+      "2024-12": 2001.4,
+      "2025-01": 2378.7,
+      "2025-02": 1867.3,
+      "2025-03": 2168.9,
+      "2025-04": 1017.8,
+      "2025-10": 676.8,
+      "2025-11": 2128.7,
+      "2025-12": 1868.9,
+      "2026-01": 2144.6,
+      "2026-02": 1320.8,
+      "2026-03": 2061.8,
+      "2026-04": 760.2
+     },
+     "movesPerSeason": 8.5,
+     "moves": {
+      "week": {
+       "meanRealGain": 19.7,
+       "ci95": [
+        17.5,
+        21.8
+       ],
+       "positive": 73.9,
+       "meanPredicted": 24.7
+      },
+      "month": {
+       "meanRealGain": 54.6,
+       "ci95": [
+        47.8,
+        61.6
+       ],
+       "positive": 72.5,
+       "meanPredicted": 88.2
+      },
+      "season": {
+       "meanRealGain": 107.7,
+       "ci95": [
+        82.5,
+        132.3
+       ],
+       "positive": 62.8,
+       "meanPredicted": 272.4
+      }
+     }
+    }
+   },
+   "differences": {
+    "current-hold": {
+     "mean": 910.5,
+     "ci95": [
+      689.7,
+      1127.5
+     ],
+     "leagues": 64,
+     "better": 56
+    }
+   }
+  }
+ },
+ "confidence": {
+  "week": {
+   "all": {
+    "n": 11206,
+    "brier": 0.2311,
+    "baseRateBrier": 0.2135,
+    "deciles": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "n": 17,
+      "predicted": 8.2,
+      "actual": 0,
+      "gap": -8.2
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 101,
+      "predicted": 16.5,
+      "actual": 69.3,
+      "gap": 52.8
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 448,
+      "predicted": 25.9,
+      "actual": 60.5,
+      "gap": 34.6
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 611,
+      "predicted": 35.5,
+      "actual": 65.3,
+      "gap": 29.8
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 1986,
+      "predicted": 46.3,
+      "actual": 62.6,
+      "gap": 16.3
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 3156,
+      "predicted": 54.8,
+      "actual": 65.7,
+      "gap": 10.9
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 2648,
+      "predicted": 64.8,
+      "actual": 72.2,
+      "gap": 7.3
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 1517,
+      "predicted": 74.2,
+      "actual": 78.2,
+      "gap": 4
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 605,
+      "predicted": 83.4,
+      "actual": 80,
+      "gap": -3.4
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 117,
+      "predicted": 93.3,
+      "actual": 90.6,
+      "gap": -2.7
+     }
+    ],
+    "maxGap": 52.8,
+    "at70": {
+     "n": 1517,
+     "predicted": 74.2,
+     "actual": 78.2
+    }
+   },
+   "early": {
+    "n": 4384,
+    "brier": 0.2449,
+    "baseRateBrier": 0.211,
+    "deciles": [
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 40,
+      "predicted": 18.2,
+      "actual": 90,
+      "gap": 71.8
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 214,
+      "predicted": 25.7,
+      "actual": 56.1,
+      "gap": 30.4
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 298,
+      "predicted": 35.1,
+      "actual": 75.2,
+      "gap": 40.1
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 1053,
+      "predicted": 46.3,
+      "actual": 67.3,
+      "gap": 21
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1275,
+      "predicted": 54.5,
+      "actual": 66.7,
+      "gap": 12.2
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 848,
+      "predicted": 64.6,
+      "actual": 73.5,
+      "gap": 8.8
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 481,
+      "predicted": 74.1,
+      "actual": 72.6,
+      "gap": -1.6
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 165,
+      "predicted": 84.5,
+      "actual": 84.2,
+      "gap": -0.3
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 10,
+      "predicted": 94.1,
+      "actual": 70,
+      "gap": -24.1
+     }
+    ],
+    "maxGap": 71.8,
+    "at70": {
+     "n": 481,
+     "predicted": 74.1,
+     "actual": 72.6
+    }
+   },
+   "mid": {
+    "n": 2213,
+    "brier": 0.2147,
+    "baseRateBrier": 0.1923,
+    "deciles": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "n": 1,
+      "predicted": 7.7,
+      "actual": 0,
+      "gap": -7.7
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 15,
+      "predicted": 15.7,
+      "actual": 93.3,
+      "gap": 77.6
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 88,
+      "predicted": 25,
+      "actual": 65.9,
+      "gap": 40.9
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 141,
+      "predicted": 36.3,
+      "actual": 55.3,
+      "gap": 19
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 368,
+      "predicted": 46.6,
+      "actual": 59.8,
+      "gap": 13.1
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 549,
+      "predicted": 55.2,
+      "actual": 70.5,
+      "gap": 15.3
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 604,
+      "predicted": 64.4,
+      "actual": 82.6,
+      "gap": 18.2
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 351,
+      "predicted": 74.6,
+      "actual": 86.6,
+      "gap": 12
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 85,
+      "predicted": 82.6,
+      "actual": 78.8,
+      "gap": -3.7
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 11,
+      "predicted": 94.1,
+      "actual": 100,
+      "gap": 5.9
+     }
+    ],
+    "maxGap": 40.9,
+    "at70": {
+     "n": 351,
+     "predicted": 74.6,
+     "actual": 86.6
+    }
+   },
+   "late": {
+    "n": 4609,
+    "brier": 0.226,
+    "baseRateBrier": 0.224,
+    "deciles": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "n": 16,
+      "predicted": 8.2,
+      "actual": 0,
+      "gap": -8.2
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 46,
+      "predicted": 15.3,
+      "actual": 43.5,
+      "gap": 28.2
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 146,
+      "predicted": 26.9,
+      "actual": 63.7,
+      "gap": 36.8
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 172,
+      "predicted": 35.5,
+      "actual": 56.4,
+      "gap": 20.9
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 565,
+      "predicted": 46.2,
+      "actual": 55.8,
+      "gap": 9.5
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1332,
+      "predicted": 54.8,
+      "actual": 62.7,
+      "gap": 7.9
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 1196,
+      "predicted": 65.2,
+      "actual": 66,
+      "gap": 0.8
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 685,
+      "predicted": 73.9,
+      "actual": 77.8,
+      "gap": 3.9
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 355,
+      "predicted": 83.1,
+      "actual": 78.3,
+      "gap": -4.8
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 96,
+      "predicted": 93.2,
+      "actual": 91.7,
+      "gap": -1.5
+     }
+    ],
+    "maxGap": 36.8,
+    "at70": {
+     "n": 685,
+     "predicted": 73.9,
+     "actual": 77.8
+    }
+   }
+  },
+  "month": {
+   "all": {
+    "n": 11322,
+    "brier": 0.2064,
+    "baseRateBrier": 0.2037,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 30,
+      "predicted": 35.5,
+      "actual": 63.3,
+      "gap": 27.8
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 734,
+      "predicted": 46.8,
+      "actual": 67.3,
+      "gap": 20.5
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 5277,
+      "predicted": 54.6,
+      "actual": 64.4,
+      "gap": 9.8
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 3040,
+      "predicted": 64.7,
+      "actual": 73.2,
+      "gap": 8.5
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 1448,
+      "predicted": 74.3,
+      "actual": 83,
+      "gap": 8.7
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 788,
+      "predicted": 84.2,
+      "actual": 95.6,
+      "gap": 11.3
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 5,
+      "predicted": 91.2,
+      "actual": 100,
+      "gap": 8.8
+     }
+    ],
+    "maxGap": 27.8,
+    "at70": {
+     "n": 1448,
+     "predicted": 74.3,
+     "actual": 83
+    }
+   },
+   "early": {
+    "n": 4384,
+    "brier": 0.2118,
+    "baseRateBrier": 0.1978,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 22,
+      "predicted": 35.4,
+      "actual": 72.7,
+      "gap": 37.4
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 458,
+      "predicted": 46.6,
+      "actual": 69.9,
+      "gap": 23.3
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 2284,
+      "predicted": 54.5,
+      "actual": 66.3,
+      "gap": 11.8
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 1060,
+      "predicted": 64.4,
+      "actual": 79,
+      "gap": 14.5
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 432,
+      "predicted": 74.3,
+      "actual": 88.2,
+      "gap": 13.9
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 128,
+      "predicted": 83.7,
+      "actual": 98.4,
+      "gap": 14.8
+     }
+    ],
+    "maxGap": 23.3,
+    "at70": {
+     "n": 432,
+     "predicted": 74.3,
+     "actual": 88.2
+    }
+   },
+   "mid": {
+    "n": 2213,
+    "brier": 0.1864,
+    "baseRateBrier": 0.1654,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 5,
+      "predicted": 34.8,
+      "actual": 40,
+      "gap": 5.2
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 125,
+      "predicted": 47.4,
+      "actual": 82.4,
+      "gap": 35
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 857,
+      "predicted": 55.2,
+      "actual": 74.4,
+      "gap": 19.3
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 635,
+      "predicted": 65.3,
+      "actual": 73.2,
+      "gap": 7.9
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 454,
+      "predicted": 74.6,
+      "actual": 89.4,
+      "gap": 14.8
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 135,
+      "predicted": 83.1,
+      "actual": 99.3,
+      "gap": 16.1
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 2,
+      "predicted": 91,
+      "actual": 100,
+      "gap": 9
+     }
+    ],
+    "maxGap": 35,
+    "at70": {
+     "n": 454,
+     "predicted": 74.6,
+     "actual": 89.4
+    }
+   },
+   "late": {
+    "n": 4725,
+    "brier": 0.2107,
+    "baseRateBrier": 0.222,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 3,
+      "predicted": 37.9,
+      "actual": 33.3,
+      "gap": -4.6
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 151,
+      "predicted": 47.2,
+      "actual": 47,
+      "gap": -0.1
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 2136,
+      "predicted": 54.4,
+      "actual": 58.3,
+      "gap": 3.9
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 1345,
+      "predicted": 64.6,
+      "actual": 68.7,
+      "gap": 4.1
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 562,
+      "predicted": 74,
+      "actual": 73.8,
+      "gap": -0.1
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 525,
+      "predicted": 84.6,
+      "actual": 93.9,
+      "gap": 9.3
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 3,
+      "predicted": 91.3,
+      "actual": 100,
+      "gap": 8.7
+     }
+    ],
+    "maxGap": 9.3,
+    "at70": {
+     "n": 562,
+     "predicted": 74,
+     "actual": 73.8
+    }
+   }
+  },
+  "season": {
+   "all": {
+    "n": 11322,
+    "brier": 0.2273,
+    "baseRateBrier": 0.2361,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 174,
+      "predicted": 36.9,
+      "actual": 23.6,
+      "gap": -13.3
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 1142,
+      "predicted": 46.2,
+      "actual": 43.6,
+      "gap": -2.6
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 4202,
+      "predicted": 54.6,
+      "actual": 58.7,
+      "gap": 4.1
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 2944,
+      "predicted": 64.7,
+      "actual": 64.5,
+      "gap": -0.2
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 1672,
+      "predicted": 74.2,
+      "actual": 69.6,
+      "gap": -4.6
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 1106,
+      "predicted": 84.8,
+      "actual": 77.1,
+      "gap": -7.6
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 82,
+      "predicted": 91.3,
+      "actual": 91.5,
+      "gap": 0.1
+     }
+    ],
+    "maxGap": 13.3,
+    "at70": {
+     "n": 1672,
+     "predicted": 74.2,
+     "actual": 69.6
+    }
+   },
+   "early": {
+    "n": 4384,
+    "brier": 0.2313,
+    "baseRateBrier": 0.2404,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 115,
+      "predicted": 36.8,
+      "actual": 26.1,
+      "gap": -10.7
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 653,
+      "predicted": 45.9,
+      "actual": 47,
+      "gap": 1.1
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1734,
+      "predicted": 54.6,
+      "actual": 55.9,
+      "gap": 1.4
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 970,
+      "predicted": 64.5,
+      "actual": 68.8,
+      "gap": 4.2
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 662,
+      "predicted": 74.6,
+      "actual": 69.6,
+      "gap": -4.9
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 216,
+      "predicted": 84.3,
+      "actual": 70.8,
+      "gap": -13.5
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 34,
+      "predicted": 90.9,
+      "actual": 100,
+      "gap": 9.1
+     }
+    ],
+    "maxGap": 13.5,
+    "at70": {
+     "n": 662,
+     "predicted": 74.6,
+     "actual": 69.6
+    }
+   },
+   "mid": {
+    "n": 2213,
+    "brier": 0.2303,
+    "baseRateBrier": 0.2356,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 51,
+      "predicted": 36.9,
+      "actual": 11.8,
+      "gap": -25.1
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 184,
+      "predicted": 45.8,
+      "actual": 52.2,
+      "gap": 6.4
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 577,
+      "predicted": 55.1,
+      "actual": 61.5,
+      "gap": 6.4
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 645,
+      "predicted": 64.7,
+      "actual": 57.2,
+      "gap": -7.5
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 413,
+      "predicted": 74.8,
+      "actual": 67.3,
+      "gap": -7.5
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 320,
+      "predicted": 84.5,
+      "actual": 78.8,
+      "gap": -5.8
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 23,
+      "predicted": 91.9,
+      "actual": 69.6,
+      "gap": -22.4
+     }
+    ],
+    "maxGap": 25.1,
+    "at70": {
+     "n": 413,
+     "predicted": 74.8,
+     "actual": 67.3
+    }
+   },
+   "late": {
+    "n": 4725,
+    "brier": 0.2223,
+    "baseRateBrier": 0.2316,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 8,
+      "predicted": 38,
+      "actual": 62.5,
+      "gap": 24.5
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 305,
+      "predicted": 47,
+      "actual": 31.1,
+      "gap": -15.9
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1891,
+      "predicted": 54.4,
+      "actual": 60.3,
+      "gap": 5.9
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 1329,
+      "predicted": 64.8,
+      "actual": 65,
+      "gap": 0.2
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 597,
+      "predicted": 73.4,
+      "actual": 71.2,
+      "gap": -2.2
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 570,
+      "predicted": 85.1,
+      "actual": 78.6,
+      "gap": -6.5
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 25,
+      "predicted": 91.4,
+      "actual": 100,
+      "gap": 8.6
+     }
+    ],
+    "maxGap": 15.9,
+    "at70": {
+     "n": 597,
+     "predicted": 73.4,
+     "actual": 71.2
+    }
+   }
+  }
+ },
+ "candidates": 11322,
+ "limitations": [
+  "No historical ESPN injury report: absences are seen only through missed games (the live app also reads the report).",
+  "Sports.ru prices are modelled (the 2026/27 prices regressed on the previous season's FBL points per game, rookies on the pick) and fixed through the season.",
+  "Positions: Sports.ru 2026/27 where the player is on the market, otherwise the nearest stat profile; the white rule: the league's 2026/27 list.",
+  "Rivals follow one simple rule; real managers differ.",
+  "Each league is one draft; leagues of one season share the games, so seasons, not leagues, are the independent samples."
+ ]
+}
