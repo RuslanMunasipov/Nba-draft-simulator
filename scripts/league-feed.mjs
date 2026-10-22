@@ -239,7 +239,8 @@ for(const idx of groups.values()){
  const caption=message(...HEAD[v.kind](x.team,v,true),no,teamLine,'',conclusion,'','<i>Протокол — ответом на это сообщение.</i>');
  // His picture with the team's GM, drawn only for a protocol that goes to the chat; his usual photo when it cannot be.
  const picture=configured&&!preview&&process.env.OPENAI_API_KEY
-  ?await drawProtocol({kind:v.kind,team:x.team,no:issued+1,seed:key(news[0])},{key:process.env.OPENAI_API_KEY}):null;
+  ?await drawProtocol({kind:v.kind,team:x.team,no:issued+1,seed:key(news[0]),rules:rulesOf(v,c),standing:v.standingOnly,fixed:fixed.length>0,
+   watched:Boolean(watched(x.team))},{key:process.env.OPENAI_API_KEY}):null;
  if(await send(text,{photo:picture||photo(v.kind),caption})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);events.push(...dealEvents(m));}issued++;save();}
 }
 if(!groups.size)console.log('No new league transfers.');

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {references,readImage,gmPhoto,teamLogo,zakPhoto,cost,generate,MODEL,QUALITY,SIZE} from '../scripts/image-pipeline.mjs';
-import {zakPicture,ZAK_MOOD} from '../scripts/zak-pictures.mjs';
+import {zakPicture,sceneOf,ZAK_MOOD} from '../scripts/zak-pictures.mjs';
 
 function assets(){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'assets-'));
@@ -71,4 +71,26 @@ test('Зак Онн pictures: he deals with the team\'s GM in person, the logo i
   const x=zakPicture({kind,team,no:3,seed:`seed${s}`,root});
   assert.doesNotMatch(x.prompt,/undefined|null/,`${kind} ${s} ${team}`);
  }
+});
+
+test('Зак Онн pictures: the scene follows the case, the rule broken first',()=>{
+ assert.equal(sceneOf({kind:'violation',rules:['rookie']}),'rookie');
+ assert.equal(sceneOf({kind:'violation',rules:['rookie','transfers']}),'transfers','the transfer limit before the rookie rule');
+ assert.equal(sceneOf({kind:'violation',rules:['club','duplicate']}),'duplicate');
+ assert.equal(sceneOf({kind:'violation',rules:['time']}),'time');assert.equal(sceneOf({kind:'violation',rules:['white']}),'white');
+ assert.equal(sceneOf({kind:'violation',rules:[]}),'violation');
+ assert.equal(sceneOf({kind:'violation',rules:['rookie'],standing:true}),'repeat');
+ assert.equal(sceneOf({kind:'check',rules:['time']}),'check-time');assert.equal(sceneOf({kind:'check',rules:['unmarked']}),'check-white');
+ assert.equal(sceneOf({kind:'check',rules:['club']}),'check');
+ assert.equal(sceneOf({kind:'approved',fixed:true}),'closed');assert.equal(sceneOf({kind:'approved',watched:true}),'watched');
+ assert.equal(sceneOf({kind:'approved'}),'approved');
+ const root=assets();
+ const cases=[['violation',{rules:['rookie']}],['violation',{rules:['white']}],['violation',{rules:['club']}],['violation',{rules:['transfers']}],
+  ['violation',{rules:['time']}],['violation',{rules:['duplicate']}],['violation',{standing:true}],['check',{rules:['time']}],['check',{rules:['white']}],
+  ['approved',{fixed:true}],['approved',{watched:true}]];
+ for(const [kind,story] of cases)for(let s=0;s<6;s++){
+  const p=zakPicture({kind,team:2,no:9,seed:'x'+s,root,...story}).prompt;
+  assert.doesNotMatch(p,/undefined|null/,`${kind} ${JSON.stringify(story)}`);assert.match(p,/God Bless America/);
+ }
+ assert.match(zakPicture({kind:'violation',team:2,no:9,seed:'x',root,rules:['transfers']}).prompt,/3 PER WEEK|LIMIT/);
 });
