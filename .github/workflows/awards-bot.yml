@@ -21,11 +21,17 @@ on:
         description: 'US game day whose post is sent to the league again, YYYY-MM-DD (nothing else posted or saved).'
         required: false
         default: ''
+      holiday:
+        description: 'Cards of a preview or a resend: a holiday key of awards-bot/holidays.js, or none for no holiday decor. Empty: the calendar.'
+        required: false
+        default: ''
 permissions:
   contents: write
   actions: write
+# A preview or a resend only reads the state: it runs beside the chain instead of waiting hours behind it (where the next
+# pending run of the group would cancel it).
 concurrency:
-  group: awards-bot
+  group: ${{ inputs.preview && 'awards-bot-preview' || inputs.resend && 'awards-bot-resend' || 'awards-bot' }}
   cancel-in-progress: false
 jobs:
   run:
@@ -46,7 +52,9 @@ jobs:
         run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
       - name: Preview a game day
         if: inputs.preview != ''
-        run: node awards-bot/bot.mjs --preview "${{ inputs.preview }}" --week --month
+        env:
+          HOLIDAY: ${{ inputs.holiday }}
+        run: node awards-bot/bot.mjs --preview "${{ inputs.preview }}" --week --month ${HOLIDAY:+--holiday "$HOLIDAY"}
       - name: Load the bot's state
         if: inputs.preview == ''
         run: |
@@ -78,11 +86,12 @@ jobs:
           # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           RESEND: ${{ inputs.resend }}
+          HOLIDAY: ${{ inputs.resend && inputs.holiday || '' }}
           # One run follows a day for at most this long, then saves; the next hourly run goes on.
           WATCH_MINUTES: '330'
           CHAIN: '1'
           GH_TOKEN: ${{ github.token }}
-        run: node awards-bot/bot.mjs --state "$RUNNER_TEMP/awards" ${RESEND:+--resend "$RESEND"}
+        run: node awards-bot/bot.mjs --state "$RUNNER_TEMP/awards" ${RESEND:+--resend "$RESEND"} ${HOLIDAY:+--holiday "$HOLIDAY"}
       - name: Save the bot's state
         # The bot pushes the state after every post; this saves the archive at the end, a cancelled run too.
         if: always() && inputs.preview == '' && inputs.resend == ''
