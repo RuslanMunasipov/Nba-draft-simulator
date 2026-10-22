@@ -111,12 +111,12 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  assert.match(p.prompt,/SCENE:.*Captain Torres New-Win \(the general manager, reference image 2\)/);
 });
 
-test('a GM drawn as a child is never restrained or threatened in Zak Onn\'s scenes; the others have no such block',()=>{
+test('a GM drawn as a child is never restrained or hurt in Zak Onn\'s scenes, only a belt shaken at him; the others have no such block',()=>{
  for(const [kind,story] of [['violation',{rules:['rookie']}],['violation',{standing:true}],['check',{rules:['time']}],['approved',{}]]){
   const p=zakPicture({kind,team:7,no:5,seed:'s',...story}).prompt;
   assert.deepEqual(zakPicture({kind,team:7,no:5,seed:'s',...story}).images.map(i=>i.name).slice(1),['headshot-vanshotovich.jpg']);
   assert.match(p,/HEADSHOT VANSHOTOVICH IS DRAWN AS A CHILD \(this overrides the scene\): he is never handcuffed/);
-  assert.match(p,/no weapon anywhere in the picture/);
+  assert.match(p,/no weapon anywhere in the picture/);assert.match(p,/stern father: he holds a folded leather belt.*never striking/);
  }
  assert.doesNotMatch(zakPicture({kind:'violation',team:2,no:5,seed:'s'}).prompt,/AS A CHILD/);
 });
