@@ -30,3 +30,11 @@ test('the published snapshot and the awards archive agree on every game both hol
  const out=gamePointsMismatches(JSON.parse(readFileSync(live,'utf8')),JSON.parse(readFileSync(awards,'utf8')));
  assert.ok(out.compared>0);assert.deepEqual(out.mismatches,[]);
 });
+
+test('the site\'s overlay takes ESPN\'s minutes unless Sports.ru\'s agree within a minute (57:00 beside an all-zero line)',async()=>{
+ const {withBoxScores}=await import('../src/season.js');
+ const players=[{id:1,espnId:'77',sportsId:'s1'}],game={date:'2026-10-22T02:00:00Z',state:'post',final:true,points:{77:{counting:-11,minutes:31}}};
+ const live=m=>({players:{s1:{games:[{date:'2026-10-22',played:true,points:1,pointsSource:'BOX',minutes:m}]}}});
+ assert.equal(withBoxScores(live('57:00'),[game],players).players.s1.games[0].minutes,'31');
+ assert.equal(withBoxScores(live('31:24'),[game],players).players.s1.games[0].minutes,'31:24');
+});
