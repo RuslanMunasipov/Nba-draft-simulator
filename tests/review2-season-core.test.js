@@ -118,7 +118,8 @@ test('the explanation of a swap that sells a shadowed holding: nothing on his si
  near(why.parts.availability,why.gain,1e-6);near(why.parts.perGame,0);
  assert.ok(why.flags.includes(`P81: его очки получает ${teamName(0)} — она взяла его раньше, тебе он не приносит ничего.`));
  assert.ok(!why.flags.some(f=>f.startsWith('Больше половины выигрыша')));
- assert.ok(why.confidence>.99);
+ // Certain on the model's own spread; the calibrated chance is the share of such swaps that really gained (its top step).
+ assert.ok(why.z>3&&why.confidence>=.9);
  // Without the team (or for team 0) the swap is the star against an average player, as before.
  assert.ok(explainSwap(c,81,82,'season').gain<0);assert.ok(explainSwap(c,81,82,'season',null,0).gain<0);
  // The alerts and the recommended package of team 1 judge it the same way.

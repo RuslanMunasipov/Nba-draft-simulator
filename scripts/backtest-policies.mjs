@@ -28,6 +28,8 @@ function recordCandidates(S,season,ctx,team,bankMoney,d,record){
   record.push({day:d.day,week:d.week,kind:d.kind,outId:x.outId,inId:x.player.id,estimate:swapEstimate(S,season,ctx,d,[[x.outId,x.player.id]])});
  }
 }
+// The model each policy reads: 'shipped' (the chain as of 22.10.2026, without the current absence run) or 'current'.
+export const MODEL_OF={hold:'current',current:'shipped',rivals:'shipped',currentNewModel:'current'};
 export const POLICIES={
  // (a) Never transfer.
  hold({S,season,ctx,team,bankMoney,decision,record}){
@@ -43,6 +45,8 @@ export const POLICIES={
   const pairs=best.pairs.map(x=>[x.out.id,x.in.id]),estimate=swapEstimate(S,season,ctx,decision,pairs);
   return {pairs:best.pairs.map(x=>({outId:x.out.id,inId:x.in.id})),predicted:estimate,confidence:best.why.confidence,label:best.why.level};
  },
+ // (b') The same rule on the current model: what the model change alone is worth.
+ currentNewModel(x){return POLICIES.current(x);},
  // The rival teams: once a week, the best one-for-one swap over the rest of the season when it gains 40+ points there and
  // does not lose the next 4 weeks.
  rivals({S,ctx,team,bankMoney,decision}){

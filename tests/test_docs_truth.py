@@ -36,15 +36,18 @@ class DocsTruth(unittest.TestCase):
 
     def test_transfer_backtest_figures_match_the_report(self):
         b=json.loads((ROOT/'data/transfer-backtest.json').read_text());s=b['seasons']
+        c=json.loads((ROOT/'data/confidence-calibration.json').read_text());ins=c['inSample'];conf=b['confidence']
         f=lambda d:f"{d['mean']:+.0f} ({d['ci95'][0]:.0f} to {d['ci95'][1]:.0f})"
-        moves=s['both']['policies']['current']['moves'];conf=b['confidence']
+        moves=s['both']['policies']['current']['moves']
         expected=[f"2024/25 {f(s['2024-25']['differences']['current-hold'])}",f"2025/26 {f(s['2025-26']['differences']['current-hold'])}",
                   f"both {f(s['both']['differences']['current-hold'])} FP a season",
                   f"real gain per move {moves['week']['meanRealGain']:+.1f} over the FBL week, {moves['month']['meanRealGain']:+.1f} over 4 weeks, {moves['season']['meanRealGain']:+.1f} over the rest of the season",
                   f"The model expected {moves['week']['meanPredicted']:+.1f}, {moves['month']['meanPredicted']:+.1f} and {moves['season']['meanPredicted']:+.1f}",
-                  f"really gained {conf['week']['all']['at70']['actual']}% of the time over the week, {conf['month']['all']['at70']['actual']}% over 4 weeks, {conf['season']['all']['at70']['actual']}% over the season"]
+                  f"The same advice on it: {f(s['both']['differences']['currentNewModel-current'])} FP a season over the shipped chain",
+                  f"really gained {conf['week']['all']['at70']['actual']}% of the time over the week, {conf['month']['all']['at70']['actual']}% over 4 weeks, {conf['season']['all']['at70']['actual']}% over the season",
+                  f"Brier {ins['week']['after']['brier']:.3f} / {ins['month']['after']['brier']:.3f} / {ins['season']['after']['brier']:.3f}, every decile within {max(ins[h]['after']['maxGap'] for h in ins):.1f} points"]
         for text in expected:
-            self.assertIn(text,CURRENT,'«Current state» in docs/ACCEPTANCE.md disagrees with data/transfer-backtest.json')
+            self.assertIn(text,CURRENT,'«Current state» in docs/ACCEPTANCE.md disagrees with data/transfer-backtest.json or data/confidence-calibration.json')
 
     def test_claims_found_false_are_gone_or_marked(self):
         readme=(ROOT/'README.md').read_text()

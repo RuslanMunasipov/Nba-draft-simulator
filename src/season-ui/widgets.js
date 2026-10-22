@@ -150,7 +150,7 @@ export function whyBox(why,ctx){
  box.addEventListener('toggle',()=>{if(!box.open||box.dataset.filled)return;box.dataset.filled='1';
   const p=why.parts,part=(v,t)=>`${signed(v)} ${t}`;
   box.append(el('p',`Разница ${PERIOD_LONG[horizon]}: ${signed(why.gain)} ФО = ${part(p.perGame,'за счёт ФО за матч')}, ${part(p.availability,'за счёт доли сыгранных матчей')}, ${part(p.schedule,'за счёт календаря клубов')}.`));
-  box.append(el('p',`Уверенность ${Math.floor(why.confidence*100)}%: столько шансов, что обмен действительно даст плюс ${PERIOD_LONG[horizon]}. Делать стоит от ${Math.round(CONFIDENT*100)}%, ниже ${Math.round(DOUBTFUL*100)}% трансфер лучше сберечь.`,'muted'));
+  box.append(el('p',`Уверенность ${Math.floor(why.confidence*100)}%: столько шансов, что обмен действительно даст плюс ${PERIOD_LONG[horizon]}. Это доля таких обменов, давших плюс, когда советы прогнали заново на сезонах 2024/25 и 2025/26 (отдельно по горизонту и части сезона). Делать стоит от ${Math.round(CONFIDENT*100)}%, ниже ${Math.round(DOUBTFUL*100)}% трансфер лучше сберечь.`,'muted'));
   const flags=why.flags.filter(f=>!f.startsWith(EARLY)).map(f=>f.replace(/: (Out|Day-To-Day|Questionable|Doubtful|Suspension)\b/,(_,s)=>': '+injuryStatus(s).label.toLowerCase()));
   if(flags.length){const ul=el('ul',null,'sp-flags');for(const f of flags)ul.append(el('li','⚠ '+f));box.append(ul);}
   for(const side of why.sides){const pair=el('div',null,'sp-pair');pair.append(sideBlock('Отдаёшь',side.out),sideBlock('Получаешь',side.in));box.append(pair);}

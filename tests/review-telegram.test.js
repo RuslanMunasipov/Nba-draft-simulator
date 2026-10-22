@@ -65,9 +65,10 @@ const idOf=(db,name)=>db.players.find(p=>p.name===name).id;
 const ctxOf=({db,live})=>({players:db.players,live,injuries:new Map(),today:'2026-10-21'});
 
 // The package for team 0 (bank 0): its SF D32 or D40 for X (45 a game and 200 cheaper: the money for the rest), its C
-// D64 for V and a PF (D48 or D56) for D51 (31 a game, one more), V and D51 100 dearer than the players they replace, so
+// D64 for V and a PF (D48 or D56) for D51 (30.6 a game, 0.6 more: a coin flip even after the backtest's calibration,
+// where one point more a game early in a season gained 63% of the time), V and D51 100 dearer than the players they replace, so
 // neither is a single swap. The rookie C D72 stays: no free rookie.
-const scenario=v=>league({free:{X:['SF',45,1300],V:['C',v,1600],W:['C',32,1500]},mean:{51:31},price:{51:1600}});
+const scenario=v=>league({free:{X:['SF',45,1300],V:['C',v,1600],W:['C',32,1500]},mean:{51:30.6},price:{51:1600}});
 
 test('a player bought in a package is judged by what he adds, not by the moves around him (R01, R02)',()=>{
  const l=scenario(33),out=notify(l,{watch:[idOf(l.db,'V')]});
@@ -98,9 +99,9 @@ test('return heads carry the transfer-hours note; doubtful still sends nothing (
  assert.equal(returnHead(.55,bars),null);assert.equal(returnHead(.75,{sure:.7,maybe:.6}),'🎯 <b>Тебе: можно брать</b>');
 });
 test('a doubtful single swap is not offered as a buy, now or for next week (R02)',()=>{
- const one=notify(league({mean:{51:31},left:{0:1}})),rival=block(one,'🔄 <b>4.');
+ const one=notify(league({mean:{51:30.6},left:{0:1}})),rival=block(one,'🔄 <b>4.');
  assert.doesNotMatch(rival,/можно взять D51|забирай D51/);assert.match(rival,/🙅 <b>Тебе: ничего не делать<\/b>/);assert.match(rival,/Уверенность \d+%: сомнительно/);
- const none=block(notify(league({mean:{51:31},left:{0:0}})),'🔄 <b>4.');
+ const none=block(notify(league({mean:{51:30.6},left:{0:0}})),'🔄 <b>4.');
  assert.match(none,/⛔ <b>Тебе: трансферы на неделе закончились<\/b>/);assert.doesNotMatch(none,/останется свободным/);
  // A sure one is still named for next week.
  assert.match(block(notify(league({mean:{51:40},left:{0:0}})),'🔄 <b>4.'),/Если D51 останется свободным, на новой неделе:/);
