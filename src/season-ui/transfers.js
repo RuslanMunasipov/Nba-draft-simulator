@@ -28,6 +28,10 @@ function recommendationCard(ctx,plan,left,fbl){
  if(plan.action!=='move'){
   card.append(el('p','Рекомендация','eyebrow'));
   if(plan.reason==='no-transfers')card.append(el('h3','Держать: трансферы на эту неделю закончились'),el('p',`Следующие — с ${ddmm(fbl.resetOn)}. Варианты ниже — на будущее.`,'muted'));
+  else if(plan.reason==='low-confidence'){const b=plan.best;
+   card.append(el('h3','Держать: лучший ход окупает трансфер, но в нём мало уверенности'),
+    el('p',`${b.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', ')}: ${signed(b.gains.week)} ФО за неделю, ${signed(b.gains.month)} за 4 недели, ${signed(b.gains.season)} за сезон, уверенность за сезон ${Math.floor(b.confidence*100)}% — ниже порога ${Math.round(plan.minConfidence*100)}%, подобранного на прошлых сезонах.`,'muted'));
+  }
   else{
    card.append(el('h3','Держать: сейчас ни один ход не окупает трансфер'));
    const b=plan.best;
