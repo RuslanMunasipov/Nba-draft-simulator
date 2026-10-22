@@ -34,23 +34,12 @@ class DocsTruth(unittest.TestCase):
         for text in expected:
             self.assertIn(text,CURRENT,'«Current state» in docs/ACCEPTANCE.md disagrees with projection-model-audit.json')
 
-    def test_transfer_backtest_figures_match_the_report(self):
-        b=json.loads((ROOT/'data/transfer-backtest.json').read_text());s=b['seasons']
-        c=json.loads((ROOT/'data/confidence-calibration.json').read_text());ins=c['inSample'];conf=b['confidence']
-        f=lambda d:f"{d['mean']:+.0f} ({d['ci95'][0]:.0f} to {d['ci95'][1]:.0f})"
-        moves=s['both']['policies']['current']['moves']
-        expected=[f"2024/25 {f(s['2024-25']['differences']['current-hold'])}",f"2025/26 {f(s['2025-26']['differences']['current-hold'])}",
-                  f"both {f(s['both']['differences']['current-hold'])} FP a season",
-                  f"real gain per move {moves['week']['meanRealGain']:+.1f} over the FBL week, {moves['month']['meanRealGain']:+.1f} over 4 weeks, {moves['season']['meanRealGain']:+.1f} over the rest of the season",
-                  f"The model expected {moves['week']['meanPredicted']:+.1f}, {moves['month']['meanPredicted']:+.1f} and {moves['season']['meanPredicted']:+.1f}",
-                  f"(and with the calibrated confidence below): {f(s['both']['differences']['currentNewModel-current'])} FP a season over the shipped chain",
-                  f"both {f(s['both']['differences']['plan-current'])} FP a season; against doing nothing {f(s['both']['differences']['plan-hold'])}",
-                  f"against the old rule (`recommendPackage`) on the same model {f(s['both']['differences']['plan-currentNewModel'])}",
-                  f"Moves made with a negative expected season gain: {b['planNegativeSeason']['count']} of {b['planNegativeSeason']['of']}",
-                  f"really gained {conf['week']['all']['at70']['actual']}% of the time over the week, {conf['month']['all']['at70']['actual']}% over 4 weeks, {conf['season']['all']['at70']['actual']}% over the season",
-                  f"Brier {ins['week']['after']['brier']:.3f} / {ins['month']['after']['brier']:.3f} / {ins['season']['after']['brier']:.3f}, every decile within {max(ins[h]['after']['maxGap'] for h in ins):.1f} points"]
-        for text in expected:
-            self.assertIn(text,CURRENT,'«Current state» in docs/ACCEPTANCE.md disagrees with data/transfer-backtest.json or data/confidence-calibration.json')
+    def test_transfer_backtest_block_is_what_its_script_writes(self):
+        import sys;sys.path.insert(0,str(ROOT/'scripts'))
+        from backtest_docs import render,BEGIN,END
+        block=ACCEPTANCE.split(BEGIN,1)[1].split(END,1)[0].strip('\n')
+        self.assertEqual(block,render(),'rerun scripts/backtest_docs.py --write after the backtest, the tuning or the calibration')
+        self.assertIn(BEGIN,CURRENT)
 
     def test_claims_found_false_are_gone_or_marked(self):
         readme=(ROOT/'README.md').read_text()

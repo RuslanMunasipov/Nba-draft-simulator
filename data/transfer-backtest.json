@@ -1,17 +1,111 @@
 {
- "version": 1,
+ "version": 2,
  "generatedBy": "scripts/transfer_backtest.mjs",
  "inputs": [
+  "2023-24.json",
   "2024-25.json",
   "2025-26.json"
  ],
+ "inputStats": {
+  "2023-24": {
+   "population": {
+    "players": 539,
+    "rookies": 103
+   },
+   "prices": {
+    "rule": {
+     "intercept": 0.444,
+     "perFblPoint": 1.0461,
+     "games": 17525
+    },
+    "opening": {
+     "players": 250,
+     "rookies": 38,
+     "veteranRMSE": 102.7,
+     "floor": 1000
+    },
+    "real": 303,
+    "modelled": 236
+   },
+   "injuryReports": {
+    "reports": 171,
+    "unmatchedNames": 51
+   },
+   "positions": {
+    "STAT_PROFILE": 207,
+    "SPORTS_RU_2026": 310,
+    "DEFAULT": 22
+   }
+  },
+  "2024-25": {
+   "population": {
+    "players": 560,
+    "rookies": 104
+   },
+   "prices": {
+    "rule": {
+     "intercept": 0.457,
+     "perFblPoint": 1.0463,
+     "games": 19866
+    },
+    "opening": {
+     "players": 293,
+     "rookies": 44,
+     "veteranRMSE": 109,
+     "floor": 1000
+    },
+    "real": 367,
+    "modelled": 193
+   },
+   "injuryReports": {
+    "reports": 170,
+    "unmatchedNames": 31
+   },
+   "positions": {
+    "STAT_PROFILE": 168,
+    "SPORTS_RU_2026": 371,
+    "DEFAULT": 21
+   }
+  },
+  "2025-26": {
+   "population": {
+    "players": 577,
+    "rookies": 105
+   },
+   "prices": {
+    "rule": {
+     "intercept": 0.385,
+     "perFblPoint": 1.052,
+     "games": 23201
+    },
+    "opening": {
+     "players": 352,
+     "rookies": 48,
+     "veteranRMSE": 116.1,
+     "floor": 998
+    },
+    "real": 433,
+    "modelled": 144
+   },
+   "injuryReports": {
+    "reports": 169,
+    "unmatchedNames": 25
+   },
+   "positions": {
+    "STAT_PROFILE": 117,
+    "SPORTS_RU_2026": 439,
+    "DEFAULT": 21
+   }
+  }
+ },
  "planNegativeSeason": {
   "count": 0,
-  "of": 1530
+  "of": 3209
  },
  "design": {
   "leaguesPerSeason": 32,
   "seeds": 4,
+  "fromSeed": 1,
   "slots": 8,
   "policies": [
    "hold",
@@ -24,211 +118,475 @@
   "realGain": "points the newcomer really scored minus the points the player sold really scored, over the window the move was judged on (Moscow dates after the decision)"
  },
  "seasons": {
-  "2024-25": {
+  "2023-24": {
    "policies": {
     "hold": {
      "runs": 32,
-     "points": 11890.9,
-     "rank": 4.56,
+     "points": 11727,
+     "rank": 6.66,
      "monthly": {
-      "2024-10": 688.8,
-      "2024-11": 2192.3,
-      "2024-12": 1909.1,
-      "2025-01": 2194.5,
-      "2025-02": 1776,
-      "2025-03": 2133.7,
-      "2025-04": 996.5
+      "2023-10": 481.6,
+      "2023-11": 2136.1,
+      "2023-12": 2217.9,
+      "2024-01": 2334.8,
+      "2024-02": 1735.4,
+      "2024-03": 1890.4,
+      "2024-04": 930.8
      },
      "movesPerSeason": 0,
+     "buyBacks": {
+      "perSeason": 0,
+      "meanRealGain": null
+     },
      "moves": null
     },
     "current": {
      "runs": 32,
-     "points": 12446.4,
-     "rank": 3.38,
+     "points": 13781.6,
+     "rank": 2.47,
      "monthly": {
-      "2024-10": 694.8,
-      "2024-11": 2317.6,
-      "2024-12": 2001.4,
-      "2025-01": 2378.7,
-      "2025-02": 1867.3,
-      "2025-03": 2168.9,
-      "2025-04": 1017.8
+      "2023-10": 514.1,
+      "2023-11": 2382.7,
+      "2023-12": 2465.1,
+      "2024-01": 2586.4,
+      "2024-02": 2079.5,
+      "2024-03": 2441.7,
+      "2024-04": 1312.1
      },
-     "movesPerSeason": 7.4,
+     "movesPerSeason": 26.2,
+     "buyBacks": {
+      "perSeason": 3.72,
+      "meanRealGain": {
+       "week": 18.6,
+       "month": 52.7,
+       "season": 105.6
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 18.1,
+       "meanRealGain": 15.9,
        "ci95": [
-        14.8,
-        21.2
+        13.7,
+        18
        ],
-       "positive": 68.6,
-       "meanPredicted": 23.1
+       "positive": 68.9,
+       "meanPredicted": 65.1
       },
       "month": {
-       "meanRealGain": 48,
+       "meanRealGain": 46.5,
        "ci95": [
-        38.1,
-        58.1
+        42.1,
+        51.1
        ],
-       "positive": 71.2,
-       "meanPredicted": 89.7
+       "positive": 68.7,
+       "meanPredicted": 110.9
       },
       "season": {
-       "meanRealGain": 75.3,
+       "meanRealGain": 78.5,
        "ci95": [
-        46,
-        109.3
+        66.3,
+        91
        ],
-       "positive": 56.8,
-       "meanPredicted": 274.8
+       "positive": 65.6,
+       "meanPredicted": 141.6
       }
      }
     },
     "currentNewModel": {
      "runs": 32,
-     "points": 13578.4,
-     "rank": 1.56,
+     "points": 14264.4,
+     "rank": 1.66,
      "monthly": {
-      "2024-10": 705.3,
-      "2024-11": 2551.2,
-      "2024-12": 2109.9,
-      "2025-01": 2595.9,
-      "2025-02": 1939.2,
-      "2025-03": 2509.9,
-      "2025-04": 1167
+      "2023-10": 515.8,
+      "2023-11": 2419.7,
+      "2023-12": 2522.3,
+      "2024-01": 2616.3,
+      "2024-02": 2195.5,
+      "2024-03": 2659,
+      "2024-04": 1335.8
      },
-     "movesPerSeason": 21.9,
+     "movesPerSeason": 36.9,
+     "buyBacks": {
+      "perSeason": 8.66,
+      "meanRealGain": {
+       "week": 16.1,
+       "month": 47.1,
+       "season": 102.5
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 19.1,
+       "meanRealGain": 13.3,
        "ci95": [
-        17,
-        21.3
+        11.9,
+        14.8
        ],
-       "positive": 76.3,
-       "meanPredicted": 30.2
+       "positive": 66.1,
+       "meanPredicted": 55.9
       },
       "month": {
-       "meanRealGain": 48.8,
+       "meanRealGain": 35.9,
        "ci95": [
-        43.5,
-        54.4
+        32.8,
+        39.1
        ],
-       "positive": 71,
-       "meanPredicted": 78.2
+       "positive": 64.2,
+       "meanPredicted": 113
       },
       "season": {
-       "meanRealGain": 77,
+       "meanRealGain": 68.7,
        "ci95": [
-        63.3,
-        92.7
+        60.1,
+        78.5
        ],
-       "positive": 65.3,
-       "meanPredicted": 126.9
+       "positive": 62.4,
+       "meanPredicted": 147.2
       }
      }
     },
     "plan": {
      "runs": 32,
-     "points": 13595,
-     "rank": 1.66,
+     "points": 14294,
+     "rank": 1.75,
      "monthly": {
-      "2024-10": 707.4,
-      "2024-11": 2484.4,
-      "2024-12": 2147.1,
-      "2025-01": 2609.2,
-      "2025-02": 1974.3,
-      "2025-03": 2528.4,
-      "2025-04": 1144.1
+      "2023-10": 516.3,
+      "2023-11": 2344.7,
+      "2023-12": 2486.4,
+      "2024-01": 2667.9,
+      "2024-02": 2159.3,
+      "2024-03": 2738.9,
+      "2024-04": 1380.5
      },
-     "movesPerSeason": 21.6,
+     "movesPerSeason": 35.7,
+     "buyBacks": {
+      "perSeason": 10.44,
+      "meanRealGain": {
+       "week": 10.3,
+       "month": 30.1,
+       "season": 56.8
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 16.3,
+       "meanRealGain": 12.1,
        "ci95": [
-        14.2,
-        18.2
+        10.6,
+        13.7
        ],
-       "positive": 72.8,
-       "meanPredicted": 20.5
+       "positive": 65.1,
+       "meanPredicted": 39.2
       },
       "month": {
-       "meanRealGain": 44.1,
+       "meanRealGain": 37.9,
        "ci95": [
-        38.8,
-        49.2
+        34.2,
+        41.5
        ],
-       "positive": 65.9,
-       "meanPredicted": 48.4
+       "positive": 64.5,
+       "meanPredicted": 77.5
       },
       "season": {
-       "meanRealGain": 79,
+       "meanRealGain": 71.9,
        "ci95": [
-        67.3,
-        93.3
+        62.8,
+        81.3
        ],
-       "positive": 61,
-       "meanPredicted": 124
+       "positive": 63.2,
+       "meanPredicted": 139.5
       }
      }
     }
    },
    "differences": {
     "current-hold": {
-     "mean": 555.5,
+     "mean": 2054.6,
      "ci95": [
-      326.2,
-      811.4
+      1726.8,
+      2388.3
      ],
      "leagues": 32,
-     "better": 25
+     "better": 32
     },
     "currentNewModel-hold": {
-     "mean": 1687.5,
+     "mean": 2537.4,
      "ci95": [
-      1400.1,
-      1986.3
+      2214.7,
+      2876.3
      ],
      "leagues": 32,
      "better": 32
     },
     "plan-hold": {
-     "mean": 1704.1,
+     "mean": 2567,
      "ci95": [
-      1438.3,
-      1998.3
+      2245.8,
+      2895.1
      ],
      "leagues": 32,
      "better": 32
     },
     "currentNewModel-current": {
-     "mean": 1131.9,
+     "mean": 482.8,
      "ci95": [
-      961,
-      1308.1
+      354.5,
+      606.2
      ],
      "leagues": 32,
-     "better": 32
+     "better": 29
     },
     "plan-current": {
-     "mean": 1148.6,
+     "mean": 512.4,
      "ci95": [
-      996,
-      1311.3
+      330.1,
+      694.7
+     ],
+     "leagues": 32,
+     "better": 26
+    },
+    "plan-currentNewModel": {
+     "mean": 29.6,
+     "ci95": [
+      -103.9,
+      169.5
+     ],
+     "leagues": 32,
+     "better": 16
+    }
+   }
+  },
+  "2024-25": {
+   "policies": {
+    "hold": {
+     "runs": 32,
+     "points": 11542,
+     "rank": 5.81,
+     "monthly": {
+      "2024-10": 660.9,
+      "2024-11": 2147.9,
+      "2024-12": 1818.1,
+      "2025-01": 2177.3,
+      "2025-02": 1734.5,
+      "2025-03": 2062.2,
+      "2025-04": 941.1
+     },
+     "movesPerSeason": 0,
+     "buyBacks": {
+      "perSeason": 0,
+      "meanRealGain": null
+     },
+     "moves": null
+    },
+    "current": {
+     "runs": 32,
+     "points": 13309.7,
+     "rank": 2.22,
+     "monthly": {
+      "2024-10": 694.7,
+      "2024-11": 2529.4,
+      "2024-12": 2067,
+      "2025-01": 2552.4,
+      "2025-02": 1920.5,
+      "2025-03": 2432.1,
+      "2025-04": 1113.4
+     },
+     "movesPerSeason": 24.6,
+     "buyBacks": {
+      "perSeason": 3.97,
+      "meanRealGain": {
+       "week": 16.5,
+       "month": 45.7,
+       "season": 79.3
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 17,
+       "ci95": [
+        15.3,
+        18.7
+       ],
+       "positive": 70.4,
+       "meanPredicted": 60.8
+      },
+      "month": {
+       "meanRealGain": 45,
+       "ci95": [
+        40.2,
+        49.9
+       ],
+       "positive": 68,
+       "meanPredicted": 111.2
+      },
+      "season": {
+       "meanRealGain": 71.8,
+       "ci95": [
+        60.6,
+        83.1
+       ],
+       "positive": 62.4,
+       "meanPredicted": 142.6
+      }
+     }
+    },
+    "currentNewModel": {
+     "runs": 32,
+     "points": 13474,
+     "rank": 2.03,
+     "monthly": {
+      "2024-10": 688.7,
+      "2024-11": 2574.7,
+      "2024-12": 2080.8,
+      "2025-01": 2567.3,
+      "2025-02": 1940.3,
+      "2025-03": 2484.2,
+      "2025-04": 1138.1
+     },
+     "movesPerSeason": 34.8,
+     "buyBacks": {
+      "perSeason": 8.47,
+      "meanRealGain": {
+       "week": 14.5,
+       "month": 42.8,
+       "season": 80.3
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 15.4,
+       "ci95": [
+        13.9,
+        16.9
+       ],
+       "positive": 68.8,
+       "meanPredicted": 55.6
+      },
+      "month": {
+       "meanRealGain": 36.5,
+       "ci95": [
+        32.3,
+        40.5
+       ],
+       "positive": 64.4,
+       "meanPredicted": 112.4
+      },
+      "season": {
+       "meanRealGain": 55.5,
+       "ci95": [
+        47,
+        64.7
+       ],
+       "positive": 60.5,
+       "meanPredicted": 145.5
+      }
+     }
+    },
+    "plan": {
+     "runs": 32,
+     "points": 13635,
+     "rank": 1.69,
+     "monthly": {
+      "2024-10": 693.5,
+      "2024-11": 2520.8,
+      "2024-12": 2114.8,
+      "2025-01": 2557.8,
+      "2025-02": 1967.4,
+      "2025-03": 2570.8,
+      "2025-04": 1209.9
+     },
+     "movesPerSeason": 31,
+     "buyBacks": {
+      "perSeason": 7.53,
+      "meanRealGain": {
+       "week": 13.2,
+       "month": 46,
+       "season": 75.3
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 15.3,
+       "ci95": [
+        13.6,
+        17
+       ],
+       "positive": 67.6,
+       "meanPredicted": 40.9
+      },
+      "month": {
+       "meanRealGain": 38.3,
+       "ci95": [
+        33.6,
+        42.8
+       ],
+       "positive": 67.5,
+       "meanPredicted": 79.7
+      },
+      "season": {
+       "meanRealGain": 67.4,
+       "ci95": [
+        57.5,
+        77.9
+       ],
+       "positive": 61.2,
+       "meanPredicted": 147.8
+      }
+     }
+    }
+   },
+   "differences": {
+    "current-hold": {
+     "mean": 1767.6,
+     "ci95": [
+      1499.7,
+      2035
      ],
      "leagues": 32,
      "better": 32
     },
-    "plan-currentNewModel": {
-     "mean": 16.6,
+    "currentNewModel-hold": {
+     "mean": 1931.9,
      "ci95": [
-      -83.4,
-      113.8
+      1634.5,
+      2236.5
      ],
      "leagues": 32,
-     "better": 18
+     "better": 32
+    },
+    "plan-hold": {
+     "mean": 2092.9,
+     "ci95": [
+      1800.4,
+      2391.2
+     ],
+     "leagues": 32,
+     "better": 32
+    },
+    "currentNewModel-current": {
+     "mean": 164.3,
+     "ci95": [
+      43.6,
+      280.4
+     ],
+     "leagues": 32,
+     "better": 22
+    },
+    "plan-current": {
+     "mean": 325.3,
+     "ci95": [
+      225.3,
+      420.4
+     ],
+     "leagues": 32,
+     "better": 28
+    },
+    "plan-currentNewModel": {
+     "mean": 161,
+     "ci95": [
+      48.9,
+      281.5
+     ],
+     "leagues": 32,
+     "better": 23
     }
    }
   },
@@ -236,443 +594,527 @@
    "policies": {
     "hold": {
      "runs": 32,
-     "points": 9696.2,
-     "rank": 7.09,
+     "points": 9189.8,
+     "rank": 7.91,
      "monthly": {
-      "2025-10": 648.1,
-      "2025-11": 1938,
-      "2025-12": 1623.3,
-      "2026-01": 1779.6,
-      "2026-02": 1090.7,
-      "2026-03": 1919.2,
-      "2026-04": 697.4
+      "2025-10": 615.8,
+      "2025-11": 1839.8,
+      "2025-12": 1503.1,
+      "2026-01": 1671.9,
+      "2026-02": 1039.3,
+      "2026-03": 1870.2,
+      "2026-04": 649.7
      },
      "movesPerSeason": 0,
+     "buyBacks": {
+      "perSeason": 0,
+      "meanRealGain": null
+     },
      "moves": null
     },
     "current": {
      "runs": 32,
-     "points": 10961.8,
-     "rank": 5.88,
+     "points": 12420.2,
+     "rank": 3.44,
      "monthly": {
-      "2025-10": 676.8,
-      "2025-11": 2128.7,
-      "2025-12": 1868.9,
-      "2026-01": 2144.6,
-      "2026-02": 1320.8,
-      "2026-03": 2061.8,
-      "2026-04": 760.2
+      "2025-10": 724.4,
+      "2025-11": 2323,
+      "2025-12": 2056.9,
+      "2026-01": 2321.7,
+      "2026-02": 1692.3,
+      "2026-03": 2399.2,
+      "2026-04": 902.6
      },
-     "movesPerSeason": 9.5,
+     "movesPerSeason": 30.9,
+     "buyBacks": {
+      "perSeason": 6.06,
+      "meanRealGain": {
+       "week": 13.5,
+       "month": 40.8,
+       "season": 96.7
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 20.9,
+       "meanRealGain": 15.3,
        "ci95": [
-        18,
-        23.8
+        13.6,
+        17.2
        ],
-       "positive": 78,
-       "meanPredicted": 26
+       "positive": 69.3,
+       "meanPredicted": 72.9
       },
       "month": {
-       "meanRealGain": 59.7,
+       "meanRealGain": 49.7,
        "ci95": [
-        50.8,
-        69.4
+        46.4,
+        53.5
        ],
-       "positive": 73.4,
-       "meanPredicted": 87
+       "positive": 67.6,
+       "meanPredicted": 119.4
       },
       "season": {
-       "meanRealGain": 132.8,
+       "meanRealGain": 104.4,
        "ci95": [
-        98.7,
-        168
+        91.8,
+        118.3
        ],
-       "positive": 67.5,
-       "meanPredicted": 270.5
+       "positive": 61.4,
+       "meanPredicted": 138.4
       }
      }
     },
     "currentNewModel": {
      "runs": 32,
-     "points": 12689,
-     "rank": 2.31,
+     "points": 12774.3,
+     "rank": 2.56,
      "monthly": {
-      "2025-10": 716,
-      "2025-11": 2422.8,
-      "2025-12": 2154.1,
-      "2026-01": 2469.2,
-      "2026-02": 1670.7,
-      "2026-03": 2326.9,
-      "2026-04": 929.2
+      "2025-10": 712.4,
+      "2025-11": 2404.8,
+      "2025-12": 2179,
+      "2026-01": 2411.2,
+      "2026-02": 1757.9,
+      "2026-03": 2436.9,
+      "2026-04": 872.1
      },
-     "movesPerSeason": 28.6,
+     "movesPerSeason": 40.4,
+     "buyBacks": {
+      "perSeason": 10.5,
+      "meanRealGain": {
+       "week": 12.7,
+       "month": 36.3,
+       "season": 63.5
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 15.1,
+       "meanRealGain": 15,
        "ci95": [
-        13.3,
-        16.9
+        13.6,
+        16.4
        ],
-       "positive": 67,
-       "meanPredicted": 38.3
+       "positive": 66.8,
+       "meanPredicted": 66.1
       },
       "month": {
-       "meanRealGain": 46.5,
+       "meanRealGain": 43,
        "ci95": [
-        41.9,
-        51.2
+        39.3,
+        47
        ],
-       "positive": 71.3,
-       "meanPredicted": 86.4
+       "positive": 65.9,
+       "meanPredicted": 125.5
       },
       "season": {
-       "meanRealGain": 104.6,
+       "meanRealGain": 88.8,
        "ci95": [
-        89.5,
-        119.4
+        78.3,
+        100.2
        ],
-       "positive": 61.7,
-       "meanPredicted": 122.1
+       "positive": 59.3,
+       "meanPredicted": 151.1
       }
      }
     },
     "plan": {
      "runs": 32,
-     "points": 12787.6,
-     "rank": 2.47,
+     "points": 12799.1,
+     "rank": 2.41,
      "monthly": {
-      "2025-10": 710.7,
-      "2025-11": 2443.5,
-      "2025-12": 2160.8,
-      "2026-01": 2475.9,
-      "2026-02": 1641.8,
-      "2026-03": 2427.4,
-      "2026-04": 927.5
+      "2025-10": 707.8,
+      "2025-11": 2378.8,
+      "2025-12": 2147.2,
+      "2026-01": 2395.5,
+      "2026-02": 1744.2,
+      "2026-03": 2507,
+      "2026-04": 918.6
      },
-     "movesPerSeason": 26.3,
+     "movesPerSeason": 33.6,
+     "buyBacks": {
+      "perSeason": 9.47,
+      "meanRealGain": {
+       "week": 11.5,
+       "month": 35.5,
+       "season": 69.6
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 16.7,
+       "meanRealGain": 17.2,
        "ci95": [
-        15.4,
-        18
+        15.6,
+        18.8
        ],
-       "positive": 71.2,
-       "meanPredicted": 22.8
+       "positive": 70.9,
+       "meanPredicted": 48.5
       },
       "month": {
-       "meanRealGain": 52.7,
+       "meanRealGain": 48,
        "ci95": [
-        47.3,
-        58.1
+        44.2,
+        51.7
        ],
-       "positive": 70.4,
-       "meanPredicted": 57.5
+       "positive": 68.2,
+       "meanPredicted": 94.5
       },
       "season": {
-       "meanRealGain": 117.8,
+       "meanRealGain": 107.5,
        "ci95": [
-        102.1,
-        135.2
+        97.9,
+        117.8
        ],
-       "positive": 62.7,
-       "meanPredicted": 113.2
+       "positive": 61.5,
+       "meanPredicted": 152.8
       }
      }
     }
    },
    "differences": {
     "current-hold": {
-     "mean": 1265.6,
+     "mean": 3230.4,
      "ci95": [
-      940.1,
-      1589.2
+      2904,
+      3556.4
      ],
      "leagues": 32,
-     "better": 31
+     "better": 32
     },
     "currentNewModel-hold": {
-     "mean": 2992.8,
+     "mean": 3584.6,
      "ci95": [
-      2624.3,
-      3343.1
+      3226.2,
+      3940.2
      ],
      "leagues": 32,
      "better": 32
     },
     "plan-hold": {
-     "mean": 3091.4,
+     "mean": 3609.3,
      "ci95": [
-      2738.8,
-      3438.1
+      3271,
+      3936
      ],
      "leagues": 32,
      "better": 32
     },
     "currentNewModel-current": {
-     "mean": 1727.3,
+     "mean": 354.2,
      "ci95": [
-      1418,
-      2004.9
+      194.4,
+      525.2
      ],
      "leagues": 32,
-     "better": 30
+     "better": 23
     },
     "plan-current": {
-     "mean": 1825.8,
+     "mean": 378.9,
      "ci95": [
-      1591.8,
-      2054.9
+      211.7,
+      538.3
      ],
      "leagues": 32,
-     "better": 32
+     "better": 27
     },
     "plan-currentNewModel": {
-     "mean": 98.5,
+     "mean": 24.8,
      "ci95": [
-      -120.6,
-      330.7
+      -115.2,
+      166.3
      ],
      "leagues": 32,
-     "better": 20
+     "better": 18
     }
    }
   },
-  "both": {
+  "all": {
    "policies": {
     "hold": {
-     "runs": 64,
-     "points": 10793.5,
-     "rank": 5.83,
+     "runs": 96,
+     "points": 10819.6,
+     "rank": 6.79,
      "monthly": {
-      "2024-10": 688.8,
-      "2024-11": 2192.3,
-      "2024-12": 1909.1,
-      "2025-01": 2194.5,
-      "2025-02": 1776,
-      "2025-03": 2133.7,
-      "2025-04": 996.5,
-      "2025-10": 648.1,
-      "2025-11": 1938,
-      "2025-12": 1623.3,
-      "2026-01": 1779.6,
-      "2026-02": 1090.7,
-      "2026-03": 1919.2,
-      "2026-04": 697.4
+      "2023-10": 481.6,
+      "2023-11": 2136.1,
+      "2023-12": 2217.9,
+      "2024-01": 2334.8,
+      "2024-02": 1735.4,
+      "2024-03": 1890.4,
+      "2024-04": 930.8,
+      "2024-10": 660.9,
+      "2024-11": 2147.9,
+      "2024-12": 1818.1,
+      "2025-01": 2177.3,
+      "2025-02": 1734.5,
+      "2025-03": 2062.2,
+      "2025-04": 941.1,
+      "2025-10": 615.8,
+      "2025-11": 1839.8,
+      "2025-12": 1503.1,
+      "2026-01": 1671.9,
+      "2026-02": 1039.3,
+      "2026-03": 1870.2,
+      "2026-04": 649.7
      },
      "movesPerSeason": 0,
+     "buyBacks": {
+      "perSeason": 0,
+      "meanRealGain": null
+     },
      "moves": null
     },
     "current": {
-     "runs": 64,
-     "points": 11704.1,
-     "rank": 4.63,
+     "runs": 96,
+     "points": 13170.5,
+     "rank": 2.71,
      "monthly": {
-      "2024-10": 694.8,
-      "2024-11": 2317.6,
-      "2024-12": 2001.4,
-      "2025-01": 2378.7,
-      "2025-02": 1867.3,
-      "2025-03": 2168.9,
-      "2025-04": 1017.8,
-      "2025-10": 676.8,
-      "2025-11": 2128.7,
-      "2025-12": 1868.9,
-      "2026-01": 2144.6,
-      "2026-02": 1320.8,
-      "2026-03": 2061.8,
-      "2026-04": 760.2
+      "2023-10": 514.1,
+      "2023-11": 2382.7,
+      "2023-12": 2465.1,
+      "2024-01": 2586.4,
+      "2024-02": 2079.5,
+      "2024-03": 2441.7,
+      "2024-04": 1312.1,
+      "2024-10": 694.7,
+      "2024-11": 2529.4,
+      "2024-12": 2067,
+      "2025-01": 2552.4,
+      "2025-02": 1920.5,
+      "2025-03": 2432.1,
+      "2025-04": 1113.4,
+      "2025-10": 724.4,
+      "2025-11": 2323,
+      "2025-12": 2056.9,
+      "2026-01": 2321.7,
+      "2026-02": 1692.3,
+      "2026-03": 2399.2,
+      "2026-04": 902.6
      },
-     "movesPerSeason": 8.5,
+     "movesPerSeason": 27.3,
+     "buyBacks": {
+      "perSeason": 4.58,
+      "meanRealGain": {
+       "week": 15.8,
+       "month": 45.4,
+       "season": 94.1
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 19.7,
+       "meanRealGain": 16,
        "ci95": [
-        17.5,
-        21.8
+        14.9,
+        17.1
        ],
-       "positive": 73.9,
-       "meanPredicted": 24.7
+       "positive": 69.5,
+       "meanPredicted": 66.7
       },
       "month": {
-       "meanRealGain": 54.6,
+       "meanRealGain": 47.3,
        "ci95": [
-        47.8,
-        61.6
+        44.8,
+        49.8
        ],
-       "positive": 72.5,
-       "meanPredicted": 88.2
+       "positive": 68.1,
+       "meanPredicted": 114.2
       },
       "season": {
-       "meanRealGain": 107.7,
+       "meanRealGain": 86.3,
        "ci95": [
-        82.5,
-        132.3
+        78.3,
+        94.2
        ],
-       "positive": 62.8,
-       "meanPredicted": 272.4
+       "positive": 63.1,
+       "meanPredicted": 140.7
       }
      }
     },
     "currentNewModel": {
-     "runs": 64,
-     "points": 13133.7,
-     "rank": 1.94,
+     "runs": 96,
+     "points": 13504.2,
+     "rank": 2.08,
      "monthly": {
-      "2024-10": 705.3,
-      "2024-11": 2551.2,
-      "2024-12": 2109.9,
-      "2025-01": 2595.9,
-      "2025-02": 1939.2,
-      "2025-03": 2509.9,
-      "2025-04": 1167,
-      "2025-10": 716,
-      "2025-11": 2422.8,
-      "2025-12": 2154.1,
-      "2026-01": 2469.2,
-      "2026-02": 1670.7,
-      "2026-03": 2326.9,
-      "2026-04": 929.2
+      "2023-10": 515.8,
+      "2023-11": 2419.7,
+      "2023-12": 2522.3,
+      "2024-01": 2616.3,
+      "2024-02": 2195.5,
+      "2024-03": 2659,
+      "2024-04": 1335.8,
+      "2024-10": 688.7,
+      "2024-11": 2574.7,
+      "2024-12": 2080.8,
+      "2025-01": 2567.3,
+      "2025-02": 1940.3,
+      "2025-03": 2484.2,
+      "2025-04": 1138.1,
+      "2025-10": 712.4,
+      "2025-11": 2404.8,
+      "2025-12": 2179,
+      "2026-01": 2411.2,
+      "2026-02": 1757.9,
+      "2026-03": 2436.9,
+      "2026-04": 872.1
      },
-     "movesPerSeason": 25.3,
+     "movesPerSeason": 37.4,
+     "buyBacks": {
+      "perSeason": 9.21,
+      "meanRealGain": {
+       "week": 14.3,
+       "month": 41.7,
+       "season": 80.9
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 16.8,
+       "meanRealGain": 14.6,
        "ci95": [
-        15.4,
-        18.2
+        13.7,
+        15.4
        ],
-       "positive": 71.1,
-       "meanPredicted": 34.8
+       "positive": 67.2,
+       "meanPredicted": 59.5
       },
       "month": {
-       "meanRealGain": 47.5,
+       "meanRealGain": 38.6,
        "ci95": [
-        44,
-        51
+        36.4,
+        40.9
        ],
-       "positive": 71.2,
-       "meanPredicted": 82.9
+       "positive": 64.9,
+       "meanPredicted": 117.3
       },
       "season": {
-       "meanRealGain": 92.6,
+       "meanRealGain": 71.9,
        "ci95": [
-        81.7,
-        103.8
+        65.7,
+        78.6
        ],
-       "positive": 63.3,
-       "meanPredicted": 124.2
+       "positive": 60.7,
+       "meanPredicted": 148.1
       }
      }
     },
     "plan": {
-     "runs": 64,
-     "points": 13191.3,
-     "rank": 2.06,
+     "runs": 96,
+     "points": 13576,
+     "rank": 1.95,
      "monthly": {
-      "2024-10": 707.4,
-      "2024-11": 2484.4,
-      "2024-12": 2147.1,
-      "2025-01": 2609.2,
-      "2025-02": 1974.3,
-      "2025-03": 2528.4,
-      "2025-04": 1144.1,
-      "2025-10": 710.7,
-      "2025-11": 2443.5,
-      "2025-12": 2160.8,
-      "2026-01": 2475.9,
-      "2026-02": 1641.8,
-      "2026-03": 2427.4,
-      "2026-04": 927.5
+      "2023-10": 516.3,
+      "2023-11": 2344.7,
+      "2023-12": 2486.4,
+      "2024-01": 2667.9,
+      "2024-02": 2159.3,
+      "2024-03": 2738.9,
+      "2024-04": 1380.5,
+      "2024-10": 693.5,
+      "2024-11": 2520.8,
+      "2024-12": 2114.8,
+      "2025-01": 2557.8,
+      "2025-02": 1967.4,
+      "2025-03": 2570.8,
+      "2025-04": 1209.9,
+      "2025-10": 707.8,
+      "2025-11": 2378.8,
+      "2025-12": 2147.2,
+      "2026-01": 2395.5,
+      "2026-02": 1744.2,
+      "2026-03": 2507,
+      "2026-04": 918.6
      },
-     "movesPerSeason": 23.9,
+     "movesPerSeason": 33.4,
+     "buyBacks": {
+      "perSeason": 9.15,
+      "meanRealGain": {
+       "week": 11.5,
+       "month": 36.3,
+       "season": 66.3
+      }
+     },
      "moves": {
       "week": {
-       "meanRealGain": 16.5,
+       "meanRealGain": 14.8,
        "ci95": [
-        15.3,
-        17.6
+        13.8,
+        15.8
        ],
-       "positive": 71.9,
-       "meanPredicted": 21.8
+       "positive": 67.8,
+       "meanPredicted": 42.8
       },
       "month": {
-       "meanRealGain": 48.8,
+       "meanRealGain": 41.4,
        "ci95": [
-        44.8,
-        52.7
+        38.7,
+        43.8
        ],
-       "positive": 68.4,
-       "meanPredicted": 53.4
+       "positive": 66.7,
+       "meanPredicted": 83.9
       },
       "season": {
-       "meanRealGain": 100.3,
+       "meanRealGain": 82.5,
        "ci95": [
-        89.1,
-        111.8
+        75.7,
+        89.3
        ],
        "positive": 62,
-       "meanPredicted": 118.1
+       "meanPredicted": 146.5
       }
      }
     }
    },
    "differences": {
     "current-hold": {
-     "mean": 910.5,
+     "mean": 2350.9,
      "ci95": [
-      689.7,
-      1127.5
+      2136.1,
+      2573.5
      ],
-     "leagues": 64,
-     "better": 56
+     "leagues": 96,
+     "better": 96
     },
     "currentNewModel-hold": {
-     "mean": 2340.2,
+     "mean": 2684.6,
      "ci95": [
-      2052.7,
-      2612.7
+      2456.1,
+      2928.1
      ],
-     "leagues": 64,
-     "better": 64
+     "leagues": 96,
+     "better": 96
     },
     "plan-hold": {
-     "mean": 2397.7,
+     "mean": 2756.4,
      "ci95": [
-      2110.2,
-      2667.1
+      2534.6,
+      2983.9
      ],
-     "leagues": 64,
-     "better": 64
+     "leagues": 96,
+     "better": 96
     },
     "currentNewModel-current": {
-     "mean": 1429.6,
+     "mean": 333.8,
      "ci95": [
-      1243.2,
-      1613.5
+      251.6,
+      417
      ],
-     "leagues": 64,
-     "better": 62
+     "leagues": 96,
+     "better": 74
     },
     "plan-current": {
-     "mean": 1487.2,
+     "mean": 405.5,
      "ci95": [
-      1324.4,
-      1648
+      315.8,
+      494
      ],
-     "leagues": 64,
-     "better": 64
+     "leagues": 96,
+     "better": 81
     },
     "plan-currentNewModel": {
-     "mean": 57.6,
+     "mean": 71.8,
      "ci95": [
-      -57.5,
-      181.4
+      -5,
+      147.7
      ],
-     "leagues": 64,
-     "better": 38
+     "leagues": 96,
+     "better": 57
     }
    }
   }
@@ -680,948 +1122,1021 @@
  "confidence": {
   "week": {
    "all": {
-    "n": 13539,
-    "brier": 0.1634,
-    "baseRateBrier": 0.1918,
+    "n": 18928,
+    "brier": 0.1733,
+    "baseRateBrier": 0.1944,
     "deciles": [
      {
       "from": 0,
       "to": 0.1,
-      "n": 7,
-      "predicted": 8.3,
+      "n": 10,
+      "predicted": 6.6,
       "actual": 0,
-      "gap": -8.3
-     },
-     {
-      "from": 0.1,
-      "to": 0.2,
-      "n": 45,
-      "predicted": 14.4,
-      "actual": 8.9,
-      "gap": -5.5
-     },
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "n": 207,
-      "predicted": 26.6,
-      "actual": 42,
-      "gap": 15.4
-     },
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 312,
-      "predicted": 35.5,
-      "actual": 42.6,
-      "gap": 7.1
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 1007,
-      "predicted": 46.5,
-      "actual": 43.9,
-      "gap": -2.6
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 1889,
-      "predicted": 55.2,
-      "actual": 55.3,
-      "gap": 0.1
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 1852,
-      "predicted": 65.1,
-      "actual": 67.8,
-      "gap": 2.7
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 1724,
-      "predicted": 75,
-      "actual": 75.2,
-      "gap": 0.3
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 2813,
-      "predicted": 85.9,
-      "actual": 86.4,
-      "gap": 0.5
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 3683,
-      "predicted": 93.2,
-      "actual": 90.7,
-      "gap": -2.5
-     }
-    ],
-    "maxGap": 15.4,
-    "at70": {
-     "n": 1724,
-     "predicted": 75,
-     "actual": 75.2
-    }
-   },
-   "early": {
-    "n": 2874,
-    "brier": 0.1648,
-    "baseRateBrier": 0.1943,
-    "deciles": [
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "n": 33,
-      "predicted": 25.6,
-      "actual": 24.2,
-      "gap": -1.4
-     },
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 66,
-      "predicted": 35.4,
-      "actual": 60.6,
-      "gap": 25.3
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 320,
-      "predicted": 46.4,
-      "actual": 45.6,
-      "gap": -0.8
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 407,
-      "predicted": 54.3,
-      "actual": 47.7,
       "gap": -6.6
      },
      {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 410,
-      "predicted": 65.3,
-      "actual": 74.6,
-      "gap": 9.3
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 405,
-      "predicted": 75.2,
-      "actual": 76.5,
-      "gap": 1.4
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 719,
-      "predicted": 86,
-      "actual": 90.1,
-      "gap": 4.2
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 514,
-      "predicted": 92.2,
-      "actual": 90.1,
-      "gap": -2.1
-     }
-    ],
-    "maxGap": 25.3,
-    "at70": {
-     "n": 405,
-     "predicted": 75.2,
-     "actual": 76.5
-    }
-   },
-   "mid": {
-    "n": 4914,
-    "brier": 0.1493,
-    "baseRateBrier": 0.1782,
-    "deciles": [
-     {
-      "from": 0,
-      "to": 0.1,
-      "n": 1,
-      "predicted": 7.7,
-      "actual": 0,
-      "gap": -7.7
-     },
-     {
       "from": 0.1,
       "to": 0.2,
-      "n": 15,
-      "predicted": 17.4,
-      "actual": 20,
-      "gap": 2.6
+      "n": 40,
+      "predicted": 14.6,
+      "actual": 10,
+      "gap": -4.6
      },
      {
       "from": 0.2,
       "to": 0.3,
-      "n": 73,
-      "predicted": 26.3,
-      "actual": 35.6,
-      "gap": 9.3
-     },
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 109,
-      "predicted": 35.7,
-      "actual": 32.1,
-      "gap": -3.6
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 330,
-      "predicted": 46.4,
-      "actual": 42.7,
-      "gap": -3.7
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 680,
-      "predicted": 55.3,
-      "actual": 60,
-      "gap": 4.7
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 649,
-      "predicted": 64.7,
-      "actual": 72,
-      "gap": 7.2
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 580,
-      "predicted": 75.1,
-      "actual": 77.8,
-      "gap": 2.7
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 879,
-      "predicted": 85.8,
-      "actual": 87.9,
-      "gap": 2.1
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 1598,
-      "predicted": 93.4,
-      "actual": 92,
-      "gap": -1.4
-     }
-    ],
-    "maxGap": 9.3,
-    "at70": {
-     "n": 580,
-     "predicted": 75.1,
-     "actual": 77.8
-    }
-   },
-   "late": {
-    "n": 5751,
-    "brier": 0.1748,
-    "baseRateBrier": 0.2012,
-    "deciles": [
-     {
-      "from": 0,
-      "to": 0.1,
-      "n": 6,
-      "predicted": 8.4,
-      "actual": 0,
-      "gap": -8.4
-     },
-     {
-      "from": 0.1,
-      "to": 0.2,
-      "n": 30,
-      "predicted": 12.9,
-      "actual": 3.3,
-      "gap": -9.5
-     },
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "n": 101,
-      "predicted": 27.2,
-      "actual": 52.5,
-      "gap": 25.3
-     },
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 137,
-      "predicted": 35.4,
-      "actual": 42.3,
-      "gap": 7
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 357,
-      "predicted": 46.6,
-      "actual": 43.4,
-      "gap": -3.2
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 802,
-      "predicted": 55.6,
-      "actual": 55.2,
-      "gap": -0.3
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 793,
-      "predicted": 65.3,
-      "actual": 60.9,
-      "gap": -4.4
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 739,
-      "predicted": 74.8,
-      "actual": 72.5,
-      "gap": -2.2
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 1215,
-      "predicted": 86,
-      "actual": 83.1,
-      "gap": -2.8
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 1571,
-      "predicted": 93.3,
-      "actual": 89.6,
-      "gap": -3.7
-     }
-    ],
-    "maxGap": 25.3,
-    "at70": {
-     "n": 739,
-     "predicted": 74.8,
-     "actual": 72.5
-    }
-   }
-  },
-  "month": {
-   "all": {
-    "n": 13647,
-    "brier": 0.171,
-    "baseRateBrier": 0.1924,
-    "deciles": [
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 15,
-      "predicted": 36.9,
-      "actual": 13.3,
-      "gap": -23.6
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 365,
-      "predicted": 47.2,
-      "actual": 49.9,
-      "gap": 2.7
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 3844,
-      "predicted": 54.4,
-      "actual": 55.6,
-      "gap": 1.1
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 2609,
-      "predicted": 65,
-      "actual": 69.2,
-      "gap": 4.2
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 1970,
-      "predicted": 75.1,
-      "actual": 81,
-      "gap": 5.9
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 2389,
-      "predicted": 85.3,
-      "actual": 88.4,
-      "gap": 3.1
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 2455,
-      "predicted": 93.7,
-      "actual": 92.3,
-      "gap": -1.4
-     }
-    ],
-    "maxGap": 5.9,
-    "at70": {
-     "n": 1970,
-     "predicted": 75.1,
-     "actual": 81
-    }
-   },
-   "early": {
-    "n": 2874,
-    "brier": 0.1971,
-    "baseRateBrier": 0.2083,
-    "deciles": [
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 1,
-      "predicted": 39.4,
-      "actual": 0,
-      "gap": -39.4
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 100,
-      "predicted": 47.4,
-      "actual": 43,
-      "gap": -4.4
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 948,
-      "predicted": 54.3,
-      "actual": 58.6,
-      "gap": 4.4
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 549,
-      "predicted": 64.8,
-      "actual": 72.1,
-      "gap": 7.3
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 427,
-      "predicted": 75.4,
-      "actual": 77.3,
-      "gap": 1.9
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 708,
-      "predicted": 85.2,
-      "actual": 82.2,
-      "gap": -3
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 141,
-      "predicted": 92.2,
-      "actual": 83,
-      "gap": -9.2
-     }
-    ],
-    "maxGap": 9.2,
-    "at70": {
-     "n": 427,
-     "predicted": 75.4,
-     "actual": 77.3
-    }
-   },
-   "mid": {
-    "n": 4914,
-    "brier": 0.144,
-    "baseRateBrier": 0.1616,
-    "deciles": [
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 8,
-      "predicted": 36,
-      "actual": 12.5,
-      "gap": -23.5
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 153,
-      "predicted": 47.5,
-      "actual": 64.7,
-      "gap": 17.2
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 1282,
-      "predicted": 54.6,
-      "actual": 59.1,
-      "gap": 4.5
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 816,
-      "predicted": 65,
-      "actual": 71,
-      "gap": 5.9
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 636,
-      "predicted": 75.1,
-      "actual": 86.5,
-      "gap": 11.4
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 856,
-      "predicted": 85.6,
-      "actual": 97.5,
-      "gap": 11.9
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 1163,
-      "predicted": 93.4,
-      "actual": 94.2,
-      "gap": 0.8
-     }
-    ],
-    "maxGap": 17.2,
-    "at70": {
-     "n": 636,
-     "predicted": 75.1,
-     "actual": 86.5
-    }
-   },
-   "late": {
-    "n": 5859,
-    "brier": 0.1809,
-    "baseRateBrier": 0.206,
-    "deciles": [
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 6,
-      "predicted": 37.7,
-      "actual": 16.7,
-      "gap": -21
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 112,
-      "predicted": 46.6,
-      "actual": 35.7,
-      "gap": -10.9
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 1614,
-      "predicted": 54.4,
-      "actual": 50.9,
-      "gap": -3.4
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 1244,
-      "predicted": 65.1,
-      "actual": 66.8,
-      "gap": 1.7
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 907,
-      "predicted": 75,
-      "actual": 78.9,
-      "gap": 3.9
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 825,
-      "predicted": 84.9,
-      "actual": 84.2,
-      "gap": -0.7
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 1151,
-      "predicted": 94.1,
-      "actual": 91.5,
-      "gap": -2.7
-     }
-    ],
-    "maxGap": 10.9,
-    "at70": {
-     "n": 907,
-     "predicted": 75,
-     "actual": 78.9
-    }
-   }
-  },
-  "season": {
-   "all": {
-    "n": 13647,
-    "brier": 0.2176,
-    "baseRateBrier": 0.2318,
-    "deciles": [
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "n": 24,
-      "predicted": 27.3,
-      "actual": 20.8,
-      "gap": -6.5
-     },
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 363,
-      "predicted": 36.4,
-      "actual": 31.7,
-      "gap": -4.8
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 1444,
-      "predicted": 45.8,
-      "actual": 46.3,
-      "gap": 0.5
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 3731,
-      "predicted": 54.8,
-      "actual": 54,
-      "gap": -0.8
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 3233,
-      "predicted": 64.8,
-      "actual": 66.5,
-      "gap": 1.8
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 2035,
-      "predicted": 74.5,
-      "actual": 74.5,
-      "gap": 0.1
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 1608,
-      "predicted": 85.2,
-      "actual": 71.3,
-      "gap": -13.9
-     },
-     {
-      "from": 0.9,
-      "to": 1,
-      "n": 1209,
-      "predicted": 93.5,
-      "actual": 86.7,
-      "gap": -6.8
-     }
-    ],
-    "maxGap": 13.9,
-    "at70": {
-     "n": 2035,
-     "predicted": 74.5,
-     "actual": 74.5
-    }
-   },
-   "early": {
-    "n": 2874,
-    "brier": 0.2347,
-    "baseRateBrier": 0.2442,
-    "deciles": [
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "n": 4,
-      "predicted": 28.4,
-      "actual": 25,
-      "gap": -3.4
-     },
-     {
-      "from": 0.3,
-      "to": 0.4,
-      "n": 135,
-      "predicted": 36.8,
-      "actual": 17.8,
-      "gap": -19
-     },
-     {
-      "from": 0.4,
-      "to": 0.5,
-      "n": 605,
-      "predicted": 45.8,
-      "actual": 46.9,
-      "gap": 1.1
-     },
-     {
-      "from": 0.5,
-      "to": 0.6,
-      "n": 1063,
-      "predicted": 54.6,
-      "actual": 59.5,
-      "gap": 4.9
-     },
-     {
-      "from": 0.6,
-      "to": 0.7,
-      "n": 691,
-      "predicted": 64.4,
-      "actual": 66.3,
-      "gap": 1.9
-     },
-     {
-      "from": 0.7,
-      "to": 0.8,
-      "n": 237,
-      "predicted": 74.1,
-      "actual": 65.8,
-      "gap": -8.3
-     },
-     {
-      "from": 0.8,
-      "to": 0.9,
-      "n": 139,
-      "predicted": 84.2,
-      "actual": 71.9,
-      "gap": -12.3
-     }
-    ],
-    "maxGap": 19,
-    "at70": {
-     "n": 237,
-     "predicted": 74.1,
-     "actual": 65.8
-    }
-   },
-   "mid": {
-    "n": 4914,
-    "brier": 0.2305,
-    "baseRateBrier": 0.2348,
-    "deciles": [
-     {
-      "from": 0.2,
-      "to": 0.3,
-      "n": 13,
-      "predicted": 25.8,
-      "actual": 30.8,
+      "n": 238,
+      "predicted": 25.7,
+      "actual": 30.7,
       "gap": 5
      },
      {
       "from": 0.3,
       "to": 0.4,
-      "n": 186,
-      "predicted": 36.2,
-      "actual": 30.6,
-      "gap": -5.6
+      "n": 354,
+      "predicted": 35.1,
+      "actual": 35.6,
+      "gap": 0.5
      },
      {
       "from": 0.4,
       "to": 0.5,
-      "n": 474,
-      "predicted": 45.3,
-      "actual": 52.5,
-      "gap": 7.3
+      "n": 1326,
+      "predicted": 46.3,
+      "actual": 46,
+      "gap": -0.3
      },
      {
       "from": 0.5,
       "to": 0.6,
-      "n": 1189,
-      "predicted": 55.4,
-      "actual": 52.3,
-      "gap": -3.1
+      "n": 2118,
+      "predicted": 54.4,
+      "actual": 50.5,
+      "gap": -3.9
      },
      {
       "from": 0.6,
       "to": 0.7,
-      "n": 1138,
-      "predicted": 64.6,
-      "actual": 67.4,
-      "gap": 2.8
+      "n": 1602,
+      "predicted": 64.8,
+      "actual": 64.3,
+      "gap": -0.5
      },
      {
       "from": 0.7,
       "to": 0.8,
-      "n": 971,
-      "predicted": 74.8,
-      "actual": 74.2,
-      "gap": -0.6
+      "n": 1203,
+      "predicted": 74.3,
+      "actual": 65.2,
+      "gap": -9.2
      },
      {
       "from": 0.8,
       "to": 0.9,
-      "n": 726,
-      "predicted": 85.2,
-      "actual": 64.6,
-      "gap": -20.6
+      "n": 1011,
+      "predicted": 86,
+      "actual": 76.9,
+      "gap": -9.2
      },
      {
       "from": 0.9,
       "to": 1,
-      "n": 217,
-      "predicted": 92.3,
-      "actual": 80.2,
-      "gap": -12.1
+      "n": 11026,
+      "predicted": 95.1,
+      "actual": 85.8,
+      "gap": -9.4
      }
     ],
-    "maxGap": 20.6,
+    "maxGap": 9.4,
     "at70": {
-     "n": 971,
-     "predicted": 74.8,
-     "actual": 74.2
+     "n": 1203,
+     "predicted": 74.3,
+     "actual": 65.2
     }
    },
-   "late": {
-    "n": 5859,
-    "brier": 0.1985,
-    "baseRateBrier": 0.2198,
+   "early": {
+    "n": 3868,
+    "brier": 0.1752,
+    "baseRateBrier": 0.2,
     "deciles": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "n": 2,
+      "predicted": 3.4,
+      "actual": 0,
+      "gap": -3.4
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 3,
+      "predicted": 18.6,
+      "actual": 0,
+      "gap": -18.6
+     },
      {
       "from": 0.2,
       "to": 0.3,
-      "n": 7,
-      "predicted": 29.6,
-      "actual": 0,
-      "gap": -29.6
+      "n": 104,
+      "predicted": 24.8,
+      "actual": 21.2,
+      "gap": -3.7
      },
      {
       "from": 0.3,
       "to": 0.4,
-      "n": 42,
-      "predicted": 36.4,
-      "actual": 81,
-      "gap": 44.6
+      "n": 82,
+      "predicted": 35.1,
+      "actual": 31.7,
+      "gap": -3.4
      },
      {
       "from": 0.4,
       "to": 0.5,
-      "n": 365,
-      "predicted": 46.3,
-      "actual": 37,
-      "gap": -9.4
+      "n": 373,
+      "predicted": 45.9,
+      "actual": 50.9,
+      "gap": 5.1
      },
      {
       "from": 0.5,
       "to": 0.6,
-      "n": 1479,
-      "predicted": 54.4,
-      "actual": 51.4,
+      "n": 342,
+      "predicted": 54.5,
+      "actual": 46.8,
+      "gap": -7.7
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 322,
+      "predicted": 64.7,
+      "actual": 64,
+      "gap": -0.7
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 284,
+      "predicted": 74.3,
+      "actual": 70.1,
+      "gap": -4.3
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 130,
+      "predicted": 86.4,
+      "actual": 80,
+      "gap": -6.4
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 2226,
+      "predicted": 94.8,
+      "actual": 85,
+      "gap": -9.8
+     }
+    ],
+    "maxGap": 9.8,
+    "at70": {
+     "n": 284,
+     "predicted": 74.3,
+     "actual": 70.1
+    }
+   },
+   "mid": {
+    "n": 6379,
+    "brier": 0.1649,
+    "baseRateBrier": 0.1874,
+    "deciles": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "n": 4,
+      "predicted": 6.7,
+      "actual": 0,
+      "gap": -6.7
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 10,
+      "predicted": 15.6,
+      "actual": 30,
+      "gap": 14.4
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 71,
+      "predicted": 25.4,
+      "actual": 25.4,
+      "gap": 0
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 130,
+      "predicted": 35,
+      "actual": 34.6,
+      "gap": -0.4
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 424,
+      "predicted": 46.2,
+      "actual": 43.4,
+      "gap": -2.8
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 633,
+      "predicted": 54.5,
+      "actual": 51.3,
+      "gap": -3.2
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 447,
+      "predicted": 65,
+      "actual": 63.1,
+      "gap": -1.9
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 347,
+      "predicted": 74.7,
+      "actual": 68.6,
+      "gap": -6.1
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 386,
+      "predicted": 86.5,
+      "actual": 81.1,
+      "gap": -5.4
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 3927,
+      "predicted": 95.1,
+      "actual": 86,
+      "gap": -9.1
+     }
+    ],
+    "maxGap": 9.1,
+    "at70": {
+     "n": 347,
+     "predicted": 74.7,
+     "actual": 68.6
+    }
+   },
+   "late": {
+    "n": 8681,
+    "brier": 0.1786,
+    "baseRateBrier": 0.1967,
+    "deciles": [
+     {
+      "from": 0,
+      "to": 0.1,
+      "n": 4,
+      "predicted": 8.1,
+      "actual": 0,
+      "gap": -8.1
+     },
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 27,
+      "predicted": 13.8,
+      "actual": 3.7,
+      "gap": -10.1
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 63,
+      "predicted": 27.5,
+      "actual": 52.4,
+      "gap": 24.9
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 142,
+      "predicted": 35.3,
+      "actual": 38.7,
+      "gap": 3.5
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 529,
+      "predicted": 46.7,
+      "actual": 44.6,
+      "gap": -2.1
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1143,
+      "predicted": 54.3,
+      "actual": 51.1,
+      "gap": -3.2
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 833,
+      "predicted": 64.8,
+      "actual": 65.1,
+      "gap": 0.3
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 572,
+      "predicted": 74.1,
+      "actual": 60.7,
+      "gap": -13.5
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 495,
+      "predicted": 85.6,
+      "actual": 72.7,
+      "gap": -12.9
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 4873,
+      "predicted": 95.4,
+      "actual": 85.9,
+      "gap": -9.5
+     }
+    ],
+    "maxGap": 24.9,
+    "at70": {
+     "n": 572,
+     "predicted": 74.1,
+     "actual": 60.7
+    }
+   }
+  },
+  "month": {
+   "all": {
+    "n": 19259,
+    "brier": 0.1823,
+    "baseRateBrier": 0.2082,
+    "deciles": [
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 9,
+      "predicted": 28.8,
+      "actual": 0,
+      "gap": -28.8
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 46,
+      "predicted": 37.2,
+      "actual": 13,
+      "gap": -24.1
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 553,
+      "predicted": 46.9,
+      "actual": 40.1,
+      "gap": -6.7
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 5195,
+      "predicted": 54.1,
+      "actual": 51,
       "gap": -3
      },
      {
       "from": 0.6,
       "to": 0.7,
-      "n": 1404,
-      "predicted": 65.1,
-      "actual": 66,
-      "gap": 0.9
+      "n": 2535,
+      "predicted": 64.6,
+      "actual": 61.5,
+      "gap": -3.1
      },
      {
       "from": 0.7,
       "to": 0.8,
-      "n": 827,
-      "predicted": 74.2,
-      "actual": 77.5,
+      "n": 2114,
+      "predicted": 75.1,
+      "actual": 69.6,
+      "gap": -5.5
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 3926,
+      "predicted": 85.9,
+      "actual": 85.7,
+      "gap": -0.2
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 4881,
+      "predicted": 94.1,
+      "actual": 87.9,
+      "gap": -6.2
+     }
+    ],
+    "maxGap": 24.1,
+    "at70": {
+     "n": 2114,
+     "predicted": 75.1,
+     "actual": 69.6
+    }
+   },
+   "early": {
+    "n": 3882,
+    "brier": 0.1944,
+    "baseRateBrier": 0.2256,
+    "deciles": [
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 9,
+      "predicted": 28.8,
+      "actual": 0,
+      "gap": -28.8
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 26,
+      "predicted": 37.6,
+      "actual": 15.4,
+      "gap": -22.2
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 185,
+      "predicted": 46,
+      "actual": 26.5,
+      "gap": -19.5
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1129,
+      "predicted": 54,
+      "actual": 47.6,
+      "gap": -6.4
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 435,
+      "predicted": 64.8,
+      "actual": 59.1,
+      "gap": -5.7
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 414,
+      "predicted": 75.3,
+      "actual": 67.9,
+      "gap": -7.4
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 1159,
+      "predicted": 86.1,
+      "actual": 84.6,
+      "gap": -1.5
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 525,
+      "predicted": 92.5,
+      "actual": 83.6,
+      "gap": -8.9
+     }
+    ],
+    "maxGap": 19.5,
+    "at70": {
+     "n": 414,
+     "predicted": 75.3,
+     "actual": 67.9
+    }
+   },
+   "mid": {
+    "n": 6430,
+    "brier": 0.1731,
+    "baseRateBrier": 0.1993,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 7,
+      "predicted": 34.7,
+      "actual": 14.3,
+      "gap": -20.4
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 206,
+      "predicted": 47.4,
+      "actual": 59.2,
+      "gap": 11.8
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1537,
+      "predicted": 54.2,
+      "actual": 50.4,
+      "gap": -3.8
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 808,
+      "predicted": 64.9,
+      "actual": 61.3,
+      "gap": -3.7
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 734,
+      "predicted": 75.4,
+      "actual": 67.7,
+      "gap": -7.6
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 1315,
+      "predicted": 85.9,
+      "actual": 84.5,
+      "gap": -1.4
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 1823,
+      "predicted": 93.5,
+      "actual": 91.2,
+      "gap": -2.3
+     }
+    ],
+    "maxGap": 11.8,
+    "at70": {
+     "n": 734,
+     "predicted": 75.4,
+     "actual": 67.7
+    }
+   },
+   "late": {
+    "n": 8947,
+    "brier": 0.1836,
+    "baseRateBrier": 0.2058,
+    "deciles": [
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 13,
+      "predicted": 37.7,
+      "actual": 7.7,
+      "gap": -30
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 162,
+      "predicted": 47.1,
+      "actual": 31.5,
+      "gap": -15.6
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 2529,
+      "predicted": 54.1,
+      "actual": 53,
+      "gap": -1.1
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 1292,
+      "predicted": 64.4,
+      "actual": 62.5,
+      "gap": -1.9
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 966,
+      "predicted": 74.9,
+      "actual": 71.8,
+      "gap": -3
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 1452,
+      "predicted": 85.7,
+      "actual": 87.7,
+      "gap": 2
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 2533,
+      "predicted": 94.8,
+      "actual": 86.3,
+      "gap": -8.4
+     }
+    ],
+    "maxGap": 15.6,
+    "at70": {
+     "n": 966,
+     "predicted": 74.9,
+     "actual": 71.8
+    }
+   }
+  },
+  "season": {
+   "all": {
+    "n": 19259,
+    "brier": 0.2154,
+    "baseRateBrier": 0.2318,
+    "deciles": [
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 21,
+      "predicted": 15.3,
+      "actual": 23.8,
+      "gap": 8.5
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 184,
+      "predicted": 26.1,
+      "actual": 39.7,
+      "gap": 13.6
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 775,
+      "predicted": 36.2,
+      "actual": 39,
+      "gap": 2.8
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 2791,
+      "predicted": 45.7,
+      "actual": 47.7,
+      "gap": 2
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 5547,
+      "predicted": 54.4,
+      "actual": 54.5,
+      "gap": 0.1
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 3395,
+      "predicted": 64.6,
+      "actual": 68.7,
+      "gap": 4
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 2274,
+      "predicted": 74.7,
+      "actual": 76.7,
+      "gap": 2
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 2015,
+      "predicted": 85.2,
+      "actual": 74.9,
+      "gap": -10.2
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 2257,
+      "predicted": 94.7,
+      "actual": 84.7,
+      "gap": -10
+     }
+    ],
+    "maxGap": 13.6,
+    "at70": {
+     "n": 2274,
+     "predicted": 74.7,
+     "actual": 76.7
+    }
+   },
+   "early": {
+    "n": 3882,
+    "brier": 0.2363,
+    "baseRateBrier": 0.2469,
+    "deciles": [
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 16,
+      "predicted": 14.8,
+      "actual": 25,
+      "gap": 10.2
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 63,
+      "predicted": 25.2,
+      "actual": 33.3,
+      "gap": 8.1
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 325,
+      "predicted": 36.2,
+      "actual": 37.8,
+      "gap": 1.7
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 957,
+      "predicted": 45.5,
+      "actual": 48.9,
+      "gap": 3.4
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1391,
+      "predicted": 54.6,
+      "actual": 55.9,
+      "gap": 1.3
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 691,
+      "predicted": 64.2,
+      "actual": 62.2,
+      "gap": -2
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 281,
+      "predicted": 74.1,
+      "actual": 76.9,
+      "gap": 2.8
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 145,
+      "predicted": 84.6,
+      "actual": 73.1,
+      "gap": -11.5
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 13,
+      "predicted": 94.1,
+      "actual": 92.3,
+      "gap": -1.7
+     }
+    ],
+    "maxGap": 11.5,
+    "at70": {
+     "n": 281,
+     "predicted": 74.1,
+     "actual": 76.9
+    }
+   },
+   "mid": {
+    "n": 6430,
+    "brier": 0.2232,
+    "baseRateBrier": 0.2401,
+    "deciles": [
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 1,
+      "predicted": 17,
+      "actual": 100,
+      "gap": 83
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 102,
+      "predicted": 26.4,
+      "actual": 46.1,
+      "gap": 19.7
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 346,
+      "predicted": 36.1,
+      "actual": 37,
+      "gap": 0.9
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 1126,
+      "predicted": 45.4,
+      "actual": 43.3,
+      "gap": -2.1
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 1672,
+      "predicted": 54.6,
+      "actual": 51.3,
+      "gap": -3.3
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 1209,
+      "predicted": 64.9,
+      "actual": 71.8,
+      "gap": 6.9
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 969,
+      "predicted": 74.9,
+      "actual": 75.4,
+      "gap": 0.5
+     },
+     {
+      "from": 0.8,
+      "to": 0.9,
+      "n": 796,
+      "predicted": 84.9,
+      "actual": 67,
+      "gap": -17.9
+     },
+     {
+      "from": 0.9,
+      "to": 1,
+      "n": 209,
+      "predicted": 92.7,
+      "actual": 96.7,
+      "gap": 3.9
+     }
+    ],
+    "maxGap": 19.7,
+    "at70": {
+     "n": 969,
+     "predicted": 74.9,
+     "actual": 75.4
+    }
+   },
+   "late": {
+    "n": 8947,
+    "brier": 0.2007,
+    "baseRateBrier": 0.2119,
+    "deciles": [
+     {
+      "from": 0.1,
+      "to": 0.2,
+      "n": 4,
+      "predicted": 16.6,
+      "actual": 0,
+      "gap": -16.6
+     },
+     {
+      "from": 0.2,
+      "to": 0.3,
+      "n": 19,
+      "predicted": 27.4,
+      "actual": 26.3,
+      "gap": -1.1
+     },
+     {
+      "from": 0.3,
+      "to": 0.4,
+      "n": 104,
+      "predicted": 36.3,
+      "actual": 49,
+      "gap": 12.7
+     },
+     {
+      "from": 0.4,
+      "to": 0.5,
+      "n": 708,
+      "predicted": 46.3,
+      "actual": 52.8,
+      "gap": 6.6
+     },
+     {
+      "from": 0.5,
+      "to": 0.6,
+      "n": 2484,
+      "predicted": 54.2,
+      "actual": 55.9,
+      "gap": 1.7
+     },
+     {
+      "from": 0.6,
+      "to": 0.7,
+      "n": 1495,
+      "predicted": 64.6,
+      "actual": 69.1,
+      "gap": 4.5
+     },
+     {
+      "from": 0.7,
+      "to": 0.8,
+      "n": 1024,
+      "predicted": 74.6,
+      "actual": 77.9,
       "gap": 3.3
      },
      {
       "from": 0.8,
       "to": 0.9,
-      "n": 743,
-      "predicted": 85.3,
-      "actual": 77.7,
-      "gap": -7.6
+      "n": 1074,
+      "predicted": 85.5,
+      "actual": 81.1,
+      "gap": -4.4
      },
      {
       "from": 0.9,
       "to": 1,
-      "n": 992,
-      "predicted": 93.8,
-      "actual": 88.1,
-      "gap": -5.7
+      "n": 2035,
+      "predicted": 94.9,
+      "actual": 83.4,
+      "gap": -11.4
      }
     ],
-    "maxGap": 44.6,
+    "maxGap": 12.7,
     "at70": {
-     "n": 827,
-     "predicted": 74.2,
-     "actual": 77.5
+     "n": 1024,
+     "predicted": 74.6,
+     "actual": 77.9
     }
    }
   }
  },
- "candidates": 13647,
+ "candidates": 19259,
  "limitations": [
-  "No historical ESPN injury report: absences are seen only through missed games (the live app also reads the report).",
-  "Sports.ru prices are modelled (the 2026/27 prices regressed on the previous season's FBL points per game, rookies on the pick) and fixed through the season.",
+  "Injury report: the NBA's official report of 5 PM ET the day before (out, doubtful, questionable), with no return dates or comments, which ESPN's feed (the live app's) has.",
+  "Sports.ru prices: the real price of the day for the players Sports.ru still lists; the others an opening price modelled on that season's real ones, moved by Sports.ru's rule (a game adds its fantasy points).",
   "Positions: Sports.ru 2026/27 where the player is on the market, otherwise the nearest stat profile; the white rule: the league's 2026/27 list.",
+  "2023/24's in-season update and rookie model, and 2024/25's first fit season, come from the career logs of players still in the league in 2026 (survivor-selected).",
   "Rivals follow one simple rule; real managers differ.",
   "Each league is one draft; leagues of one season share the games, so seasons, not leagues, are the independent samples."
  ]

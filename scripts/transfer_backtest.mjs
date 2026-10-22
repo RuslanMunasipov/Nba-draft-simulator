@@ -1,6 +1,7 @@
-// Transfer-advice backtest: FBL leagues replayed week by week on the 2024/25 and 2025/26 NBA regular seasons with what
-// the season assistant would have known at each moment (scripts/transfer_backtest_inputs.py builds the inputs: forecasts
-// fitted before each season, the games as they were played). The advice is src/season.js's own code.
+// Transfer-advice backtest: FBL leagues replayed week by week on the 2023/24, 2024/25 and 2025/26 NBA regular seasons
+// with what the season assistant would have known at each moment (scripts/transfer_backtest_inputs.py builds the inputs:
+// forecasts fitted before each season, the NBA's injury report of the day before, Sports.ru's prices of the day, the
+// games as they were played). The advice is src/season.js's own code. Transfers buy and sell at the day's prices.
 // A league: 8 teams drafted in a straight order by the model's season points (the other teams' valuations with noise),
 // every FBL rule (2 per Sports.ru position, a rookie, the white rule, at most 2 players of one NBA club, the cap, 3
 // transfers a FBL week, transfers between the night's games). Decisions are taken twice a week, on the Moscow Monday
@@ -40,7 +41,7 @@ export function loadSeason(file){
  // Sports.ru files a US evening game under the next Moscow date.
  const msk=d=>addDays(d,1);
  const players=data.players.map(p=>({id:p.id,name:p.name,positions:p.positions,isRookie:p.isRookie,price:p.price,priceStatus:'VERIFIED',
-  sportsId:p.id,espnId:null,sportsClub:p.team,forecast:p.forecast,white:p.white}));
+  sportsId:p.id,espnId:p.id,sportsClub:p.team,forecast:p.forecast,white:p.white,pricePath:p.pricePath||[]}));
  const games=new Map(Object.entries(data.games).map(([id,rows])=>[id,rows.map(([d,team,minutes,points])=>({date:msk(d),team,minutes,points}))]));
  const allDates=[...new Set(Object.values(data.clubs).flat())].sort(),opener=allDates[0],last=allDates.at(-1);
  // Sports.ru weeks: Monday to Sunday in US game days (Tuesday to Monday in Moscow dates).
@@ -63,15 +64,24 @@ function liveAt(season,day){
  const players={};
  for(const p of season.players){
   const rows=(season.games.get(p.id)||[]).filter(g=>g.date<=day);
-  players[p.id]={club:rows.length?rows.at(-1).team:p.sportsClub,position:p.positions[0],price:p.price,initialPrice:p.price,
+  players[p.id]={club:rows.length?rows.at(-1).team:p.sportsClub,position:p.positions[0],price:priceAt(p,day),initialPrice:p.price,
    games:rows.map(g=>({date:g.date,played:true,points:g.points,minutes:g.minutes,source:'ESPN'}))};
  }
  return {clubs,players};
 }
+// Sports.ru's price at 12:00 Moscow time of `day`: after the games filed under that date or earlier.
+export function priceAt(p,day){let price=p.price;for(const [d,v] of p.pricePath||[]){if(d>day)break;price=v;}return price;}
+// The NBA's injury report as ESPN's feed reads in season.js: the report of the US day before the Moscow `day` (5 PM ET
+// is 01:00 MSK). Out stays out (no return date: the NBA does not give one); doubtful and questionable are day-to-day.
+export function injuriesAt(season,day){
+ const rows=season.data.injuries?.[addDays(day,-1)]||{},out=new Map();
+ for(const [id,[status,reason]] of Object.entries(rows))out.set(String(id),{status:status==='Out'?'Out':'Day-To-Day',comment:reason,returnDate:null,source:'NBA'});
+ return out;
+}
 // Two views of one moment that share the rosters: the model as shipped on 22.10.2026 (the rivals and the baseline policy)
 // and the current one.
 export function contextAt(season,league,day){
- const base={players:season.players,live:liveAt(season,day),injuries:new Map(),today:day,now:Date.parse(day+'T12:00:00+03:00'),
+ const base={players:season.players,live:liveAt(season,day),injuries:injuriesAt(season,day),today:day,now:Date.parse(day+'T12:00:00+03:00'),
   rosters:league.rosters.map(r=>[...r]),transfers:[],white:season.white};
  return {shipped:{...base,noAbsenceRun:true,rawConfidence:true,outlooks:new Map()},current:{...base,outlooks:new Map()}};
 }
@@ -88,13 +98,25 @@ function completable(season,roster,money,free){
  const clubs=new Map();for(const p of roster)clubs.set(p.sportsClub,(clubs.get(p.sportsClub)||0)+1);
  if([...clubs.values()].some(n=>n>CLUB))return false;
  const k=SIZE-roster.length;if(!k)return money>=0&&roster.some(p=>p.isRookie)&&roster.some(p=>season.white.has(p.id));
- // The cheapest completion, the rookie and white players first when still missing.
+ // The cheapest completion: the rookie and the white player first when still missing (the cheapest of each position, every
+ // combination, one player both when he is), the rest by price within the positions left.
  const cand=free.filter(p=>need[p.positions[0]]>0&&(clubs.get(p.sportsClub)||0)<CLUB).sort((a,b)=>a.price-b.price);
- let cost=0;const left={...need},used=new Set(),take=p=>{left[p.positions[0]]--;used.add(p.id);cost+=p.price;};
- if(!roster.some(p=>p.isRookie)){const r=cand.find(p=>p.isRookie);if(!r)return false;take(r);}
- if(!roster.some(p=>season.white.has(p.id))&&![...used].some(id=>season.white.has(id))){const w=cand.find(p=>season.white.has(p.id)&&!used.has(p.id)&&left[p.positions[0]]>0);if(!w)return false;take(w);}
- for(const p of cand){if(used.size>=k)break;if(!used.has(p.id)&&left[p.positions[0]]>0)take(p);}
- return used.size===k&&cost<=money;
+ const white=p=>season.white.has(p.id),cheapest=f=>Object.keys(need).map(q=>cand.find(p=>p.positions[0]===q&&f(p))).filter(Boolean);
+ const needRookie=!roster.some(p=>p.isRookie),needWhite=!roster.some(white);
+ const starts=[];
+ for(const r of needRookie?cheapest(p=>p.isRookie):[null])for(const w of needWhite?(r&&white(r)?[null]:cheapest(white)):[null])starts.push([r,w].filter(Boolean));
+ if(needRookie&&needWhite)for(const b of cheapest(p=>p.isRookie&&white(p)))starts.push([b]);
+ let best=Infinity;
+ for(const start of starts){
+  if(new Set(start.map(p=>p.id)).size<start.length)continue;
+  const left={...need},club=new Map(clubs),used=new Set();let cost=0;
+  const take=p=>{left[p.positions[0]]--;used.add(p.id);cost+=p.price;club.set(p.sportsClub,(club.get(p.sportsClub)||0)+1);};
+  for(const p of start){if(left[p.positions[0]]<=0||(club.get(p.sportsClub)||0)>=CLUB)break;take(p);}
+  if(used.size<start.length||used.size>k)continue;
+  for(const p of cand){if(used.size>=k)break;if(!used.has(p.id)&&left[p.positions[0]]>0&&(club.get(p.sportsClub)||0)<CLUB)take(p);}
+  if(used.size===k)best=Math.min(best,cost);
+ }
+ return best<=money;
 }
 export function draft(season,seed){
  const r=rng(seed*7919+17),noise=Array.from({length:TEAMS},()=>new Map());
@@ -107,7 +129,12 @@ export function draft(season,seed){
   for(let round=0;round<SIZE;round++)for(let t=0;t<TEAMS;t++){
    const free=pool.filter(p=>!tk.has(p.id)),v=p=>value(p)*(t===slot?1:noise[t].get(p.id));
    const order=[...free].sort((a,b)=>v(b)-v(a));
-   const pick=order.find(p=>p.price<=mon[t]&&completable(season,[...rs[t],p],mon[t]-p.price,free.filter(q=>q.id!==p.id)));
+   // Earlier teams can take the last rookie or white player a team counted on: it then takes the best player that
+   // completes the rules over the cap (its bank goes negative; a move must bring it back), else the best one its positions
+   // and clubs allow. Seeds 1-5 of 2023-26: 3 of 960 drafted teams, all rivals (seeds 1/2024-25, 5/2025-26).
+   const pick=order.find(p=>p.price<=mon[t]&&completable(season,[...rs[t],p],mon[t]-p.price,free.filter(q=>q.id!==p.id)))
+    ||order.find(p=>completable(season,[...rs[t],p],Infinity,free.filter(q=>q.id!==p.id)))
+    ||order.find(p=>completable({...season,white:new Set(free.map(q=>q.id))},[...rs[t],p].map(q=>({...q,isRookie:true})),Infinity,free.filter(q=>q.id!==p.id)));
    if(!pick)throw Error(`draft: team ${t} cannot complete its roster`);
    rs[t].push(pick);mon[t]-=pick.price;tk.add(pick.id);
   }
@@ -127,7 +154,7 @@ export function playSeason(season,{seed,slot,policy,rivals='rivals',record=true}
  const {rosters,bank}=draft(season,seed)(slot),league={rosters,bank:[...bank]},byId=new Map(season.players.map(p=>[p.id,p]));
  const holding=rosters.map(r=>new Map(r.map(id=>[id,'0000-00-00'])));  // player -> Moscow date he joined (scores after it)
  const points=Array(TEAMS).fill(0),monthly=Array.from({length:TEAMS},()=>({})),moves=[],candidates=[],state={};
- const used=new Map(),key=(t,w)=>t+':'+w;
+ const used=new Map(),key=(t,w)=>t+':'+w,sold=new Set();
  const credit=(t,id,from,to)=>{for(const g of season.games.get(id)||[])if(g.date>from&&g.date<=to){points[t]+=g.points;const m=g.date.slice(0,7);monthly[t][m]=(monthly[t][m]||0)+g.points;}};
  let last='0000-00-00';
  const close=day=>{for(let t=0;t<TEAMS;t++)for(const id of league.rosters[t])credit(t,id,last,day);last=day;};
@@ -142,13 +169,14 @@ export function playSeason(season,{seed,slot,policy,rivals='rivals',record=true}
    const next=ctx.rosters[t].map(id=>{const x=pairs.find(q=>q.outId===id);return x?x.inId:id;});
    const taken=new Set(league.rosters.flat());
    if(pairs.some(x=>taken.has(x.inId))||new Set(next).size!==SIZE)continue;
-   const money=league.bank[t]+pairs.reduce((s,x)=>s+byId.get(x.outId).price-byId.get(x.inId).price,0);
+   const price=id=>ctx.live.players[id].price,money=league.bank[t]+pairs.reduce((s,x)=>s+price(x.outId)-price(x.inId),0);
    if(!legal(season,ctx,t,next,money))continue;
    league.rosters[t]=next;league.bank[t]=money;used.set(key(t,d.week),(used.get(key(t,d.week))||0)+pairs.length);
    // Later teams in this moment see the change (taken players; their own outlooks are unchanged).
    ctx.rosters[t]=[...next];
    if(t===slot)for(const x of pairs){
-    moves.push({day:d.day,week:d.week,kind:d.kind,outId:x.outId,inId:x.inId,predicted:x.predicted||out.predicted||null,confidence:x.confidence||out.confidence||null,label:x.label||out.label||null,package:pairs.length});
+    const buyBack=sold.has(x.inId);sold.add(x.outId);
+    moves.push({day:d.day,week:d.week,kind:d.kind,outId:x.outId,inId:x.inId,buyBack,predicted:x.predicted||out.predicted||null,confidence:x.confidence||out.confidence||null,label:x.label||out.label||null,package:pairs.length});
    }
   }
  }
@@ -164,9 +192,14 @@ export function playSeason(season,{seed,slot,policy,rivals='rivals',record=true}
 
 // ---------- driver ----------
 const RECORD=!args.includes('--no-record');
+// What each season's inputs hold: the population, the prices (Sports.ru's own or modelled) and the injury reports.
+export function inputStats(files){
+ return Object.fromEntries(files.map(f=>{const d=JSON.parse(fs.readFileSync(f,'utf8'));return [d.season,{population:d.population,prices:d.priceModel,injuryReports:d.injuryReports,positions:d.positions}];}));
+}
+const RIVALS=opt('rivals','rivals');
 function runWorker(file,seed,slot,policy){
  return new Promise((resolve,reject)=>{
-  const p=spawn(process.execPath,['--max-old-space-size=2048',SELF,'--worker',file,String(seed),String(slot),policy,...(RECORD?[]:['--no-record'])],{stdio:['ignore','pipe','inherit']});
+  const p=spawn(process.execPath,['--max-old-space-size=2048',SELF,'--worker',file,String(seed),String(slot),policy,...(RECORD?[]:['--no-record']),'--rivals',RIVALS],{stdio:['ignore','pipe','inherit']});
   let out='';p.stdout.on('data',d=>out+=d);p.on('close',code=>code===0?resolve(JSON.parse(out)):reject(Error(`worker ${file} ${seed} ${slot} ${policy}: ${code}`)));
  });
 }
@@ -175,7 +208,7 @@ async function pool(tasks,jobs){const out=[];let i=0;await Promise.all(Array.fro
 if(args[0]==='--worker'){
  const [,file,seed,slot,policy]=args,season=loadSeason(file);
  // Candidate swaps (the confidence calibration) are recorded in the runs that make no move of their own.
- process.stdout.write(JSON.stringify(playSeason(season,{seed:Number(seed),slot:Number(slot),policy,record:RECORD&&policy==='hold'})));
+ process.stdout.write(JSON.stringify({...playSeason(season,{seed:Number(seed),slot:Number(slot),policy,rivals:RIVALS,record:RECORD&&policy==='hold'}),rivals:RIVALS}));
 }else if(import.meta.url===`file://${process.argv[1]}`){
  const inputs=opt('inputs','.cache/transfer-backtest'),out=opt('out','data/transfer-backtest.json'),seeds=Number(opt('seeds',2)),from=Number(opt('from-seed',1));
  const policies=opt('policies','hold,current').split('|').flatMap(x=>x.startsWith('plan:')?[x]:x.split(',')),jobs=Number(opt('jobs',os.availableParallelism?.()||os.cpus().length));
@@ -185,6 +218,6 @@ if(args[0]==='--worker'){
  const runs=await pool(tasks,jobs);
  fs.writeFileSync(opt('runs',path.join(inputs,'runs.json')),JSON.stringify(runs));
  const {report}=await import('./backtest-report.mjs');
- fs.writeFileSync(out,JSON.stringify(report(runs,{seeds,policies,files:files.map(f=>path.basename(f))}),null,1)+'\n');
+ fs.writeFileSync(out,JSON.stringify(report(runs,{seeds,from,policies,rivals:RIVALS,files:files.map(f=>path.basename(f)),inputs:inputStats(files)}),null,1)+'\n');
  console.log('wrote',out);
 }
