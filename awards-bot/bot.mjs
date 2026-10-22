@@ -14,11 +14,13 @@
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent.
 // Optional: LIVE_URL (sports-current.json), DB_PATH (a local default-draft.json), NOW (ISO time, for a dry run),
-// WATCH_MINUTES (how long one run may follow a day, 330 by default: GitHub stops a job at 360).
+// WATCH_MINUTES (how long one run may stay, 330 by default: GitHub stops a job at 360), CHAIN (stay the whole time and
+// let the workflow start the next run).
 import fs from 'node:fs';
 import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {withMarket,allTransfers,stints,seasonRosters} from '../src/season.js';
-import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,nextStep,addDays,daysBetween,moscowDay,usDay,weekOf,
+import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextStep,addDays,daysBetween,moscowDay,usDay,weekOf,
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
@@ -68,6 +70,20 @@ function save(state,archive){
  if(!STATE_DIR)return;fs.mkdirSync(STATE_DIR,{recursive:true});state.updatedAt=new Date().toISOString();
  fs.writeFileSync(path.join(STATE_DIR,'state.json'),JSON.stringify(state,null,1));
  fs.writeFileSync(path.join(STATE_DIR,'archive.json'),JSON.stringify(archive));
+}
+
+// What was posted reaches the state branch at once (a run stays for hours; one cut short after a post must not lead
+// the next run to post again). Needs GH_TOKEN and GITHUB_REPOSITORY (the workflow's); without them only the files change.
+function pushState(state,archive){
+ save(state,archive);
+ const token=env.GH_TOKEN,repo=env.GITHUB_REPOSITORY;if(!STATE_DIR||!token||!repo)return;
+ const git=(...a)=>execFileSync('git',['-C',STATE_DIR,...a],{stdio:'pipe'});
+ try{
+  if(!fs.existsSync(path.join(STATE_DIR,'.git'))){git('init','-q','-b','data/awards-bot');git('config','user.name','github-actions[bot]');
+   git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com');}
+  git('add','state.json','archive.json');git('commit','-q','--allow-empty','-m',`Awards bot state ${new Date().toISOString().slice(0,16)}Z`);
+  git('push','-qf',`https://x-access-token:${token}@github.com/${repo}.git`,'data/awards-bot');
+ }catch{console.warn('State push failed: the end of the run saves it.');}
 }
 
 // --- Telegram.
@@ -153,7 +169,7 @@ async function watchDay(day,ctx,archive,state){
   if(step.do==='post'){
    await refresh([day],archive);
    await post(dayPost(day,archive.lines,ctx,Object.values(rec.games).filter(g=>g.off)));
-   state.posted.daily[day]=live?'sent':'preview';break;
+   state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);break;
   }
   if(step.do==='later'){console.log(`${day}: the last game tips off at ${step.until?new Date(step.until).toISOString():'?'}; a later run follows it.`);return false;}
   const until=step.until||now()+POLL_MS,wait=Math.max(POLL_MS,until-now());
@@ -163,12 +179,13 @@ async function watchDay(day,ctx,archive,state){
   await archiveDay(day,state,archive,ctx.league);
  }
  save(state,archive);
- if(isSunday(day)&&!state.posted.weekly[weekOf(day).start]){await weekly(day,ctx,archive,state,true);save(state,archive);}
- if(isMonthEnd(day)&&!state.posted.monthly[day.slice(0,7)]){await monthly(day,ctx,archive,state,true);save(state,archive);}
+ if(isSunday(day)&&!state.posted.weekly[weekOf(day).start]){await weekly(day,ctx,archive,state,true);pushState(state,archive);}
+ if(isMonthEnd(day)&&!state.posted.monthly[day.slice(0,7)]){await monthly(day,ctx,archive,state,true);pushState(state,archive);}
  return true;
 }
-async function scheduled(){
- const state=read('state.json',fresh()),archive=read('archive.json',{lines:[]}),ctx=await loadLeague();
+// One pass: archive what finished, then follow yesterday's and today's games (US Eastern) to their posts, in order: last
+// night's games may still run after midnight in New York.
+async function pass(state,archive,ctx){
  const today=usDay(now())>SEASON_END?SEASON_END:usDay(now());
  if(today<SEASON_START){console.log(`Season starts ${SEASON_START}: nothing to do.`);return;}
  // Posts start from the bot's first day: the days before it are archived without a post.
@@ -178,9 +195,38 @@ async function scheduled(){
   await archiveDay(day,state,archive,ctx.league);
   save(state,archive);
  }
- // Yesterday and today (US Eastern), in order: last night's games may still run after midnight in New York.
  for(const day of [addDays(today,-1),today])if(day>=state.firstDay&&day>=SEASON_START&&!(await watchDay(day,ctx,archive,state)))break;
  save(state,archive);
+}
+// When the bot has to be on the next game day not posted yet: LEAD_MS before its last tip-off (now when it is over).
+// null: no game in sight today or tomorrow.
+async function nextWake(state){
+ const today=usDay(now());
+ for(const day of [today,addDays(today,1)]){
+  if(day<SEASON_START||day>SEASON_END||day<state.firstDay||state.posted.daily[day])continue;
+  const games=(state.days[day]?Object.values(state.days[day].games):await scoreboard(day)).filter(g=>!g.off);
+  if(!games.length)continue;
+  const pending=games.filter(g=>!g.final);
+  return pending.length?Math.max(...pending.map(g=>Date.parse(g.tip)))-LEAD_MS:now();
+ }
+ return null;
+}
+// CHAIN: the run stays for its whole time and the workflow then starts the next one, so the bot never depends on
+// GitHub's schedule (best-effort, often hours late). It sleeps until the next game day needs it, follows that day and
+// sleeps again; with nothing in reach before its time is up it sleeps to the end and hands over.
+async function scheduled(){
+ const state=read('state.json',fresh()),archive=read('archive.json',{lines:[]});
+ for(;;){
+  await pass(state,archive,await loadLeague());
+  if(!env.CHAIN)return;
+  const wake=await nextWake(state),left=START+WATCH_MS-now()-10*60e3;
+  if(wake===null||wake-now()>left){
+   console.log(`Next game day ${wake?'from '+new Date(wake).toISOString():'not in sight'}: sleeping ${Math.round(Math.max(0,left)/60e3)} min, then the next run.`);
+   save(state,archive);if(left>0)await sleep(left);return;
+  }
+  console.log(`Back on the game day at ${new Date(Math.max(wake,now())).toISOString()}.`);
+  save(state,archive);await sleep(Math.max(POLL_MS,wake-now()));
+ }
 }
 // The posts of a past day rebuilt from ESPN with today's transfer journals: nothing saved or sent.
 async function preview(day){
