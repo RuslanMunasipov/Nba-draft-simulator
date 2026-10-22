@@ -15,7 +15,7 @@
 //                                                   --holiday: the cards dressed for that holiday of holidays.js,
 //                                                   none: without any holiday decor;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
-//                                                   OPENAI_API_KEY, drawn, ~$0.03)
+//                                                   OPENAI_API_KEY, drawn, ~$0.04)
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
 //                                                   mike-roffon.yml): written and drawn, posted into the league chat
@@ -223,7 +223,7 @@ async function monthly(day,ctx,archive,state,mark){
 // (MIKE_ROFFON_BOT_TOKEN): his picture with the interview's headline, the interview as a reply under it. Written by Claude
 // through the owner's subscription (CLAUDE_CODE_OAUTH_TOKEN), drawn by OpenAI (OPENAI_API_KEY: without it the interview
 // goes alone); without his token or the subscription's the facts are only printed. A preview writes it with --mike (the
-// picture costs about $0.03). Never holds the awards: a failure is logged.
+// picture costs about $0.04). Never holds the awards: a failure is logged.
 const MIKE=env.MIKE_ROFFON_BOT_TOKEN,OPENAI_KEY=env.OPENAI_API_KEY;
 async function telegram(token,method,body){
  const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,body instanceof FormData?{method:'POST',body}
@@ -242,7 +242,7 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
   const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
   let spent=0,picture=null;
-  if(OPENAI_KEY)try{const r=await generate(interviewPicture(facts,day),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
+  if(OPENAI_KEY)try{const r=await generate(interviewPicture(facts,day,{team:hero.h?.[0]}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
   catch(e){console.warn(`${day}: Mike Roffon's picture failed (${e.message}): the interview goes alone.`);}
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);

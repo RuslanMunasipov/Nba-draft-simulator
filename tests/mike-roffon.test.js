@@ -56,7 +56,7 @@ test('Mike Roffon: the interview as Telegram HTML, marked as fiction, with the h
 test('Mike Roffon: his picture keeps his gloves and microphone, the real player and the league logo',()=>{
  const p=interviewPicture(facts,'2026-10-21');
  assert.equal(p.images.length,2);assert.match(p.prompt,/white gloves and a vintage chrome microphone, always/);
- assert.match(p.prompt,/the real NBA player A\. Edwards of the MIN/);assert.match(p.prompt,/INSIDE FBL/);assert.doesNotMatch(p.prompt,/undefined/);
+ assert.match(p.prompt,/the real NBA player A\. Edwards, exactly as he really looks/);assert.match(p.prompt,/in the uniform of the MIN/);assert.match(p.prompt,/INSIDE FBL/);assert.doesNotMatch(p.prompt,/undefined/);
 });
 
 test('Mike Roffon: at the arena, under the stands and at the press conference he is a sports reporter, never in a helmet',()=>{
@@ -70,6 +70,20 @@ test('Mike Roffon: at the arena, under the stands and at the press conference he
   assert.doesNotMatch(p.prompt.replace(/No helmet, no military uniform, no camouflage, no PRESS or tactical vest\./,''),/helmet|camouflage|military|\bwar\b|BORN TO ASK|PRESS vest/i);
  }
  assert.ok([...seen].some(s=>/outside the arena/.test(s))&&[...seen].some(s=>/tunnel under the stands/.test(s))&&[...seen].some(s=>/press conference/.test(s)),[...seen].join(' / '));
+});
+
+test('Mike Roffon: the hero wears his FBL team: its colors and its logo, the logo as the third reference',()=>{
+ for(let d=1;d<=12;d++){
+  const day=`2026-11-${String(d).padStart(2,'0')}`,p=interviewPicture(facts,day,{team:5});
+  assert.equal(p.images.length,3,'Mike, the league logo, the team logo');
+  assert.match(p.prompt,/reference image 3 is the logo of Texas 76 Citrus, the player's fantasy team/);
+  assert.match(p.prompt,/dressed not in his NBA club's uniform but in the kit of his fantasy team Texas 76 Citrus: its colors and its logo exactly as in reference image 3, no NBA club logos/);
+  assert.match(p.prompt,/fantasy team Texas 76 Citrus[^.]*in the colors of the logo in reference image 3, that logo on the chest/);
+  assert.match(p.prompt,/the lettering inside the team logo, exactly as in reference image 3/);
+  assert.doesNotMatch(p.prompt,/KIT|WARMUP|of the MIN/);
+ }
+ const none=interviewPicture(facts,'2026-11-01');
+ assert.equal(none.images.length,2);assert.match(none.prompt,/in the uniform of the MIN/);assert.doesNotMatch(none.prompt,/fantasy team|reference image 3/);
 });
 
 test('Mike Roffon: written by Claude (the subscription module, JSON by the schema), again on its own numbers or old lines, then dropped',async()=>{

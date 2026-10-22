@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {int} from '../src/format.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {esc,dayLabel} from './messages.js';
-import {person,looks,readImage,ASSETS} from '../scripts/image-pipeline.mjs';
+import {person,looks,readImage,teamLogo,ASSETS} from '../scripts/image-pipeline.mjs';
 import {dateTag} from './cards.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 
@@ -127,25 +127,32 @@ export function interviewCaption(facts,day){
 const hash=seed=>{let h=0;for(const ch of String(seed))h=(h*31+ch.codePointAt(0))>>>0;return h;};
 // Each scene its own clothes: always a sports reporter, dressed for where he is; one look per interview. Only his face comes
 // from his photo: its camouflage helmet and PRESS vest belong to a war zone, never to an arena or a press conference.
+// The player wears his FBL team's kit (KIT, WARMUP): its colors and its logo; his NBA club's when he has no FBL team.
 const SCENES=[
- {where:'outside the arena after the game, at night, by the lit arena entrance, the player in a hoodie over his game jersey, his bag on his shoulder',
+ {where:'outside the arena after the game, at night, by the lit arena entrance, the player in a hoodie over KIT, his bag on his shoulder',
   wear:['a long dark overcoat over a suit, a scarf and a press badge on a lanyard','a navy rain jacket over a shirt and tie, a press badge on a lanyard']},
- {where:'the tunnel under the stands right after the final buzzer, the player still sweaty in his game jersey, a towel on his neck',
+ {where:'the tunnel under the stands right after the final buzzer, the player still sweaty in KIT, a towel on his neck',
   wear:['a tweed blazer, an open-collar shirt and a press badge on a lanyard','a dark sports jacket over a polo shirt and a press badge on a lanyard']},
- {where:'courtside after the game, confetti and crowd blurred behind, the player catching his breath in his game jersey',
+ {where:'courtside after the game, confetti and crowd blurred behind, the player catching his breath in KIT',
   wear:['a vintage sports-broadcaster blazer with the INSIDE FBL patch, shirt and tie','a grey suit, an open-collar shirt and a courtside media pass']},
- {where:'the post-game press conference: the player in his team warm-up shirt at the table with a row of microphones, Mike standing at the front leaning in',
+ {where:'the post-game press conference: the player in WARMUP, at the table with a row of microphones, Mike standing at the front leaning in',
   wear:['a dark suit, a polka-dot tie and a press accreditation badge','a charcoal three-piece suit, a knit tie and a press accreditation badge']},
 ];
-export function interviewPicture(facts,day,{root=ASSETS}={}){
+// team: the index (0-7) of the hero's FBL team (line.h[0]); its logo from scripts/assets/team-logos.
+export function interviewPicture(facts,day,{root=ASSETS,team=null}={}){
  const mike=person('mike-roffon'),logo=readImage(fileURLToPath(new URL('./assets/fbl-logo.png',import.meta.url)));
- const images=[readImage(`${root}/${mike.photo}`),logo].filter(Boolean);
+ const club=Number.isInteger(team)?LEAGUE_TEAMS[team]:null,crest=club?teamLogo(team,root):null;
+ const refs=[{image:readImage(`${root}/${mike.photo}`),what:'Mike Roffon, the reporter (take only his face from it, not his clothes)'},
+  {image:logo,what:'the logo of the league, FBL'},{image:crest,what:`the logo of ${club?.name}, the player's fantasy team`}].filter(r=>r.image);
+ const n=image=>image?refs.findIndex(r=>r.image===image)+1:0,leagueRef=n(logo),crestRef=n(crest);
+ const kit=crestRef?`the game jersey of his fantasy team ${club.name}: a basketball uniform in the colors of the logo in reference image ${crestRef}, that logo on the chest`
+  :'his game jersey',warmup=crestRef?`the warm-up shirt of his fantasy team ${club.name}, in the colors of the logo in reference image ${crestRef}, that logo on the chest`:'his team warm-up shirt';
  const scene=SCENES[hash(day+facts.player.en)%SCENES.length],outfit=scene.wear[hash(facts.player.en+day+'look')%scene.wear.length];
- return {images,prompt:`REFERENCES: reference image 1 is Mike Roffon, the reporter (take only his face from it, not his clothes)${logo?'; reference image 2 is the logo of the league, FBL':''}.
+ return {images:refs.map(r=>r.image),prompt:`REFERENCES: ${refs.map((r,i)=>`reference image ${i+1} is ${r.what}`).join('; ')}.
 MIKE ROFFON: ${looks({...mike,outfit:null})}. Preserve his face precisely, instantly recognizable. Today he is dressed as a sports reporter for this scene: ${outfit}, and his white gloves. No helmet, no military uniform, no camouflage, no PRESS or tactical vest.
-PLAYER: the real NBA player ${facts.player.en} of the ${facts.player.club}, exactly as he really looks.
-SCENE: a flash interview, ${scene.where}. Mike, in white gloves, holds his vintage chrome microphone up to the player, asking a hard question with a sharp, sceptical look; the player answers, confident.${logo?' Behind them a press wall printed with the league logo from reference image 2, repeated.':''} At the bottom a TV lower-third banner reads "INSIDE FBL".
-STYLE: photorealistic sports-broadcast still, cinematic light, 35mm lens, shallow depth of field. Square composition. The only text: "INSIDE FBL" on the banner and on the press wall, spelled exactly. No other captions, numbers or watermarks.`};
+PLAYER: the real NBA player ${facts.player.en}, exactly as he really looks (face, build, hair), ${crestRef?`dressed not in his NBA club's uniform but in the kit of his fantasy team ${club.name}: its colors and its logo exactly as in reference image ${crestRef}, no NBA club logos`:`in the uniform of the ${facts.player.club}`}.
+SCENE: a flash interview, ${scene.where.replace('KIT',kit).replace('WARMUP',warmup)}. Mike, in white gloves, holds his vintage chrome microphone up to the player, asking a hard question with a sharp, sceptical look; the player answers, confident.${leagueRef?` Behind them a press wall printed with the league logo from reference image ${leagueRef}, repeated.`:''} At the bottom a TV lower-third banner reads "INSIDE FBL".
+STYLE: photorealistic sports-broadcast still, cinematic light, 35mm lens, shallow depth of field. Square composition. The only text: "INSIDE FBL" on the banner and on the press wall, spelled exactly${crestRef?`, and the lettering inside the team logo, exactly as in reference image ${crestRef}`:''}. No other captions, numbers, jersey numbers or watermarks.`};
 }
 
 // The interview from Claude (one headless call of the CLI, JSON by the schema). Answers {interview, usage} or throws.
