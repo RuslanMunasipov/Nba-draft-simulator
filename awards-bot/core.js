@@ -150,6 +150,22 @@ export function dailyBlocks(lines){
  const drafted=lines.filter(l=>l.h.length),free=lines.filter(l=>!l.h.length);
  return {heroes:top(drafted,3),flops:top(drafted.filter(l=>l.m>=MIN_FLOP),3,1),gold:top(free,3),antitop:top(lines,3,1)};
 }
+// A player's form on a game day, from the days before it and the day itself (league chat, 22.10.2026): how often he was
+// among the day's heroes and flops of the league over the last FORM_DAYS game days, and his run of days in a row. On fire
+// (🔥) after 3 heroes in that window or 2 days in a row, ablaze (🔥🔥) after 5 or 3 in a row; frozen (🧊) after 3 flops.
+// Bricks (🧱) are a flop that came from missed shots: MISSED_BRICKS or more missed field goals that game.
+export const FORM_DAYS=7,MISSED_BRICKS=10;
+export function form(lines,day){
+ const days=[...new Set(lines.filter(l=>l.d<=day).map(l=>l.d))].sort().slice(-FORM_DAYS),by=new Map();
+ for(const d of days){const b=dailyBlocks(lines.filter(l=>l.d===d));
+  for(const [kind,rows] of [['hero',b.heroes],['flop',b.flops]])for(const l of rows){const x=by.get(l.a)||{hero:[],flop:[]};x[kind].push(d);by.set(l.a,x);}}
+ const run=list=>{let n=0;for(let i=days.length-1;i>=0&&list.includes(days[i]);i--)n++;return n;};
+ const out=new Map();
+ for(const [a,x] of by){const hero=x.hero.length,flop=x.flop.length,heroRun=run(x.hero),flopRun=run(x.flop);
+  out.set(a,{hero,flop,heroRun,flopRun,fire:hero>=5||heroRun>=3?2:hero>=3||heroRun>=2?1:0,ice:flop>=3});}
+ return out;
+}
+export const bricks=l=>l.s.fga-l.s.fgm>=MISSED_BRICKS;
 export function weeklyBlocks(lines){
  const rows=perPlayer(lines),drafted=rows.filter(r=>r.h.length),free=rows.filter(r=>!r.h.length);
  return {heroes:top(drafted,3),flops:top(drafted.filter(r=>r.m>=MIN_WEEK_FLOP),3,1),gold:top(free,3)};

@@ -1,40 +1,78 @@
-// FBL awards bot, its posts as cards: the day, the week and the awards race drawn as HTML (render.mjs turns them into
-// PNG). Every number on a card is the bot's own: FBL points come from core.js, scored by the league's formula
-// (fblFormula), and nothing on a card is drawn by a model. Pure: photos, logos and emoji come in through `look`.
-// A card is 1080×1350 (4:5): Telegram keeps a photo's long side at 1280 px, so a taller card would come out unreadable;
-// a long post is several cards sent as one album.
+// FBL awards bot, its posts as cards (league chat, 22.10.2026): every post is one album of at most four cards, the first
+// an opener (the nomination's emblem, its title and date: what a hashtag search shows), and one caption with the
+// hashtags that navigate the chat (#итоги_дня, #неделя_N, #октябрь_2026, #дата_21_10_2026). One style for all: the
+// layout, the colours and the number of slots never change, only the players, their numbers and the decor of a holiday
+// (holidays.js). A player's form marks his headshot: 🔥 a regular among the day's heroes, 🧊 among its flops, 🧱 a flop
+// of missed shots (core.js form()). Every number is the bot's own: FBL points come from core.js, scored by the league's
+// formula (fblFormula); nothing on a card is drawn by a model. Pure: photos, logos and emoji come in through `look`.
+// A card is 1080×1350 (4:5): Telegram keeps a photo's long side at 1280 px, so a taller card would come out unreadable.
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {int,count} from '../src/format.js';
 import {esc,dayLabel} from './messages.js';
-import {daysBetween,special,moved} from './core.js';
+import {special,moved,bricks} from './core.js';
+import {HOLIDAY_EMOJI} from './holidays.js';
 
 export const WIDTH=1080,HEIGHT=1350;
+const MONTHS_NOM=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 const range=(a,b)=>a.slice(5,7)===b.slice(5,7)?`${Number(a.slice(8,10))}–${dayLabel(b)}`:`${dayLabel(a)} – ${dayLabel(b)}`;
+const year=d=>d.slice(0,4);
 const signed=n=>n>0?'+'+int(n):int(n);
-// Block colours: heroes gold, flops red, free agents green, the NBA antitop violet, records orange, races blue.
+// The fixed palette. Blocks: heroes gold, flops red, free agents green, the NBA antitop violet, records orange, races blue.
 const TONE={hero:'#f5b301',flop:'#ff4d5e',gold:'#22c55e',antitop:'#a06bff',record:'#ff8a1f',race:'#3ea6ff'};
+// The nominations: emblem icon, title, colours and hashtag.
+export const NOMINATION={
+ day:{icon:'⭐',title:'Итоги игрового дня',ring:['#ffcf40','#ff8a1f'],tag:'итоги_дня'},
+ week:{icon:'🗓️',title:'Итоги недели',ring:['#3ea6ff','#7c5cff'],tag:'итоги_недели'},
+ month:{icon:'🏅',title:'Символическая пятёрка',ring:['#22c55e','#ffcf40'],tag:'пятёрка_месяца'},
+};
+// Slots per block: a block always has them all, an empty one is drawn as a dash, so the layout never moves.
+export const SLOTS={hero:3,flop:3,gold:3,antitop:3,weekHero:3,weekFlop:3,weekGold:3,mvp:10,roy:4,mef:4,sixth:4,record:3};
 
-const css=fonts=>`
+// --- Hashtags: the type of the post, its week, its month and its date. Telegram links #words of letters, digits and _.
+export const monthTag=d=>`#${MONTHS_NOM[Number(d.slice(5,7))-1]}_${year(d)}`;
+export const dateTag=d=>`#дата_${d.slice(8,10)}_${d.slice(5,7)}_${year(d)}`;
+export const weekTag=n=>`#неделя_${n}`;
+
+const css=(fonts,accent)=>`
 @font-face{font-family:Manrope;src:url(${fonts.manrope}) format('truetype');font-weight:200 800}
 @font-face{font-family:Oswald;src:url(${fonts.oswald}) format('truetype');font-weight:200 700}
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,sans-serif;color:#eef2ff;overflow:hidden}
-.card{width:${WIDTH}px;height:${HEIGHT}px;padding:44px 52px 36px;display:flex;flex-direction:column;gap:22px;
- background:radial-gradient(1200px 700px at 100% -10%,#1d2a55 0%,transparent 60%),radial-gradient(900px 600px at -20% 110%,#2a1640 0%,transparent 55%),#0b1020}
-.top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid #ffffff1f;padding-bottom:20px}
-.brand{font-family:Oswald;font-weight:600;font-size:28px;letter-spacing:4px;color:#9fb0ff;text-transform:uppercase}
+.card{position:relative;width:${WIDTH}px;height:${HEIGHT}px;padding:44px 52px 36px;display:flex;flex-direction:column;gap:20px;overflow:hidden;
+ background:radial-gradient(1200px 700px at 100% -10%,${accent[0]}33 0%,transparent 60%),radial-gradient(900px 600px at -20% 110%,${accent[1]}2e 0%,transparent 55%),#0b1020}
+.decor{position:absolute;inset:0;pointer-events:none;z-index:0}
+.decor .emo{position:absolute}
+.card>*:not(.decor){position:relative;z-index:1}
+.top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid;border-image:linear-gradient(90deg,${accent[0]},${accent[1]}) 1;padding-bottom:18px}
+.brand{font-family:Oswald;font-weight:600;font-size:28px;letter-spacing:4px;color:${accent[0]};text-transform:uppercase;display:flex;gap:14px;align-items:center}
+.badge{display:inline-flex;gap:8px;align-items:center;font-family:Manrope;letter-spacing:0;text-transform:none;font-size:22px;font-weight:800;color:#0b1020;background:linear-gradient(90deg,${accent[0]},${accent[1]});padding:4px 14px 4px 8px;border-radius:999px}
+.badge .emo{width:28px;height:28px}
 .title{font-family:Oswald;font-weight:700;font-size:64px;line-height:1;text-transform:uppercase;letter-spacing:1px}
 .sub{font-size:24px;color:#aab4d4;font-weight:600;text-align:right}
-.block{display:flex;flex-direction:column;gap:12px}
-.head{display:flex;align-items:center;gap:14px;font-family:Oswald;font-weight:600;font-size:34px;text-transform:uppercase;letter-spacing:1px}
-.head .bar{width:10px;height:34px;border-radius:5px}
-.head .emo{width:36px;height:36px}
-.row{display:grid;grid-template-columns:56px 104px 1fr auto;align-items:center;gap:18px;padding:12px 20px;border-radius:22px;background:#ffffff0d;border:1px solid #ffffff14}
+.block{display:flex;flex-direction:column;gap:10px}
+.head{display:flex;align-items:center;gap:14px;font-family:Oswald;font-weight:600;font-size:32px;text-transform:uppercase;letter-spacing:1px}
+.head .bar{width:10px;height:32px;border-radius:5px}
+.head .emo{width:34px;height:34px}
+.row{display:grid;grid-template-columns:56px 112px 1fr auto;align-items:center;gap:18px;padding:10px 20px;border-radius:22px;background:#ffffff0d;border:1px solid #ffffff14;height:146px}
+.row.empty{color:#5d688c;font-size:26px;font-weight:700}
 .place{font-family:Oswald;font-weight:700;font-size:40px;text-align:center;color:#c8d0ea}
 .place .emo{width:48px;height:48px}
-.photo{width:104px;height:104px;border-radius:50%;overflow:hidden;border:4px solid;background:#1a2244;display:flex;align-items:flex-end;justify-content:center}
+.ph{position:relative;width:112px;height:112px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.photo{width:104px;height:104px;border-radius:50%;overflow:hidden;border:4px solid;background:#1a2244;display:flex;align-items:flex-end;justify-content:center;position:relative}
 .photo img{width:150%;margin-bottom:-6px}
 .photo .ini{font-family:Oswald;font-size:40px;color:#c8d0ea;align-self:center}
+.mark{position:absolute;right:-12px;bottom:-4px;display:inline-flex;align-items:center;gap:2px;padding:2px 9px 2px 4px;border-radius:999px;font-family:Oswald;font-weight:700;font-size:20px;color:#fff;z-index:2;box-shadow:0 2px 8px #0008}
+.mark .emo{width:26px;height:26px}
+.fire .photo{border-color:#ff7a1a!important;box-shadow:0 0 0 3px #ff3d0099,0 0 26px 6px #ff7a1acc}
+.fire2 .photo{border-color:#ffb020!important;box-shadow:0 0 0 4px #ff3d00cc,0 0 40px 12px #ff5a1aee}
+.fire .mark,.fire2 .mark{background:linear-gradient(90deg,#ff3d00,#ffb020)}
+.ice .photo{border-color:#9be8ff!important;box-shadow:0 0 0 3px #38bdf899,0 0 26px 6px #7dd3fccc}
+.ice .photo img{filter:saturate(.35) brightness(1.08) hue-rotate(170deg)}
+.ice .photo:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#e0f7ff55,#7dd3fc22 45%,#e0f7ff66)}
+.ice .mark{background:linear-gradient(90deg,#0ea5e9,#7dd3fc)}
+.bricks .ph{background:repeating-linear-gradient(0deg,#a8442f 0 12px,#4a1b14 12px 14px)}
+.bricks .photo{border-color:#c2553f!important}
+.bricks .mark{background:linear-gradient(90deg,#7c2d12,#c2410c)}
 .who{display:flex;flex-direction:column;gap:6px;min-width:0}
 .name{font-size:34px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta{display:flex;gap:10px;align-items:center;font-size:21px;color:#aab4d4;font-weight:600;flex-wrap:nowrap;overflow:hidden}
@@ -43,21 +81,24 @@ body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,
 .team .emo,.team img{width:30px;height:30px;object-fit:contain;padding:3px;border-radius:50%;background:#e9edff}
 .stats{font-size:20px;color:#c3cbe6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stats b{color:#fff;font-weight:800}
-.stats .miss{color:#ff9aa5}
 .fo{display:flex;flex-direction:column;align-items:flex-end;min-width:150px}
 .fo .n{font-family:Oswald;font-weight:700;font-size:64px;line-height:1}
 .fo .u{font-size:18px;font-weight:800;letter-spacing:2px;color:#aab4d4}
 .fo .x{font-size:18px;color:#aab4d4;font-weight:600;text-align:right;white-space:nowrap}
 .fo .x.miss{color:#ff9aa5}
-.compact .row{grid-template-columns:44px 72px 1fr auto;padding:10px 16px;gap:14px;border-radius:18px}
-.compact .photo{width:72px;height:72px;border-width:3px}
+.compact .row{grid-template-columns:44px 84px 1fr auto;padding:6px 16px;gap:14px;border-radius:18px;height:96px}
+.compact .ph{width:84px;height:84px}
+.compact .photo{width:76px;height:76px;border-width:3px}
 .compact .name{font-size:27px}
 .compact .place{font-size:30px}
 .compact .place .emo{width:36px;height:36px}
 .compact .fo .n{font-size:44px}
 .compact .fo{min-width:110px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-.grid2 .row{grid-template-columns:40px 64px 1fr auto;padding:10px 14px;gap:12px;border-radius:18px}
+.compact .mark{font-size:16px;right:-8px}.compact .mark .emo{width:20px;height:20px}
+.tall .row{height:118px;padding:8px 16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px}
+.grid2 .row{grid-template-columns:40px 70px 1fr auto;padding:6px 14px;gap:12px;border-radius:18px;height:84px}
+.grid2 .ph{width:70px;height:70px}
 .grid2 .photo{width:64px;height:64px;border-width:3px}
 .grid2 .name{font-size:24px}
 .grid2 .meta{font-size:17px;gap:6px}
@@ -68,94 +109,151 @@ body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,
 .grid2 .fo .u{font-size:14px}
 .grid2 .fo .x{font-size:14px}
 .grid2 .fo{min-width:70px}
+.grid2 .row.empty{font-size:20px}
 .move{font-size:20px;font-weight:800;margin-left:6px}
 .up{color:#4ade80}.down{color:#ff6b7a}.new{color:#ffd166}
 .note{font-size:21px;color:#aab4d4;font-weight:600}
-.alert{padding:18px 22px;border-radius:22px;border:2px solid;background:#ffffff0a}
-.alert .t{font-family:Oswald;font-weight:700;font-size:32px;text-transform:uppercase;margin-bottom:10px}
+.alert{padding:10px 16px;border-radius:22px;border:2px solid;background:#ffffff0a}
+.alert .t{font-family:Oswald;font-weight:700;font-size:26px;text-transform:uppercase;margin-bottom:6px}
 .foot{margin-top:auto;display:flex;justify-content:space-between;font-size:19px;color:#7f8bb3;font-weight:600}
+.opener{align-items:center;justify-content:center;text-align:center;gap:28px}
+.emblem{width:600px;height:600px}
+.otitle{font-family:Oswald;font-weight:700;font-size:90px;line-height:1;text-transform:uppercase;letter-spacing:2px}
+.odate{font-size:44px;font-weight:800;color:#dfe5ff}
+.osub{font-size:28px;font-weight:600;color:#aab4d4;display:flex;gap:10px;align-items:center;justify-content:center}
+.osub .emo{width:34px;height:34px}
+.opener .foot{position:absolute;left:52px;right:52px;bottom:36px}
 `;
 
-// The pieces of a row. look: {photo(a) → image URL or null, emoji(e) → HTML, logo(team) → image URL or null}.
+// --- The decor of a holiday: its emoji at fixed places along the edges (faint on content cards, bold on the opener).
+const SPOTS=[[1,1,96],[87,1,84],[46,0.5,60],[-1,30,80],[91,24,70],[1,58,66],[90,52,92],[-2,84,88],[88,86,78],[30,93,64],[62,92,72],[70,8,58]];
+function decor(look,holiday,bold){
+ if(!holiday)return '';
+ return `<div class="decor">${SPOTS.map(([x,y,s],i)=>look.emoji(holiday.decor[i%holiday.decor.length])
+  .replace('class="emo"',`class="emo" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;font-size:${s}px;opacity:${bold?0.9:0.18};transform:rotate(${(i*37)%50-25}deg)"`)).join('')}</div>`;
+}
+const badge=(look,holiday)=>holiday?`<span class="badge">${look.emoji(holiday.emoji)}${esc(holiday.name)}</span>`:'';
+const ACCENT=['#3ea6ff','#a06bff'];
+
+// --- A row: place, headshot (with his form), name, NBA club, league teams, stat line, the big number.
 const initials=n=>esc(String(n||'').split(/[\s.]+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase());
-const photo=(look,r,tone)=>{const src=look.photo(r.a);return `<div class="photo" style="border-color:${tone}">${src?`<img src="${src}">`:`<span class="ini">${initials(r.n)}</span>`}</div>`;};
+// The mark of a line: 🔥 (his hero days) or a bigger fire, 🧊 (his flop days), 🧱 (missed shots); null without one.
+export function markOf(kind,line,f){
+ if(kind==='hero'&&f?.fire)return {cls:f.fire>1?'fire2':'fire',emoji:'🔥',text:String(f.hero)};
+ if(kind==='flop'&&f?.ice)return {cls:'ice',emoji:'🧊',text:String(f.flop)};
+ if(kind==='flop'&&line.s&&bricks(line))return {cls:'bricks',emoji:'🧱',text:String(line.s.fga-line.s.fgm)};
+ return null;
+}
+const photo=(look,r,tone,mark)=>{const src=look.photo(r.a);
+ return `<div class="ph"><div class="photo" style="border-color:${tone}">${src?`<img src="${src}">`:`<span class="ini">${initials(r.n)}</span>`}</div>${mark?`<span class="mark">${look.emoji(mark.emoji)}${esc(mark.text)}</span>`:''}</div>`;};
 // Short team names for the two-column lists, where the full ones do not fit.
 const SHORT=['Balkan Murderers','Saint P','Black Jacks','Алачанян','Volga Pirates','Texas Citrus','Karagali','School Shooters'];
 const teamPill=(look,t,short)=>{const x=LEAGUE_TEAMS[t];if(!x)return '';const logo=look.logo(t);
  return `<span class="team">${logo?`<img src="${logo}">`:look.emoji(x.symbol)}${esc(short?SHORT[t]||x.name:x.name)}</span>`;};
 const teams=(look,list,free,short)=>list?.length?list.map(t=>teamPill(look,t,short)).join(''):free?`<span class="team">${look.emoji('🆓')}${short?'свободен':'свободный агент'}</span>`:'';
 const MEDALS=['🥇','🥈','🥉'];
-const place=(look,i,medals)=>`<div class="place">${medals&&i<3?look.emoji(MEDALS[i]):i+1}</div>`;
-// The stat line the league reads, with the missed shots that cost points (the formula takes them off).
+const place=(look,i,medals,label)=>`<div class="place">${label?esc(label):medals&&i<3?look.emoji(MEDALS[i]):i+1}</div>`;
+// The stat line the league reads; the shots stand under the points, their misses are what the formula takes off.
 export const statsHtml=s=>[[s.pts,'очк'],[s.reb,'подб'],[s.ast,'пер'],[s.stl,'перехв'],[s.blk,'блок'],[s.tov,'пот']].map(([v,l])=>`<b>${int(v)}</b> ${l}`).join(' · ');
-// The shots: the misses are what the formula takes off, so they stand under the points.
 export const shotsHtml=s=>`бр ${int(s.fgm)}/${int(s.fga)} · шт ${int(s.ftm)}/${int(s.fta)}`;
 const fo=(p,extra='',sign=false,unit='ФО',cls='')=>`<div class="fo"><span class="n">${sign?signed(p):int(p)}</span><span class="u">${unit}</span>${extra?`<span class="x ${cls}">${extra}</span>`:''}</div>`;
-function row(look,who,r,i,{tone,medals=false,free=false,list=r.h,extra='',sign=false,stats=true,move='',unit,short=false}={}){
+function row(look,who,r,i,{tone,medals=false,free=false,list=r.h,extra='',sign=false,stats=true,move='',unit,short=false,mark=null,label=''}={}){
  const shots=stats&&r.s&&!extra;
- return `<div class="row">${place(look,i,medals)}${photo(look,r,tone)}<div class="who"><div class="name">${esc(who(r.a,r.n))}${move}</div>
+ return `<div class="row ${mark?.cls||''}">${place(look,i,medals,label)}${photo(look,r,tone,mark)}<div class="who"><div class="name">${esc(who(r.a,r.n))}${move}</div>
 <div class="meta">${r.c?`<span class="club">${esc(r.c)}</span>`:''}${teams(look,list,free,short)}</div>${stats&&r.s?`<div class="stats">${statsHtml(r.s)}</div>`:''}</div>${fo(r.p,shots?shotsHtml(r.s):extra,sign,unit,shots?'miss':'')}</div>`;
 }
-const block=(look,title,emo,tone,rows,cls='')=>rows.length?`<div class="block ${cls}"><div class="head"><span class="bar" style="background:${tone}"></span>${look.emoji(emo)}${esc(title)}</div>${rows.join('')}</div>`:'';
-const page=(fonts,{title,sub,brand='FBL · сезон 2026/27',foot=''},body)=>`<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts)}</style></head><body><div class="card">
-<div class="top"><div><div class="brand">${esc(brand)}</div><div class="title">${esc(title)}</div></div><div class="sub">${sub}</div></div>${body}<div class="foot"><span>ФО по формуле лиги FBL</span><span>${esc(foot)}</span></div></div></body></html>`;
+const empty=(i,label)=>`<div class="row empty"><div class="place">${label?esc(label):i+1}</div><div class="ph"></div><div>—</div><div></div></div>`;
+const cells=(rows,n,make,from=0,to=n)=>Array.from({length:to-from},(_,k)=>rows[from+k]?make(rows[from+k],from+k):empty(from+k)).join('');
+const head=(look,title,emo,tone)=>`<div class="head"><span class="bar" style="background:${tone}"></span>${look.emoji(emo)}${esc(title)}</div>`;
+// A block of a fixed number of slots: the rows it has, then dashes; grid: the same in two columns (1–5 and 6–10 of ten).
+const block=(look,title,emo,tone,rows,n,make,cls='')=>`<div class="block ${cls}">${head(look,title,emo,tone)}${cells(rows,n,make)}</div>`;
+const grid=(look,title,emo,tone,rows,n,make)=>{const half=Math.ceil(n/2);
+ return `<div class="block">${head(look,title,emo,tone)}<div class="grid2"><div class="block">${cells(rows,n,make,0,half)}</div><div class="block">${cells(rows,n,make,half,n)}</div></div></div>`;};
+function page(look,fonts,{title,sub,foot='',holiday},body){
+ return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||ACCENT)}</style></head><body><div class="card">${decor(look,holiday,false)}
+<div class="top"><div><div class="brand">FBL · сезон 2026/27 ${badge(look,holiday)}</div><div class="title">${esc(title)}</div></div><div class="sub">${sub}</div></div>${body}
+<div class="foot"><span>ФО по формуле лиги FBL</span><span>${esc(foot)}</span></div></div></body></html>`;
+}
+
+// --- The opener: the nomination's emblem (a ring with the league's name around its icon), its title and the date.
+const sized=(html,px)=>html.replace('class="emo"',`class="emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*0.87)}px"`);
+function emblem(look,nom,holiday){
+ const [a,b]=nom.ring;
+ return `<svg class="emblem" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
+<path id="ring" d="M300,300 m-228,0 a228,228 0 1,1 456,0 a228,228 0 1,1 -456,0"/></defs>
+<circle cx="300" cy="300" r="292" fill="url(#g)"/><circle cx="300" cy="300" r="262" fill="#0b1020"/><circle cx="300" cy="300" r="196" fill="none" stroke="url(#g)" stroke-width="6"/>
+<text font-family="Oswald" font-weight="700" font-size="34" letter-spacing="6" fill="url(#g)"><textPath href="#ring">FANTASY BASKETBALL LEAGUE · FBL · СЕЗОН 2026/27 ·</textPath></text>
+<foreignObject x="150" y="150" width="300" height="300"><div xmlns="http://www.w3.org/1999/xhtml" style="width:300px;height:300px;display:flex;align-items:center;justify-content:center">${sized(look.emoji(nom.icon),230)}</div></foreignObject>
+${holiday?`<foreignObject x="418" y="418" width="160" height="160"><div xmlns="http://www.w3.org/1999/xhtml" style="width:150px;height:150px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#0b1020;border:6px solid ${a}">${sized(look.emoji(holiday.emoji),96)}</div></foreignObject>`:''}</svg>`;
+}
+export function opener(look,fonts,{nom,date,sub,holiday}){
+ return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||nom.ring)}</style></head><body><div class="card opener">${decor(look,holiday,true)}
+${emblem(look,nom,holiday)}<div class="otitle">${esc(nom.title)}</div><div class="odate">${esc(date)}</div><div class="osub">${holiday?`${look.emoji(holiday.emoji)}${esc(holiday.name)} · `:''}${esc(sub)}</div>
+<div class="foot"><span>FBL · сезон 2026/27</span><span>ФО по формуле лиги FBL</span></div></div></body></html>`;
+}
 
 // A record alert of the day: a new season record or antirecord, or a new entry in the season's top 3.
-function recordAlert(look,who,{kind,rank,line,previous}){
+function recordAlert(look,who,{kind,rank,line}){
  const best=kind==='best',tone=best?TONE.record:TONE.flop,mark=special(line.d);
- const title=rank===1?(best?'🚨 Рекорд сезона':'🗑 Антирекорд сезона'):(best?`📈 ${rank}-е место в топ-3 сезона`:`📉 ${rank}-е место в антитопе сезона`);
- return `<div class="alert" style="border-color:${tone}"><div class="t" style="color:${tone}">${esc(title)}${mark?' '+look.emoji(mark):''}</div>${row(look,who,line,0,{tone,free:true})}
-${previous?`<div class="note" style="margin-top:10px">Прежний ${best?'рекорд':'антирекорд'} — ${esc(who(previous.a,previous.n))}, ${int(previous.p)} ФО, продержался ${count(daysBetween(previous.d,line.d),'день','дня','дней')}</div>`:''}</div>`;
+ const title=rank===1?(best?'🚨 Рекорд сезона':'🗑 Антирекорд сезона'):(best?`📈 ${rank}-е место сезона`:`📉 ${rank}-е место антитопа сезона`);
+ return `<div class="alert compact" style="border-color:${tone}"><div class="t" style="color:${tone}">${esc(title)}${mark?' '+look.emoji(mark):''}</div>${row(look,who,line,0,{tone,free:true,stats:false})}</div>`;
+}
+const caption=lines=>lines.filter(x=>x!==null&&x!==undefined).join('\n');
+
+// --- The day: opener, heroes and flops, then free agents, the NBA antitop and the day's record alert.
+// f: the players' form (core.js form()).
+export function dayAlbum(day,blocks,who,look,fonts,{news=[],postponed=[],form:f=new Map(),holiday=null,week=null}={}){
+ const date=`${dayLabel(day)} ${year(day)}`,sub=`${esc(date)}<br>игровой день США`;
+ const mk=kind=>(l,i)=>row(look,who,l,i,{tone:TONE[kind],medals:kind==='hero',mark:markOf(kind,l,f.get(l.a))});
+ const cards=[opener(look,fonts,{nom:NOMINATION.day,date,sub:`${week?`неделя ${week.n} · `:''}игровой день США`,holiday}),
+  page(look,fonts,{title:'Итоги дня',sub,foot:'1 / 2',holiday},block(look,'Герои дня','⭐',TONE.hero,blocks.heroes,SLOTS.hero,mk('hero'))+block(look,'Провалы дня','💩',TONE.flop,blocks.flops,SLOTS.flop,mk('flop'))),
+  page(look,fonts,{title:'Итоги дня',sub,foot:'2 / 2',holiday},
+   block(look,'Золотая жила','🆓',TONE.gold,blocks.gold,SLOTS.gold,(l,i)=>row(look,who,{...l,h:[]},i,{tone:TONE.gold,medals:true,free:true}),'compact tall')
+   +block(look,'Антитоп НБА','🤡',TONE.antitop,blocks.antitop,SLOTS.antitop,(l,i)=>row(look,who,l,i,{tone:TONE.antitop,free:true}),'compact tall')
+   +news.slice(0,1).map(x=>recordAlert(look,who,x)).join('')
+   +(postponed.length?`<div class="note">⏸ Перенесены: ${postponed.map(g=>esc(`${g.away} — ${g.home}`)).join(', ')}</div>`:''))];
+ const top=blocks.heroes[0],low=blocks.flops[0];
+ return {cards,caption:caption([`<b>⭐ Итоги игрового дня · ${esc(date)}</b>${holiday?` · ${esc(holiday.emoji)} ${esc(holiday.name)}`:''}`,
+  [top&&`Герой дня: ${esc(who(top.a,top.n))} — ${int(top.p)} ФО`,low&&`провал дня: ${esc(who(low.a,low.n))} — ${int(low.p)} ФО`].filter(Boolean).join(' · ')||null,'',
+  [`#${NOMINATION.day.tag}`,week&&weekTag(week.n),monthTag(day),dateTag(day)].filter(Boolean).join(' ')])};
 }
 
-// The day: card 1 is the league's heroes and flops, card 2 the free agents, the NBA antitop, the season records and the
-// postponed games (only when it has something).
-export function dailyCards(day,blocks,who,look,fonts,{news=[],postponed=[]}={}){
- const sub=`${esc(dayLabel(day))}<br>игровой день США`,cards=[];
- const one=[block(look,'Герои дня','⭐',TONE.hero,blocks.heroes.map((l,i)=>row(look,who,l,i,{tone:TONE.hero,medals:true}))),
-  block(look,'Провалы дня','💩',TONE.flop,blocks.flops.map((l,i)=>row(look,who,l,i,{tone:TONE.flop})))].join('');
- if(one)cards.push(page(fonts,{title:'Итоги дня',sub,foot:'1 / 2'},one));
- const two=[block(look,'Золотая жила','🆓',TONE.gold,blocks.gold.map((l,i)=>row(look,who,{...l,h:[]},i,{tone:TONE.gold,medals:true,free:true})),'compact'),
-  block(look,'Антитоп НБА','🤡',TONE.antitop,blocks.antitop.map((l,i)=>row(look,who,l,i,{tone:TONE.antitop,free:true})),'compact'),
-  ...news.slice(0,2).map(x=>recordAlert(look,who,x)),
-  postponed.length?`<div class="note">⏸ Перенесены: ${postponed.map(g=>esc(`${g.away} — ${g.home}`)).join(', ')}</div>`:''].join('');
- if(two)cards.push(page(fonts,{title:'Итоги дня',sub,foot:'2 / 2'},two));
- if(cards.length===1)cards[0]=cards[0].replace('1 / 2','');
- return cards;
-}
-
-// The week: heroes, flops and free agents of the week on one card, the points summed over its games.
-export function weeklyCards(week,blocks,who,look,fonts){
- const games=r=>count(r.games,'матч','матча','матчей');
- const body=[block(look,'Герои недели','⭐',TONE.hero,blocks.heroes.map((r,i)=>row(look,who,r,i,{tone:TONE.hero,medals:true,extra:games(r),sign:true,stats:false})),'compact'),
-  block(look,'Провалы недели','💩',TONE.flop,blocks.flops.map((r,i)=>row(look,who,r,i,{tone:TONE.flop,extra:games(r),sign:true,stats:false})),'compact'),
-  block(look,'Золотая жила недели','🆓',TONE.gold,blocks.gold.map((r,i)=>row(look,who,{...r,h:[]},i,{tone:TONE.gold,medals:true,free:true,extra:games(r),sign:true,stats:false})),'compact')].join('');
- return body?[page(fonts,{title:`Неделя ${week.n}`,sub:`${esc(range(week.start,week.end))}<br>итоги недели`},body)]:[];
-}
-
-// The awards race after a week: card 1 the MVP race (top 10, two columns), card 2 rookie of the year, Mef player and the
-// sixth man. Arrows: places moved since last week's post.
+// --- The week (after its Sunday): opener, the week's heroes, flops and free agents, the awards race (the MVP and rookie
+// of the year; Mef player, the sixth man and the season records). Arrows: places moved since last week's race.
 const arrow=n=>n===null?'<span class="move new">NEW</span>':n>0?`<span class="move up">▲${n}</span>`:n<0?`<span class="move down">▼${-n}</span>`:'';
 const raceKey=r=>r.key||r.a;
-export function raceCards(week,r,who,look,fonts,previous={}){
+export function weekAlbum(week,wb,r,rec,who,look,fonts,{previous={},holiday=null}={}){
+ const span=`${range(week.start,week.end)} ${year(week.end)}`,games=x=>count(x.games,'матч','матча','матчей');
+ const wrow=(kind,free)=>(x,i)=>row(look,who,free?{...x,h:[]}:x,i,{tone:TONE[kind],medals:kind!=='flop',free,extra:games(x),sign:true,stats:false});
  const mv=(list,key,x)=>previous[key]?arrow(moved(raceKey(x),list,previous[key])):'';
- const sub=`после ${week.n}-й недели<br>${esc(range(week.start,week.end))}`;
- // A race in two columns (places 1–5 and 6–10 for the MVP, 1–3 and 4–5 for the others), short team names.
- const race=(title,emo,list,key,opts=()=>({}))=>{
-  if(!list.length)return '';
-  const line=(x,i)=>{const {row:shown=x,...o}=opts(x);return row(look,who,shown,i,{tone:TONE.race,medals:true,list:x.teams,stats:false,short:true,move:mv(list,key,x),...o});};
-  const half=Math.ceil(list.length/2),col=(from,to)=>`<div class="block">${list.slice(from,to).map((x,i)=>line(x,from+i)).join('')}</div>`;
-  return `<div class="block"><div class="head"><span class="bar" style="background:${TONE.race}"></span>${look.emoji(emo)}${esc(title)}</div><div class="grid2">${col(0,half)}${col(half,list.length)}</div></div>`;
- };
- const cards=[];
- const mvp=race('MVP','🏆',r.mvp,'mvp'),roy=race('Новичок года','🌱',r.roy.slice(0,5),'roy');
- if(mvp||roy)cards.push(page(fonts,{title:'Гонка за награды',sub,foot:'1 / 2'},mvp+roy));
- const mef=race('Mef player','💊',r.mef,'mef',x=>({free:true,extra:`цена ${int(x.price)}`}));
- // The sixth man ranks by his index (FBL points × bench games / games), not by points: the big number is the index.
- const sixth=race('Шестой игрок','🪑',r.sixth,'sixth',x=>({row:{...x,p:x.index},list:[x.team],unit:'индекс',extra:`${int(x.p)} ФО · запас ${x.bench}/${x.games}`}));
- if(mef||sixth)cards.push(page(fonts,{title:'Гонка за награды',sub,foot:'2 / 2'},[mef,sixth].join('')));
- if(cards.length===1)cards[0]=cards[0].replace('1 / 2','').replace('2 / 2','');
- return cards;
+ const race=(list,key,o=()=>({}))=>(x,i)=>{const {row:shown=x,...rest}=o(x);return row(look,who,shown,i,{tone:TONE.race,medals:true,list:x.teams,stats:false,short:true,move:mv(list,key,x),...rest});};
+ const recRow=(tone,best)=>(l,i)=>row(look,who,l,i,{tone,medals:best,free:true,short:true,stats:false,extra:dayLabel(l.d)+(special(l.d)?' '+special(l.d):'')});
+ const raceSub=`после ${week.n}-й недели<br>${esc(span)}`;
+ const cards=[opener(look,fonts,{nom:NOMINATION.week,date:`Неделя ${week.n} · ${range(week.start,week.end)}`,sub:`итоги недели и гонка за награды · ${year(week.end)}`,holiday}),
+  page(look,fonts,{title:`Неделя ${week.n}`,sub:`${esc(span)}<br>итоги недели`,holiday},
+   block(look,'Герои недели','⭐',TONE.hero,wb.heroes,SLOTS.weekHero,wrow('hero'),'compact')+block(look,'Провалы недели','💩',TONE.flop,wb.flops,SLOTS.weekFlop,wrow('flop'),'compact')
+   +block(look,'Золотая жила недели','🆓',TONE.gold,wb.gold,SLOTS.weekGold,wrow('gold',true),'compact')),
+  page(look,fonts,{title:'Гонка за награды',sub:raceSub,foot:'1 / 2',holiday},
+   grid(look,'MVP','🏆',TONE.race,r.mvp,SLOTS.mvp,race(r.mvp,'mvp'))+grid(look,'Новичок года','🌱',TONE.race,r.roy,SLOTS.roy,race(r.roy,'roy'))),
+  page(look,fonts,{title:'Гонка за награды',sub:raceSub,foot:'2 / 2',holiday},
+   grid(look,'Mef player','💊',TONE.race,r.mef,SLOTS.mef,race(r.mef,'mef',x=>({free:true,extra:`цена ${int(x.price)}`})))
+   // The sixth man ranks by his index (FBL points × bench games / games), not by points: the big number is the index.
+   +grid(look,'Шестой игрок','🪑',TONE.race,r.sixth,SLOTS.sixth,race(r.sixth,'sixth',x=>({row:{...x,p:x.index},list:[x.team],unit:'индекс',extra:`${int(x.p)} ФО · запас ${x.bench}/${x.games}`})))
+   +`<div class="block">${head(look,'Рекорды сезона','🔥',TONE.record)}<div class="grid2"><div class="block">${cells(rec.best,SLOTS.record,recRow(TONE.record,true))}</div><div class="block">${cells(rec.worst,SLOTS.record,recRow(TONE.flop,false))}</div></div></div>`)];
+ const mvp=r.mvp[0];
+ return {cards,caption:caption([`<b>🗓 Итоги недели ${week.n} · ${esc(span)}</b>`,mvp?`Лидер гонки MVP: ${esc(who(mvp.a,mvp.n))} — ${int(mvp.p)} ФО`:null,'',
+  [`#${NOMINATION.week.tag}`,'#гонка_за_награды',weekTag(week.n),monthTag(week.end)].join(' ')])};
 }
+
+// --- The month's all-position five (after its last game day): opener and the five, a slot per position.
+export function monthAlbum(month,five,who,look,fonts,{holiday=null}={}){
+ const name=`${MONTHS_NOM[Number(month.slice(5,7))-1]} ${month.slice(0,4)}`;
+ const rows=five.map(({pos,row:x},i)=>x?row(look,who,x,i,{tone:TONE.hero,list:x.teams,stats:false,label:pos,extra:count(x.games,'матч','матча','матчей')}):empty(i,pos));
+ const cards=[opener(look,fonts,{nom:NOMINATION.month,date:name[0].toUpperCase()+name.slice(1),sub:'лучшие на каждой позиции',holiday}),
+  page(look,fonts,{title:'Пятёрка месяца',sub:`${esc(name)}<br>по позициям Sports.ru`,holiday},`<div class="block">${head(look,'Символическая пятёрка','🏅',TONE.hero)}${rows.join('')}</div>`)];
+ return {cards,caption:caption([`<b>🏅 Символическая пятёрка · ${esc(name)}</b>`,'',`#${NOMINATION.month.tag} ${monthTag(month+'-01')}`])};
+}
+
 // Every emoji a card may show, for the renderer to load once.
-export const CARD_EMOJI=['⭐','💩','🆓','🤡','🏆','🌱','💊','🪑','🥇','🥈','🥉','🎄',...LEAGUE_TEAMS.map(t=>t.symbol)];
+export const CARD_EMOJI=[...new Set(['⭐','💩','🆓','🤡','🏆','🌱','💊','🪑','🥇','🥈','🥉','🎄','🔥','🧊','🧱','🗓️','🏅',
+ ...LEAGUE_TEAMS.map(t=>t.symbol),...HOLIDAY_EMOJI])];
