@@ -13,7 +13,8 @@
 //                                                   the posts of US game day DAY rebuilt from ESPN; nothing saved or sent
 //                                                   (--cards: the albums' cards as PNG files in DIR, with their captions;
 //                                                   --holiday: the cards dressed for that holiday of holidays.js;
-//                                                   --mike: Mike Roffon's interview written and drawn, ~$0.04)
+//                                                   --mike: Mike Roffon's interview written by Claude and, with
+//                                                   OPENAI_API_KEY, drawn, ~$0.03)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
@@ -33,6 +34,7 @@ import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
 import {generate,cost} from '../scripts/image-pipeline.mjs';
+import {claudeConfigured} from '../scripts/claude-text.mjs';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -211,9 +213,10 @@ async function monthly(day,ctx,archive,state,mark){
  if(mark)state.posted.monthly[month]=live?'sent':'preview';
 }
 // --- Mike Roffon (mike-roffon.js): after the day's post, his flash interview with the hero of the day, from his own bot
-// (MIKE_ROFFON_BOT_TOKEN): his picture with the interview's headline, the interview as a reply under it. Written and drawn
-// by OpenAI (OPENAI_API_KEY); without the key or his token nothing is spent and the facts are only printed. A preview
-// writes it with --mike (that costs about $0.04). Never holds the awards: a failure is logged.
+// (MIKE_ROFFON_BOT_TOKEN): his picture with the interview's headline, the interview as a reply under it. Written by Claude
+// through the owner's subscription (CLAUDE_CODE_OAUTH_TOKEN), drawn by OpenAI (OPENAI_API_KEY: without it the interview
+// goes alone); without his token or the subscription's the facts are only printed. A preview writes it with --mike (the
+// picture costs about $0.03). Never holds the awards: a failure is logged.
 const MIKE=env.MIKE_ROFFON_BOT_TOKEN,OPENAI_KEY=env.OPENAI_API_KEY;
 async function telegram(token,method,body){
  const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,body instanceof FormData?{method:'POST',body}
@@ -227,13 +230,13 @@ async function mikeInterview(day,lines,ctx,state){
  if(!hero)return null;
  const g=state?.days?.[day]?.games?.[hero.e],opponent=g?(g.home===hero.c?g.away:g.home):null;
  const facts=interviewFacts(day,hero,ctx.who,{form:form(lines,day),opponent,holiday:holidayFor(day)});
- const send=live&&MIKE&&OPENAI_KEY;
+ const send=live&&MIKE&&claudeConfigured(env);
  if(!send&&!flag('--mike')){console.log(`\n===== Mike Roffon (not written) =====\n${JSON.stringify(facts)}\n`);return null;}
  try{
-  const {interview,spent:textSpent}=await interviewFor(facts,{key:OPENAI_KEY});
+  const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
-  let spent=textSpent,picture=null;
-  try{const r=await generate(interviewPicture(facts,day),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
+  let spent=0,picture=null;
+  if(OPENAI_KEY)try{const r=await generate(interviewPicture(facts,day),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
   catch(e){console.warn(`${day}: Mike Roffon's picture failed (${e.message}): the interview goes alone.`);}
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
