@@ -1,14 +1,16 @@
 name: Awards bot
 # The league's awards bot (awards-bot/): its own Telegram bot and state branch data/awards-bot. It posts into the league
 # chat, where Zak Onn's feed posts too (LEAGUE_TELEGRAM_CHAT_ID, unless AWARDS_CHAT_ID names another chat), with its own
-# token: nothing else is shared with the season watcher or its bots, and it only reads the project's data. A run every
-# hour reads the day's schedule from ESPN; once the day's last game is about to tip off, the run stays: it waits for the
-# tip-off, checks every minute until every game is over and posts the game day at once. Then the
+# token: nothing else is shared with the season watcher or its bots, and it only reads the project's data. Runs form a
+# chain: each stays about five and a half hours and then starts the next one itself, so the bot does not depend on
+# GitHub's schedule (best-effort, often hours late; the cron below only restarts a broken chain). A run sleeps until the
+# day's last game is about to tip off, waits for the tip-off, checks every minute until every game is over and posts the
+# game day at once. Then the
 # week and the awards race after Sunday's games, and the month's five after its last game day.
 # Run it by hand with a US game day to preview that day's posts (nothing saved or sent).
 on:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '17 */3 * * *'
   workflow_dispatch:
     inputs:
       preview:
@@ -21,6 +23,7 @@ on:
         default: ''
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: awards-bot
   cancel-in-progress: false
@@ -63,22 +66,32 @@ jobs:
           RESEND: ${{ inputs.resend }}
           # One run follows a day for at most this long, then saves; the next hourly run goes on.
           WATCH_MINUTES: '330'
+          CHAIN: '1'
+          GH_TOKEN: ${{ github.token }}
         run: node awards-bot/bot.mjs --state "$RUNNER_TEMP/awards" ${RESEND:+--resend "$RESEND"}
       - name: Save the bot's state
-        # The bot saves after every post, so a run that failed halfway still keeps what it posted.
-        if: inputs.preview == '' && inputs.resend == '' && (success() || failure())
+        # The bot pushes the state after every post; this saves the archive at the end, a cancelled run too.
+        if: always() && inputs.preview == '' && inputs.resend == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd "$RUNNER_TEMP/awards"
           [ -f state.json ] || exit 0
-          git init -q -b data/awards-bot
+          [ -d .git ] || git init -q -b data/awards-bot
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add state.json archive.json
-          git commit -qm "Awards bot state $(date -u +%Y-%m-%dT%H:%MZ)"
+          git commit -q --allow-empty -m "Awards bot state $(date -u +%Y-%m-%dT%H:%MZ)"
           for i in 1 2 3 4; do
             git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data/awards-bot && exit 0
             sleep $((i * 5))
           done
+          exit 1
+      - name: Start the next run
+        # The chain goes on whatever this run did; a cancelled run starts nothing (the cron restarts the chain).
+        if: inputs.preview == '' && inputs.resend == '' && (success() || failure())
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in 1 2 3 4 5; do gh workflow run awards-bot.yml --ref "${{ github.ref_name }}" -R "${GITHUB_REPOSITORY}" && exit 0; sleep $((i * 20)); done
           exit 1
