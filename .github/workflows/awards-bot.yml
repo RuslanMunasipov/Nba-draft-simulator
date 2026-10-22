@@ -88,9 +88,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # The day's two pictures, heroes and flops (awards-bot/images.js), drawn by OpenAI after the day's album (about
-          # $0.16 a day): '1' turns them on, only on the league owner's word.
-          DAY_PICTURES: '0'
+          # The day's two pictures, heroes and flops (awards-bot/images.js), their moments written by Claude, drawn by
+          # OpenAI after the day's album (about $0.12-0.16 a day): on, by the league owner's word (22.10.2026).
+          DAY_PICTURES: '1'
           RESEND: ${{ inputs.resend }}
           HOLIDAY: ${{ inputs.resend && inputs.holiday || '' }}
           # One run follows a day for at most this long, then saves; the next hourly run goes on.
