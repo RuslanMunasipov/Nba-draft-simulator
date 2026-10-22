@@ -19,7 +19,7 @@ import CAL from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 import * as S from '../src/season.js';
 import {rosterFits} from '../src/engine.js';
-import {POLICIES,windows} from './backtest-policies.mjs';
+import {POLICIES,MODEL_OF,windows} from './backtest-policies.mjs';
 
 const args=process.argv.slice(2),opt=(k,d)=>{const i=args.indexOf('--'+k);return i>=0?args[i+1]:d;};
 const SELF=fileURLToPath(import.meta.url);
@@ -68,9 +68,12 @@ function liveAt(season,day){
  }
  return {clubs,players};
 }
+// Two views of one moment that share the rosters: the model as shipped on 22.10.2026 (the rivals and the baseline policy)
+// and the current one.
 export function contextAt(season,league,day){
- return {players:season.players,live:liveAt(season,day),injuries:new Map(),today:day,now:Date.parse(day+'T12:00:00+03:00'),
-  rosters:league.rosters.map(r=>[...r]),transfers:[],white:season.white,outlooks:new Map()};
+ const base={players:season.players,live:liveAt(season,day),injuries:new Map(),today:day,now:Date.parse(day+'T12:00:00+03:00'),
+  rosters:league.rosters.map(r=>[...r]),transfers:[],white:season.white};
+ return {shipped:{...base,noAbsenceRun:true,rawConfidence:true,outlooks:new Map()},current:{...base,outlooks:new Map()}};
 }
 // Real FBL points of a player in Moscow dates (from, to].
 export function realPoints(season,id,from,to){let s=0;for(const g of season.games.get(id)||[])if(g.date>from&&g.date<=to)s+=g.points;return s;}
@@ -130,11 +133,11 @@ export function playSeason(season,{seed,slot,policy,rivals='rivals',record=true}
  const close=day=>{for(let t=0;t<TEAMS;t++)for(const id of league.rosters[t])credit(t,id,last,day);last=day;};
  for(const d of decisions(season)){
   close(d.day);
-  const ctx=contextAt(season,league,d.day);
+  const views=contextAt(season,league,d.day),ctx=views.current;
   for(let t=0;t<TEAMS;t++){
    const left=WEEKLY-(used.get(key(t,d.week))||0);if(left<=0)continue;
-   const play=t===slot?POLICIES[policy]:POLICIES[rivals];
-   const out=play({S,season,ctx,team:t,bankMoney:league.bank[t],left,decision:d,state:t===slot?state:null,record:t===slot&&record?candidates:null});
+   const name=t===slot?policy:rivals,play=POLICIES[name];
+   const out=play({S,season,ctx:views[MODEL_OF[name]||'current'],team:t,bankMoney:league.bank[t],left,decision:d,state:t===slot?state:null,record:t===slot&&record?candidates:null});
    const pairs=(out?.pairs||[]).slice(0,left);if(!pairs.length)continue;
    const next=ctx.rosters[t].map(id=>{const x=pairs.find(q=>q.outId===id);return x?x.inId:id;});
    const taken=new Set(league.rosters.flat());

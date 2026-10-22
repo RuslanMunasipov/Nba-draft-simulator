@@ -275,7 +275,8 @@ test('a swap explanation splits the gain exactly and grows surer with a bigger g
  const c={...ctx({today:'2026-10-21'}),players:list,live:{clubs:Object.fromEntries(list.map(p=>[p.sportsClub,cal])),players:{}}};
  const big=explainSwap(c,1,81,'season'),small=explainSwap(c,1,82,'season');
  assert.ok(Math.abs(big.parts.perGame+big.parts.availability+big.parts.schedule-big.gain)<1e-6);
- assert.ok(big.gain>small.gain&&big.confidence>small.confidence&&big.confidence<1);
+ // The model's z grows with the gap; the calibrated chance (data/confidence-calibration.json, a step map) never falls with it.
+ assert.ok(big.gain>small.gain&&big.z>small.z&&big.confidence>=small.confidence&&big.confidence<1);
  assert.ok(big.parts.availability>0&&big.parts.perGame>0);
  assert.equal(big.sides[0].out.player.id,1);assert.equal(big.sides[0].in.player.id,81);
  const pack=explainSwap(c,null,null,'season',[[1,81],[2,82]]);assert.equal(pack.sides.length,2);

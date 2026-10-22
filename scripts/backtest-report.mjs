@@ -14,7 +14,8 @@ export function bootstrap(clusters,{draws=4000,seed=11,stat=mean}={}){
 }
 function normalCdf(z){const t=1/(1+.2316419*Math.abs(z)),d=.3989423*Math.exp(-z*z/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
 // Phase of the season of a Moscow date: before December, December-January, from February.
-export const phaseOf=day=>{const m=Number(day.slice(5,7));return m>=10?'early':m<=1||m===12?'mid':'late';};
+import {phaseOf} from '../src/confidence.js';
+export {phaseOf};
 export function reliability(rows,prob){
  const xs=rows.map(r=>({p:prob(r),y:r.y})).filter(x=>Number.isFinite(x.p));if(!xs.length)return null;
  const bins=Array.from({length:10},(_,i)=>({lo:i/10,hi:(i+1)/10,n:0,p:0,y:0}));

@@ -5,6 +5,8 @@ import {FBL_TRANSFERS,TRANSFER_HOURS,mskTime,firstHolder} from './rules.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 import RULES from '../data/league-rules.json' with {type:'json'};
+import CONFIDENCE from '../data/confidence-calibration.json' with {type:'json'};
+import {calibrated,normalCdf} from './confidence.js';
 import {GAME_PLAYED,fblFormula} from './fbl-scoring.js';
 import {plural} from './format.js';
 import {teamName} from './teams.js';
@@ -189,6 +191,7 @@ export function perGame(player,live,points=CALIBRATION.points){
 // once he has played again his latest spell of spellGames+ misses keeps counting at most spellMissesAfterReturn
 // (spellMisses until that is fitted), no report needed: counted in full, the share fell by about 40% the day he came
 // back, and replayed on 2023-26 the share after a return is closer capped (2025/26: MAE 0.264 -> 0.245, t+1..t+40).
+const chained=player=>Array.isArray(player.forecast?.availability?.hazards)&&player.forecast.availability.hazards[0]+player.forecast.availability.hazards[1]>0;
 export function playRate(player,live,ctx){
  const f=player.forecast,injury=ctx?.injuries?.get?.(String(player.espnId)),ending=Boolean(injury)&&seasonEnding(injury),out=Boolean(injury)&&keptOut(injury)&&!ending;
  const ka=f?.knownAbsence,left=ka?.gamesLeft>0&&Number.isFinite(f?.games)?ka.gamesLeft:0,today=ctx?.today,key=live?.club||player.sportsClub;
@@ -205,7 +208,8 @@ export function playRate(player,live,ctx){
   // Misses before his last game, over the club's finished games and his listed rows (a traded player's old club too).
   let r=0,spellRun=0;
   if(last){for(const d of [...new Set([...finished,...rows].map(x=>x.date))].filter(d=>d<last).sort()){if(seen.has(d)){if(r>=spell)spellRun=r;r=0;}else r++;}if(r>=spell)spellRun=r;}
-  const excess=(injury?!ending:left)?run-Math.min(run,cap):0;
+  // A reported absence, a known one, or (no report on him) a current run the chain starts inside counts at most `cap`.
+  const excess=(injury?!ending:left||run>0&&!ctx?.noAbsenceRun&&chained(player))?run-Math.min(run,cap):0;
   team=Math.max(on,team-excess-(spellRun-Math.min(spellRun,back)));
  }
  return (k*prior+on)/(k+team);
@@ -216,27 +220,51 @@ export function playRate(player,live,ctx){
 // 2025/26 (audit, 21.10.2026) the chain runs 1-2 points of share high over a week or a month and about 3 over the rest of a
 // season, still closer than the flat share. Hazards that cannot reach the share (zero after rounding in the database) give
 // the flat share.
-const curves=new Map();
-function chainCurve(h,share,n){
+// A player missing games with no report on him (`away`: the club games in a row he has missed, absenceRun) starts the
+// chain inside an absence spell of at least that length: the next games follow the league's spell lengths conditional on
+// the spell having lasted `away` games so far (short and long spells weighted by his hazards). Without it the chain read
+// such a player as available now, and the backtest of 2024/25-2025/26 (which has no injury report) bought and kept players
+// in the middle of a long absence. ctx.noAbsenceRun: the chain as shipped on 22.10.2026 (the backtest's baseline).
+const scales=new Map(),curves=new Map();
+// p[r]: chance the player is r games from being available (0: available now). A step plays a game with a*stay, moves
+// every spell one game on, and starts a spell of length k with a*w[k]. A ring buffer moves the spells without copying.
+let W=null,P=null;
+function chainRun(h,m,len,away=0){
+ const n=LENGTHS.longLengths.length;if(W?.length!==n){W=new Float64Array(n);P=new Float64Array(n);}
+ const w=W,p=P,hs=h[0]*m,hl=h[1]*m,stay=Math.max(0,1-hs-hl),out=[];p.fill(0);
+ for(let k=1;k<n;k++)w[k]=hs*(LENGTHS.shortLengths[k]||0)+hl*LENGTHS.longLengths[k];
+ if(away>0){
+  // Spell of length L >= away: back for the next game when L = away, else L - away games still out.
+  let tail=0;for(let k=Math.min(away,n-1);k<n;k++)tail+=w[k];
+  if(tail>1e-12){for(let k=Math.min(away,n-1);k<n;k++)p[k-Math.min(away,n-1)]+=w[k]/tail;}else p[0]=1;
+ }else p[0]=1;
+ let head=0;
+ for(let j=0;j<len;j++){const a=p[head];out.push(a*stay);p[head]=0;head=head+1===n?0:head+1;
+  p[head]+=a*stay;for(let k=1,i=head;k<n;k++,i=i+1===n?0:i+1)p[i]+=a*w[k];}
+ return out;
+}
+function chainCurve(h,share,n,away=0){
  const flat=()=>Array(n).fill(share);
  if(!(h[0]+h[1]>0))return flat();
- const key=`${h[0]},${h[1]},${share.toFixed(3)}`;let c=curves.get(key);
- if(c===undefined){
-  // p[r]: chance the player is r games from being available (0: available now). A step plays a game with a*stay, moves
-  // every spell one game on, and starts a spell of length k with a*w[k]. A ring buffer moves the spells without copying.
-  const n=LENGTHS.longLengths.length,w=new Float64Array(n),p=new Float64Array(n);
-  const run=(m,len)=>{const hs=h[0]*m,hl=h[1]*m,stay=Math.max(0,1-hs-hl),out=[];
-   for(let k=1;k<n;k++)w[k]=hs*(LENGTHS.shortLengths[k]||0)+hl*LENGTHS.longLengths[k];
-   p.fill(0);p[0]=1;let head=0;
-   for(let j=0;j<len;j++){const a=p[head];out.push(a*stay);p[head]=0;head=head+1===n?0:head+1;
-    p[head]+=a*stay;for(let k=1,i=head;k<n;k++,i=i+1===n?0:i+1)p[i]+=a*w[k];}
-   return out;};
-  const mean=m=>run(m,82).reduce((s,x)=>s+x,0)/82;let lo=-6,hi=6;
-  if(mean(Math.exp(hi))>=share||mean(Math.exp(lo))<=share)c=null;
-  else{for(let i=0;i<22;i++){const m=(lo+hi)/2;if(mean(Math.exp(m))>share)lo=m;else hi=m;}c=run(Math.exp((lo+hi)/2),82);}
-  curves.set(key,c);
+ const base=`${h[0]},${h[1]},${share.toFixed(3)}`;let m=scales.get(base);
+ if(m===undefined){
+  const mean=m=>chainRun(h,m,82).reduce((s,x)=>s+x,0)/82;let lo=-6,hi=6;
+  if(mean(Math.exp(hi))>=share||mean(Math.exp(lo))<=share)m=null;
+  else{for(let i=0;i<22;i++){const x=(lo+hi)/2;if(mean(Math.exp(x))>share)lo=x;else hi=x;}m=Math.exp((lo+hi)/2);}
+  scales.set(base,m);
  }
- return c?Array.from({length:n},(_,j)=>c[Math.min(j,c.length-1)]):flat();
+ if(m===null)return flat();
+ const key=base+'|'+away;let c=curves.get(key);
+ if(c===undefined){c=chainRun(h,m,82,away);curves.set(key,c);}
+ return Array.from({length:n},(_,j)=>c[Math.min(j,c.length-1)]);
+}
+// Club games in a row the player has missed up to today: the club's finished games (and his own listed misses) after his
+// last game played. 0 when he played the club's last game.
+export function absenceRun(player,live,ctx){
+ const today=ctx?.today,key=live?.club||player.sportsClub,club=ctx?.live?.clubs?.[key]||[];
+ const rows=(live?.games||[]).filter(x=>x.played||today&&x.date<today),last=rows.filter(x=>x.played).reduce((m,x)=>x.date>m?x.date:m,'');
+ const finished=club.filter(x=>x.score&&(!today||x.date<=today)&&x.date>last).length;
+ return Math.max(finished,rows.filter(x=>!x.played&&x.date>last).length);
 }
 // Injuries named in a player's ESPN fantasy news ("Zubac (ankle) will play…"): body part, how often, first and last
 // mention. Descriptive only: about nine months of news exist, too few seasons to fit a risk per body part.
@@ -324,7 +352,8 @@ export function expectedPoints(player,ctx,from,to){
  // ESPN's return dates are US days. The US day now: from ctx.now when given; else the Moscow date, or the day before
  // while a US evening game filed under today's Moscow date has no score yet (from 00:00 MSK until its result is in).
  const usToday=!injury?ctx.today:ctx.now?new Date(ctx.now-5*3600e3).toISOString().slice(0,10):ctx.today&&calendar.some(g=>g.date===ctx.today&&!g.score&&!g.gone&&usDay(g)<g.date)?addDays(ctx.today,-1):ctx.today;
- const curve=Array.isArray(h)?chainCurve(h,share,ahead.length):null;
+ // The chain starts from his current state: inside an absence when he is missing games and no report covers him.
+ const curve=Array.isArray(h)?chainCurve(h,share,ahead.length,injury||ctx.noAbsenceRun?0:absenceRun(player,live,ctx)):null;
  let games=0,points=0,healthy=0,clubGames=0;
  for(const g of ahead){
   const day=tourDate(g,weeks),inside=day>=from&&day<=to;if(inside)clubGames++;
@@ -336,8 +365,11 @@ export function expectedPoints(player,ctx,from,to){
   if(day>=from&&day<=to)points+=(value-GAME_PLAYED)*gameLeft(run,pg.minutes??player.forecast?.minutes);}
  return {points,games,clubGames};
 }
+// The week horizon is the FBL week a move made now counts in: on a week's last Moscow date, once its games are over (the
+// transfer window opens at 08:00, after the night's US games), that is the next week, not the empty rest of this one.
 export function horizons(ctx){
- const all=weeksOf(ctx.live),last=Object.values(all).reduce((m,w)=>w.end>m?w.end:m,ctx.today),week=weekOf(ctx.today,all);
+ const all=weeksOf(ctx.live),last=Object.values(all).reduce((m,w)=>w.end>m?w.end:m,ctx.today);let week=weekOf(ctx.today,all);
+ if(week&&week.end===ctx.today&&ctx.now>=Date.parse(`${ctx.today}T${TRANSFER_HOURS.from}:00+03:00`))week=weekOf(addDays(ctx.today,1),all)||week;
  return {week:{label:'До конца недели',from:ctx.today,to:week?.end||ctx.today},
   month:{label:'4 недели',from:ctx.today,to:addDays(ctx.today,27)},
   season:{label:'До конца сезона',from:ctx.today,to:last}};
@@ -718,7 +750,6 @@ export const CONFIDENT=.7,DOUBTFUL=.6;
 export const confidencePercent=c=>Math.floor(c*100);
 export function confidenceLevel(c){const p=confidencePercent(c);return p>=Math.round(CONFIDENT*100)?'CONFIDENT':p>=Math.round(DOUBTFUL*100)?'MODERATE':'DOUBTFUL';}
 const Z90=1.2815515655;
-function normalCdf(z){const t=1/(1+.2316419*Math.abs(z)),d=.3989423*Math.exp(-z*z/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
 // Spread of a player's points over a horizon: the forecast's season range (10th-90th percentile, calibrated forward on past
 // seasons) as a share of his expected points, plus game-to-game noise (about half of the variance over one week). The range
 // is not narrowed as his games of this season come in: most of it is availability and role (injuries, rest, trades), which
@@ -796,11 +827,14 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null,team=null){
   if(b.player.depth?.rank>=3)flags.push(`${b.player.name}: по составу ESPN №${b.player.depth.rank} на ${b.player.depth.position} — роль и минуты не гарантированы.`);
   if(b.played<5&&a.played<5&&ctx.today)flags.push('Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.');
  }
- const sd=Math.sqrt(variance),confidence=sd>0?normalCdf(gain/sd):gain>0?1:0;
+ // The chance it really gains: the model's z (gain over its spread) through the backtest's calibration for this horizon and
+ // phase of the season (data/confidence-calibration.json: 2024/25 and 2025/26 replayed, «70%» is 70% of such swaps that
+ // gained); ctx.rawConfidence: Φ(z) as shipped on 22.10.2026 (the backtest's baseline).
+ const sd=Math.sqrt(variance),z=sd>0?gain/sd:null,confidence=z===null?(gain>0?1:0):ctx.rawConfidence?normalCdf(z):calibrated(CONFIDENCE.maps,z,key,ctx.today);
  const total=Math.abs(parts.perGame)+Math.abs(parts.availability)+Math.abs(parts.schedule)||1;
  if(gain>0&&(parts.availability-held)/total>.5)flags.unshift('Больше половины выигрыша — из прогноза числа сыгранных матчей, а не из игры за матч: это самая неточная часть прогноза.');
  if(gain>0&&parts.schedule/total>.5)flags.unshift('Выигрыш в основном из календаря (у нового клуба больше матчей в периоде): после периода преимущество исчезнет.');
- return {gain,sd,confidence,level:confidenceLevel(confidence),parts,flags:[...new Set(flags)],sides};
+ return {gain,sd,z,confidence,level:confidenceLevel(confidence),parts,flags:[...new Set(flags)],sides};
 }
 // The FBL formula on an ESPN box-score line, as Yahoo counts it: the box-score terms plus 1 for the game played. A line
 // with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of a DNP empty.
