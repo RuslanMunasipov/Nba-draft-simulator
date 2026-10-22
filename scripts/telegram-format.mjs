@@ -73,7 +73,7 @@ export function sender(token,chat){
    let init;
    if(photo){const form=new FormData();form.append('chat_id',String(chat));
     for(const [k,v] of Object.entries(body))form.append(k,String(v));
-    form.append('photo',new Blob([fs.readFileSync(photo)],{type:'image/jpeg'}),path.basename(photo));init={method:'POST',body:form};}
+    form.append('photo',new Blob([fs.readFileSync(photo)],{type:/\.png$/i.test(photo)?'image/png':'image/jpeg'}),path.basename(photo));init={method:'POST',body:form};}
    else init={method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:chat,disable_web_page_preview:true,...body})};
    const res=await fetch(`https://api.telegram.org/bot${token}/${method}`,init);
    if(res.ok||res.status===400||attempt>=4||(res.status!==429&&res.status<500))return res;

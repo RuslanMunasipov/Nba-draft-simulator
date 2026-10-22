@@ -6,7 +6,8 @@
 // Usage: league-feed.mjs <sports-current.json> <league-state.json>
 // Env: LEAGUE_TELEGRAM_CHAT_ID and LEAGUE_TELEGRAM_BOT_TOKEN, the league's own bot (never the personal one: the league
 // chat must not share a bot or a chat with the personal advice). Without them nothing is
-// marked as posted, so the feed starts complete once the chat is set.
+// marked as posted, so the feed starts complete once the chat is set. OPENAI_API_KEY: each protocol gets a picture of
+// Зак Онн with the team's GM and logo (scripts/zak-pictures.mjs) instead of his usual photo.
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
@@ -15,6 +16,7 @@ import {HEADINGS,remarkLines,circumstances,joke,signature} from './zak-voice.mjs
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow,fitsCaption} from './telegram-format.mjs';
+import {drawProtocol} from './zak-pictures.mjs';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -235,6 +237,9 @@ for(const idx of groups.values()){
  for(const step of shorter){if(fitsCaption(text))break;o=step(o);text=build(o);}
  // Still too long (a big package): the photo carries the verdict, the protocol follows as a reply to it.
  const caption=message(...HEAD[v.kind](x.team,v,true),no,teamLine,'',conclusion,'','<i>Протокол — ответом на это сообщение.</i>');
- if(await send(text,{photo:photo(v.kind),caption})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);events.push(...dealEvents(m));}issued++;save();}
+ // His picture with the team's GM, drawn only for a protocol that goes to the chat; his usual photo when it cannot be.
+ const picture=configured&&!preview&&process.env.OPENAI_API_KEY
+  ?await drawProtocol({kind:v.kind,team:x.team,no:issued+1,seed:key(news[0])},{key:process.env.OPENAI_API_KEY}):null;
+ if(await send(text,{photo:picture||photo(v.kind),caption})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);events.push(...dealEvents(m));}issued++;save();}
 }
 if(!groups.size)console.log('No new league transfers.');
