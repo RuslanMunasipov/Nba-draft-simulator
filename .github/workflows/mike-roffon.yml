@@ -1,0 +1,54 @@
+name: Mike Roffon
+# Mike Roffon's flash interview with the hero of a game day, by hand (awards-bot/mike-roffon.js). The awards bot posts
+# it by itself right after each day's post; this one is for a day it missed, or a test. Written by Claude through the
+# owner's subscription, drawn by OpenAI (about $0.03) and, with "send", posted into the league chat by Mike's bot.
+# The day must be archived by the awards bot (data/awards-bot); its state is only read, never saved, so every run
+# with "send" posts again. Without "send": the interview in the run's log and its picture in the run's artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 'US game day of the interview, YYYY-MM-DD'
+        required: true
+      send:
+        description: 'Post it into the league chat (unticked: only written and drawn)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: mike-roffon
+  cancel-in-progress: false
+jobs:
+  interview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Install Claude Code
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
+      - name: Read the awards bot's archive
+        run: |
+          mkdir -p "$RUNNER_TEMP/mike"
+          for i in 1 2 3; do git fetch -q origin data/awards-bot:refs/remotes/origin/data/awards-bot && break; sleep $((i * 10)); done
+          git show origin/data/awards-bot:state.json > "$RUNNER_TEMP/mike/state.json"
+          git show origin/data/awards-bot:archive.json > "$RUNNER_TEMP/mike/archive.json"
+      - name: Write, draw and post
+        env:
+          DAY: ${{ inputs.day }}
+          SEND: ${{ inputs.send && '--send' || '' }}
+          AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: node awards-bot/bot.mjs --mike-day "$DAY" --state "$RUNNER_TEMP/mike" --cards "$RUNNER_TEMP/mike/out" $SEND
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mike-roffon-${{ inputs.day }}
+          path: ${{ runner.temp }}/mike/out
+          if-no-files-found: ignore
