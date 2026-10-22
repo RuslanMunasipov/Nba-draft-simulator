@@ -32,7 +32,7 @@ function risks(ctx,plan,why,rivals){
  const out=[];
  for(const x of plan.pairs){const i=ctx.injuries?.get(String(x.in.espnId));if(i)out.push(`${x.in.name}: ${i.status}${seasonEnding(i)?' до конца сезона':i.returnDate?' до '+String(i.returnDate).slice(8,10)+'.'+String(i.returnDate).slice(5,7):''}.`);}
  for(const [id,teams] of rivals)if(teams.length){const p=plan.pairs.find(x=>x.in.id===id)?.in;out.push(`${p.name} по модели нужен ещё ${count(teams.length,'команде','командам','командам')} лиги: в FBL игрок может быть только в одной команде, кто купит позже — нарушит правило.`);}
- const c=why.season.confidence;if(c<.7)out.push(`Уверенность за сезон ${Math.floor(c*100)}%: из похожих обменов в прогоне на двух прошлых сезонах в плюс вышли ${Math.floor(c*100)}%.`);
+ const c=why.season.confidence;if(c<.7)out.push(`Уверенность за сезон ${Math.floor(c*100)}%: из похожих обменов в прогоне на трёх прошлых сезонах в плюс вышли (в среднем) ${Math.floor(c*100)}%.`);
  for(const f of why.season.flags)if(!/^Сезон только начался/.test(f))out.push(f);
  return [...new Set(out)].slice(0,3);
 }
