@@ -99,7 +99,7 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  const {PEOPLE,person,gmOf,looks}=await import('../scripts/image-pipeline.mjs');
  for(const p of PEOPLE){assert.ok(fs.existsSync(new URL(`../scripts/assets/${p.photo}`,import.meta.url)),p.id);assert.ok(p.name&&p.en&&p.role,p.id);}
  assert.equal(gmOf(0).id,'franky-murder');assert.equal(gmOf(1).id,'coach-i');assert.equal(gmOf(4).id,'captain-torres-new-win');
- assert.deepEqual([2,3,5,6].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil']);assert.equal(gmOf(7),null);
+ assert.deepEqual([2,3,5,6,7].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil','headshot-vanshotovich']);
  assert.match(looks(person('captain-torres-new-win')),/never changes: always a pirate/);assert.match(looks(person('captain-torres-new-win')),/cartoon/);
  assert.match(looks(person('coach-i')),/always an emperor/);assert.match(looks(person('coach-i')),/oil painting/);
  assert.match(looks(person('franky-murder')),/the face exactly as in the photo.*usual look, which may change to fit the scene: dark aviator sunglasses/);
@@ -109,4 +109,14 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  assert.deepEqual(p.images.map(i=>i.name),['check.jpg','captain-torres-new-win.jpg']);
  assert.match(p.prompt,/GENERAL MANAGER: the exact person from reference image 2.*cartoon/);
  assert.match(p.prompt,/SCENE:.*Captain Torres New-Win \(the general manager, reference image 2\)/);
+});
+
+test('a GM drawn as a child is never restrained or threatened in Zak Onn\'s scenes; the others have no such block',()=>{
+ for(const [kind,story] of [['violation',{rules:['rookie']}],['violation',{standing:true}],['check',{rules:['time']}],['approved',{}]]){
+  const p=zakPicture({kind,team:7,no:5,seed:'s',...story}).prompt;
+  assert.deepEqual(zakPicture({kind,team:7,no:5,seed:'s',...story}).images.map(i=>i.name).slice(1),['headshot-vanshotovich.jpg']);
+  assert.match(p,/HEADSHOT VANSHOTOVICH IS DRAWN AS A CHILD \(this overrides the scene\): he is never handcuffed/);
+  assert.match(p,/no weapon anywhere in the picture/);
+ }
+ assert.doesNotMatch(zakPicture({kind:'violation',team:2,no:5,seed:'s'}).prompt,/AS A CHILD/);
 });

@@ -18,6 +18,10 @@ export const ZAK_MOOD={approved:'approved',check:'check',violation:'check'};
 const IDENTITY=zak=>`ZAK ONN (highest priority): the man from ${zak}. Preserve his face precisely: face shape, nose, brows, eyes, hairline, greying temples, age, skin tone; instantly recognizable. ${looks(person('zak-onn')).replace(/^Zak Onn; the face exactly as in the photo; never/,'Never')}.`;
 const STYLE=`STYLE: photorealistic still from a 90s American action film about law and order, cinematic contrast, 35mm lens, shallow depth of field. Square composition. The league is a basketball league: any sports props (balls, jerseys, trophies, helmets) are basketball only. The only text in the picture: the cap embroidery and the exact words given in quotes, spelled exactly. No other captions or watermarks.`;
 
+// A GM drawn as a child (child in people.json: his own generated picture) is never restrained or threatened: the scene
+// keeps its place and its props, Zak only looms over him with the file.
+const CHILD=gm=>`${gm.en.toUpperCase()} IS DRAWN AS A CHILD (this overrides the scene): he is never handcuffed, restrained, strapped in, grabbed, arrested, interrogated under pressure or threatened, and there is no weapon anywhere in the picture. Wherever the scene says so, Zak Onn only looms over him with the case file and wags a warning finger, while the boy stays cool behind his sunglasses. A light comedy.`;
+
 // A scene: G is the GM (their reference, or an anonymous figure from behind), L the team's logo (null without one), C the
 // case number on the protocol.
 const SCENES={
@@ -106,7 +110,7 @@ export function zakPicture({kind,team,no,seed,root,...story}){
  const who=refs.has.gm?`GENERAL MANAGER: the exact person from ${refs.has.gm}, face preserved and recognizable${gm?`: ${looks(gm)}`:''}.`:'';
  const L=refs.has.logo?`the team logo from ${refs.has.logo}, reproduced exactly`:null;
  const key=sceneOf({kind,...story}),list=SCENES[key]||SCENES[kind]||SCENES.check,scene=list[hash(`${seed}:${key}`)%list.length];
- return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),who,scene({G,L,C:`FBL CASE ${no}`}),STYLE].filter(Boolean).join('\n\n')};
+ return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),who,scene({G,L,C:`FBL CASE ${no}`}),refs.has.gm&&gm?.child?CHILD(gm):null,STYLE].filter(Boolean).join('\n\n')};
 }
 
 // Draws a protocol's picture into a temporary PNG. Answers its path, or null when it could not be drawn (the protocol then
