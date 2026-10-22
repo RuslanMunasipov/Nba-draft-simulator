@@ -53,6 +53,15 @@ test('awards cards: a holiday dresses the cards, the layout stays',()=>{
  assert.equal(strip(dressed[1]).replace('31октября','21октября'),strip(plain[1]),'same layout, only the decor differs');
 });
 
+test('awards cards: a holiday with a frame lays it behind the panels, without one the emoji decor',()=>{
+ const framedLook={...look,frame:key=>key==='halloween'?'data:image/webp;base64,AA':null};
+ const blocks={heroes:[line('1',44)],flops:[],gold:[],antitop:[]};
+ const h=dayAlbum('2026-10-31',blocks,who,framedLook,fonts,{holiday:holidayOf('2026-10-31')}).cards;
+ for(const card of h){assert.match(card,/class="frame" style="border-image-source:url\(data:image\/webp;base64,AA\)"/);assert.match(card,/class="card[^"]* framed"/);assert.doesNotMatch(card,/class="decor"/);}
+ const x=dayAlbum('2026-12-25',blocks,who,framedLook,fonts,{holiday:holidayOf('2026-12-25')}).cards;
+ assert.match(x[1],/class="decor"/);assert.doesNotMatch(x[1],/class="frame"/);
+});
+
 test('awards cards: the holiday calendar, Easter both ways, the season\'s events',()=>{
  assert.deepEqual([westernEaster(2027),orthodoxEaster(2027),westernEaster(2026),orthodoxEaster(2026),orthodoxEaster(2025)],['2027-03-28','2027-05-02','2026-04-05','2026-04-12','2025-04-20']);
  const name=d=>holidayOf(d)?.name||null;

@@ -42,7 +42,7 @@ body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,
  background:radial-gradient(1200px 700px at 100% -10%,${accent[0]}33 0%,transparent 60%),radial-gradient(900px 600px at -20% 110%,${accent[1]}2e 0%,transparent 55%),#0b1020}
 .decor{position:absolute;inset:0;pointer-events:none;z-index:0}
 .decor .emo{position:absolute}
-.card>*:not(.decor){position:relative;z-index:1}
+.card>:where(:not(.decor,.frame)){position:relative;z-index:1}
 .top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid;border-image:linear-gradient(90deg,${accent[0]},${accent[1]}) 1;padding-bottom:18px}
 .brand{font-family:Oswald;font-weight:600;font-size:28px;letter-spacing:4px;color:${accent[0]};text-transform:uppercase;display:flex;gap:14px;align-items:center}
 .badge{display:inline-flex;gap:8px;align-items:center;font-family:Manrope;letter-spacing:0;text-transform:none;font-size:22px;font-weight:800;color:#0b1020;background:linear-gradient(90deg,${accent[0]},${accent[1]});padding:4px 14px 4px 8px;border-radius:999px}
@@ -123,15 +123,24 @@ body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,
 .osub{font-size:28px;font-weight:600;color:#aab4d4;display:flex;gap:10px;align-items:center;justify-content:center}
 .osub .emo{width:34px;height:34px}
 .opener .foot{position:absolute;left:52px;right:52px;bottom:36px}
+.frame{position:absolute;inset:0;z-index:0;pointer-events:none;border-style:solid;border-width:270px 130px;border-image-slice:20% 12%;border-image-repeat:stretch}
+.framed .row{background:#0d1430eb;border-color:#ffffff1f}
+.framed .alert{background:#0d1430eb}
+.framed .title,.framed .sub,.framed .head,.framed .brand,.framed .foot{text-shadow:0 2px 12px #000,0 0 4px #000}
+.framed .otitle,.framed .odate,.framed .osub{text-shadow:0 2px 16px #000,0 0 6px #000}
 `;
 
-// --- The decor of a holiday: its emoji at fixed places along the edges (faint on content cards, bold on the opener).
+// --- The decor of a holiday: its frame (holiday-frames.mjs: an artwork along the edges, behind the panels and the text),
+// else its emoji at fixed places along the edges (faint on content cards, bold on the opener).
 const SPOTS=[[1,1,96],[87,1,84],[46,0.5,60],[-1,30,80],[91,24,70],[1,58,66],[90,52,92],[-2,84,88],[88,86,78],[30,93,64],[62,92,72],[70,8,58]];
 function decor(look,holiday,bold){
  if(!holiday)return '';
+ const frame=look.frame?.(holiday.key);
+ if(frame)return `<div class="frame" style="border-image-source:url(${frame})"></div>`;
  return `<div class="decor">${SPOTS.map(([x,y,s],i)=>look.emoji(holiday.decor[i%holiday.decor.length])
   .replace('class="emo"',`class="emo" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;font-size:${s}px;opacity:${bold?0.9:0.18};transform:rotate(${(i*37)%50-25}deg)"`)).join('')}</div>`;
 }
+const framed=(look,holiday)=>holiday&&look.frame?.(holiday.key)?' framed':'';
 const badge=(look,holiday)=>holiday?`<span class="badge">${look.emoji(holiday.emoji)}${esc(holiday.name)}</span>`:'';
 const ACCENT=['#3ea6ff','#a06bff'];
 
@@ -170,7 +179,7 @@ const block=(look,title,emo,tone,rows,n,make,cls='')=>`<div class="block ${cls}"
 const grid=(look,title,emo,tone,rows,n,make)=>{const half=Math.ceil(n/2);
  return `<div class="block">${head(look,title,emo,tone)}<div class="grid2"><div class="block">${cells(rows,n,make,0,half)}</div><div class="block">${cells(rows,n,make,half,n)}</div></div></div>`;};
 function page(look,fonts,{title,sub,foot='',holiday},body){
- return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||ACCENT)}</style></head><body><div class="card">${decor(look,holiday,false)}
+ return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||ACCENT)}</style></head><body><div class="card${framed(look,holiday)}">${decor(look,holiday,false)}
 <div class="top"><div><div class="brand">FBL · сезон 2026/27 ${badge(look,holiday)}</div><div class="title">${esc(title)}</div></div><div class="sub">${sub}</div></div>${body}
 <div class="foot"><span>ФО по формуле лиги FBL</span><span>${esc(foot)}</span></div></div></body></html>`;
 }
@@ -187,7 +196,7 @@ function emblem(look,nom,holiday){
 ${holiday?`<foreignObject x="418" y="418" width="160" height="160"><div xmlns="http://www.w3.org/1999/xhtml" style="width:150px;height:150px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#0b1020;border:6px solid ${a}">${sized(look.emoji(holiday.emoji),96)}</div></foreignObject>`:''}</svg>`;
 }
 export function opener(look,fonts,{nom,date,sub,holiday}){
- return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||nom.ring)}</style></head><body><div class="card opener">${decor(look,holiday,true)}
+ return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||nom.ring)}</style></head><body><div class="card opener${framed(look,holiday)}">${decor(look,holiday,true)}
 ${emblem(look,nom,holiday)}<div class="otitle">${esc(nom.title)}</div><div class="odate">${esc(date)}</div><div class="osub">${holiday?`${look.emoji(holiday.emoji)}${esc(holiday.name)} · `:''}${esc(sub)}</div>
 <div class="foot"><span>FBL · сезон 2026/27</span><span>ФО по формуле лиги FBL</span></div></div></body></html>`;
 }
