@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
-import {interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA} from '../awards-bot/mike-roffon.js';
+import {interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
 
 const s={pts:45,reb:10,ast:3,stl:2,blk:1,tov:4,fgm:16,fga:29,ftm:4,fta:5,pf:1};
 const line={d:'2026-10-21',e:'g1',a:'4594268',n:'A. Edwards',c:'MIN',t:'2026-10-22T00:00Z',m:36.4,p:fblFormula(s),h:[5],b:[],s};
@@ -31,6 +31,17 @@ test('Mike Roffon: his voice is described, his old pieces are never quoted, and 
  assert.deepEqual(copiedLines({...good,remark:'«Спокойно и буднично» — так обычно и начинается самое интересное.'}),['спокойно и буднично','так обычно и начинается самое интересное']);
  assert.deepEqual(copiedLines({...good,qa:[...good.qa,{q:'Итог?',a:'Роль — важнее фамилии.'}]}),['роль важнее фамилии']);
  assert.deepEqual(copiedLines({...good,afterword:'Тихий пол, громкий потолок.'}),[],'single words are free');
+});
+
+test('Mike Roffon: numbers in words are numbers too, and only the facts may hold them',()=>{
+ assert.deepEqual(wordNumbers('Сорок пять очков, тридцатью девятью ФО, двести тридцать один, тринадцатый промах'),['45','39','231','13']);
+ assert.deepEqual(wordNumbers('пять сорок'),['5','40'],'a row adds up only from bigger places to smaller');
+ assert.deepEqual(wordNumbers('Семья, пятно, вторник, сторона и пятерка — не числа'),[]);
+ assert.deepEqual(wordNumbers('первый раз, на пятом месте, шестнадцать зашло'),['1','5','16']);
+ assert.equal(facts.game.fgMissed,13);assert.equal(facts.game.ftMissed,1);
+ assert.deepEqual(strayNumbers({...good,qa:[...good.qa,{q:'Двадцать девять бросков, тринадцать мимо?',a:'Сорок пять очков.'}]},facts),[],'the facts: 29 FGA, 13 missed, 45 points');
+ assert.deepEqual(strayNumbers({...good,afterword:'В среднем двадцать восемь за сезон.'},facts),['28']);
+ assert.deepEqual(strayNumbers({...good,afterword:'Третья игра подряд с тридцатью очками.'},facts),['30']);
 });
 
 test('Mike Roffon: the interview as Telegram HTML, marked as fiction, with the hashtags',()=>{
