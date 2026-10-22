@@ -2,7 +2,8 @@
 // posted by his own bot. The interview is written by an OpenAI text model in his voice (sharp, hard, ironic; the voice of
 // his Inside FBL pieces) from the facts of the game, and drawn by the picture pipeline: Mike, always with his white gloves
 // and microphone, and the real player. It is fiction and says so. Every number in it is a number of the facts: the FBL
-// points come from core.js (fblFormula); an interview that brings a number of its own is drawn again, then dropped.
+// points come from core.js (fblFormula); an interview that brings a number of its own, or a line of his old pieces word
+// for word, is written again, then dropped.
 import {fileURLToPath} from 'node:url';
 import {int} from '../src/format.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
@@ -24,10 +25,15 @@ export function interviewFacts(day,line,who,{form,opponent,holiday}={}){
   heroOfTheDay:{rank:1,heroDaysLast7:f?.hero||1,daysInARow:f?.heroRun||1}};
 }
 
-// His voice, as his Inside FBL pieces have it (Dec 2025).
-const VOICE=`Ты — Майк Роффон, легендарный репортёр рубрики Inside FBL фэнтези-лиги FBL (Fantasy Brothers League). Ветеран, который берёт интервью хоть под обстрелом: всегда в белых перчатках и с винтажным микрофоном.
-Твой стиль: хлёсткий, жёсткий, ироничный. Вопросы короткие и бьют в слабое место (потери, промахи, «а что, если завтра так же?»), без лести. Иногда — колкая реплика после ответа. Пролог и послесловие — плотные, образные, с собственными метафорами. Это примеры твоего тона, а не готовые фразы: не повторяй их дословно — «не вывеска, а петля, которая стягивает систему»; «„Спокойно и буднично“ — так обычно и начинается самое интересное».
-Игрок отвечает в своей манере: уверенно, коротко, с баскетбольным жаргоном и вкраплениями английских терминов (stability floor, +EV, short-roll, clutch), с одной цитатой-афоризмом.
+// His voice, as his Inside FBL pieces have it (telegra.ph, Dec 2025): described, never quoted, so that no line of them comes back.
+const VOICE=`Ты — Майк Роффон, легендарный репортёр рубрики Inside FBL фэнтези-лиги FBL (Fantasy Brothers League). Ветеран, которого не впечатлить ни цифрами, ни позой; всегда в белых перчатках и с винтажным микрофоном.
+Твой стиль: хлёсткий, жёсткий, ироничный.
+- Вопросы короткие, без лести и без разгона, бьют в слабое место: потери, промахи с игры и с линии, фолы, «а если завтра так же?». Цепляйся за слово из ответа и разворачивай его против собеседника.
+- Реплика после ответа — одна сухая строка, как штамп в протоколе: без восклицаний, с подковыркой.
+- Пролог задаёт сцену и ставит диагноз в одну-две фразы, плотно и образно. Послесловие выносит вердикт и заканчивается ударной фразой, которую хочется переслать.
+- Метафоры только свои, свежие, из жизни, а не из спортивных штампов. Ирония — через точное наблюдение, а не через грубость.
+- Никаких дословных фраз из прошлых выпусков Inside FBL: каждое интервью пишется заново.
+Игрок отвечает в своей манере: уверенно, коротко, с баскетбольным жаргоном и вкраплением английских терминов, с одной цитатой-афоризмом собственного сочинения.
 В лиге очки называются ФО (фэнтези-очки), формула лиги: очки + подборы + передачи + перехваты + блоки − промахи с игры − промахи штрафных − 2×потери − фолы + 1 за матч.`;
 const RULES=`Правила:
 - Интервью вымышленное, но факты — только из данных ниже. Используй только числа из данных; никаких других чисел (ни счёта матча, ни сезонных цифр, ни процентов). Можно не называть числа вовсе.
@@ -46,8 +52,22 @@ export function allowedNumbers(facts){
 }
 // The numbers of an interview that are not in its facts (none: the interview may go out).
 export function strayNumbers(interview,facts){
- const allowed=allowedNumbers(facts),text=[interview.title,interview.prologue,interview.remark,interview.afterword,...(interview.qa||[]).flatMap(x=>[x.q,x.a])].join(' ');
+ const allowed=allowedNumbers(facts),text=interviewWords(interview);
  return [...new Set((text.match(/\d+/g)||[]).filter(n=>!allowed.has(n)))];
+}
+// The lines of his Inside FBL pieces (the voice's samples) an interview must not bring back word for word.
+export const SAMPLE_LINES=['не вывеска, а петля','стягивает систему','цифры без косметики','редакционной косметики','спокойно и буднично',
+ 'так обычно и начинается самое интересное','печатать без дрожи','побочный эффект правильного решения','не охочусь за хайлайтами',
+ 'преступление без срока давности','роль важнее фамилии','не перепутай труд и шум','чем меньше шоу, тем больше игры','скорость без чтения',
+ 'думай до ловли','решение до ловли','рационально прожитое решение','тихие очки','шиномонтаж без домкрата','широкой шиной','хайлайты вместо хлеба',
+ 'платит по счетам','кардиограмма ровнеет','злость обычно выигрывает весной','жёстче, чем течение','слепок власти','право на реакции','иногда — слишком просто',
+ 'малую арифметику','новый «пол»','stability floor'];
+const plain=t=>String(t).toLowerCase().replace(/ё/g,'е').replace(/[«»"„“”'’]/g,'').replace(/[—–-]/g,' ').replace(/[^\p{L}\p{N} ]/gu,' ').replace(/\s+/g,' ').trim();
+const interviewWords=x=>[x.title,x.prologue,x.remark,x.afterword,...(x.qa||[]).flatMap(q=>[q.q,q.a])].join(' ');
+// The sample lines an interview repeats (none: it may go out).
+export function copiedLines(interview){
+ const text=` ${plain(interviewWords(interview))} `;
+ return SAMPLE_LINES.filter(l=>text.includes(` ${plain(l)} `));
 }
 export function validInterview(x){
  return x&&typeof x.prologue==='string'&&Array.isArray(x.qa)&&x.qa.length>=2&&x.qa.every(q=>typeof q.q==='string'&&typeof q.a==='string')&&typeof x.afterword==='string';
@@ -66,23 +86,26 @@ export function interviewCaption(facts,day){
 
 // --- His picture: Mike interviewing the hero after the game, the league's press wall behind them.
 const hash=seed=>{let h=0;for(const ch of String(seed))h=(h*31+ch.codePointAt(0))>>>0;return h;};
-// His clothes follow the scene (only the white gloves and the microphone never change): one look per interview.
-const OUTFITS=['a rumpled trench coat and a fedora with a PRESS card in the band','a tweed jacket, a polka-dot tie and a press lanyard',
- 'his war-correspondent look: the camouflage helmet reading "BORN TO ASK" and the PRESS vest','a vintage sports-broadcaster blazer with the INSIDE FBL patch'];
+// Each scene its own clothes: always a sports reporter, dressed for where he is; one look per interview. Only his face comes
+// from his photo: its camouflage helmet and PRESS vest belong to a war zone, never to an arena or a press conference.
 const SCENES=[
- 'the arena tunnel right after the final buzzer, the player still sweaty in his game jersey, a towel on his neck',
- 'courtside after the game, confetti and crowd blurred behind, the player catching his breath',
- 'a post-game press conference: the player at the table with a row of microphones, Mike standing at the front leaning in',
- 'the locker room after the game, the player on the bench taping off his wrists, Mike crouched beside him',
+ {where:'outside the arena after the game, at night, by the lit arena entrance, the player in a hoodie over his game jersey, his bag on his shoulder',
+  wear:['a long dark overcoat over a suit, a scarf and a press badge on a lanyard','a navy rain jacket over a shirt and tie, a press badge on a lanyard']},
+ {where:'the tunnel under the stands right after the final buzzer, the player still sweaty in his game jersey, a towel on his neck',
+  wear:['a tweed blazer, an open-collar shirt and a press badge on a lanyard','a dark sports jacket over a polo shirt and a press badge on a lanyard']},
+ {where:'courtside after the game, confetti and crowd blurred behind, the player catching his breath in his game jersey',
+  wear:['a vintage sports-broadcaster blazer with the INSIDE FBL patch, shirt and tie','a grey suit, an open-collar shirt and a courtside media pass']},
+ {where:'the post-game press conference: the player in his team warm-up shirt at the table with a row of microphones, Mike standing at the front leaning in',
+  wear:['a dark suit, a polka-dot tie and a press accreditation badge','a charcoal three-piece suit, a knit tie and a press accreditation badge']},
 ];
 export function interviewPicture(facts,day,{root=ASSETS}={}){
  const mike=person('mike-roffon'),logo=readImage(fileURLToPath(new URL('./assets/fbl-logo.png',import.meta.url)));
  const images=[readImage(`${root}/${mike.photo}`),logo].filter(Boolean);
- const scene=SCENES[hash(day+facts.player.en)%SCENES.length],outfit=OUTFITS[hash(facts.player.en+day+'look')%OUTFITS.length];
- return {images,prompt:`REFERENCES: reference image 1 is Mike Roffon, the reporter${logo?'; reference image 2 is the logo of the league, FBL':''}.
-MIKE ROFFON: ${looks(mike)}. Preserve his face precisely, instantly recognizable. Today he wears ${outfit}, and his white gloves.
-PLAYER: the real NBA player ${facts.player.en} of the ${facts.player.club}, exactly as he really looks, in his team's game jersey.
-SCENE: a flash interview, ${scene}. Mike, in white gloves, holds his vintage chrome microphone up to the player, asking a hard question with a sharp, sceptical look; the player answers, confident.${logo?' Behind them a press wall printed with the league logo from reference image 2, repeated.':''} At the bottom a TV lower-third banner reads "INSIDE FBL".
+ const scene=SCENES[hash(day+facts.player.en)%SCENES.length],outfit=scene.wear[hash(facts.player.en+day+'look')%scene.wear.length];
+ return {images,prompt:`REFERENCES: reference image 1 is Mike Roffon, the reporter (take only his face from it, not his clothes)${logo?'; reference image 2 is the logo of the league, FBL':''}.
+MIKE ROFFON: ${looks({...mike,outfit:null})}. Preserve his face precisely, instantly recognizable. Today he is dressed as a sports reporter for this scene: ${outfit}, and his white gloves. No helmet, no military uniform, no camouflage, no PRESS or tactical vest.
+PLAYER: the real NBA player ${facts.player.en} of the ${facts.player.club}, exactly as he really looks.
+SCENE: a flash interview, ${scene.where}. Mike, in white gloves, holds his vintage chrome microphone up to the player, asking a hard question with a sharp, sceptical look; the player answers, confident.${logo?' Behind them a press wall printed with the league logo from reference image 2, repeated.':''} At the bottom a TV lower-third banner reads "INSIDE FBL".
 STYLE: photorealistic sports-broadcast still, cinematic light, 35mm lens, shallow depth of field. Square composition. The only text: "INSIDE FBL" on the banner and on the press wall, spelled exactly. No other captions, numbers or watermarks.`};
 }
 
@@ -98,14 +121,15 @@ export async function writeInterview(facts,{key,fetchImpl=fetch,model=MIKE_MODEL
  return {interview,usage:body.usage||null};
 }
 export const textCost=u=>((u?.prompt_tokens||0)*TEXT_PRICE.input+(u?.completion_tokens||0)*TEXT_PRICE.output)/1e6;
-// Written until it holds no number of its own (two tries); null when it still does.
+// Written until it holds no number of its own and no line of his old pieces (two tries); null when it still does.
 export async function interviewFor(facts,opts){
  let spent=0;
  for(let i=0;i<2;i++){
   const {interview,usage}=await writeInterview(facts,opts);spent+=textCost(usage);
-  const stray=strayNumbers(interview,facts);
-  if(!stray.length)return {interview,spent};
-  console.warn(`Mike Roffon: numbers not in the facts (${stray.join(', ')}), written again.`);
+  const stray=strayNumbers(interview,facts),copied=copiedLines(interview);
+  if(!stray.length&&!copied.length)return {interview,spent};
+  if(stray.length)console.warn(`Mike Roffon: numbers not in the facts (${stray.join(', ')}), written again.`);
+  if(copied.length)console.warn(`Mike Roffon: lines of his old pieces (${copied.join(' | ')}), written again.`);
  }
  return {interview:null,spent};
 }
