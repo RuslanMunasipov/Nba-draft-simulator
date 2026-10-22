@@ -34,6 +34,26 @@
    "outfit": "dark aviator sunglasses, black leather jacket, red tartan scarf, gold rings and a cigar"
   },
   {
+   "id": "jack-pott",
+   "name": "Джек Потт",
+   "en": "Jack Pott",
+   "role": "gm",
+   "team": 2,
+   "photo": "people/jack-pott.jpg",
+   "keep": "dark rectangular sunglasses (his eyes are never shown), a short beard and moustache, diamond stud earrings",
+   "outfit": "black cap embroidered \"Jack Pott\", black velvet jacket, gold chain, gold watch and a gold ring"
+  },
+  {
+   "id": "robert-khachaturyan",
+   "name": "Роберт Хачатурян",
+   "en": "Robert Khachaturyan",
+   "role": "gm",
+   "team": 3,
+   "photo": "people/robert-khachaturyan.jpg",
+   "keep": "round dark-rimmed glasses, a full dark beard, short dark hair",
+   "outfit": "dark suit jacket over an open-collar white shirt, the club's pin on the lapel"
+  },
+  {
    "id": "captain-torres-new-win",
    "name": "Капитан Торрес Нью-Вин",
    "en": "Captain Torres New-Win",
@@ -42,6 +62,26 @@
    "photo": "people/captain-torres-new-win.jpg",
    "style": "always drawn exactly as in his photo: a flat hand-drawn cartoon character, even inside a photographic scene",
    "keep": "always a pirate: black tricorn pirate hat with gold trim, red bandana, navy pirate coat with gold trim and buttons; short reddish beard"
+  },
+  {
+   "id": "lemarius",
+   "name": "Лемариус",
+   "en": "Lemarius",
+   "role": "gm",
+   "team": 5,
+   "photo": "people/lemarius.jpg",
+   "keep": "thin rimless tinted glasses, a full brown beard",
+   "outfit": "a grimdark inquisitor-gunslinger: wide-brimmed leather hat with a golden winged badge, battered armour under a long coat, red bandana, a cigar"
+  },
+  {
+   "id": "fy-zhil",
+   "name": "Фы Жил",
+   "en": "Fy Zhil",
+   "role": "gm",
+   "team": 6,
+   "photo": "people/fy-zhil.jpg",
+   "keep": "long dark braids with bronze beads, a short dark beard, black sunglasses (his eyes are never shown)",
+   "outfit": "a black nomad's robe with orange-patterned leather straps and bronze buckles, a long orange scarf"
   },
   {
    "id": "coach-i",

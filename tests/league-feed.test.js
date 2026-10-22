@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {DRAFT_PICKS,DRAFT_DATE} from '../src/fbl-draft-2026.js';
+import {LINES} from '../scripts/zak-voice.mjs';
 // The league feed run as it runs in the watcher, on a synthetic league: the 80 real draft ids (pick k on team k%8, the
 // first eight rookies, each on its own NBA club unless a test says otherwise) and free agents. No Telegram secrets: the
 // feed prints each protocol and sends nothing; the network is blocked and the clock is fixed.
@@ -28,11 +29,11 @@ function deal(live,team,out,inn,at,date=at.slice(0,10)){
  t.journal.push({date,sell:{name:`Ш${out}`,price:1000},buy:{name:`Ш${inn}`,price:1000},seenAt:at,seenAfter,sellSid:out,buySid:inn});
  t.roster=[...t.roster.filter(r=>r.sportsId!==out),{sportsId:inn,name:`Ш${inn}`,price:1000}];
 }
-function feed(live,state,now){
+function feed(live,state,now,extra={}){
  const lp=path.join(tmp,'live.json'),sp=path.join(tmp,'state.json');fs.writeFileSync(lp,JSON.stringify(live));fs.writeFileSync(sp,JSON.stringify(state));
  const env={...process.env,DB_PATH:path.join(tmp,'db.json'),FAKE_NOW:now};
- for(const k of Object.keys(env))if(/TELEGRAM|HANDLES|GH_TOKEN/.test(k))delete env[k];
- return execFileSync(process.execPath,['--import',pre,FEED,lp,sp],{env,encoding:'utf8'});
+ for(const k of Object.keys(env))if(/TELEGRAM|HANDLES|GH_TOKEN|CLAUDE|OPENAI/.test(k))delete env[k];
+ return execFileSync(process.execPath,['--import',pre,FEED,lp,sp],{env:{...env,...extra},encoding:'utf8',stdio:['pipe','pipe','pipe']});
 }
 // Every deal up to now as reported: the state the feed saves after posting them.
 const posted=(live,count=6)=>({events:Object.entries(live.teams).flatMap(([t,x])=>x.journal.filter(r=>r.sell).flatMap(r=>[`${t}|${r.date}|out|${r.sell.name}|${r.sell.price}`,`${t}|${r.date}|in|${r.buy.name}|${r.buy.price}`])),count});
@@ -89,4 +90,30 @@ test('a long breach protocol is shortened to fit under the photo, keeping every 
  assert.ok(plain(text).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').length<=1024,`${plain(text).length} units`);
  for(const n of [1,2,3])assert.match(plain(out),new RegExp(`Сделка ${n}: .* — ❌`));
  assert.match(plain(out),/Заключение: регламент нарушен/);
+});
+
+// A stand-in for the Claude Code CLI: it answers Зак Онн's lines (FAKE_ZAK: ok, or a broken CLI).
+function fakeClaude(){
+ const bin=path.join(tmp,'claude');
+ fs.writeFileSync(bin,`#!/usr/bin/env node
+let input='';process.stdin.on('data',d=>input+=d);process.stdin.on('end',()=>{
+ if(process.env.FAKE_ZAK==='down'){process.stdout.write(JSON.stringify({type:'result',subtype:'success',is_error:true,api_error_status:401,result:'expired'}));process.exit(1);}
+ const facts=JSON.parse(input.slice(input.indexOf('{')));
+ const answer={remark:'Новичка нет. Зак Онн & закон <уже> здесь.',remark2:'',circumstance:facts.circumstance?'Обстоятельство записано.':'',joke:facts.joke?'Суд удаляется. Зак Онн — нет.':'',
+  signature:'Зак Онн. Закон не спит.'};
+ process.stdout.write(JSON.stringify({type:'result',subtype:'success',is_error:false,result:JSON.stringify(answer),structured_output:answer}));
+});`);
+ fs.chmodSync(bin,0o755);return bin;
+}
+test('Зак Онн\'s lines by Claude through the subscription, escaped; his bank when Claude is down',()=>{
+ const live=league(),state=posted(live);
+ // Team 0 sells its rookie s0 for a veteran: no rookie.
+ deal(live,0,'s0','f0','2026-10-22T09:00:00Z');
+ const claude={CLAUDE_CODE_OAUTH_TOKEN:'sk-ant-oat01-test',CLAUDE_BIN:fakeClaude()};
+ const out=feed(live,state,'2026-10-22T09:01:00Z',{...claude,FAKE_ZAK:'ok'});
+ assert.match(out,/🚨 <b>Нарушено:<\/b> правило новичка/,'the facts stay the code\'s');
+ assert.match(out,/Новичка нет\. Зак Онн &amp; закон &lt;уже&gt; здесь\./);assert.match(out,/<i>Зак Онн\. Закон не спит\.<\/i>/);
+ const bank=feed(live,state,'2026-10-22T09:01:00Z',{...claude,FAKE_ZAK:'down'});
+ assert.doesNotMatch(bank,/Закон не спит/);assert.match(bank,/🚨 <b>Нарушено:<\/b> правило новичка/);
+ assert.ok(LINES.BREACH.rookie.some(l=>bank.includes(l)),'his line from the bank');
 });
