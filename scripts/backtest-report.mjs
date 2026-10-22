@@ -41,8 +41,8 @@ export function report(runs,{seeds,policies,files}){
  const pairsOf=(rs,a,b)=>{const m=new Map();for(const r of rs)(m.get(cell(r))||m.set(cell(r),{}).get(cell(r)))[r.policy]=r.points;return [...m.values()].filter(x=>a in x&&b in x).map(x=>x[b]-x[a]);};
  // Every later policy against every earlier one (hold, current, new): the paired difference of the same league.
  const compare=rs=>{const o={};policies.forEach((a,i)=>policies.slice(i+1).forEach(b=>{const d=pairsOf(rs,a,b);if(d.length)o[`${b}-${a}`]={mean:round(mean(d)),ci95:bootstrap(d).map(x=>round(x)),leagues:d.length,better:d.filter(x=>x>0).length};}));return o;};
- for(const s of [...seasons,'both']){
-  const rs=s==='both'?runs:runs.filter(r=>r.season===s);
+ for(const s of [...seasons,'all']){
+  const rs=s==='all'?runs:runs.filter(r=>r.season===s);
   out[s]={policies:Object.fromEntries(policies.map(p=>[p,policySummary(rs.filter(r=>r.policy===p))])),differences:compare(rs)};
  }
  // The shipped confidence (Φ(gain/sd), explainSwap) against the share of candidate swaps that really gained, by horizon
@@ -62,9 +62,10 @@ export function report(runs,{seeds,policies,files}){
    rivals:'seven teams drafted with noisy valuations (sd 15%); once a week each makes the best one-for-one swap over the season when it gains 40+ and does not lose the next 4 weeks',
    realGain:'points the newcomer really scored minus the points the player sold really scored, over the window the move was judged on (Moscow dates after the decision)'},
   seasons:out,confidence,candidates:cands.length,
-  limitations:['No historical ESPN injury report: absences are seen only through missed games (the live app also reads the report).',
-   'Sports.ru prices are modelled (the 2026/27 prices regressed on the previous season\'s FBL points per game, rookies on the pick) and fixed through the season.',
+  limitations:['Injury report: the NBA\'s official report of 5 PM ET the day before (out, doubtful, questionable), with no return dates or comments, which ESPN\'s feed (the live app\'s) has.',
+   'Sports.ru prices: the real price of the day for the players Sports.ru still lists; the others an opening price modelled on that season\'s real ones, moved by Sports.ru\'s rule (a game adds its fantasy points).',
    'Positions: Sports.ru 2026/27 where the player is on the market, otherwise the nearest stat profile; the white rule: the league\'s 2026/27 list.',
+   '2023/24\'s in-season update and rookie model, and 2024/25\'s first fit season, come from the career logs of players still in the league in 2026 (survivor-selected).',
    'Rivals follow one simple rule; real managers differ.',
    'Each league is one draft; leagues of one season share the games, so seasons, not leagues, are the independent samples.']};
 }

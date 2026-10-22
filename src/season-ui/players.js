@@ -76,7 +76,7 @@ function analyzerCell(r,ctx,analyse){
  if(a.best){const g=a.best.gain[horizon],out=byId.get(a.best.outId)?.name||'—';
   // The transfer assistant's rule (src/transfer-plan.js): the swap pays for its transfer or not.
   if(g>0){cell.append(confidenceBadge(swapWhy(ctx,a.best)),note(`вместо ${out} · ${signed(g)} ${PERIOD_SHORT[horizon]}`));
-   if(planValue(a.best.gain)<=0)cell.append(note('не окупает трансфер'));}
+   if(planValue(a.best.gain,undefined,ctx)<=0)cell.append(note('не окупает трансфер'));}
   else cell.append(el('span','не усилит','chip'),note(`даже вместо ${out}: ${signed(g)} ${PERIOD_SHORT[horizon]}`));
   return cell;}
  if(a.reason==='money'){cell.append(el('span','не по карману','chip'),note(`не хватает ${int(a.need)}`));return cell;}

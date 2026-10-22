@@ -1,4 +1,5 @@
-// The chain starts inside an absence for a player missing games with no report on him (season.js absenceRun), the week
+// The chain starts inside an absence for a player missing games with no report on him or a report with no return date
+// (season.js absenceRun), the week
 // horizon is the FBL week a move counts in, and the confidence is the backtest's calibrated chance (src/confidence.js).
 import test from 'node:test';import assert from 'node:assert/strict';
 import {absenceRun,expectedPoints,playRate,horizons} from '../src/season.js';
@@ -31,6 +32,15 @@ test('a player missing games with no report is expected in the next games less, 
  assert.equal(expectedPoints({...p,espnId:undefined},ctx(9,{injuries:report}),today,next).games,expectedPoints({...p,espnId:undefined},ctx(9,{injuries:report,noAbsenceRun:true}),today,next).games);
  // The run the chain starts inside is not counted against his share again in full.
  assert.ok(playRate(p,live(6),ctx(6))>playRate(p,live(6),ctx(6,{noAbsenceRun:true})),"7 games out, the cap counts 4");
+});
+
+test('a report keeping him out with no return date (the NBA\'s report) continues his spell after the blocked days',()=>{
+ const next=cal[25].date,q={...p,espnId:'e1'},out=new Map([['e1',{status:'Out',returnDate:null}]]);
+ const reported=expectedPoints(q,ctx(9,{injuries:out}),today,next),shipped=expectedPoints(q,ctx(9,{injuries:out,noAbsenceRun:true}),today,next);
+ assert.ok(reported.games<shipped.games,'4 games out and still out: the spell goes on after the 10 blocked days');
+ // With a return date the report decides the absence alone, as before.
+ const dated=new Map([['e1',{status:'Out',returnDate:cal[14].date}]]);
+ assert.equal(expectedPoints(q,ctx(9,{injuries:dated}),today,next).games,expectedPoints(q,ctx(9,{injuries:dated,noAbsenceRun:true}),today,next).games);
 });
 
 test('on a week\'s last Moscow date after its games the week horizon is the next FBL week, the one a move counts in',()=>{

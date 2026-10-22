@@ -59,7 +59,7 @@ export function transfersView(base){
  const singles=bestTransfers(ctx,{team,bankMoney:money,sort:horizon}).filter(b=>b.gain[horizon]>0);
  const sb=el('details',null,'sp-block sp-best');sb.open=plan.action!=='move'&&singles.length>0;sb.append(el('summary',`Лучшая замена для каждого игрока (${singles.length})`));
  if(singles.length){const ol=el('ol',null,'sp-options');for(const b of singles){const row=optionRow(b,b.outId,ctx,`${byId.get(b.outId).name} → ${b.player.name}`);
-   row.querySelector('.sp-name').append(planValue(b.gain)>0?el('span','окупает трансфер','chip chip--accent'):el('span','не окупает трансфер','chip'));ol.append(row);}sb.append(ol);}
+   row.querySelector('.sp-name').append(planValue(b.gain,undefined,ctx)>0?el('span','окупает трансфер','chip chip--accent'):el('span','не окупает трансфер','chip'));ol.append(row);}sb.append(ol);}
  else sb.append(el('p',`Ни одна одиночная замена не добавляет ФО ${PERIOD_LONG[horizon]}.`,'muted'));
  out.push(sb);
  const pick=el('div',null,'sp-block sp-best');pick.append(el('h3','Замена конкретному игроку'));

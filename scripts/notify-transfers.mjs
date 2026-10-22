@@ -52,7 +52,7 @@ for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
 // With no transfers left a single upgrade cannot be made: not news, and its key waits for the new week.
 // Only upgrades that pay for their transfer by the assistant's rule (src/transfer-plan.js planValue).
-const alerts=left>0?marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20}).filter(a=>planValue(a.gain)>0):[];
+const alerts=left>0?marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20}).filter(a=>planValue(a.gain,undefined,ctx)>0):[];
 // The same decision as the app's recommendation card (src/transfer-plan.js transferPlan): a new move starts a message.
 const plan=transferPlan(ctx,{team,bankMoney:money,left,bankOf,leftOf}),pack=plan.action==='move'?plan:null,packWhy=pack?.why.season;
 // Transfers count only from 08:00 to 22:00 Moscow time: outside them the advice says when to make the move.

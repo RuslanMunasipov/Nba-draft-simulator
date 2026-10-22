@@ -1,6 +1,7 @@
-// Transfer-advice backtest: FBL leagues replayed week by week on the 2024/25 and 2025/26 NBA regular seasons with what
-// the season assistant would have known at each moment (scripts/transfer_backtest_inputs.py builds the inputs: forecasts
-// fitted before each season, the games as they were played). The advice is src/season.js's own code.
+// Transfer-advice backtest: FBL leagues replayed week by week on the 2023/24, 2024/25 and 2025/26 NBA regular seasons
+// with what the season assistant would have known at each moment (scripts/transfer_backtest_inputs.py builds the inputs:
+// forecasts fitted before each season, the NBA's injury report of the day before, Sports.ru's prices of the day, the
+// games as they were played). The advice is src/season.js's own code. Transfers buy and sell at the day's prices.
 // A league: 8 teams drafted in a straight order by the model's season points (the other teams' valuations with noise),
 // every FBL rule (2 per Sports.ru position, a rookie, the white rule, at most 2 players of one NBA club, the cap, 3
 // transfers a FBL week, transfers between the night's games). Decisions are taken twice a week, on the Moscow Monday
@@ -40,7 +41,7 @@ export function loadSeason(file){
  // Sports.ru files a US evening game under the next Moscow date.
  const msk=d=>addDays(d,1);
  const players=data.players.map(p=>({id:p.id,name:p.name,positions:p.positions,isRookie:p.isRookie,price:p.price,priceStatus:'VERIFIED',
-  sportsId:p.id,espnId:null,sportsClub:p.team,forecast:p.forecast,white:p.white}));
+  sportsId:p.id,espnId:p.id,sportsClub:p.team,forecast:p.forecast,white:p.white,pricePath:p.pricePath||[]}));
  const games=new Map(Object.entries(data.games).map(([id,rows])=>[id,rows.map(([d,team,minutes,points])=>({date:msk(d),team,minutes,points}))]));
  const allDates=[...new Set(Object.values(data.clubs).flat())].sort(),opener=allDates[0],last=allDates.at(-1);
  // Sports.ru weeks: Monday to Sunday in US game days (Tuesday to Monday in Moscow dates).
@@ -63,15 +64,24 @@ function liveAt(season,day){
  const players={};
  for(const p of season.players){
   const rows=(season.games.get(p.id)||[]).filter(g=>g.date<=day);
-  players[p.id]={club:rows.length?rows.at(-1).team:p.sportsClub,position:p.positions[0],price:p.price,initialPrice:p.price,
+  players[p.id]={club:rows.length?rows.at(-1).team:p.sportsClub,position:p.positions[0],price:priceAt(p,day),initialPrice:p.price,
    games:rows.map(g=>({date:g.date,played:true,points:g.points,minutes:g.minutes,source:'ESPN'}))};
  }
  return {clubs,players};
 }
+// Sports.ru's price at 12:00 Moscow time of `day`: after the games filed under that date or earlier.
+export function priceAt(p,day){let price=p.price;for(const [d,v] of p.pricePath||[]){if(d>day)break;price=v;}return price;}
+// The NBA's injury report as ESPN's feed reads in season.js: the report of the US day before the Moscow `day` (5 PM ET
+// is 01:00 MSK). Out stays out (no return date: the NBA does not give one); doubtful and questionable are day-to-day.
+export function injuriesAt(season,day){
+ const rows=season.data.injuries?.[addDays(day,-1)]||{},out=new Map();
+ for(const [id,[status,reason]] of Object.entries(rows))out.set(String(id),{status:status==='Out'?'Out':'Day-To-Day',comment:reason,returnDate:null,source:'NBA'});
+ return out;
+}
 // Two views of one moment that share the rosters: the model as shipped on 22.10.2026 (the rivals and the baseline policy)
 // and the current one.
 export function contextAt(season,league,day){
- const base={players:season.players,live:liveAt(season,day),injuries:new Map(),today:day,now:Date.parse(day+'T12:00:00+03:00'),
+ const base={players:season.players,live:liveAt(season,day),injuries:injuriesAt(season,day),today:day,now:Date.parse(day+'T12:00:00+03:00'),
   rosters:league.rosters.map(r=>[...r]),transfers:[],white:season.white};
  return {shipped:{...base,noAbsenceRun:true,rawConfidence:true,outlooks:new Map()},current:{...base,outlooks:new Map()}};
 }
@@ -142,7 +152,7 @@ export function playSeason(season,{seed,slot,policy,rivals='rivals',record=true}
    const next=ctx.rosters[t].map(id=>{const x=pairs.find(q=>q.outId===id);return x?x.inId:id;});
    const taken=new Set(league.rosters.flat());
    if(pairs.some(x=>taken.has(x.inId))||new Set(next).size!==SIZE)continue;
-   const money=league.bank[t]+pairs.reduce((s,x)=>s+byId.get(x.outId).price-byId.get(x.inId).price,0);
+   const price=id=>ctx.live.players[id].price,money=league.bank[t]+pairs.reduce((s,x)=>s+price(x.outId)-price(x.inId),0);
    if(!legal(season,ctx,t,next,money))continue;
    league.rosters[t]=next;league.bank[t]=money;used.set(key(t,d.week),(used.get(key(t,d.week))||0)+pairs.length);
    // Later teams in this moment see the change (taken players; their own outlooks are unchanged).

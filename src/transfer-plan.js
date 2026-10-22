@@ -8,11 +8,19 @@
 import POLICY from '../data/transfer-policy.json' with {type:'json'};
 import {bestPackage,explainSwap,contestedBy,transferWindow,transferOptions,playerOutlook,perGame,absenceRun,current,seasonEnding} from './season.js';
 import {HORIZONS} from './confidence.js';
+import {fblWeek} from './rules.js';
 import {count,int,signed} from './format.js';
 
 export const PLAN=POLICY.params;
-// The plan's value of a swap's gains: the weighted horizons less the price of one transfer.
-export const planValue=(gain,params=PLAN)=>Object.entries(params.weights).reduce((s,[h,w])=>s+w*(gain[h]||0),0)-params.movePrice;
+// The price of a transfer now. A transfer not used by the end of the FBL week (Monday to Sunday, Moscow dates) is lost, so
+// with params.weekDecay its price falls with the days the week has left: in full on Monday, 4/7 of it on Thursday.
+export function movePriceOf(ctx,params=PLAN){
+ if(!params.weekDecay||!ctx?.today)return params.movePrice;
+ return params.movePrice*(daysDiff(fblWeek(ctx.today).end,ctx.today)+1)/7;
+}
+const daysDiff=(a,b)=>Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/864e5);
+// The plan's value of a swap's gains: the weighted horizons less the price of one transfer (now, with ctx).
+export const planValue=(gain,params=PLAN,ctx=null)=>Object.entries(params.weights).reduce((s,[h,w])=>s+w*(gain[h]||0),0)-movePriceOf(ctx,params);
 const byIdOf=ctx=>new Map(ctx.players.map(p=>[p.id,p]));
 
 // Up to three risks, the strongest first: an injury of a player bought, the players the same model tells other teams to
@@ -54,7 +62,7 @@ function forced(ctx,plan,team){
 }
 // The best package without the first player the plan buys: the alternative, when it is worth a transfer too.
 function alternative(ctx,{team,bankMoney,left,params},plan){
- const pack=bestPackage(ctx,{team,bankMoney,k:Math.min(3,left),weights:params.weights,movePrice:params.movePrice,exclude:plan.pairs.map(x=>x.in.id)});
+ const pack=bestPackage(ctx,{team,bankMoney,k:Math.min(3,left),weights:params.weights,movePrice:movePriceOf(ctx,params),exclude:plan.pairs.map(x=>x.in.id)});
  return pack?.pairs.length&&pack.gain>1e-6?{pairs:pack.pairs,gains:pack.gains,value:pack.gain}:null;
 }
 // Roster players out now (on the report, or missing his club's last games): hold him, or a replacement until he is back.
@@ -67,7 +75,7 @@ function injured(ctx,{team,bankMoney,params}){
   const hurt=ctx.injuries?.get(String(p.espnId)),away=absenceRun(p,ctx.live?.players?.[p.sportsId],ctx);
   if(!(hurt&&/out/i.test(hurt.status||''))&&away<2)continue;
   const [best]=transferOptions(ctx,{team,outId:id,bankMoney,limit:1,sort:'month'});
-  const value=best?planValue(best.gain,{...params,movePrice:2*params.movePrice}):-Infinity;
+  const value=best?planValue(best.gain,{...params,movePrice:2*params.movePrice,weekDecay:false}):-Infinity;
   out.push({player:current(p,ctx),away,report:hurt||null,replacement:best?.player||null,gains:best?.gain||null,
    verdict:value>0?'replace':'hold'});
  }
@@ -75,18 +83,18 @@ function injured(ctx,{team,bankMoney,params}){
 }
 // The decision. `left`: transfers left this FBL week; `bankOf`/`leftOf`: the rivals' (contest check, optional).
 export function transferPlan(ctx,{team,bankMoney,left,params=PLAN,bankOf=null,leftOf=null,explain=true}){
- const when=transferWindow(ctx.now??Date.now());
+ const when=transferWindow(ctx.now??Date.now()),price=movePriceOf(ctx,params);
  if(!(left>0))return {action:'hold',reason:'no-transfers',when,injured:explain?injured(ctx,{team,bankMoney,params}):[]};
- const pack=bestPackage(ctx,{team,bankMoney,k:Math.min(3,left),weights:params.weights,movePrice:params.movePrice});
+ const pack=bestPackage(ctx,{team,bankMoney,k:Math.min(3,left),weights:params.weights,movePrice:price});
  if(!pack||!pack.pairs.length||!(pack.gain>1e-6)){
   // Why hold: the best single move, weighed the same way, does not pay for its transfer.
   const top=explain?bestPackage(ctx,{team,bankMoney,k:1,weights:params.weights,movePrice:0}):null;
-  return {action:'hold',reason:'no-gain',when,best:top?.pairs.length?{pairs:top.pairs,gains:top.gains,value:top.gain,price:params.movePrice}:null,
+  return {action:'hold',reason:'no-gain',when,best:top?.pairs.length?{pairs:top.pairs,gains:top.gains,value:top.gain,price}:null,
    injured:explain?injured(ctx,{team,bankMoney,params}):[]};
  }
  const pairs=pack.pairs.map(x=>[x.out.id,x.in.id]),why={};
  for(const h of HORIZONS)why[h]=explainSwap(ctx,null,null,h,pairs,team);
- const plan={action:'move',pairs:pack.pairs,gains:pack.gains,value:pack.gain,price:params.movePrice,bankAfter:pack.bankAfter,why,
+ const plan={action:'move',pairs:pack.pairs,gains:pack.gains,value:pack.gain,price,bankAfter:pack.bankAfter,why,
   confidence:Object.fromEntries(HORIZONS.map(h=>[h,why[h].confidence])),level:why.season.level,when};
  if(!explain)return plan;
  const rivals=new Map(bankOf?pack.pairs.map(x=>[x.in.id,contestedBy(ctx,{team,playerId:x.in.id,bankOf,leftOf})]):[]);

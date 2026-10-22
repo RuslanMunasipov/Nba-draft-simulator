@@ -352,13 +352,17 @@ export function expectedPoints(player,ctx,from,to){
  // ESPN's return dates are US days. The US day now: from ctx.now when given; else the Moscow date, or the day before
  // while a US evening game filed under today's Moscow date has no score yet (from 00:00 MSK until its result is in).
  const usToday=!injury?ctx.today:ctx.now?new Date(ctx.now-5*3600e3).toISOString().slice(0,10):ctx.today&&calendar.some(g=>g.date===ctx.today&&!g.score&&!g.gone&&usDay(g)<g.date)?addDays(ctx.today,-1):ctx.today;
- // The chain starts from his current state: inside an absence when he is missing games and no report covers him.
- const curve=Array.isArray(h)?chainCurve(h,share,ahead.length,injury||ctx.noAbsenceRun?0:absenceRun(player,live,ctx)):null;
+ // The chain starts from his current state: inside an absence when he is missing games and no report covers him, or a
+ // report keeps him out with no return date (the NBA's report never has one; the backtest replays it): then the chain
+ // runs from now through the games the report blocks, so the spell he is in goes on after them as long spells do.
+ const undated=!ctx.noAbsenceRun&&Boolean(injury)&&keptOut(injury)&&!seasonEnding(injury)&&!injury.returnDate;
+ const away=ctx.noAbsenceRun||injury&&!undated?0:Math.max(undated?1:0,absenceRun(player,live,ctx));
+ const curve=Array.isArray(h)?chainCurve(h,share,ahead.length,away):null;
  let games=0,points=0,healthy=0,clubGames=0;
- for(const g of ahead){
+ for(const [i,g] of ahead.entries()){
   const day=tourDate(g,weeks),inside=day>=from&&day<=to;if(inside)clubGames++;
   const f=injury?injuryFactor(injury,usDay(g),ctx.today,usToday):1;if(!f)continue;
-  const p=f*(curve?curve[healthy++]:share);
+  const p=f*(curve?curve[undated?i:healthy++]:share);
   if(inside){games+=p;points+=value*p;}
  }
  if(running){const now=calendar.find(g=>g.date===running),day=now?tourDate(now,weeks):running;
