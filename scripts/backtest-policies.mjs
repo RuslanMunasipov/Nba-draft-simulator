@@ -29,8 +29,9 @@ function recordCandidates(S,season,ctx,team,bankMoney,d,record){
  }
 }
 import {transferPlan} from '../src/transfer-plan.js';
+import POLICY from '../data/transfer-policy.json' with {type:'json'};
 // The model each policy reads: 'shipped' (the chain as of 22.10.2026, without the current absence run) or 'current'.
-export const MODEL_OF={hold:'current',current:'shipped',rivals:'shipped',currentNewModel:'current'};
+export const MODEL_OF={hold:'current',current:'shipped',rivals:'shipped',currentNewModel:'current',rivalsPlan:'current'};
 // (c) The decision policy (src/transfer-plan.js) with its shipped parameters ('plan') or a variant of the tuning grid
 // ('plan:<json params>', scripts/tune_transfer_policy.mjs).
 export function planPolicy(params){
@@ -42,9 +43,16 @@ export function planPolicy(params){
   return {pairs:plan.pairs.map(x=>({outId:x.out.id,inId:x.in.id})),predicted:swapEstimate(S,season,ctx,decision,pairs),confidence:plan.why.season.confidence,label:plan.why.season.level};
  };
 }
+// (c') Out of sample: each season played with the parameters chosen on the other seasons (scripts/tune_transfer_policy.mjs
+// crossSeason, tuned on leagues this backtest does not score).
+function heldOutPolicy(){
+ const by=new Map();
+ return x=>{const s=x.season.data.season;if(!by.has(s)){const p=POLICY.crossSeason?.[s]?.params;if(!p)throw Error('no held-out parameters for '+s);by.set(s,planPolicy(p));}return by.get(s)(x);};
+}
 export function policyOf(name){
  if(POLICIES[name])return POLICIES[name];
  if(name==='plan')return planPolicy(null);
+ if(name==='planHeldOut')return heldOutPolicy();
  if(name.startsWith('plan:'))return planPolicy(JSON.parse(name.slice(5)));
  throw Error('unknown policy '+name);
 }
@@ -73,4 +81,6 @@ export const POLICIES={
   const [best]=S.bestTransfers(ctx,{team,bankMoney,sort:'season',limit:1});
   return best&&best.gain.season>=40&&best.gain.month>=0?{pairs:[{outId:best.outId,inId:best.player.id}]}:null;
  },
+ // Rivals that use the assistant themselves (the robustness check): the decision as shipped, at every decision.
+ rivalsPlan(x){return planPolicy(null)(x);},
 };

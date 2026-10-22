@@ -96,6 +96,10 @@ export function transferPlan(ctx,{team,bankMoney,left,params=PLAN,bankOf=null,le
  for(const h of HORIZONS)why[h]=explainSwap(ctx,null,null,h,pairs,team);
  const plan={action:'move',pairs:pack.pairs,gains:pack.gains,value:pack.gain,price,bankAfter:pack.bankAfter,why,
   confidence:Object.fromEntries(HORIZONS.map(h=>[h,why[h].confidence])),level:why.season.level,when};
+ // With params.minConfidence a package that pays for its transfers but is less sure than that over the season is held.
+ if(params.minConfidence&&plan.confidence.season<params.minConfidence)return {action:'hold',reason:'low-confidence',when,
+  best:{pairs:pack.pairs,gains:pack.gains,value:pack.gain,price,confidence:plan.confidence.season},minConfidence:params.minConfidence,
+  injured:explain?injured(ctx,{team,bankMoney,params}):[]};
  if(!explain)return plan;
  const rivals=new Map(bankOf?pack.pairs.map(x=>[x.in.id,contestedBy(ctx,{team,playerId:x.in.id,bankOf,leftOf})]):[]);
  return {...plan,contested:rivals,forced:forced(ctx,plan,team),risks:risks(ctx,plan,why,rivals),changes:changes(ctx,plan,params),alternative:alternative(ctx,{team,bankMoney,left,params},plan),

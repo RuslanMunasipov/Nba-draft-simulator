@@ -32,10 +32,11 @@ function policySummary(runs){
  return {runs:runs.length,points:round(mean(runs.map(r=>r.points))),rank:round(mean(runs.map(r=>r.rank)),2),
   monthly:Object.fromEntries(Object.entries(byMonth).sort().map(([m,v])=>[m,round(mean(v))])),
   movesPerSeason:round(mean(runs.map(r=>r.moves.length)),1),
+  buyBacks:(()=>{const b=moves.filter(m=>m.buyBack);return {perSeason:round(b.length/runs.length,2),meanRealGain:b.length?Object.fromEntries(HORIZONS.map(h=>[h,round(mean(b.map(m=>m.real[h])))])):null};})(),
   moves:moves.length?Object.fromEntries(HORIZONS.map(h=>[h,{meanRealGain:round(mean(moves.map(m=>m.real[h]))),ci95:bootstrap(runs.filter(r=>r.moves.length).map(r=>r.moves.map(m=>m.real[h])))?.map(x=>round(x)),
    positive:round(100*mean(moves.map(m=>m.real[h]>0?1:0))),meanPredicted:round(mean(moves.filter(m=>m.predicted).map(m=>m.predicted[h].gain)))}])):null};
 }
-export function report(runs,{seeds,policies,files}){
+export function report(runs,{seeds,from=1,policies,rivals='rivals',files,inputs=null}){
  const seasons=[...new Set(runs.map(r=>r.season))].sort(),out={};
  const cell=r=>`${r.season}|${r.seed}|${r.slot}`;
  const pairsOf=(rs,a,b)=>{const m=new Map();for(const r of rs)(m.get(cell(r))||m.set(cell(r),{}).get(cell(r)))[r.policy]=r.points;return [...m.values()].filter(x=>a in x&&b in x).map(x=>x[b]-x[a]);};
@@ -55,11 +56,11 @@ export function report(runs,{seeds,policies,files}){
  }
  // The decision never lowers the season's expectation: packages made with a negative expected season gain (the window
  // the backtest judges on, after the decision).
- const planMoves=runs.filter(r=>r.policy==='plan').flatMap(r=>r.moves);
+ const planMoves=runs.filter(r=>r.policy.startsWith('plan')).flatMap(r=>r.moves);
  const planNegativeSeason=planMoves.length?{count:planMoves.filter(m=>m.predicted&&m.predicted.season.gain<-1e-6).length,of:planMoves.length}:null;
- return {version:1,generatedBy:'scripts/transfer_backtest.mjs',inputs:files,planNegativeSeason,design:{leaguesPerSeason:seeds*8,seeds,slots:8,policies,
+ return {version:2,generatedBy:'scripts/transfer_backtest.mjs',inputs:files,inputStats:inputs,planNegativeSeason,design:{leaguesPerSeason:seeds*8,seeds,fromSeed:from,slots:8,policies,
    decisions:'Moscow Monday 12:00 (after the week\'s last games; moves count for the next week) and Moscow Thursday 12:00',
-   rivals:'seven teams drafted with noisy valuations (sd 15%); once a week each makes the best one-for-one swap over the season when it gains 40+ and does not lose the next 4 weeks',
+   rivals:rivals==='rivalsPlan'?'seven teams drafted with noisy valuations (sd 15%), each playing the decision as shipped (src/transfer-plan.js) at every decision':'seven teams drafted with noisy valuations (sd 15%); once a week each makes the best one-for-one swap over the season when it gains 40+ and does not lose the next 4 weeks',
    realGain:'points the newcomer really scored minus the points the player sold really scored, over the window the move was judged on (Moscow dates after the decision)'},
   seasons:out,confidence,candidates:cands.length,
   limitations:['Injury report: the NBA\'s official report of 5 PM ET the day before (out, doubtful, questionable), with no return dates or comments, which ESPN\'s feed (the live app\'s) has.',
