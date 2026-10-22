@@ -37,6 +37,8 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
+      # The posts are albums of cards drawn with Chromium (awards-bot/render.mjs); without it the bot posts their text.
+      - run: npx playwright install --with-deps chromium
       - name: Preview a game day
         if: inputs.preview != ''
         run: node awards-bot/bot.mjs --preview "${{ inputs.preview }}" --week --month
@@ -63,10 +65,6 @@ jobs:
           AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
-          # The day's pictures (awards-bot/images.js); without the key the bot posts the texts only.
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # How many heroes and flops get a picture (repository variable; empty: 3, 0: none).
-          AWARDS_IMAGES_PER_BLOCK: ${{ vars.AWARDS_IMAGES_PER_BLOCK }}
           RESEND: ${{ inputs.resend }}
           # One run follows a day for at most this long, then saves; the next hourly run goes on.
           WATCH_MINUTES: '330'
