@@ -12,7 +12,8 @@
 //   node awards-bot/bot.mjs --preview DAY [--week] [--month] [--cards DIR] [--holiday KEY]
 //                                                   the posts of US game day DAY rebuilt from ESPN; nothing saved or sent
 //                                                   (--cards: the albums' cards as PNG files in DIR, with their captions;
-//                                                   --holiday: the cards dressed for that holiday of holidays.js)
+//                                                   --holiday: the cards dressed for that holiday of holidays.js;
+//                                                   --mike: Mike Roffon's interview written and drawn, ~$0.04)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
@@ -30,6 +31,8 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
+import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
+import {generate,cost} from '../scripts/image-pipeline.mjs';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -207,6 +210,45 @@ async function monthly(day,ctx,archive,state,mark){
  await postAlbum(`month-${month}`,five.filter(x=>x.row).map(x=>x.row.a),(look,fonts)=>monthAlbum(month,five,ctx.who,look,fonts,{holiday:holidayFor(day)}),monthText(month,five,ctx.who));
  if(mark)state.posted.monthly[month]=live?'sent':'preview';
 }
+// --- Mike Roffon (mike-roffon.js): after the day's post, his flash interview with the hero of the day, from his own bot
+// (MIKE_ROFFON_BOT_TOKEN): his picture with the interview's headline, the interview as a reply under it. Written and drawn
+// by OpenAI (OPENAI_API_KEY); without the key or his token nothing is spent and the facts are only printed. A preview
+// writes it with --mike (that costs about $0.04). Never holds the awards: a failure is logged.
+const MIKE=env.MIKE_ROFFON_BOT_TOKEN,OPENAI_KEY=env.OPENAI_API_KEY;
+async function telegram(token,method,body){
+ const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,body instanceof FormData?{method:'POST',body}
+  :{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+ const out=await r.json().catch(()=>({}));
+ if(!r.ok||!out.ok)throw Error(`Telegram ${method}: ${r.status} ${out.description||''}`);
+ return out.result;
+}
+async function mikeInterview(day,lines,ctx,state){
+ const hero=dailyBlocks(lines.filter(l=>l.d===day)).heroes[0];
+ if(!hero)return null;
+ const g=state?.days?.[day]?.games?.[hero.e],opponent=g?(g.home===hero.c?g.away:g.home):null;
+ const facts=interviewFacts(day,hero,ctx.who,{form:form(lines,day),opponent,holiday:holidayFor(day)});
+ const send=live&&MIKE&&OPENAI_KEY;
+ if(!send&&!flag('--mike')){console.log(`\n===== Mike Roffon (not written) =====\n${JSON.stringify(facts)}\n`);return null;}
+ try{
+  const {interview,spent:textSpent}=await interviewFor(facts,{key:OPENAI_KEY});
+  if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own: not posted.`);return {status:'dropped'};}
+  let spent=textSpent,picture=null;
+  try{const r=await generate(interviewPicture(facts,day),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
+  catch(e){console.warn(`${day}: Mike Roffon's picture failed (${e.message}): the interview goes alone.`);}
+  const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
+  if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
+   fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.txt`),caption+'\n\n'+text+'\n');}
+  if(!send){console.log(`\n===== Mike Roffon (preview, $${spent.toFixed(3)}) =====\n${caption}\n\n${text}\n`);return {status:'preview',cost:spent};}
+  let shown=null;
+  if(picture){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',caption);form.append('parse_mode','HTML');
+   form.append('photo',new Blob([picture],{type:'image/png'}),`mike-roffon-${day}.png`);shown=await telegram(MIKE,'sendPhoto',form);}
+  await telegram(MIKE,'sendMessage',{chat_id:CHAT,text:shown?text:caption+'\n\n'+text,parse_mode:'HTML',disable_web_page_preview:true,
+   ...shown?{reply_parameters:{message_id:shown.message_id}}:{}});
+  console.log(`${day}: Mike Roffon's interview sent, $${spent.toFixed(3)}.`);
+  return {status:'sent',cost:Math.round(spent*1e4)/1e4};
+ }catch(e){console.warn(`${day}: Mike Roffon failed (${e.message}).`);return {status:'failed'};}
+}
+
 // The day's post: its album, its text as the fallback.
 function dayPost(day,lines,ctx,postponed){
  const mine=lines.filter(l=>l.d===day),before=lines.filter(l=>l.d<day),blocks=dailyBlocks(mine);
@@ -227,7 +269,9 @@ async function watchDay(day,ctx,archive,state){
   if(step.do==='post'){
    await refresh([day],archive);
    await dayPost(day,archive.lines,ctx,Object.values(rec.games).filter(g=>g.off));
-   state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);break;
+   state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);
+   if(!state.posted.mike?.[day]){const m=await mikeInterview(day,archive.lines,ctx,state);if(m){(state.posted.mike||={})[day]=m;pushState(state,archive);}}
+   break;
   }
   if(step.do==='later'){console.log(`${day}: the last game tips off at ${step.until?new Date(step.until).toISOString():'?'}; a later run follows it.`);return false;}
   const until=step.until||now()+POLL_MS,wait=Math.max(POLL_MS,until-now());
@@ -291,6 +335,7 @@ async function preview(day){
  const ctx=await loadLeague(),state=fresh(),archive={lines:[]};
  for(let d=SEASON_START;d<=day;d=addDays(d,1))await archiveDay(d,state,archive,ctx.league);
  await dayPost(day,archive.lines,ctx,[]);
+ await mikeInterview(day,archive.lines,ctx,state);
  if(flag('--week')||isSunday(day))await weekly(day,ctx,archive,state,false);
  if(flag('--month')||isMonthEnd(day))await monthly(day,ctx,archive,state,false);
 }

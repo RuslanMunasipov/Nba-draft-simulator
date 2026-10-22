@@ -8,13 +8,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {LEAGUE_TEAMS} from '../src/teams.js';
-import {references,zakPhoto,gmPhoto,gmOf,looks,teamLogo,generate,cost} from './image-pipeline.mjs';
+import {references,zakPhoto,gmPhoto,gmOf,person,looks,teamLogo,generate,cost} from './image-pipeline.mjs';
 
 const hash=seed=>{let h=0;for(const ch of String(seed))h=(h*31+ch.codePointAt(0))>>>0;return h;};
 // His photo of each verdict: the red-cap ones (violation.jpg has a navy cap, the prompt keeps him in the red one).
 export const ZAK_MOOD={approved:'approved',check:'check',violation:'check'};
 
-const IDENTITY=zak=>`ZAK ONN (highest priority): the man from ${zak}, the league's lawyer. Preserve his face precisely: face shape, nose, brows, eyes, hairline, greying temples, age, skin tone; instantly recognizable. He wears a tailored charcoal-grey suit, white shirt, plain black tie and the bright red baseball cap with white embroidered text "God Bless America", spelled exactly.`;
+// He dresses for the scene, but he is always the Lawyer, and the red cap never comes off (league chat, 22.10.2026).
+const IDENTITY=zak=>`ZAK ONN (highest priority): the man from ${zak}. Preserve his face precisely: face shape, nose, brows, eyes, hairline, greying temples, age, skin tone; instantly recognizable. ${looks(person('zak-onn')).replace(/^Zak Onn; the face exactly as in the photo; never/,'Never')}.`;
 const STYLE=`STYLE: photorealistic still from a 90s American action film about law and order, cinematic contrast, 35mm lens, shallow depth of field. Square composition. The league is a basketball league: any sports props (balls, jerseys, trophies, helmets) are basketball only. The only text in the picture: the cap embroidery and the exact words given in quotes, spelled exactly. No other captions or watermarks.`;
 
 // A scene: G is the GM (their reference, or an anonymous figure from behind), L the team's logo (null without one), C the
