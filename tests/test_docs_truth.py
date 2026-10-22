@@ -43,7 +43,10 @@ class DocsTruth(unittest.TestCase):
                   f"both {f(s['both']['differences']['current-hold'])} FP a season",
                   f"real gain per move {moves['week']['meanRealGain']:+.1f} over the FBL week, {moves['month']['meanRealGain']:+.1f} over 4 weeks, {moves['season']['meanRealGain']:+.1f} over the rest of the season",
                   f"The model expected {moves['week']['meanPredicted']:+.1f}, {moves['month']['meanPredicted']:+.1f} and {moves['season']['meanPredicted']:+.1f}",
-                  f"The same advice on it: {f(s['both']['differences']['currentNewModel-current'])} FP a season over the shipped chain",
+                  f"(and with the calibrated confidence below): {f(s['both']['differences']['currentNewModel-current'])} FP a season over the shipped chain",
+                  f"both {f(s['both']['differences']['plan-current'])} FP a season; against doing nothing {f(s['both']['differences']['plan-hold'])}",
+                  f"against the old rule (`recommendPackage`) on the same model {f(s['both']['differences']['plan-currentNewModel'])}",
+                  f"Moves made with a negative expected season gain: {b['planNegativeSeason']['count']} of {b['planNegativeSeason']['of']}",
                   f"really gained {conf['week']['all']['at70']['actual']}% of the time over the week, {conf['month']['all']['at70']['actual']}% over 4 weeks, {conf['season']['all']['at70']['actual']}% over the season",
                   f"Brier {ins['week']['after']['brier']:.3f} / {ins['month']['after']['brier']:.3f} / {ins['season']['after']['brier']:.3f}, every decile within {max(ins[h]['after']['maxGap'] for h in ins):.1f} points"]
         for text in expected:

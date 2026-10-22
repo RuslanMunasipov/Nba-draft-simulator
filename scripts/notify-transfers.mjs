@@ -7,7 +7,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {seasonRosters,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,withBoxScores,explainSwap,CONFIDENT,DOUBTFUL,WEEKLY_TRANSFERS} from '../src/season.js';
-import {recommendPackage,packageVerdict,dealGroups,takenIds,contestedBy,transferWindow,confidencePercent,confidenceLevel} from '../src/season.js';
+import {packageVerdict,dealGroups,takenIds,contestedBy,transferWindow,confidencePercent,confidenceLevel} from '../src/season.js';
+import {transferPlan,planValue} from '../src/transfer-plan.js';
 import {count} from '../src/format.js';
 import {signed} from './telegram-format.mjs';
 import {playerInsights} from '../src/insights.js';
@@ -50,10 +51,10 @@ const money=bankOf(team),left=leftOf(team);
 for(const w of warnings)console.log('warning:',w.team+1,w.message);
 const budget=warnings.filter(w=>w.team>=0&&/превышен/.test(w.message));
 // With no transfers left a single upgrade cannot be made: not news, and its key waits for the new week.
-const alerts=left>0?marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20}):[];
-// The same package as the app's recommendation card (recommendPackage). Only a confident one starts a new message; a
-// borderline one (60-69%) is shown as "можно, но не уверенно" when a message is sent anyway; a doubtful one is not shown.
-const rec=left>0?recommendPackage(ctx,{team,bankMoney:money,left,sort}):{best:null,borderline:null},pack=rec.best||rec.borderline,packWhy=pack?.why;
+// Only upgrades that pay for their transfer by the assistant's rule (src/transfer-plan.js planValue).
+const alerts=left>0?marketAlerts(ctx,{team,bankMoney:money,sort,minGain:20}).filter(a=>planValue(a.gain)>0):[];
+// The same decision as the app's recommendation card (src/transfer-plan.js transferPlan): a new move starts a message.
+const plan=transferPlan(ctx,{team,bankMoney:money,left,bankOf,leftOf}),pack=plan.action==='move'?plan:null,packWhy=pack?.why.season;
 // Transfers count only from 08:00 to 22:00 Moscow time: outside them the advice says when to make the move.
 const hours=transferWindow(),when=hours.open?'':` · сделать с ${hours.from} МСК`;
 // Other FBL teams the model also tells to buy a player of the package: the first buyer gets him. A team with no transfers
@@ -61,7 +62,7 @@ const hours=transferWindow(),when=hours.open?'':` · сделать с ${hours.f
 const rivalsFor=id=>contestedBy(ctx,{team,playerId:id,bankOf,sort}).filter(t=>leftOf(t)>0);
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
  .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${outUntil(i)}`};});
-const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(rec.best?[rec.best.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
+const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
 // Injuries of my roster are news only from a fresh report: an old or missing one neither adds nor clears them.
 const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=injuryState.fresh?hurt.filter(h=>!previous.injuries?.includes(h.key)):[];
 const day=d=>d?`${d.slice(8,10)}.${d.slice(5,7)}`:'';
@@ -95,10 +96,16 @@ async function brief(p){
 
 // My team: the best move first, then single upgrades, budget problems and injuries.
 const mine=[`🏀 <b>${esc(teamLabel(team))}</b>`,`Банк ${money} · трансферов ${left}/${WEEKLY_TRANSFERS}`];
+// The assistant's answer (src/transfer-plan.js, the same as the app's): the move with its gains over the week, 4 weeks and
+// the season, its calibrated confidence, the main risks, what would change it and the best alternative; or «держать».
+const horizonsLine=g=>`${signed(g.week)} за неделю · ${signed(g.month)} за 4 нед. · ${signed(g.season)} за сезон`;
+const injuredLines=p=>(p.injured||[]).map(x=>`🩹 ${esc(x.player.name)}: ${x.verdict==='replace'&&x.replacement?`можно заменить на ${esc(x.replacement.name)} до возвращения (два трансфера, его могут забрать)`:'держать: замена и выкуп не окупают два трансфера'}`);
 if(pack){const n=count(pack.pairs.length,'трансфер','трансфера','трансферов');
- mine.push('',rec.best?`🧩 <b>Лучший ход: ${n}</b> · ${sureness(packWhy).toLowerCase()}${when}`:`🤔 <b>Можно, но не уверенно: ${n}</b> · ${sureness(packWhy).toLowerCase()}${when}`,
-  gains(pack.gains.season,pack.gains.month),...moveLines(pack.pairs.map(x=>({out:x.out.name,in:x.in.name})),pack.bankAfter),
-  ...pack.pairs.map(x=>({p:x.in,rivals:rivalsFor(x.in.id)})).filter(x=>x.rivals.length).map(x=>`⚠️ ${esc(x.p.name)} по модели нужен ещё ${count(x.rivals.length,'команде','командам','командам')} лиги: в FBL игрок может быть только в одной команде, кто купит позже — нарушит правило`));}
+ mine.push('',`🧩 <b>Лучший ход: ${n}</b> · ${sureness(packWhy).toLowerCase()}${when}`,horizonsLine(pack.gains),
+  ...moveLines(pack.pairs.map(x=>({out:x.out.name,in:x.in.name})),pack.bankAfter),...pack.forced.map(r=>'💡 '+esc(r)),...pack.risks.map(r=>'⚠️ '+esc(r)),...pack.changes.map(c=>'🔁 '+esc(c)),
+  ...(pack.alternative?[`↔️ Альтернатива: ${esc(pack.alternative.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', '))} (${horizonsLine(pack.alternative.gains)})`]:[]),...injuredLines(pack));}
+else if(left>0){const b=plan.best;
+ mine.push('',`🙅 <b>Держать: ни один ход не окупает трансфер</b>`,...(b?[`Лучший — ${esc(b.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', '))}: ${horizonsLine(b.gains)}; по весам прошлых сезонов ${signed(b.value)}, меньше цены трансфера (${b.price})`]:[]),...injuredLines(plan));}
 // The single upgrades besides the package (one that is the package itself is not repeated).
 const singles=alerts.filter(a=>!(pack?.pairs.length===1&&pack.pairs[0].out.id===a.outId&&pack.pairs[0].in.id===a.player.id));
 if(singles.length)mine.push('',`📈 <b>Отдельные усиления</b>${when}`,...singles.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)} · ${confidencePercent(a.why.confidence)}%`));

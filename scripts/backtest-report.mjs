@@ -53,7 +53,11 @@ export function report(runs,{seeds,policies,files}){
   const rows=cands.map(c=>({z:c.estimate[h].sd>0?c.estimate[h].gain/c.estimate[h].sd:null,y:c.real[h]>0?1:0,phase:phaseOf(c.day)})).filter(r=>r.z!==null);
   confidence[h]={all:reliability(rows,r=>normalCdf(r.z)),...Object.fromEntries(['early','mid','late'].map(ph=>[ph,reliability(rows.filter(r=>r.phase===ph),r=>normalCdf(r.z))]))};
  }
- return {version:1,generatedBy:'scripts/transfer_backtest.mjs',inputs:files,design:{leaguesPerSeason:seeds*8,seeds,slots:8,policies,
+ // The decision never lowers the season's expectation: packages made with a negative expected season gain (the window
+ // the backtest judges on, after the decision).
+ const planMoves=runs.filter(r=>r.policy==='plan').flatMap(r=>r.moves);
+ const planNegativeSeason=planMoves.length?{count:planMoves.filter(m=>m.predicted&&m.predicted.season.gain<-1e-6).length,of:planMoves.length}:null;
+ return {version:1,generatedBy:'scripts/transfer_backtest.mjs',inputs:files,planNegativeSeason,design:{leaguesPerSeason:seeds*8,seeds,slots:8,policies,
    decisions:'Moscow Monday 12:00 (after the week\'s last games; moves count for the next week) and Moscow Thursday 12:00',
    rivals:'seven teams drafted with noisy valuations (sd 15%); once a week each makes the best one-for-one swap over the season when it gains 40+ and does not lose the next 4 weeks',
    realGain:'points the newcomer really scored minus the points the player sold really scored, over the window the move was judged on (Moscow dates after the decision)'},

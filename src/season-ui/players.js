@@ -10,6 +10,7 @@ import {openPlayerSheet} from '../sheet.js';
 import {$,readJson,PERIOD,PERIOD_LONG,PERIOD_SHORT,SPORTS_URL,basePlayers,button,byId,card,clubOf,confidenceBadge,el,forGains,games,horizon,injuries,injuryInfo,link,live,livePoints,needsLive,owners,players,rawLive,renderSeason,same,team,teamBank,transfersLeft} from './state.js';
 import {controls,courtWord,whyBox} from './widgets.js';
 import {POSITIONS} from '../engine.js';
+import {planValue} from '../transfer-plan.js';
 
 // ---------- Players: the Sports.ru market by this season's FBL points ----------
 // Free players (or every player) ranked by their average FBL points in this season's games, with a streak mark
@@ -73,7 +74,9 @@ function analyzerCell(r,ctx,analyse){
  const a=analyse(r.p.id);
  if(!a){cell.append(note('—'));return cell;}
  if(a.best){const g=a.best.gain[horizon],out=byId.get(a.best.outId)?.name||'—';
-  if(g>0)cell.append(confidenceBadge(swapWhy(ctx,a.best)),note(`вместо ${out} · ${signed(g)} ${PERIOD_SHORT[horizon]}`));
+  // The transfer assistant's rule (src/transfer-plan.js): the swap pays for its transfer or not.
+  if(g>0){cell.append(confidenceBadge(swapWhy(ctx,a.best)),note(`вместо ${out} · ${signed(g)} ${PERIOD_SHORT[horizon]}`));
+   if(planValue(a.best.gain)<=0)cell.append(note('не окупает трансфер'));}
   else cell.append(el('span','не усилит','chip'),note(`даже вместо ${out}: ${signed(g)} ${PERIOD_SHORT[horizon]}`));
   return cell;}
  if(a.reason==='money'){cell.append(el('span','не по карману','chip'),note(`не хватает ${int(a.need)}`));return cell;}

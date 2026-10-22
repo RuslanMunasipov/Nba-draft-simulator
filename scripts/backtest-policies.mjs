@@ -28,8 +28,27 @@ function recordCandidates(S,season,ctx,team,bankMoney,d,record){
   record.push({day:d.day,week:d.week,kind:d.kind,outId:x.outId,inId:x.player.id,estimate:swapEstimate(S,season,ctx,d,[[x.outId,x.player.id]])});
  }
 }
+import {transferPlan} from '../src/transfer-plan.js';
 // The model each policy reads: 'shipped' (the chain as of 22.10.2026, without the current absence run) or 'current'.
 export const MODEL_OF={hold:'current',current:'shipped',rivals:'shipped',currentNewModel:'current'};
+// (c) The decision policy (src/transfer-plan.js) with its shipped parameters ('plan') or a variant of the tuning grid
+// ('plan:<json params>', scripts/tune_transfer_policy.mjs).
+export function planPolicy(params){
+ return ({S,season,ctx,team,bankMoney,left,decision,record})=>{
+  if(record)recordCandidates(S,season,ctx,team,bankMoney,decision,record);
+  const plan=transferPlan(ctx,{team,bankMoney,left,explain:false,...(params?{params}:{})});
+  if(plan.action!=='move')return null;
+  const pairs=plan.pairs.map(x=>[x.out.id,x.in.id]);
+  return {pairs:plan.pairs.map(x=>({outId:x.out.id,inId:x.in.id})),predicted:swapEstimate(S,season,ctx,decision,pairs),confidence:plan.why.season.confidence,label:plan.why.season.level};
+ };
+}
+export function policyOf(name){
+ if(POLICIES[name])return POLICIES[name];
+ if(name==='plan')return planPolicy(null);
+ if(name.startsWith('plan:'))return planPolicy(JSON.parse(name.slice(5)));
+ throw Error('unknown policy '+name);
+}
+export const modelOf=name=>MODEL_OF[name]||'current';
 export const POLICIES={
  // (a) Never transfer.
  hold({S,season,ctx,team,bankMoney,decision,record}){

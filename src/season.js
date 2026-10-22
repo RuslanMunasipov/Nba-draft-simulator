@@ -553,11 +553,15 @@ export function parseInjuries(feed){
 // league's «белое правило» list (when there is one), money within the bank.
 // By default the package may not lower the rest-of-season expectation: short-term gains never cost the season.
 // `include`: a free player the package must buy; `exclude`: free players it may not buy.
-export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null,exclude=null}){
+// `weights` ({week,month,season}): the value is that blend of the horizons' expected points instead of `sort`'s alone
+// (season protection then always applies); `movePrice`: each sale costs that many points of the value (a transfer is a
+// weekly resource and a predicted gain overstates the real one), so a move is made only when it adds more.
+export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition=25,protectSeason=true,include=null,exclude=null,weights=null,movePrice=0}){
  const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx);for(const id of exclude==null?[]:[].concat(exclude))taken.add(id);
  // A roster player counts what he brings this team (nothing for a shadowed holding, ownOutlook), a free agent his outlook.
  const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),wealth=bankMoney+roster.reduce((s,p)=>s+p.price,0);
- const own=new Map(roster.map(p=>[p.id,ownOutlook(p,ctx,team)])),outlook=p=>own.get(p.id)||playerOutlook(p,ctx),value=p=>outlook(p)[sort].points;
+ const own=new Map(roster.map(p=>[p.id,ownOutlook(p,ctx,team)])),outlook=p=>own.get(p.id)||playerOutlook(p,ctx);
+ const value=weights?p=>{const o=outlook(p);let v=0;for(const h in weights)v+=weights[h]*o[h].points;return v;}:p=>outlook(p)[sort].points;
  // A club already over the limit after an NBA trade keeps its players, but no purchase may add to it (as clubRoom does
  // for a single swap): no player of it is bought, even for one of its own sold.
  const crowded=new Set(roster.map(p=>p.club).filter(c=>c&&roster.filter(p=>p.club===c).length>CLUB_LIMIT));
@@ -579,8 +583,8 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  const clubs=[...new Set(items.map(x=>x.p.club).filter(Boolean))];
  clubs.forEach((c,i)=>{model.constraints['club'+i]={max:Math.max(CLUB_LIMIT,roster.filter(p=>p.club===c).length)};});
  const seasonOf=new Map(items.map(x=>[x.p.id,outlook(x.p).season.points]));
- if(protectSeason&&sort!=='season')model.constraints.season={min:roster.reduce((s,p)=>s+seasonOf.get(p.id),0)-1e-6};
- items.forEach((x,i)=>{const v={value:x.v,count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;if(counts(x.p))v.white=1;if(x.p.id===must?.id)v.must=1;if(x.p.club)v['club'+clubs.indexOf(x.p.club)]=1;
+ if(protectSeason&&(weights||sort!=='season'))model.constraints.season={min:roster.reduce((s,p)=>s+seasonOf.get(p.id),0)-1e-6};
+ items.forEach((x,i)=>{const v={value:x.v+(x.own?movePrice:0),count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;if(counts(x.p))v.white=1;if(x.p.id===must?.id)v.must=1;if(x.p.club)v['club'+clubs.indexOf(x.p.club)]=1;
   subsets.forEach((T,j)=>{if(x.p.positions.every(q=>T.includes(q)))v['pos'+j]=1;});
   model.constraints['one'+i]={max:1};model.variables['x'+i]=v;model.ints['x'+i]=1;});
  const result=solver.Solve(model);if(!result.feasible)return null;
@@ -589,7 +593,7 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  if(clubs.some(c=>next.filter(p=>p.club===c).length>Math.max(CLUB_LIMIT,roster.filter(p=>p.club===c).length)))return null;
  const sold=items.filter((x,i)=>x.own&&!(result['x'+i]>0.5)),bought=chosen.filter(x=>!x.own);
  if(sold.length>k)return null;
- const base=roster.reduce((s,p)=>s+value(p),0),gain=chosen.reduce((s,x)=>s+x.v,0)-base;
+ const base=roster.reduce((s,p)=>s+value(p),0),gain=chosen.reduce((s,x)=>s+x.v,0)-base-movePrice*sold.length;
  // Pair each sale with a purchase of the same position for a readable list of one-for-one transfers.
  const pairs=[],left=[...bought];
  for(const s of sold){const i=left.findIndex(b=>b.p.positions.some(q=>s.p.positions.includes(q)));const b=left.splice(i>=0?i:0,1)[0];pairs.push({out:s.p,in:b.p,gain:b.v-s.v});}

@@ -8,7 +8,7 @@
 // Thursday. The other seven teams play a simple rival policy (bestTransfers over the season). The team under test plays
 // one policy at a time on the same draft and the same rivals, so the policies are compared pairwise.
 // Usage: node scripts/transfer_backtest.mjs [--inputs .cache/transfer-backtest] [--out data/transfer-backtest.json]
-//        [--seeds 2] [--jobs N] [--policies hold,current]
+//        [--seeds 2] [--from-seed 1] [--jobs N] [--policies hold,current|plan:{json}] [--runs file] [--no-record]
 // Worker: node scripts/transfer_backtest.mjs --worker <inputs/season.json> <seed> <slot> <policy>
 import fs from 'node:fs';
 import os from 'node:os';
@@ -19,7 +19,7 @@ import CAL from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 import * as S from '../src/season.js';
 import {rosterFits} from '../src/engine.js';
-import {POLICIES,MODEL_OF,windows} from './backtest-policies.mjs';
+import {policyOf,modelOf,windows} from './backtest-policies.mjs';
 
 const args=process.argv.slice(2),opt=(k,d)=>{const i=args.indexOf('--'+k);return i>=0?args[i+1]:d;};
 const SELF=fileURLToPath(import.meta.url);
@@ -136,8 +136,8 @@ export function playSeason(season,{seed,slot,policy,rivals='rivals',record=true}
   const views=contextAt(season,league,d.day),ctx=views.current;
   for(let t=0;t<TEAMS;t++){
    const left=WEEKLY-(used.get(key(t,d.week))||0);if(left<=0)continue;
-   const name=t===slot?policy:rivals,play=POLICIES[name];
-   const out=play({S,season,ctx:views[MODEL_OF[name]||'current'],team:t,bankMoney:league.bank[t],left,decision:d,state:t===slot?state:null,record:t===slot&&record?candidates:null});
+   const name=t===slot?policy:rivals,play=policyOf(name);
+   const out=play({S,season,ctx:views[modelOf(name)],team:t,bankMoney:league.bank[t],left,decision:d,state:t===slot?state:null,record:t===slot&&record?candidates:null});
    const pairs=(out?.pairs||[]).slice(0,left);if(!pairs.length)continue;
    const next=ctx.rosters[t].map(id=>{const x=pairs.find(q=>q.outId===id);return x?x.inId:id;});
    const taken=new Set(league.rosters.flat());
@@ -163,9 +163,10 @@ export function playSeason(season,{seed,slot,policy,rivals='rivals',record=true}
 }
 
 // ---------- driver ----------
+const RECORD=!args.includes('--no-record');
 function runWorker(file,seed,slot,policy){
  return new Promise((resolve,reject)=>{
-  const p=spawn(process.execPath,['--max-old-space-size=2048',SELF,'--worker',file,String(seed),String(slot),policy],{stdio:['ignore','pipe','inherit']});
+  const p=spawn(process.execPath,['--max-old-space-size=2048',SELF,'--worker',file,String(seed),String(slot),policy,...(RECORD?[]:['--no-record'])],{stdio:['ignore','pipe','inherit']});
   let out='';p.stdout.on('data',d=>out+=d);p.on('close',code=>code===0?resolve(JSON.parse(out)):reject(Error(`worker ${file} ${seed} ${slot} ${policy}: ${code}`)));
  });
 }
@@ -173,15 +174,16 @@ async function pool(tasks,jobs){const out=[];let i=0;await Promise.all(Array.fro
 
 if(args[0]==='--worker'){
  const [,file,seed,slot,policy]=args,season=loadSeason(file);
- process.stdout.write(JSON.stringify(playSeason(season,{seed:Number(seed),slot:Number(slot),policy})));
+ // Candidate swaps (the confidence calibration) are recorded in the runs that make no move of their own.
+ process.stdout.write(JSON.stringify(playSeason(season,{seed:Number(seed),slot:Number(slot),policy,record:RECORD&&policy==='hold'})));
 }else if(import.meta.url===`file://${process.argv[1]}`){
- const inputs=opt('inputs','.cache/transfer-backtest'),out=opt('out','data/transfer-backtest.json'),seeds=Number(opt('seeds',2));
- const policies=opt('policies','hold,current').split(','),jobs=Number(opt('jobs',os.availableParallelism?.()||os.cpus().length));
+ const inputs=opt('inputs','.cache/transfer-backtest'),out=opt('out','data/transfer-backtest.json'),seeds=Number(opt('seeds',2)),from=Number(opt('from-seed',1));
+ const policies=opt('policies','hold,current').split('|').flatMap(x=>x.startsWith('plan:')?[x]:x.split(',')),jobs=Number(opt('jobs',os.availableParallelism?.()||os.cpus().length));
  const files=fs.readdirSync(inputs).filter(f=>/^\d{4}-\d{2}\.json$/.test(f)).sort().map(f=>path.join(inputs,f));
  const tasks=[];
- for(const file of files)for(let seed=1;seed<=seeds;seed++)for(let slot=0;slot<TEAMS;slot++)for(const policy of policies)tasks.push(()=>runWorker(file,seed,slot,policy).then(r=>{process.stderr.write(`${r.season} seed ${seed} slot ${slot} ${policy}: ${Math.round(r.points)}\n`);return r;}));
+ for(const file of files)for(let seed=from;seed<from+seeds;seed++)for(let slot=0;slot<TEAMS;slot++)for(const policy of policies)tasks.push(()=>runWorker(file,seed,slot,policy).then(r=>{process.stderr.write(`${r.season} seed ${seed} slot ${slot} ${policy}: ${Math.round(r.points)}\n`);return r;}));
  const runs=await pool(tasks,jobs);
- fs.writeFileSync(path.join(inputs,'runs.json'),JSON.stringify(runs));
+ fs.writeFileSync(opt('runs',path.join(inputs,'runs.json')),JSON.stringify(runs));
  const {report}=await import('./backtest-report.mjs');
  fs.writeFileSync(out,JSON.stringify(report(runs,{seeds,policies,files:files.map(f=>path.basename(f))}),null,1)+'\n');
  console.log('wrote',out);
