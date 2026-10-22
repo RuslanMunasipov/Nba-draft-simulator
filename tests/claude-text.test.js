@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {claudeJSON,claudeArgs,answerJSON,readResult,claudeConfigured,ClaudeError} from '../scripts/claude-text.mjs';
+import {claudeJSON,claudeArgs,answerJSON,readResult,claudeConfigured,subscriptionToken,tokenHint,ClaudeError} from '../scripts/claude-text.mjs';
 
 // A stand-in for the CLI: it records its arguments, stdin, directory and environment, then acts as FAKE_MODE says.
 function fakeCli(){
@@ -64,4 +64,16 @@ test('claude text: clear errors — expired token, crash, timeout, no CLI, no pr
  assert.throws(()=>readResult('{"type":"result","subtype":"error_max_turns","is_error":false}'),/error_max_turns/);
  assert.throws(()=>readResult('{"type":"result","subtype":"error_during_execution","is_error":true,"errors":["boom"]}'),/Claude Code: boom/);
  assert.throws(()=>readResult('{"is_error":true,"api_error_status":429,"result":"limit"}'),/usage limit/);
+});
+
+test('claude text: the token as pasted — spaces, a line break, quotes — is cleaned; a refused one says what it is, never showing it',async()=>{
+ assert.equal(subscriptionToken({CLAUDE_CODE_OAUTH_TOKEN:' "sk-ant-oat01-abc"\n'}),'sk-ant-oat01-abc');
+ assert.equal(claudeConfigured({CLAUDE_CODE_OAUTH_TOKEN:' \n'}),false);
+ const cli=fakeCli();
+ await run(cli,'ok',{env:{...process.env,FAKE_MODE:'ok',CLAUDE_CODE_OAUTH_TOKEN:'sk-ant-oat01-x\n'}});
+ assert.equal(cli.read().token,'sk-ant-oat01-x','no line break reaches the CLI');
+ await assert.rejects(run(cli,'401',{env:{...process.env,FAKE_MODE:'401',CLAUDE_CODE_OAUTH_TOKEN:'sk-ant-api03-secret'}}),
+  e=>/an API key, not a subscription token/.test(e.message)&&!e.message.includes('sk-ant-api03-secret'));
+ assert.match(tokenHint('abc'),/does not hold a `claude setup-token` token .*3 characters/);
+ assert.match(tokenHint('sk-ant-oat01-'+'x'.repeat(95)),/setup-token token \(108 characters\): it was revoked, expired or cut short/);
 });
