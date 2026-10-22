@@ -33,7 +33,8 @@ export const gmOf=team=>PEOPLE.find(p=>p.role==='gm'&&p.team===team)||null;
 export const gmPhoto=(team,root=ASSETS)=>!Number.isInteger(team)?null:
  readImage(find(path.join(root,'gm'),String(team+1)))||(gmOf(team)?readImage(path.join(root,gmOf(team).photo)):null);
 // How a prompt describes a person of the people next to their reference: name, what never changes, how they are drawn.
-export const looks=p=>p?`${p.en}${p.keep?`; always with: ${p.keep}`:''}${p.style?`; ${p.style}`:''}${p.outfit?`; ${p.outfit}`:''}`:'';
+// The face is always theirs; the clothes follow the scene unless keep fixes them.
+export const looks=p=>p?`${p.en}; the face exactly as in the photo${p.keep?`; never changes: ${p.keep}`:''}${p.style?`; ${p.style}`:''}${p.outfit?`; usual look, which may change to fit the scene: ${p.outfit}`:''}`:'';
 export const teamLogo=(team,root=ASSETS)=>Number.isInteger(team)?readImage(find(path.join(root,'team-logos'),String(team+1))):null;
 
 // The references of a picture in order, with the words a prompt uses for each ("reference image 2"): only the ones that
