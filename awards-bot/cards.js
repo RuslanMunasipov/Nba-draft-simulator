@@ -184,15 +184,16 @@ function page(look,fonts,{title,sub,foot='',holiday},body){
 <div class="foot"><span>ФО по формуле лиги FBL</span><span>${esc(foot)}</span></div></div></body></html>`;
 }
 
-// --- The opener: the nomination's emblem (a ring with the league's name around its icon), its title and the date.
+// --- The opener: the nomination's emblem (a ring with the league's name around the league's logo, assets/fbl-logo.png,
+// or the nomination's icon without it), its title and the date.
 const sized=(html,px)=>html.replace('class="emo"',`class="emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*0.87)}px"`);
 function emblem(look,nom,holiday){
- const [a,b]=nom.ring;
+ const [a,b]=nom.ring,logo=look.leagueLogo?.();
  return `<svg class="emblem" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
 <path id="ring" d="M300,300 m-228,0 a228,228 0 1,1 456,0 a228,228 0 1,1 -456,0"/></defs>
 <circle cx="300" cy="300" r="292" fill="url(#g)"/><circle cx="300" cy="300" r="262" fill="#0b1020"/><circle cx="300" cy="300" r="196" fill="none" stroke="url(#g)" stroke-width="6"/>
-<text font-family="Oswald" font-weight="700" font-size="34" letter-spacing="6" fill="url(#g)"><textPath href="#ring">FANTASY BASKETBALL LEAGUE · FBL · СЕЗОН 2026/27 ·</textPath></text>
-<foreignObject x="150" y="150" width="300" height="300"><div xmlns="http://www.w3.org/1999/xhtml" style="width:300px;height:300px;display:flex;align-items:center;justify-content:center">${sized(look.emoji(nom.icon),230)}</div></foreignObject>
+<text font-family="Oswald" font-weight="700" font-size="34" letter-spacing="6" fill="url(#g)"><textPath href="#ring">FANTASY BROTHERS LEAGUE · FBL · СЕЗОН 2026/27 ·</textPath></text>
+<foreignObject x="125" y="125" width="350" height="350"><div xmlns="http://www.w3.org/1999/xhtml" style="width:350px;height:350px;display:flex;align-items:center;justify-content:center">${logo?`<img src="${logo}" style="width:350px;height:350px">`:sized(look.emoji(nom.icon),230)}</div></foreignObject>
 ${holiday?`<foreignObject x="418" y="418" width="160" height="160"><div xmlns="http://www.w3.org/1999/xhtml" style="width:150px;height:150px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#0b1020;border:6px solid ${a}">${sized(look.emoji(holiday.emoji),96)}</div></foreignObject>`:''}</svg>`;
 }
 export function opener(look,fonts,{nom,date,sub,holiday}){

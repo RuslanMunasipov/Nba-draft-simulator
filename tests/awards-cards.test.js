@@ -26,6 +26,14 @@ test('awards cards: the day is an opener and two cards, FBL points by the formul
  assert.equal(caption,'<b>⭐ Итоги игрового дня · 21 октября 2026</b>\nГерой дня: RU P1 — 44 ФО · провал дня: RU P2 — −3 ФО\n\n#итоги_дня #неделя_1 #октябрь_2026 #дата_21_10_2026');
 });
 
+test('awards cards: the opener carries the league\'s logo and name, the nomination\'s icon without the logo',()=>{
+ const blocks={heroes:[],flops:[],gold:[],antitop:[]};
+ const withLogo=dayAlbum('2026-10-21',blocks,who,{...look,leagueLogo:()=>'data:image/png;base64,LOGO'},fonts).cards[0];
+ assert.match(withLogo,/<img src="data:image\/png;base64,LOGO"/);assert.match(withLogo,/FANTASY BROTHERS LEAGUE · FBL/);
+ assert.doesNotMatch(withLogo,/<i class="emo"[^>]*>⭐/);
+ assert.match(dayAlbum('2026-10-21',blocks,who,look,fonts).cards[0],/⭐/);
+});
+
 test('awards cards: hashtags navigate by type, week, month and date',()=>{
  assert.equal(dateTag('2027-01-07'),'#дата_07_01_2027');assert.equal(weekTag(12),'#неделя_12');assert.equal(monthTag('2027-02-11'),'#февраль_2027');
  const wk=weekAlbum(week,{heroes:[],flops:[],gold:[]},{mvp:[],roy:[],mef:[],sixth:[]},{best:[],worst:[]},who,look,fonts);

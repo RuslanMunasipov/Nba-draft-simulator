@@ -31,7 +31,9 @@ export async function loadLook(athletes,{root}={}){
  const frames=new Map(),frame=key=>{
   if(!frames.has(key)){const f=new URL(`./assets/holidays/${key}.webp`,import.meta.url);frames.set(key,fs.existsSync(f)?dataUri(fs.readFileSync(f),'image/webp'):null);}
   return frames.get(key);};
- return {photo:a=>photos.get(String(a))||null,logo:t=>logos.get(t)||null,frame,
+ // The league's logo (Fantasy Brothers League): the crowned ball at the heart of every opener.
+ const league=new URL('./assets/fbl-logo.png',import.meta.url),leagueLogo=fs.existsSync(league)?dataUri(fs.readFileSync(league),'image/png'):null;
+ return {photo:a=>photos.get(String(a))||null,logo:t=>logos.get(t)||null,frame,leagueLogo:()=>leagueLogo,
   emoji:e=>emoji.has(e)?`<img class="emo" src="${emoji.get(e)}">`:`<span class="emo">${e}</span>`};
 }
 
