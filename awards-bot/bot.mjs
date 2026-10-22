@@ -231,7 +231,7 @@ async function mikeInterview(day,lines,ctx,state){
  if(!send&&!flag('--mike')){console.log(`\n===== Mike Roffon (not written) =====\n${JSON.stringify(facts)}\n`);return null;}
  try{
   const {interview,spent:textSpent}=await interviewFor(facts,{key:OPENAI_KEY});
-  if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own: not posted.`);return {status:'dropped'};}
+  if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
   let spent=textSpent,picture=null;
   try{const r=await generate(interviewPicture(facts,day),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
   catch(e){console.warn(`${day}: Mike Roffon's picture failed (${e.message}): the interview goes alone.`);}
