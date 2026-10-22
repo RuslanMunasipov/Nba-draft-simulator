@@ -104,8 +104,11 @@ if(pack){const n=count(pack.pairs.length,'трансфер','трансфера'
  mine.push('',`🧩 <b>Лучший ход: ${n}</b> · ${sureness(packWhy).toLowerCase()}${when}`,horizonsLine(pack.gains),
   ...moveLines(pack.pairs.map(x=>({out:x.out.name,in:x.in.name})),pack.bankAfter),...pack.forced.map(r=>'💡 '+esc(r)),...pack.risks.map(r=>'⚠️ '+esc(r)),...pack.changes.map(c=>'🔁 '+esc(c)),
   ...(pack.alternative?[`↔️ Альтернатива: ${esc(pack.alternative.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', '))} (${horizonsLine(pack.alternative.gains)})`]:[]),...injuredLines(pack));}
+else if(left>0&&plan.reason==='low-confidence'){const b=plan.best;
+ mine.push('',`🙅 <b>Держать: лучший ход окупает трансфер, но уверенность за сезон ${confidencePercent(b.confidence)}% — ниже порога ${Math.round(plan.minConfidence*100)}%</b>`,
+  `${esc(b.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', '))}: ${horizonsLine(b.gains)}`,...injuredLines(plan));}
 else if(left>0){const b=plan.best;
- mine.push('',`🙅 <b>Держать: ни один ход не окупает трансфер</b>`,...(b?[`Лучший — ${esc(b.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', '))}: ${horizonsLine(b.gains)}; по весам прошлых сезонов ${signed(b.value)}, меньше цены трансфера (${b.price})`]:[]),...injuredLines(plan));}
+ mine.push('',`🙅 <b>Держать: ни один ход не окупает трансфер</b>`,...(b?[`Лучший — ${esc(b.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', '))}: ${horizonsLine(b.gains)}; по весам прошлых сезонов ${signed(b.value)}, меньше цены трансфера (${Math.round(b.price)})`]:[]),...injuredLines(plan));}
 // The single upgrades besides the package (one that is the package itself is not repeated).
 const singles=alerts.filter(a=>!(pack?.pairs.length===1&&pack.pairs[0].out.id===a.outId&&pack.pairs[0].in.id===a.player.id));
 if(singles.length)mine.push('',`📈 <b>Отдельные усиления</b>${when}`,...singles.slice(0,3).map(a=>`${esc(current(byId.get(a.outId),ctx).name)} → <b>${esc(a.player.name)}</b>: ${gains(a.gain.season,a.gain.month)} · ${confidencePercent(a.why.confidence)}%`));

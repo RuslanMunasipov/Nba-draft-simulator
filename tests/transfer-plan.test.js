@@ -2,7 +2,7 @@
 // transfer by the backtest's weights and price, never lowering the season's expectation, with its explanation.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {seasonRosters} from '../src/season.js';
-import {transferPlan,planValue,PLAN} from '../src/transfer-plan.js';
+import {transferPlan,planValue,PLAN,movePriceOf} from '../src/transfer-plan.js';
 import POLICY from '../data/transfer-policy.json' with {type:'json'};
 const POS=['PG','PG','SG','SG','SF','SF','PF','PF','C','C'];
 const picks=Array.from({length:80},(_,i)=>i+1);
@@ -56,4 +56,11 @@ test('a pair that loses on its own says why it is in the package: the roster\'s 
  assert.deepEqual(plan.pairs.map(x=>[x.out.id,x.in.id]).sort((a,b)=>a[0]-b[0]),[[1,81],[73,89]]);
  assert.equal(plan.forced.length,1);
  assert.match(plan.forced[0],/^P1 → P81 сам по себе даёт −.* ФО за сезон: в составе обязателен новичок \(rookie\), а P73 продаётся\. Пакет целиком — \+/);
+});
+
+test('with the week\'s decay a transfer costs its full price on Monday and less as the FBL week runs out',()=>{
+ const p={weights:{season:1},movePrice:70,weekDecay:true};
+ assert.deepEqual(['2024-11-04','2024-11-07','2024-11-10'].map(today=>movePriceOf({today},p)),[70,40,10],'Monday, Thursday, Sunday');
+ assert.equal(movePriceOf({today:'2026-10-20'},p),60,'the league\'s first week ends on 25.10');
+ assert.equal(movePriceOf({today:'2024-11-07'},{...p,weekDecay:false}),70);
 });

@@ -8,7 +8,7 @@
 import POLICY from '../data/transfer-policy.json' with {type:'json'};
 import {bestPackage,explainSwap,contestedBy,transferWindow,transferOptions,playerOutlook,perGame,absenceRun,current,seasonEnding} from './season.js';
 import {HORIZONS} from './confidence.js';
-import {fblWeek} from './rules.js';
+import {fblWeek,FBL_TRANSFERS} from './rules.js';
 import {count,int,signed} from './format.js';
 
 export const PLAN=POLICY.params;
@@ -16,8 +16,11 @@ export const PLAN=POLICY.params;
 // with params.weekDecay its price falls with the days the week has left: in full on Monday, 4/7 of it on Thursday.
 export function movePriceOf(ctx,params=PLAN){
  if(!params.weekDecay||!ctx?.today)return params.movePrice;
- return params.movePrice*(daysDiff(fblWeek(ctx.today).end,ctx.today)+1)/7;
+ // The league's week (its first one is longer); before the league's first week (the backtest's seasons) Monday to Sunday.
+ const day=ctx.today,end=day<FBL_TRANSFERS.firstWeekFrom?addDays(day,6-(new Date(day+'T00:00:00Z').getUTCDay()+6)%7):fblWeek(day).end;
+ return params.movePrice*Math.min(7,daysDiff(end,day)+1)/7;
 }
+const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
 const daysDiff=(a,b)=>Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/864e5);
 // The plan's value of a swap's gains: the weighted horizons less the price of one transfer (now, with ctx).
 export const planValue=(gain,params=PLAN,ctx=null)=>Object.entries(params.weights).reduce((s,[h,w])=>s+w*(gain[h]||0),0)-movePriceOf(ctx,params);
@@ -29,7 +32,7 @@ function risks(ctx,plan,why,rivals){
  const out=[];
  for(const x of plan.pairs){const i=ctx.injuries?.get(String(x.in.espnId));if(i)out.push(`${x.in.name}: ${i.status}${seasonEnding(i)?' до конца сезона':i.returnDate?' до '+String(i.returnDate).slice(8,10)+'.'+String(i.returnDate).slice(5,7):''}.`);}
  for(const [id,teams] of rivals)if(teams.length){const p=plan.pairs.find(x=>x.in.id===id)?.in;out.push(`${p.name} по модели нужен ещё ${count(teams.length,'команде','командам','командам')} лиги: в FBL игрок может быть только в одной команде, кто купит позже — нарушит правило.`);}
- const c=why.season.confidence;if(c<.7)out.push(`Уверенность за сезон ${Math.floor(c*100)}%: из похожих обменов в прогоне на двух прошлых сезонах в плюс вышли ${Math.floor(c*100)}%.`);
+ const c=why.season.confidence;if(c<.7)out.push(`Уверенность за сезон ${Math.floor(c*100)}%: из похожих обменов в прогоне на трёх прошлых сезонах в плюс вышли (в среднем) ${Math.floor(c*100)}%.`);
  for(const f of why.season.flags)if(!/^Сезон только начался/.test(f))out.push(f);
  return [...new Set(out)].slice(0,3);
 }
