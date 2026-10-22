@@ -8,8 +8,8 @@ import json, math, statistics
 from collections import defaultdict
 from pathlib import Path
 import pyarrow.parquet as pq
-try:from fbl_formula import GAME_PLAYED,participation,sports_participation
-except ImportError:from scripts.fbl_formula import GAME_PLAYED,participation,sports_participation
+try:from fbl_formula import GAME_PLAYED,fbl_points,participation,sports_participation
+except ImportError:from scripts.fbl_formula import GAME_PLAYED,fbl_points,participation,sports_participation
 try:
     from season_accuracy import cohort, SeasonModel, evaluate
 except ImportError:
@@ -28,7 +28,7 @@ def quantile(values,p):
 def partial(r):
     return r['pts']+r['reb']+r['ast']+r['stl']+r['blk']-(r['fga']-r['fgm'])-(r['fta']-r['ftm'])-2*r['tov']
 def full(r):
-    return partial(r)-r['pf']+participation(r['minutes'])
+    return fbl_points(r)
 def sports_full(r):
     """Sports.ru's points of a game without its result bonus: its minutes rule for the participation term."""
     return partial(r)-r['pf']+sports_participation(r['minutes'])

@@ -5,7 +5,7 @@ import {FBL_TRANSFERS,TRANSFER_HOURS,mskTime,firstHolder} from './rules.js';
 import CALIBRATION from '../data/inseason-calibration.json' with {type:'json'};
 import LENGTHS from '../data/availability-lengths.json' with {type:'json'};
 import RULES from '../data/league-rules.json' with {type:'json'};
-import {GAME_PLAYED} from './fbl-scoring.js';
+import {GAME_PLAYED,fblFormula} from './fbl-scoring.js';
 import {plural} from './format.js';
 import {teamName} from './teams.js';
 
@@ -797,9 +797,9 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null,team=null){
 // with stats is an appearance (+1 even with zero minutes shown); ESPN leaves the stats of a DNP empty.
 export function boxScorePoints(stats){
  const n=v=>Number(v)||0,split=v=>String(v||'0-0').split('-').map(Number);
- const [fgm,fga]=split(stats.FG),[ftm,fta]=split(stats.FT),min=clockMinutes(stats.MIN);
  if(!Object.keys(stats||{}).length)return null;
- return n(stats.PTS)+n(stats.REB)+n(stats.AST)+n(stats.STL)+n(stats.BLK)-(fga-fgm)-(fta-ftm)-2*n(stats.TO)-n(stats.PF)+GAME_PLAYED;
+ const [fgm,fga]=split(stats.FG),[ftm,fta]=split(stats.FT);
+ return fblFormula({pts:n(stats.PTS),reb:n(stats.REB),ast:n(stats.AST),stl:n(stats.STL),blk:n(stats.BLK),fgm,fga,ftm,fta,tov:n(stats.TO),pf:n(stats.PF)});
 }
 const LINE=['MIN','PTS','REB','AST','STL','BLK','FG','3PT','FT','TO','PF'];
 // ESPN summary -> {espnAthleteId: {points, minutes, final, counting, name, team, line}}.

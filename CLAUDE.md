@@ -1,3 +1,4 @@
 # Working on this repository
 
 - Pull requests: after pushing, open the PR and merge it into `main` right away (squash), without asking the owner first. Run the local checks (`npm test`, `npm run build`, and the Python tests touched) before merging.
+- FBL points (league owner, 22.10.2026, a standing rule): every FBL number — site, bots, audits, forecasts — goes through the league's official formula, `fblFormula` in `src/fbl-scoring.js` and `fbl_points` in `scripts/fbl_formula.py`: PTS+REB+AST+STL+BLK−(FGA−FGM)−(FTA−FTM)−2·TO−PF+1 per game played. The formula is the truth. Sources (Sports.ru's game table, ESPN's box score) only supply the box-score numbers; Sports.ru's own ФО or any provider's points are never FBL points and never a reason to doubt the formula. Every implementation must give the golden lines of `tests/fixtures/fbl-formula-golden.json`.

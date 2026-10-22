@@ -123,7 +123,9 @@
     "participation": "PER_GAME_PLAYED",
     "participationRule": "+1 for every game played (Yahoo GP), whatever the minutes",
     "participationDecidedBy": "league owner, 2026-10-21 (Yahoo league settings screenshot; replaces the exact-minutes rule recorded the same morning)",
-    "participationNote": "Sports.ru's own formula gives +2 for 10:00 or more minutes and +1 below, plus its result bonus; its season totals, prices and per-game points keep that rule, so they are compared after removing both."
+    "participationNote": "Sports.ru's own formula gives +2 for 10:00 or more minutes and +1 below, plus its result bonus; its season totals, prices and per-game points keep that rule, so they are compared after removing both.",
+    "authority": "OFFICIAL_FORMULA",
+    "authorityRule": "League owner, 2026-10-22: every FBL number goes through the official formula; it is the truth. Box-score sources only supply the stats; Sports.ru's ФО or any provider's points are never FBL points. Code: fblFormula (src/fbl-scoring.js), fbl_points (scripts/fbl_formula.py); golden lines tests/fixtures/fbl-formula-golden.json."
   },
   "forecastBasis": {
     "allPlayers": {

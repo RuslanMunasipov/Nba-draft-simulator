@@ -25,9 +25,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 try:
-    from fbl_formula import GAME_PLAYED, sports_participation
+    from fbl_formula import GAME_PLAYED, fbl_points, sports_participation
 except ImportError:
-    from scripts.fbl_formula import GAME_PLAYED, sports_participation
+    from scripts.fbl_formula import GAME_PLAYED, fbl_points, sports_participation
 
 ROOT = Path(__file__).resolve().parent.parent
 PRICES = ROOT / 'data' / 'sports-prices-2026-10-17.json'
@@ -188,8 +188,7 @@ def box_points(cs, col):
         if x is None:
             return None
         v[key] = x
-    misses = v['fga2'] + v['fga3'] - v['fgm2'] - v['fgm3'] + v['fta'] - v['ftm']
-    return v['pts'] + v['reb'] + v['ast'] + v['stl'] + v['blk'] - misses - 2 * v['tov'] - v['pf'] + GAME_PLAYED
+    return fbl_points(dict(v, fgm=v['fgm2'] + v['fgm3'], fga=v['fga2'] + v['fga3']))
 
 
 def row_points(game, cs, col, sports):
