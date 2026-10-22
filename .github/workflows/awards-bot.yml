@@ -39,6 +39,11 @@ jobs:
       - run: npm ci --no-audit --no-fund
       # The posts are albums of cards drawn with Chromium (awards-bot/render.mjs); without it the bot posts their text.
       - run: npx playwright install --with-deps chromium
+      # The bots' texts are written by Claude through the owner's subscription (scripts/claude-text.mjs): the Claude Code
+      # CLI, pinned. A failed install only leaves the bots without written texts.
+      - name: Install Claude Code
+        continue-on-error: true
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
       - name: Preview a game day
         if: inputs.preview != ''
         run: node awards-bot/bot.mjs --preview "${{ inputs.preview }}" --week --month
@@ -69,6 +74,8 @@ jobs:
           # by OpenAI. Without either secret there is no interview.
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           RESEND: ${{ inputs.resend }}
           # One run follows a day for at most this long, then saves; the next hourly run goes on.
           WATCH_MINUTES: '330'
