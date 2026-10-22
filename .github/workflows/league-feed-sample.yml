@@ -3,6 +3,11 @@ name: League feed sample
 # chat, so it can be forwarded to the commissioner. Nothing is remembered as posted; the watcher never runs this.
 on:
   workflow_dispatch:
+    inputs:
+      picture:
+        description: "Draw Zak Onn's picture for the sample (OpenAI, paid: about $0.04)"
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -32,4 +37,7 @@ jobs:
           LEAGUE_FEED_PREVIEW: '1'
           # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # His picture (scripts/zak-pictures.mjs) only when the run asks for it: the OpenAI key is passed for that run alone.
+          LEAGUE_FEED_PICTURE: ${{ inputs.picture && '1' || '' }}
+          OPENAI_API_KEY: ${{ inputs.picture && secrets.OPENAI_API_KEY || '' }}
         run: node scripts/league-feed.mjs out/sports-current.json out/sample-state.json
