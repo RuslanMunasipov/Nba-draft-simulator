@@ -27,18 +27,17 @@ export const usDay=(ms=Date.now())=>new Intl.DateTimeFormat('en-CA',{timeZone:'A
 export const moscowDay=(ms=Date.now())=>new Date(ms+3*3600e3).toISOString().slice(0,10);
 // The game day the morning run reports: from 06:00 to 14:00 Moscow time, the US evening twelve hours earlier.
 export const reportDay=(ms=Date.now())=>usDay(ms-12*3600e3);
-// The post of a day waits for every game of it (league chat, 21.10.2026: every number goes into the summary), then this
-// long for late box-score corrections. Only a postponed or cancelled game is not waited for.
-export const SETTLE_MS=15*60e3;
+// The post of a day goes out as soon as its last game is over (league chat, 22.10.2026); a box score corrected later
+// reaches the Monday post, which reads the week again. Only a postponed or cancelled game is not waited for.
 // The bot stays on a day from this long before its last game tips off (an hourly run starts it), then follows it.
 export const LEAD_MS=75*60e3;
-// What to do about a game day now, from ESPN's games of it (tip, final, off) and when all of them were first seen final:
+// What to do about a game day now, from ESPN's games of it (tip, final, off):
 // 'none' (no games), 'later' (the last game tips off more than LEAD_MS from now: a later run takes it), 'wait' (until the
-// last tip-off), 'poll' (games still running: check again), 'settle' (all over: wait for corrections) or 'post'.
-export function nextStep(games,now,allFinalAt){
+// last tip-off), 'poll' (games still running: check again) or 'post' (every game is over).
+export function nextStep(games,now){
  if(!games.length)return {do:'none'};
  const pending=games.filter(g=>!g.final&&!g.off);
- if(!pending.length){const at=Date.parse(allFinalAt||new Date(now).toISOString())+SETTLE_MS;return now>=at?{do:'post'}:{do:'settle',until:at};}
+ if(!pending.length)return {do:'post'};
  const last=Math.max(...pending.map(g=>Date.parse(g.tip)));
  if(last-now>LEAD_MS)return {do:'later',until:last};
  if(now<last)return {do:'wait',until:last,left:pending.length};

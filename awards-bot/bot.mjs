@@ -148,7 +148,7 @@ const dayPost=(day,lines,ctx,postponed)=>{
 // after its last day. Returns false when the day is not over within this run (a later run goes on with it).
 async function watchDay(day,ctx,archive,state){
  while(!state.posted.daily[day]){
-  const rec=state.days[day],step=nextStep(Object.values(rec?.games||{}),now(),rec?.allFinalAt);
+  const rec=state.days[day],step=nextStep(Object.values(rec?.games||{}),now());
   if(step.do==='none'){state.posted.daily[day]='no games';break;}
   if(step.do==='post'){
    await refresh([day],archive);
@@ -160,7 +160,7 @@ async function watchDay(day,ctx,archive,state){
   if(now()-START+wait>WATCH_MS){console.log(`${day}: ${step.do} goes past this run; the next run goes on.`);return false;}
   console.log(`${day}: ${step.do}${step.left?` (${step.left} game(s) to finish)`:''}, next check ${new Date(now()+wait).toISOString()}.`);
   save(state,archive);await sleep(wait);
-  if(step.do!=='settle')await archiveDay(day,state,archive,ctx.league);
+  await archiveDay(day,state,archive,ctx.league);
  }
  save(state,archive);
  if(isSunday(day)&&!state.posted.weekly[weekOf(day).start]){await weekly(day,ctx,archive,state,true);save(state,archive);}
