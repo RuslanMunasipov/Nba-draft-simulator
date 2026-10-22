@@ -19,11 +19,12 @@ const year=d=>d.slice(0,4);
 const signed=n=>n>0?'+'+int(n):int(n);
 // The fixed palette. Blocks: heroes gold, flops red, free agents green, the NBA antitop violet, records orange, races blue.
 const TONE={hero:'#f5b301',flop:'#ff4d5e',gold:'#22c55e',antitop:'#a06bff',record:'#ff8a1f',race:'#3ea6ff'};
-// The nominations: emblem icon, title, colours and hashtag.
+// The nominations: their key (a holiday's title layer, design/holidays/<holiday>-title-<key>), emblem icon, title, colours
+// and hashtag.
 export const NOMINATION={
- day:{icon:'⭐',title:'Итоги игрового дня',ring:['#ffcf40','#ff8a1f'],tag:'итоги_дня'},
- week:{icon:'🗓️',title:'Итоги недели',ring:['#3ea6ff','#7c5cff'],tag:'итоги_недели'},
- month:{icon:'🏅',title:'Символическая пятёрка',ring:['#22c55e','#ffcf40'],tag:'пятёрка_месяца'},
+ day:{key:'day',icon:'⭐',title:'Итоги игрового дня',ring:['#ffcf40','#ff8a1f'],tag:'итоги_дня'},
+ week:{key:'week',icon:'🗓️',title:'Итоги недели',ring:['#3ea6ff','#7c5cff'],tag:'итоги_недели'},
+ month:{key:'month',icon:'🏅',title:'Символическая пятёрка',ring:['#22c55e','#ffcf40'],tag:'пятёрка_месяца'},
 };
 // Slots per block: a block always has them all, an empty one is drawn as a dash, so the layout never moves.
 export const SLOTS={hero:3,flop:3,gold:3,antitop:3,weekHero:3,weekFlop:3,weekGold:3,mvp:10,roy:4,mef:4,sixth:4,record:3};
@@ -118,6 +119,8 @@ body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,
 .foot{margin-top:auto;display:flex;justify-content:space-between;font-size:19px;color:#7f8bb3;font-weight:600}
 .opener{align-items:center;justify-content:center;text-align:center;gap:28px}
 .emblem{width:600px;height:600px}
+.emblem.art{object-fit:contain;filter:drop-shadow(0 18px 42px #000000d9)}
+.tart{display:block;max-width:960px;max-height:230px;object-fit:contain;filter:drop-shadow(0 6px 24px #000000e6)}
 .otitle{font-family:Oswald;font-weight:700;font-size:90px;line-height:1;text-transform:uppercase;letter-spacing:2px}
 .odate{font-size:44px;font-weight:800;color:#dfe5ff}
 .osub{font-size:28px;font-weight:600;color:#aab4d4;display:flex;gap:10px;align-items:center;justify-content:center}
@@ -195,9 +198,12 @@ function page(look,fonts,{title,sub,foot='',holiday},body){
 }
 
 // --- The opener: the nomination's emblem (a ring with the league's name around the league's logo, assets/fbl-logo.png,
-// or the nomination's icon without it), its title and the date.
+// or the nomination's icon without it), its title and the date. A holiday's own layers (look.emblem, look.title: the
+// league's art, design/holidays) take the place of the drawn emblem and title; the date is always the code's.
 const sized=(html,px)=>html.replace('class="emo"',`class="emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*0.87)}px"`);
 function emblem(look,nom,holiday){
+ const art=holiday&&look.emblem?.(holiday.key);
+ if(art)return `<img class="emblem art trim" src="${art}">`;
  const [a,b]=nom.ring,logo=look.leagueLogo?.(holiday?.key);
  return `<svg class="emblem" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
 <path id="ring" d="M300,300 m-228,0 a228,228 0 1,1 456,0 a228,228 0 1,1 -456,0"/></defs>
@@ -206,9 +212,13 @@ function emblem(look,nom,holiday){
 <foreignObject x="125" y="125" width="350" height="350"><div xmlns="http://www.w3.org/1999/xhtml" style="width:350px;height:350px;display:flex;align-items:center;justify-content:center">${logo?`<img src="${logo}" style="width:350px;height:350px">`:sized(look.emoji(nom.icon),230)}</div></foreignObject>
 ${holiday?`<foreignObject x="418" y="418" width="160" height="160"><div xmlns="http://www.w3.org/1999/xhtml" style="width:150px;height:150px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#0b1020;border:6px solid ${a}">${sized(look.emoji(holiday.emoji),96)}</div></foreignObject>`:''}</svg>`;
 }
+function otitle(look,nom,holiday){
+ const art=holiday&&look.title?.(holiday.key,nom.key);
+ return art?`<img class="tart trim" src="${art}" alt="${esc(nom.title)}">`:`<div class="otitle">${esc(nom.title)}</div>`;
+}
 export function opener(look,fonts,{nom,date,sub,holiday}){
  return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||nom.ring)}</style></head><body><div class="card opener${framed(look,holiday)}">${decor(look,holiday,true)}
-${emblem(look,nom,holiday)}<div class="otitle">${esc(nom.title)}</div><div class="odate">${esc(date)}</div><div class="osub">${holiday?`${look.emoji(holiday.emoji)}${esc(holiday.name)} · `:''}${esc(sub)}</div>
+${emblem(look,nom,holiday)}${otitle(look,nom,holiday)}<div class="odate">${esc(date)}</div><div class="osub">${holiday?`${look.emoji(holiday.emoji)}${esc(holiday.name)} · `:''}${esc(sub)}</div>
 <div class="foot"><span>FBL · сезон 2026/27</span><span>ФО по формуле лиги FBL</span></div></div></body></html>`;
 }
 
