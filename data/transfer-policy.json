@@ -6,11 +6,10 @@
    "month": 0.5,
    "season": 0.5
   },
-  "movePrice": 25,
-  "weekDecay": true
+  "movePrice": 10
  },
- "chosen": "monthSeason/25/decay",
- "method": "Grid of horizon weights (season, monthSeason) × transfer prices (25, 50, 100 points of the weighted value per sale), each with and without the week's decay of the price (in full on Monday, 4/7 on Thursday), the season weighting at no price, and at 25 and 50 holding packages under 60% sure over the season; each played in 8 leagues of every backtest season (seeds 5-5, which the backtest's report does not score). Shipped: the most season points over every season. Out of sample: each season gets the variant chosen on the others.",
+ "chosen": "monthSeason/10",
+ "method": "Grid of horizon weights (season, monthSeason, weekMonthSeason) × transfer prices (10, 25, 50, 100 points of the weighted value per sale), each with and without the week's decay of the price (in full on Monday, 4/7 on Thursday), the season weighting at no price, and at 25 and 50 holding packages under 60% sure over the season; each played in 8 leagues of every backtest season (seeds 5-5, which the backtest's report does not score). Shipped: the most season points over every season. Out of sample: each season gets the variant chosen on the others.",
  "crossSeason": {
   "2023-24": {
    "chosenOn": [
@@ -26,41 +25,41 @@
     "movePrice": 25
    },
    "points": 13892,
-   "bestHere": "monthSeason/25/decay",
-   "bestHerePoints": 13933
+   "bestHere": "monthSeason/10/decay",
+   "bestHerePoints": 14034
   },
   "2024-25": {
    "chosenOn": [
     "2023-24",
     "2025-26"
    ],
-   "variant": "monthSeason/25/decay",
+   "variant": "monthSeason/10/decay",
    "params": {
     "weights": {
      "month": 0.5,
      "season": 0.5
     },
-    "movePrice": 25,
+    "movePrice": 10,
     "weekDecay": true
    },
-   "points": 13738,
-   "bestHere": "monthSeason/25",
-   "bestHerePoints": 13815
+   "points": 13711,
+   "bestHere": "weekMonthSeason/10",
+   "bestHerePoints": 13832
   },
   "2025-26": {
    "chosenOn": [
     "2023-24",
     "2024-25"
    ],
-   "variant": "monthSeason/25",
+   "variant": "monthSeason/10",
    "params": {
     "weights": {
      "month": 0.5,
      "season": 0.5
     },
-    "movePrice": 25
+    "movePrice": 10
    },
-   "points": 13106,
+   "points": 13118,
    "bestHere": "monthSeason/25/decay",
    "bestHerePoints": 13152
   }
@@ -140,6 +139,51 @@
    "2023-24": 13073,
    "2024-25": 12957,
    "2025-26": 12737
+  },
+  "season/10": {
+   "2023-24": 13644,
+   "2024-25": 13727,
+   "2025-26": 12852
+  },
+  "season/10/decay": {
+   "2023-24": 13689,
+   "2024-25": 13763,
+   "2025-26": 12814
+  },
+  "monthSeason/10": {
+   "2023-24": 13982,
+   "2024-25": 13795,
+   "2025-26": 13118
+  },
+  "monthSeason/10/decay": {
+   "2023-24": 14034,
+   "2024-25": 13711,
+   "2025-26": 13143
+  },
+  "weekMonthSeason/10": {
+   "2023-24": 13911,
+   "2024-25": 13832,
+   "2025-26": 13087
+  },
+  "weekMonthSeason/10/decay": {
+   "2023-24": 13919,
+   "2024-25": 13752,
+   "2025-26": 13044
+  },
+  "weekMonthSeason/25": {
+   "2023-24": 13636,
+   "2024-25": 13779,
+   "2025-26": 12932
+  },
+  "weekMonthSeason/25/decay": {
+   "2023-24": 13778,
+   "2024-25": 13652,
+   "2025-26": 13075
+  },
+  "monthSeason/0": {
+   "2023-24": 13895,
+   "2024-25": 13682,
+   "2025-26": 12956
   }
  }
 }
