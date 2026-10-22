@@ -13,6 +13,9 @@ try{
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url,{waitUntil:'networkidle'});
  await page.waitForFunction(()=>/База готова/.test(document.getElementById('startup-status')?.textContent||''),null,{timeout:60000});
+ // Every season view (one module each, src/season-ui/) renders.
+ for(const name of ['Обзор','Команды','Травмы','Матчи']){await page.getByRole('button',{name}).first().click();await page.waitForTimeout(1200);
+  assert.ok((await page.locator('#season-body').innerText()).length>50,name+' renders');}
  await page.getByRole('button',{name:'Трансферы'}).first().click();await page.waitForTimeout(2000);
  const why=page.locator('.sp-why').first();
  if(await why.count()){await why.locator('summary').click();await page.waitForTimeout(300);assert.match(await why.innerText(),/Уверенность/);}
@@ -25,7 +28,7 @@ try{
  await page.getByRole('button',{name:'Анализатор'}).first().click();await page.waitForTimeout(1500);
  assert.ok(await page.locator('.mk-row').count()>=10,'sorted by the analyser');
  await page.getByRole('button',{name:'ФО/матч'}).first().click();await page.waitForTimeout(500);
- // The awards page: the day's top ten of the NBA from the awards bot's archive, and the season races.
+ // The awards page: the day's top ten of the NBA from the awards bot's summary (site.json), and the season races.
  await page.getByRole('button',{name:'Награды'}).first().click();await page.waitForSelector('.aw-list .aw-row',{timeout:30000});
  assert.ok(await page.locator('.aw-list .aw-row').count()>=3,'the day\'s top from the awards archive');
  await page.locator('.aw-tabs button').nth(2).click();await page.waitForTimeout(1500);
@@ -43,6 +46,6 @@ try{
  assert.ok(found>=8,'rookie filter shows rookies: '+found);
  const toggles=page.locator('.player-toggle');for(let i=0;i<Math.min(5,await toggles.count());i++){await toggles.nth(i).click();await page.waitForTimeout(150);}
  assert.deepEqual(errors,[],'no script errors');
- console.log(`Browser smoke passed: ${found} rookies listed, players and awards pages, rules for 8 teams, transfer explanation and player cards render without errors`);
+ console.log(`Browser smoke passed: ${found} rookies listed, every season view, players and awards pages, rules for 8 teams, transfer explanation and player cards render without errors`);
  await browser.close();
 }finally{if(server)try{process.kill(-server.pid);}catch{}}

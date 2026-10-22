@@ -7,7 +7,8 @@ import {combineNote,forecastSources,seasonRangeLine,rangeMethod,healthLine,absen
 import {playerInsights} from '../src/insights.js';
 import {CALIBRATION} from '../src/season.js';
 import {injuryFeed,injuryWarning,isOut,returnHead,returnKey,warnedFor,stillInjured} from '../scripts/telegram-format.mjs';
-const source=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'),plain=s=>s.replace(/ /g,' ');
+// The season tab is src/season-ui.js and its view modules in src/season-ui/: read as one text.
+const read=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8'),source=f=>f==='src/season-ui.js'?[f,...fs.readdirSync(new URL('../src/season-ui/',import.meta.url)).sort().map(x=>'src/season-ui/'+x)].map(read).join('\n'):read(f),plain=s=>s.replace(/ /g,' ');
 
 // ---------- The season tab scores with the installed catalog ----------
 const players=Array.from({length:120},(_,i)=>({id:i+1,name:'SYNTHETIC '+i,positions:['PG','SG','SF','PF','C'],projectedFP:120-i,isRookie:i<20,forecast:{meanPerGame:30-i/10,games:70}}));
