@@ -51,7 +51,9 @@ class BoxScoreOnlyTests(unittest.TestCase):
         head = ''.join(f'<td>{h}</td>' for h in ['Дата', 'Соперник', '', 'МИН', 'ФО', 'С'])
         g = c.parse_games(fixes.table('<tr><td>24.10.2026</td><td>Сан-Антонио</td><td>Г</td><td>18:15</td><td>32</td><td>3500</td></tr>', head=head))[0]
         self.assertEqual(view(g), (None, 'NO_BOX', 32, None, None))
-        self.assertFalse(hasattr(c, 'fbl_points'))
+        # The old derivation (Sports.ru's points less its bonuses) is gone: the collector's only fbl_points is the official
+        # formula (league owner, 22.10.2026), applied to the box score.
+        self.assertIn(c.fbl_points.__module__, ('fbl_formula', 'scripts.fbl_formula'))
 
     def test_many_tables_without_a_box_score_are_a_layout_change_and_are_refused(self):
         clubs = fixes.clubs_of(30, 80)
