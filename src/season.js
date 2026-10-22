@@ -881,7 +881,9 @@ export function withBoxScores(live,games,players){
    const sid=byEspn.get(eid),info=sid&&out.players[sid];if(!info||!Number.isFinite(x.counting))continue;
    const rows=[...(info.games||[])],i=rows.findIndex(o=>o.date===day),row=i>=0?rows[i]:null;let next;
    if(g.final){
-    const exact=/^\d+:\d{2}$/.test(String(row?.minutes??''))&&clockMinutes(row.minutes)>0?clockMinutes(row.minutes):x.minutes;
+    // Sports.ru's exact mm:ss only when it agrees with ESPN's minutes within one (its table can be wrong: 57:00 beside an
+    // all-zero line, Acuff 22.10); otherwise ESPN's, the source of the points.
+    const exact=/^\d+:\d{2}$/.test(String(row?.minutes??''))&&clockMinutes(row.minutes)>0&&Math.abs(clockMinutes(row.minutes)-x.minutes)<=1?clockMinutes(row.minutes):x.minutes;
     // The Sports.ru row's points and their source stay beside ESPN's (a 'NO_BOX' row must not mark ESPN's line unknown).
     next={...(row||{date:day}),tip:row?.tip||g.date,minutes:row&&exact!==x.minutes?row.minutes:String(x.minutes),points:x.counting+GAME_PLAYED,played:true,source:'ESPN',
      ...(row?{sportsRowPoints:row.points}:{}),...(row?.pointsSource?{pointsSource:'ESPN',sportsRowSource:row.pointsSource}:{})};
