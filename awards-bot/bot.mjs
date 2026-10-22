@@ -15,6 +15,10 @@
 //                                                   --holiday: the cards dressed for that holiday of holidays.js;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
 //                                                   OPENAI_API_KEY, drawn, ~$0.03)
+//   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--cards DIR]
+//                                                   Mike Roffon's interview of an archived day by hand (workflow
+//                                                   mike-roffon.yml): written and drawn, posted into the league chat
+//                                                   by his bot with --send; the state is only read, never saved
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
@@ -225,13 +229,12 @@ async function telegram(token,method,body){
  if(!r.ok||!out.ok)throw Error(`Telegram ${method}: ${r.status} ${out.description||''}`);
  return out.result;
 }
-async function mikeInterview(day,lines,ctx,state){
+async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigured(env),write=flag('--mike')}={}){
  const hero=dailyBlocks(lines.filter(l=>l.d===day)).heroes[0];
  if(!hero)return null;
  const g=state?.days?.[day]?.games?.[hero.e],opponent=g?(g.home===hero.c?g.away:g.home):null;
  const facts=interviewFacts(day,hero,ctx.who,{form:form(lines,day),opponent,holiday:holidayFor(day)});
- const send=live&&MIKE&&claudeConfigured(env);
- if(!send&&!flag('--mike')){console.log(`\n===== Mike Roffon (not written) =====\n${JSON.stringify(facts)}\n`);return null;}
+ if(!send&&!write){console.log(`\n===== Mike Roffon (not written) =====\n${JSON.stringify(facts)}\n`);return null;}
  try{
   const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
@@ -351,8 +354,23 @@ async function resend(day){
  await dayPost(day,archive.lines,await loadLeague(),[]);
 }
 
-const day=opt('--preview'),again=opt('--resend');
-if(day)await preview(day);
+// Mike Roffon's interview of an archived day by hand: written, drawn and, with --send, posted by his bot. The state is
+// only read (the awards bot's chain may hold it): nothing is saved, so each run with --send posts again.
+async function mikeByHand(day){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('--mike-day: a US game day, YYYY-MM-DD');
+ const state=read('state.json',fresh()),archive=read('archive.json',{lines:[]});
+ if(!archive.lines.some(l=>l.d===day))throw Error(`--mike-day: no archived games of ${day}`);
+ const send=flag('--send');
+ if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)]].filter(x=>!x[1]).map(x=>x[0]);
+  if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
+ const m=await mikeInterview(day,archive.lines,await loadLeague(),state,{send,write:true});
+ if(!m)throw Error(`${day}: no hero of the day`);
+ if(m.status!==(send?'sent':'preview'))process.exitCode=1;
+}
+
+const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day');
+if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
+else if(day)await preview(day);
 else if(STATE_DIR&&again)await resend(again);
 else if(STATE_DIR)await scheduled();
-else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD] | --preview YYYY-MM-DD [--week] [--month]');process.exit(2);}
+else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD | --mike-day YYYY-MM-DD [--send]] | --preview YYYY-MM-DD [--week] [--month]');process.exit(2);}
