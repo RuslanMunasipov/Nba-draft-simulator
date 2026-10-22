@@ -222,9 +222,14 @@ function chainCurve(h,share,n){
  if(!(h[0]+h[1]>0))return flat();
  const key=`${h[0]},${h[1]},${share.toFixed(3)}`;let c=curves.get(key);
  if(c===undefined){
-  const run=(m,len)=>{const hs=h[0]*m,hl=h[1]*m,stay=Math.max(0,1-hs-hl),out=[];let p=new Float64Array(LENGTHS.longLengths.length);p[0]=1;
-   for(let j=0;j<len;j++){const a=p[0],q=new Float64Array(p.length);out.push(a*stay);for(let r=1;r<p.length;r++)q[r-1]=p[r];q[0]+=a*stay;
-    for(let k=1;k<p.length;k++)q[k-1]+=a*(hs*(LENGTHS.shortLengths[k]||0)+hl*LENGTHS.longLengths[k]);p=q;}
+  // p[r]: chance the player is r games from being available (0: available now). A step plays a game with a*stay, moves
+  // every spell one game on, and starts a spell of length k with a*w[k]. A ring buffer moves the spells without copying.
+  const n=LENGTHS.longLengths.length,w=new Float64Array(n),p=new Float64Array(n);
+  const run=(m,len)=>{const hs=h[0]*m,hl=h[1]*m,stay=Math.max(0,1-hs-hl),out=[];
+   for(let k=1;k<n;k++)w[k]=hs*(LENGTHS.shortLengths[k]||0)+hl*LENGTHS.longLengths[k];
+   p.fill(0);p[0]=1;let head=0;
+   for(let j=0;j<len;j++){const a=p[head];out.push(a*stay);p[head]=0;head=head+1===n?0:head+1;
+    p[head]+=a*stay;for(let k=1,i=head;k<n;k++,i=i+1===n?0:i+1)p[i]+=a*w[k];}
    return out;};
   const mean=m=>run(m,82).reduce((s,x)=>s+x,0)/82;let lo=-6,hi=6;
   if(mean(Math.exp(hi))>=share||mean(Math.exp(lo))<=share)c=null;
@@ -358,9 +363,12 @@ export function current(player,ctx){
  const live=ctx.live?.players?.[player.sportsId];
  return {...player,positions:live?.position&&POSITIONS.includes(live.position)?[live.position]:player.positions,price:Number.isFinite(live?.price)?live.price:player.price,club:live?.club||player.sportsClub||null};
 }
+// ctx.outlooks: an optional Map shared by every call on one unchanged ctx (the backtest's decision moment): a player's
+// outlook does not depend on the rosters, so one computation serves every team.
 export function playerOutlook(player,ctx){
+ const memo=ctx.outlooks;if(memo?.has(player.id))return memo.get(player.id);
  const h=horizons(ctx),out={};for(const [k,v] of Object.entries(h))out[k]=expectedPoints(player,ctx,v.from,v.to);
- return out;
+ memo?.set(player.id,out);return out;
 }
 // Holdings that score nothing now (standings.js shadowedHoldings): a later buyer's slot of a player another FBL team had
 // first and still holds (stints). Advice values such a slot at 0, as the league table and the race do: selling him costs
