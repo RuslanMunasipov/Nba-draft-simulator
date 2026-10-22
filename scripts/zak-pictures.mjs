@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {LEAGUE_TEAMS} from '../src/teams.js';
-import {references,zakPhoto,gmPhoto,teamLogo,generate,cost} from './image-pipeline.mjs';
+import {references,zakPhoto,gmPhoto,gmOf,looks,teamLogo,generate,cost} from './image-pipeline.mjs';
 
 const hash=seed=>{let h=0;for(const ch of String(seed))h=(h*31+ch.codePointAt(0))>>>0;return h;};
 // His photo of each verdict: the red-cap ones (violation.jpg has a navy cap, the prompt keeps him in the red one).
@@ -96,15 +96,16 @@ export function sceneOf({kind,rules=[],standing=false,fixed=false,watched=false}
 // The picture of a protocol: kind (approved, check, violation), the team's index (0 to 7), the protocol's number, a seed
 // (its first deal: a protocol always gets the same scene) and the case (sceneOf).
 export function zakPicture({kind,team,no,seed,root,...story}){
- const gmName=LEAGUE_TEAMS[team]?.gm;
+ const gm=gmOf(team),gmName=gm?.en||LEAGUE_TEAMS[team]?.gm;
  const refs=references([{key:'zak',image:zakPhoto(ZAK_MOOD[kind]||'check',root),what:'Zak Onn, the league lawyer'},
   {key:'gm',image:gmPhoto(team,root),what:`the general manager of the fantasy team${gmName?` (${gmName})`:''}`},
   {key:'logo',image:teamLogo(team,root),what:'the fantasy team logo'}]);
- const G=refs.has.gm?`the general manager (the exact person from ${refs.has.gm}, face preserved and recognizable)`
-  :'the team\'s general manager, seen only from behind';
+ const G=refs.has.gm?`${gm?.en||'the general manager'} (the general manager, ${refs.has.gm})`:'the team\'s general manager, seen only from behind';
+ // Who the GM is and what never changes about them, in a block of its own (the scene names them only).
+ const who=refs.has.gm?`GENERAL MANAGER: the exact person from ${refs.has.gm}, face preserved and recognizable${gm?`: ${looks(gm)}`:''}.`:'';
  const L=refs.has.logo?`the team logo from ${refs.has.logo}, reproduced exactly`:null;
  const key=sceneOf({kind,...story}),list=SCENES[key]||SCENES[kind]||SCENES.check,scene=list[hash(`${seed}:${key}`)%list.length];
- return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),scene({G,L,C:`FBL CASE ${no}`}),STYLE].filter(Boolean).join('\n\n')};
+ return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),who,scene({G,L,C:`FBL CASE ${no}`}),STYLE].filter(Boolean).join('\n\n')};
 }
 
 // Draws a protocol's picture into a temporary PNG. Answers its path, or null when it could not be drawn (the protocol then
