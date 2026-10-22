@@ -1,9 +1,10 @@
 """The site's player database without what no page reads (the last build step before the bundle).
 public/data/default-draft.json is about 3.9 MB built: the build's audits and per-player provenance fields no module of
-the site, the personal bot or the awards bot reads go to public/data/default-draft-audits.json (nothing is lost), and
-floating-point numbers keep 4 decimals (a forecast of 31.461775144035716 FP is 31.4618). The checks of the build run
-before this step on the full file; the uploaded build artifact keeps it whole.
-Usage: slim_database.py [path]  (default public/data/default-draft.json)"""
+the site, the personal bot or the awards bot reads go to default-draft-audits.json beside it (nothing is lost), and
+floating-point numbers keep 4 decimals (a forecast of 31.461775144035716 FP is 31.4618). It runs on the built site
+(dist/data) after the build's checks (scripts/verify-build.js reads the audits and checks identities to 1e-6 on the
+full file) and before the browser smoke test; the uploaded build artifact keeps the full file.
+Usage: slim_database.py [path]  (default dist/data/default-draft.json)"""
 import json,sys
 from pathlib import Path
 
@@ -34,7 +35,7 @@ def slim(data):
     return out,audits
 
 if __name__=='__main__':
-    path=Path(sys.argv[1] if len(sys.argv)>1 else 'public/data/default-draft.json')
+    path=Path(sys.argv[1] if len(sys.argv)>1 else 'dist/data/default-draft.json')
     before=path.stat().st_size;data,audits=slim(json.loads(path.read_text(encoding='utf-8')))
     path.with_name('default-draft-audits.json').write_text(json.dumps(audits,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     path.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
