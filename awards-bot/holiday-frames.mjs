@@ -3,7 +3,9 @@
 // drawn once by the picture pipeline (scripts/image-pipeline.mjs) as a transparent portrait whose ornaments keep to the
 // edges, then kept in awards-bot/assets/holidays/<key>.webp and laid over the cards of that holiday every year.
 // The centre is cleared after drawing (frame-clean.py), so a frame never covers a card's numbers.
-// Usage: node awards-bot/holiday-frames.mjs [KEY ...]   (no keys: every holiday without a frame yet; --force: redraw)
+// With --backgrounds it draws instead a full background per holiday, in the style of a special-edition card promo
+// (Christmas, Halloween, St Patrick's...), kept as <key>-bg.webp: the league's own art in design/backgrounds wins over it.
+// Usage: node awards-bot/holiday-frames.mjs [--backgrounds] [KEY ...]   (no keys: every holiday without one yet; --force)
 // Env: OPENAI_API_KEY (or a proxy that adds it).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,23 +49,28 @@ Theme: ${THEMES[h.key]||h.name}.
 Style: polished premium sports-broadcast illustration, rich colour, soft glow, crisp detail, consistent lighting, made to sit on a dark navy background.
 No text, no letters, no numbers, no logos, no human faces.`;
 
-async function draw(h){
- const out=path.join(DIR,`${h.key}.webp`),raw=path.join(DIR,`${h.key}.raw.png`);
- const {png,usage}=await generate({prompt:prompt(h),size:'1024x1536',background:'transparent'},{key:process.env.OPENAI_API_KEY});
+const backgroundPrompt=h=>`A full background artwork for a special-edition sports trading card promo, in the style of the holiday promo cards of football card games, portrait orientation.
+Theme: ${THEMES[h.key]||h.name}. Colours: built around ${h.accent.join(' and ')} on deep dark tones.
+Composition: bold abstract graphic design: diagonal light beams, glossy gradients, angular geometric shards, metallic foil accents and glow, the theme's motifs as a subtle repeating pattern and a few larger stylised motifs towards the edges. The centre stays darker and calmer so that white text and photos on top remain readable.
+No text, no letters, no numbers, no logos, no people, no faces.`;
+const file=(h,bg)=>path.join(DIR,`${h.key}${bg?'-bg':''}.webp`);
+async function draw(h,bg){
+ const out=file(h,bg),raw=out.replace(/\.webp$/,'.raw.png');
+ const {png,usage}=await generate(bg?{prompt:backgroundPrompt(h),size:'1024x1536'}:{prompt:prompt(h),size:'1024x1536',background:'transparent'},{key:process.env.OPENAI_API_KEY});
  fs.writeFileSync(raw,png);
- // The centre cleared and the frame packed as WebP (a transparent PNG is megabytes).
- execFileSync('python3',['-I',fileURLToPath(new URL('./frame-clean.py',import.meta.url)),raw,out],{stdio:'inherit'});
+ // A frame gets its centre cleared; both are packed as WebP (a PNG is megabytes).
+ execFileSync('python3',['-I',fileURLToPath(new URL('./frame-clean.py',import.meta.url)),raw,out,...bg?['--keep']:[]],{stdio:'inherit'});
  fs.unlinkSync(raw);
  console.log(`${h.key}: $${cost(usage).toFixed(4)}`);
  return cost(usage);
 }
 
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- const args=process.argv.slice(2),force=args.includes('--force'),keys=args.filter(a=>!a.startsWith('--'));
+ const args=process.argv.slice(2),force=args.includes('--force'),bg=args.includes('--backgrounds'),keys=args.filter(a=>!a.startsWith('--'));
  fs.mkdirSync(DIR,{recursive:true});
- const todo=HOLIDAYS.filter(h=>keys.length?keys.includes(h.key):force||!fs.existsSync(path.join(DIR,`${h.key}.webp`)));
+ const todo=HOLIDAYS.filter(h=>keys.length?keys.includes(h.key):force||!fs.existsSync(file(h,bg)));
  let spent=0;
- const results=await Promise.allSettled(todo.map(h=>draw(h)));
+ const results=await Promise.allSettled(todo.map(h=>draw(h,bg)));
  results.forEach((r,i)=>{if(r.status==='fulfilled')spent+=r.value;else console.error(`${todo[i].key}: ${r.reason?.message||r.reason}`);});
- console.log(`${todo.length} frame(s), $${spent.toFixed(3)}`);
+ console.log(`${todo.length} ${bg?'background':'frame'}(s), $${spent.toFixed(3)}`);
 }

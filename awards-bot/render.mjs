@@ -8,6 +8,7 @@ import {chromium} from '@playwright/test';
 import {WIDTH,HEIGHT,CARD_EMOJI} from './cards.js';
 import {teamLogo} from '../scripts/image-pipeline.mjs';
 
+const TYPE={png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg'};
 const dataUri=(bytes,type)=>`data:${type};base64,${Buffer.from(bytes).toString('base64')}`;
 const font=f=>dataUri(fs.readFileSync(new URL(`./assets/fonts/${f}`,import.meta.url)),'font/ttf');
 export const FONTS={get manrope(){return font('Manrope.ttf');},get oswald(){return font('Oswald.ttf');}};
@@ -31,9 +32,16 @@ export async function loadLook(athletes,{root}={}){
  const frames=new Map(),frame=key=>{
   if(!frames.has(key)){const f=new URL(`./assets/holidays/${key}.webp`,import.meta.url);frames.set(key,fs.existsSync(f)?dataUri(fs.readFileSync(f),'image/webp'):null);}
   return frames.get(key);};
- // The league's logo (Fantasy Brothers League): the crowned ball at the heart of every opener.
- const league=new URL('./assets/fbl-logo.png',import.meta.url),leagueLogo=fs.existsSync(league)?dataUri(fs.readFileSync(league),'image/png'):null;
- return {photo:a=>photos.get(String(a))||null,logo:t=>logos.get(t)||null,frame,leagueLogo:()=>leagueLogo,
+ // The league's logo (Fantasy Brothers League): the crowned ball at the heart of every opener, dressed for a holiday when
+ // design/logos has that holiday's version. A holiday's background: design/backgrounds (the league's art), else the one
+ // holiday-frames.mjs drew.
+ const league=new URL('./assets/fbl-logo.png',import.meta.url),plain=fs.existsSync(league)?dataUri(fs.readFileSync(league),'image/png'):null;
+ const art=new Map(),find=(kind,key,fallback)=>{const k=kind+':'+key;
+  if(!art.has(k)){const f=[...['png','webp','jpg','jpeg'].map(e=>new URL(`../design/${kind}/${key}.${e}`,import.meta.url)),...fallback?[fallback]:[]].find(u=>fs.existsSync(u));
+   art.set(k,f?dataUri(fs.readFileSync(f),TYPE[f.pathname.split('.').pop()]):null);}
+  return art.get(k);};
+ return {photo:a=>photos.get(String(a))||null,logo:t=>logos.get(t)||null,frame,
+  leagueLogo:key=>key&&find('logos',key)||plain,background:key=>find('backgrounds',key,new URL(`./assets/holidays/${key}-bg.webp`,import.meta.url)),
   emoji:e=>emoji.has(e)?`<img class="emo" src="${emoji.get(e)}">`:`<span class="emo">${e}</span>`};
 }
 
