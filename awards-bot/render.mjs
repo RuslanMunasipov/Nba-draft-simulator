@@ -21,6 +21,12 @@ export const twemojiName=e=>{const cps=[...e].map(c=>c.codePointAt(0));return (c
 const TWEMOJI='https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/';
 const HEADSHOT=a=>`https://a.espncdn.com/i/headshots/nba/players/full/${a}.png`;
 
+// A player's ESPN headshot as a reference image for the picture pipeline ({bytes, name, type}); null when it cannot be had.
+export async function headshot(a){
+ const x=await fetchBytes(HEADSHOT(a));
+ return x&&/image/.test(x.type)?{bytes:x.bytes,name:`${a}.png`,type:'image/png'}:null;
+}
+
 // The league's art of a holiday (design/, see its README), read once when a card asks for it; null where there is none.
 // A holiday's layers (design/holidays/<key>-<part>, made in ChatGPT): bg, the background of every card of the holiday,
 // before any other; emblem and title-day/-week/-month, the opener's emblem and title instead of the drawn ones. Without
