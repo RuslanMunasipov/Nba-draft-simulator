@@ -1,0 +1,653 @@
+{
+ "version": 2,
+ "generatedBy": "scripts/transfer_backtest.mjs",
+ "inputs": [
+  "2023-24.json",
+  "2024-25.json",
+  "2025-26.json"
+ ],
+ "inputStats": {
+  "2023-24": {
+   "population": {
+    "players": 539,
+    "rookies": 103
+   },
+   "prices": {
+    "rule": {
+     "intercept": 0.444,
+     "perFblPoint": 1.0461,
+     "games": 17525
+    },
+    "opening": {
+     "players": 250,
+     "rookies": 38,
+     "veteranRMSE": 102.7,
+     "floor": 1000
+    },
+    "real": 303,
+    "modelled": 236
+   },
+   "injuryReports": {
+    "reports": 171,
+    "unmatchedNames": 51
+   },
+   "positions": {
+    "STAT_PROFILE": 207,
+    "SPORTS_RU_2026": 310,
+    "DEFAULT": 22
+   }
+  },
+  "2024-25": {
+   "population": {
+    "players": 560,
+    "rookies": 104
+   },
+   "prices": {
+    "rule": {
+     "intercept": 0.457,
+     "perFblPoint": 1.0463,
+     "games": 19866
+    },
+    "opening": {
+     "players": 293,
+     "rookies": 44,
+     "veteranRMSE": 109,
+     "floor": 1000
+    },
+    "real": 367,
+    "modelled": 193
+   },
+   "injuryReports": {
+    "reports": 170,
+    "unmatchedNames": 31
+   },
+   "positions": {
+    "STAT_PROFILE": 168,
+    "SPORTS_RU_2026": 371,
+    "DEFAULT": 21
+   }
+  },
+  "2025-26": {
+   "population": {
+    "players": 577,
+    "rookies": 105
+   },
+   "prices": {
+    "rule": {
+     "intercept": 0.385,
+     "perFblPoint": 1.052,
+     "games": 23201
+    },
+    "opening": {
+     "players": 352,
+     "rookies": 48,
+     "veteranRMSE": 116.1,
+     "floor": 998
+    },
+    "real": 433,
+    "modelled": 144
+   },
+   "injuryReports": {
+    "reports": 169,
+    "unmatchedNames": 25
+   },
+   "positions": {
+    "STAT_PROFILE": 117,
+    "SPORTS_RU_2026": 439,
+    "DEFAULT": 21
+   }
+  }
+ },
+ "planNegativeSeason": {
+  "count": 0,
+  "of": 984
+ },
+ "design": {
+  "leaguesPerSeason": 8,
+  "seeds": 1,
+  "fromSeed": 1,
+  "slots": 8,
+  "policies": [
+   "currentNewModel",
+   "plan"
+  ],
+  "decisions": "Moscow Monday 12:00 (after the week's last games; moves count for the next week) and Moscow Thursday 12:00",
+  "rivals": "seven teams drafted with noisy valuations (sd 15%), each playing the decision as shipped (src/transfer-plan.js) at every decision",
+  "realGain": "points the newcomer really scored minus the points the player sold really scored, over the window the move was judged on (Moscow dates after the decision)"
+ },
+ "seasons": {
+  "2023-24": {
+   "policies": {
+    "currentNewModel": {
+     "runs": 8,
+     "points": 13481.4,
+     "rank": 5.25,
+     "monthly": {
+      "2023-10": 487,
+      "2023-11": 2464.3,
+      "2023-12": 2281.5,
+      "2024-01": 2527.3,
+      "2024-02": 1973.5,
+      "2024-03": 2457.5,
+      "2024-04": 1290.4
+     },
+     "movesPerSeason": 31.5,
+     "buyBacks": {
+      "perSeason": 4.13,
+      "meanRealGain": {
+       "week": 14.5,
+       "month": 52.5,
+       "season": 74.7
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 18,
+       "ci95": [
+        16.1,
+        19.9
+       ],
+       "positive": 68.7,
+       "meanPredicted": 63.2
+      },
+      "month": {
+       "meanRealGain": 43.1,
+       "ci95": [
+        35.3,
+        51.1
+       ],
+       "positive": 65.9,
+       "meanPredicted": 134
+      },
+      "season": {
+       "meanRealGain": 80.5,
+       "ci95": [
+        60.2,
+        99.7
+       ],
+       "positive": 62.3,
+       "meanPredicted": 140.4
+      }
+     }
+    },
+    "plan": {
+     "runs": 8,
+     "points": 13979.3,
+     "rank": 4,
+     "monthly": {
+      "2023-10": 428.9,
+      "2023-11": 2254.8,
+      "2023-12": 2479.5,
+      "2024-01": 2804.1,
+      "2024-02": 2097.8,
+      "2024-03": 2585.1,
+      "2024-04": 1329.1
+     },
+     "movesPerSeason": 44.1,
+     "buyBacks": {
+      "perSeason": 9.75,
+      "meanRealGain": {
+       "week": 11.5,
+       "month": 30,
+       "season": 37.4
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 12,
+       "ci95": [
+        10.1,
+        13.9
+       ],
+       "positive": 66.3,
+       "meanPredicted": 38.6
+      },
+      "month": {
+       "meanRealGain": 33.2,
+       "ci95": [
+        29.1,
+        37.7
+       ],
+       "positive": 60.3,
+       "meanPredicted": 73.8
+      },
+      "season": {
+       "meanRealGain": 68.8,
+       "ci95": [
+        58.9,
+        76.7
+       ],
+       "positive": 59.2,
+       "meanPredicted": 114.1
+      }
+     }
+    }
+   },
+   "differences": {
+    "plan-currentNewModel": {
+     "mean": 497.9,
+     "ci95": [
+      312.1,
+      676
+     ],
+     "leagues": 8,
+     "better": 8
+    }
+   }
+  },
+  "2024-25": {
+   "policies": {
+    "currentNewModel": {
+     "runs": 8,
+     "points": 13585,
+     "rank": 3,
+     "monthly": {
+      "2024-10": 705.4,
+      "2024-11": 2560.3,
+      "2024-12": 2147.3,
+      "2025-01": 2596.5,
+      "2025-02": 2012.8,
+      "2025-03": 2518.3,
+      "2025-04": 1044.6
+     },
+     "movesPerSeason": 20.5,
+     "buyBacks": {
+      "perSeason": 1.63,
+      "meanRealGain": {
+       "week": 10.6,
+       "month": 13.5,
+       "season": 54.9
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 13.3,
+       "ci95": [
+        10.2,
+        16.9
+       ],
+       "positive": 63.4,
+       "meanPredicted": 55.5
+      },
+      "month": {
+       "meanRealGain": 41.7,
+       "ci95": [
+        28.1,
+        54
+       ],
+       "positive": 64,
+       "meanPredicted": 116.6
+      },
+      "season": {
+       "meanRealGain": 75,
+       "ci95": [
+        48.6,
+        103.1
+       ],
+       "positive": 60.4,
+       "meanPredicted": 161.8
+      }
+     }
+    },
+    "plan": {
+     "runs": 8,
+     "points": 13511.1,
+     "rank": 2.88,
+     "monthly": {
+      "2024-10": 689.9,
+      "2024-11": 2514.4,
+      "2024-12": 2216.9,
+      "2025-01": 2578,
+      "2025-02": 2001.3,
+      "2025-03": 2480.4,
+      "2025-04": 1030.4
+     },
+     "movesPerSeason": 34.9,
+     "buyBacks": {
+      "perSeason": 6.88,
+      "meanRealGain": {
+       "week": 10.4,
+       "month": 22.5,
+       "season": 37.8
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 9.7,
+       "ci95": [
+        6.1,
+        13.6
+       ],
+       "positive": 60.6,
+       "meanPredicted": 39.1
+      },
+      "month": {
+       "meanRealGain": 17.7,
+       "ci95": [
+        12.6,
+        23.2
+       ],
+       "positive": 60.2,
+       "meanPredicted": 71.2
+      },
+      "season": {
+       "meanRealGain": 42,
+       "ci95": [
+        29,
+        55.3
+       ],
+       "positive": 55.9,
+       "meanPredicted": 124.1
+      }
+     }
+    }
+   },
+   "differences": {
+    "plan-currentNewModel": {
+     "mean": -73.9,
+     "ci95": [
+      -318,
+      192.9
+     ],
+     "leagues": 8,
+     "better": 5
+    }
+   }
+  },
+  "2025-26": {
+   "policies": {
+    "currentNewModel": {
+     "runs": 8,
+     "points": 11946.4,
+     "rank": 6.75,
+     "monthly": {
+      "2025-10": 666.8,
+      "2025-11": 2301.5,
+      "2025-12": 2019.3,
+      "2026-01": 2223.1,
+      "2026-02": 1553.9,
+      "2026-03": 2303.3,
+      "2026-04": 878.6
+     },
+     "movesPerSeason": 33.3,
+     "buyBacks": {
+      "perSeason": 4.13,
+      "meanRealGain": {
+       "week": 18.6,
+       "month": 50,
+       "season": 73
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 18.3,
+       "ci95": [
+        14.9,
+        22.1
+       ],
+       "positive": 72.6,
+       "meanPredicted": 74.8
+      },
+      "month": {
+       "meanRealGain": 49.4,
+       "ci95": [
+        42.9,
+        54.8
+       ],
+       "positive": 67.7,
+       "meanPredicted": 144
+      },
+      "season": {
+       "meanRealGain": 97.9,
+       "ci95": [
+        76.4,
+        121.2
+       ],
+       "positive": 60.5,
+       "meanPredicted": 142.4
+      }
+     }
+    },
+    "plan": {
+     "runs": 8,
+     "points": 12509.1,
+     "rank": 5,
+     "monthly": {
+      "2025-10": 660.9,
+      "2025-11": 2398,
+      "2025-12": 2072.5,
+      "2026-01": 2311.5,
+      "2026-02": 1630.5,
+      "2026-03": 2521.5,
+      "2026-04": 914.3
+     },
+     "movesPerSeason": 44,
+     "buyBacks": {
+      "perSeason": 9.63,
+      "meanRealGain": {
+       "week": 11.4,
+       "month": 19.3,
+       "season": 22.1
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 15.7,
+       "ci95": [
+        13.5,
+        17.4
+       ],
+       "positive": 70.5,
+       "meanPredicted": 47.3
+      },
+      "month": {
+       "meanRealGain": 44.2,
+       "ci95": [
+        36.3,
+        53.6
+       ],
+       "positive": 69.6,
+       "meanPredicted": 88.9
+      },
+      "season": {
+       "meanRealGain": 86.8,
+       "ci95": [
+        67.6,
+        105.7
+       ],
+       "positive": 61.4,
+       "meanPredicted": 117.4
+      }
+     }
+    }
+   },
+   "differences": {
+    "plan-currentNewModel": {
+     "mean": 562.8,
+     "ci95": [
+      172.3,
+      938.5
+     ],
+     "leagues": 8,
+     "better": 7
+    }
+   }
+  },
+  "all": {
+   "policies": {
+    "currentNewModel": {
+     "runs": 24,
+     "points": 13004.3,
+     "rank": 5,
+     "monthly": {
+      "2023-10": 487,
+      "2023-11": 2464.3,
+      "2023-12": 2281.5,
+      "2024-01": 2527.3,
+      "2024-02": 1973.5,
+      "2024-03": 2457.5,
+      "2024-04": 1290.4,
+      "2024-10": 705.4,
+      "2024-11": 2560.3,
+      "2024-12": 2147.3,
+      "2025-01": 2596.5,
+      "2025-02": 2012.8,
+      "2025-03": 2518.3,
+      "2025-04": 1044.6,
+      "2025-10": 666.8,
+      "2025-11": 2301.5,
+      "2025-12": 2019.3,
+      "2026-01": 2223.1,
+      "2026-02": 1553.9,
+      "2026-03": 2303.3,
+      "2026-04": 878.6
+     },
+     "movesPerSeason": 28.4,
+     "buyBacks": {
+      "perSeason": 3.29,
+      "meanRealGain": {
+       "week": 15.6,
+       "month": 45.1,
+       "season": 70.7
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 17,
+       "ci95": [
+        15.1,
+        19
+       ],
+       "positive": 68.9,
+       "meanPredicted": 65.9
+      },
+      "month": {
+       "meanRealGain": 45.2,
+       "ci95": [
+        40.1,
+        50
+       ],
+       "positive": 66.1,
+       "meanPredicted": 133.7
+      },
+      "season": {
+       "meanRealGain": 86,
+       "ci95": [
+        72.2,
+        99.2
+       ],
+       "positive": 61.1,
+       "meanPredicted": 146.3
+      }
+     }
+    },
+    "plan": {
+     "runs": 24,
+     "points": 13333.2,
+     "rank": 3.96,
+     "monthly": {
+      "2023-10": 428.9,
+      "2023-11": 2254.8,
+      "2023-12": 2479.5,
+      "2024-01": 2804.1,
+      "2024-02": 2097.8,
+      "2024-03": 2585.1,
+      "2024-04": 1329.1,
+      "2024-10": 689.9,
+      "2024-11": 2514.4,
+      "2024-12": 2216.9,
+      "2025-01": 2578,
+      "2025-02": 2001.3,
+      "2025-03": 2480.4,
+      "2025-04": 1030.4,
+      "2025-10": 660.9,
+      "2025-11": 2398,
+      "2025-12": 2072.5,
+      "2026-01": 2311.5,
+      "2026-02": 1630.5,
+      "2026-03": 2521.5,
+      "2026-04": 914.3
+     },
+     "movesPerSeason": 41,
+     "buyBacks": {
+      "perSeason": 8.75,
+      "meanRealGain": {
+       "week": 11.2,
+       "month": 24.1,
+       "season": 31.9
+      }
+     },
+     "moves": {
+      "week": {
+       "meanRealGain": 12.7,
+       "ci95": [
+        10.8,
+        14.4
+       ],
+       "positive": 66.2,
+       "meanPredicted": 41.8
+      },
+      "month": {
+       "meanRealGain": 32.7,
+       "ci95": [
+        27.4,
+        38.4
+       ],
+       "positive": 63.6,
+       "meanPredicted": 78.5
+      },
+      "season": {
+       "meanRealGain": 67.6,
+       "ci95": [
+        56.6,
+        78.5
+       ],
+       "positive": 59,
+       "meanPredicted": 118.1
+      }
+     }
+    }
+   },
+   "differences": {
+    "plan-currentNewModel": {
+     "mean": 328.9,
+     "ci95": [
+      129.7,
+      535
+     ],
+     "leagues": 24,
+     "better": 20
+    }
+   }
+  }
+ },
+ "confidence": {
+  "week": {
+   "all": null,
+   "early": null,
+   "mid": null,
+   "late": null
+  },
+  "month": {
+   "all": null,
+   "early": null,
+   "mid": null,
+   "late": null
+  },
+  "season": {
+   "all": null,
+   "early": null,
+   "mid": null,
+   "late": null
+  }
+ },
+ "candidates": 0,
+ "limitations": [
+  "Injury report: the NBA's official report of 5 PM ET the day before (out, doubtful, questionable), with no return dates or comments, which ESPN's feed (the live app's) has.",
+  "Sports.ru prices: the real price of the day for the players Sports.ru still lists; the others an opening price modelled on that season's real ones, moved by Sports.ru's rule (a game adds its fantasy points).",
+  "Positions: Sports.ru 2026/27 where the player is on the market, otherwise the nearest stat profile; the white rule: the league's 2026/27 list.",
+  "2023/24's in-season update and rookie model, and 2024/25's first fit season, come from the career logs of players still in the league in 2026 (survivor-selected).",
+  "Rivals follow one simple rule; real managers differ.",
+  "Each league is one draft; leagues of one season share the games, so seasons, not leagues, are the independent samples."
+ ]
+}
