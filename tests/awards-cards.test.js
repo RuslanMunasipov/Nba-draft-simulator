@@ -4,7 +4,11 @@ import {fblFormula} from '../src/fbl-scoring.js';
 import {form,dailyBlocks,bricks,FORM_DAYS} from '../awards-bot/core.js';
 import {dayAlbum,weekAlbum,monthAlbum,markOf,statsHtml,shotsHtml,dateTag,weekTag,monthTag,SLOTS,CARD_EMOJI} from '../awards-bot/cards.js';
 import {holidayOf,westernEaster,orthodoxEaster,HOLIDAYS,HOLIDAY_EMOJI} from '../awards-bot/holidays.js';
-import {twemojiName} from '../awards-bot/render.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {twemojiName,holidayArt} from '../awards-bot/render.mjs';
 
 const s={pts:31,reb:14,ast:11,stl:2,blk:1,tov:3,fgm:12,fga:19,ftm:5,fta:6,pf:2};
 const line=(a,p,h=[0],extra={})=>({d:'2026-10-21',e:'g1',a,n:'P'+a,c:'DEN',t:'2026-10-22T00:00Z',m:30,p,h,b:[],s,...extra});
@@ -118,4 +122,49 @@ test('awards cards: Twemoji names, every team symbol among the emoji to load',()
  assert.equal(twemojiName('🐎'),'1f40e');assert.equal(twemojiName('♠️'),'2660');assert.equal(twemojiName('🏴‍☠️'),'1f3f4-200d-2620-fe0f');
  assert.equal(twemojiName('🇦🇲'),'1f1e6-1f1f2');
  for(const e of ['🐎','👑','♠️','🇦🇲','🏴‍☠️','🍋','🏜️','⚰️','🥇','🔥','🧊','🧱'])assert.ok(CARD_EMOJI.includes(e),e);
+});
+
+test('awards cards: a holiday\'s own layers take the opener\'s emblem and title, the date stays the code\'s',()=>{
+ const blocks={heroes:[line('1',44)],flops:[],gold:[],antitop:[]},halloween=holidayOf('2026-10-31');
+ const layers={...look,background:key=>key==='halloween'?'data:image/png;base64,BG':null,emblem:key=>key==='halloween'?'data:image/png;base64,EMBLEM':null,
+  title:(key,nom)=>key==='halloween'&&nom!=='month'?`data:image/png;base64,TITLE-${nom}`:null};
+ const day=dayAlbum('2026-10-31',blocks,who,layers,fonts,{holiday:halloween}).cards;
+ assert.match(day[0],/<img class="emblem art trim" src="data:image\/png;base64,EMBLEM">/);assert.doesNotMatch(day[0],/<svg class="emblem"/,'the drawn emblem gives way');
+ assert.match(day[0],/<img class="tart trim" src="data:image\/png;base64,TITLE-day" alt="Итоги игрового дня">/);assert.doesNotMatch(day[0],/class="otitle"/);
+ assert.match(day[0],/<div class="odate">31 октября 2026<\/div>/,'the date is drawn by the code');
+ for(const card of day)assert.match(card,/class="bg" style="background-image:url\(data:image\/png;base64,BG\)"/,'the background under every card');
+ assert.doesNotMatch(day[1],/EMBLEM|TITLE/,'the layers only dress the opener');
+ const wk=weekAlbum(week,{heroes:[],flops:[],gold:[]},{mvp:[],roy:[],mef:[],sixth:[]},{best:[],worst:[]},who,layers,fonts,{holiday:halloween}).cards[0];
+ assert.match(wk,/TITLE-week/);
+ const mo=monthAlbum('2026-10',[{pos:'PG',row:null}],who,layers,fonts,{holiday:halloween}).cards[0];
+ assert.match(mo,/EMBLEM/);assert.match(mo,/<div class="otitle">Символическая пятёрка<\/div>/,'no month title layer: the drawn title');
+ const xmas=dayAlbum('2026-12-25',blocks,who,layers,fonts,{holiday:holidayOf('2026-12-25')}).cards[0];
+ assert.match(xmas,/<svg class="emblem"/);assert.match(xmas,/class="otitle"/,'a holiday without layers looks as before');
+ assert.doesNotMatch(dayAlbum('2026-10-21',blocks,who,layers,fonts).cards[0],/EMBLEM|TITLE|class="bg"/,'an ordinary day stays plain');
+});
+
+test('awards cards: the league\'s holiday layers on disk, design/holidays first, then the older art',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'fbl-design-')),drawn=path.join(dir,'drawn')+'/';
+ for(const d of ['holidays','backgrounds','logos','drawn'])fs.mkdirSync(path.join(dir,d));
+ const put=(f,body)=>fs.writeFileSync(path.join(dir,f),body);
+ put('drawn/christmas-bg.webp','DRAWN');put('backgrounds/halloween.jpg','OLD');put('holidays/halloween-bg.png','NEW');
+ put('holidays/halloween-emblem.webp','EMB');put('holidays/halloween-title-week.png','WEEK');put('logos/halloween.png','PUMPKIN');
+ const art=holidayArt(pathToFileURL(dir+'/'),pathToFileURL(drawn));
+ const body=uri=>uri&&Buffer.from(uri.split(',')[1],'base64').toString();
+ assert.equal(body(art.background('halloween')),'NEW','design/holidays/<key>-bg beats design/backgrounds');
+ assert.match(art.background('halloween'),/^data:image\/png;base64,/);
+ assert.equal(body(art.background('christmas')),'DRAWN','no layer: the drawn background');
+ assert.equal(art.background('easter'),null);assert.equal(art.background(null),null);
+ assert.equal(body(art.emblem('halloween')),'EMB');assert.match(art.emblem('halloween'),/^data:image\/webp;/);
+ assert.equal(body(art.title('halloween','week')),'WEEK');assert.equal(art.title('halloween','day'),null);assert.equal(art.emblem('christmas'),null);
+ assert.equal(body(art.leagueLogo('halloween')),'PUMPKIN');
+});
+
+test('awards cards: every file in design/holidays is named <holiday key>-<layer>',()=>{
+ const dir=new URL('../design/holidays/',import.meta.url),keys=new Set(HOLIDAYS.map(h=>h.key));
+ const files=fs.existsSync(dir)?fs.readdirSync(dir).filter(f=>!f.startsWith('.')&&f!=='README.md'):[];
+ for(const f of files){
+  const m=f.match(/^(.+)-(bg|emblem|title-day|title-week|title-month)\.(png|webp|jpe?g)$/i);
+  assert.ok(m&&keys.has(m[1]),`design/holidays/${f}: expected <key>-bg|emblem|title-day|title-week|title-month.png, the key from holidays.js`);
+ }
 });

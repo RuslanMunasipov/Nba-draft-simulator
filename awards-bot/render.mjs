@@ -1,7 +1,7 @@
 // FBL awards bot, the cards drawn: cards.js writes them as HTML, Chromium (Playwright's) takes each as a 1080×1350 PNG.
 // Everything a card shows is embedded before it is drawn: the fonts (assets/fonts, OFL), the players' ESPN headshots,
-// the team logos (scripts/assets/team-logos), the holiday frames (assets/holidays) and the emoji (Twemoji), so a card
-// never depends on a page load.
+// the team logos (scripts/assets/team-logos), the holiday frames (assets/holidays), the league's holiday layers
+// (design/holidays) and the emoji (Twemoji), so a card never depends on a page load.
 // A headshot or an emoji that cannot be fetched is drawn without it (initials, the plain character).
 import fs from 'node:fs';
 import {chromium} from '@playwright/test';
@@ -21,6 +21,24 @@ export const twemojiName=e=>{const cps=[...e].map(c=>c.codePointAt(0));return (c
 const TWEMOJI='https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/';
 const HEADSHOT=a=>`https://a.espncdn.com/i/headshots/nba/players/full/${a}.png`;
 
+// The league's art of a holiday (design/, see its README), read once when a card asks for it; null where there is none.
+// A holiday's layers (design/holidays/<key>-<part>, made in ChatGPT): bg, the background of every card of the holiday,
+// before any other; emblem and title-day/-week/-month, the opener's emblem and title instead of the drawn ones. Without
+// a bg layer: design/backgrounds, else the background holiday-frames.mjs drew. The league's logo (Fantasy Brothers
+// League): the crowned ball at the heart of every opener, dressed for a holiday when design/logos has that holiday's.
+const DESIGN=new URL('../design/',import.meta.url),HOLIDAYS_DIR=new URL('./assets/holidays/',import.meta.url);
+export function holidayArt(design=DESIGN,drawn=HOLIDAYS_DIR){
+ const league=new URL('./assets/fbl-logo.png',import.meta.url),plain=fs.existsSync(league)?dataUri(fs.readFileSync(league),'image/png'):null;
+ const art=new Map(),find=(kind,name,fallback)=>{const k=kind+'/'+name;
+  if(!art.has(k)){const f=[...['png','webp','jpg','jpeg','PNG','WEBP','JPG','JPEG'].map(e=>new URL(`${kind}/${name}.${e}`,design)),...fallback?[fallback]:[]].find(u=>fs.existsSync(u));
+   art.set(k,f?dataUri(fs.readFileSync(f),TYPE[f.pathname.split('.').pop().toLowerCase()]):null);}
+  return art.get(k);};
+ const layer=(key,part)=>key?find('holidays',`${key}-${part}`):null;
+ return {leagueLogo:key=>key&&find('logos',key)||plain,
+  background:key=>key?layer(key,'bg')||find('backgrounds',key,new URL(`${key}-bg.webp`,drawn)):null,
+  emblem:key=>layer(key,'emblem'),title:(key,nom)=>layer(key,`title-${nom}`)};
+}
+
 // What the cards show, fetched once: the headshots of the given ESPN ids and every emoji a card may use.
 export async function loadLook(athletes,{root}={}){
  const photos=new Map(),emoji=new Map();
@@ -32,17 +50,25 @@ export async function loadLook(athletes,{root}={}){
  const frames=new Map(),frame=key=>{
   if(!frames.has(key)){const f=new URL(`./assets/holidays/${key}.webp`,import.meta.url);frames.set(key,fs.existsSync(f)?dataUri(fs.readFileSync(f),'image/webp'):null);}
   return frames.get(key);};
- // The league's logo (Fantasy Brothers League): the crowned ball at the heart of every opener, dressed for a holiday when
- // design/logos has that holiday's version. A holiday's background: design/backgrounds (the league's art), else the one
- // holiday-frames.mjs drew.
- const league=new URL('./assets/fbl-logo.png',import.meta.url),plain=fs.existsSync(league)?dataUri(fs.readFileSync(league),'image/png'):null;
- const art=new Map(),find=(kind,key,fallback)=>{const k=kind+':'+key;
-  if(!art.has(k)){const f=[...['png','webp','jpg','jpeg'].map(e=>new URL(`../design/${kind}/${key}.${e}`,import.meta.url)),...fallback?[fallback]:[]].find(u=>fs.existsSync(u));
-   art.set(k,f?dataUri(fs.readFileSync(f),TYPE[f.pathname.split('.').pop()]):null);}
-  return art.get(k);};
  return {photo:a=>photos.get(String(a))||null,logo:t=>logos.get(t)||null,frame,
-  leagueLogo:key=>key&&find('logos',key)||plain,background:key=>find('backgrounds',key,new URL(`./assets/holidays/${key}-bg.webp`,import.meta.url)),
+  ...holidayArt(),
   emoji:e=>emoji.has(e)?`<img class="emo" src="${emoji.get(e)}">`:`<span class="emo">${e}</span>`};
+}
+
+// A layer drawn in ChatGPT comes on a square or a 3:2 canvas with empty transparent margins: the images marked .trim are
+// cut to what they draw, so the emblem and the title fill the place the opener gives them. Runs in the page.
+async function trim(){
+ for(const img of document.querySelectorAll('img.trim')){
+  await img.decode().catch(()=>{});
+  const w=img.naturalWidth,h=img.naturalHeight;if(!w||!h)continue;
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(img,0,0);
+  const a=g.getImageData(0,0,w,h).data;let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[(y*w+x)*4+3]>12){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  if(x1<0||(x0===0&&y0===0&&x1===w-1&&y1===h-1))continue;
+  const out=document.createElement('canvas');out.width=x1-x0+1;out.height=y1-y0+1;
+  out.getContext('2d').drawImage(c,x0,y0,out.width,out.height,0,0,out.width,out.height);
+  img.src=out.toDataURL('image/png');await img.decode().catch(()=>{});
+ }
 }
 
 // Every card as a PNG, in order. One browser for the lot.
@@ -54,6 +80,7 @@ export async function renderCards(htmls){
   for(const html of htmls){
    await page.setContent(html,{waitUntil:'load'});
    await page.evaluate(()=>document.fonts.ready);
+   await page.evaluate(trim);
    out.push(await page.screenshot({type:'png',clip:{x:0,y:0,width:WIDTH,height:HEIGHT}}));
   }
  }finally{await browser.close();}
