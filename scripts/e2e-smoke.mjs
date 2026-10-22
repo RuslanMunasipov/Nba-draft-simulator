@@ -25,6 +25,11 @@ try{
  await page.getByRole('button',{name:'Анализатор'}).first().click();await page.waitForTimeout(1500);
  assert.ok(await page.locator('.mk-row').count()>=10,'sorted by the analyser');
  await page.getByRole('button',{name:'ФО/матч'}).first().click();await page.waitForTimeout(500);
+ // The awards page: the day's top ten of the NBA from the awards bot's archive, and the season races.
+ await page.getByRole('button',{name:'Награды'}).first().click();await page.waitForSelector('.aw-list .aw-row',{timeout:30000});
+ assert.ok(await page.locator('.aw-list .aw-row').count()>=3,'the day\'s top from the awards archive');
+ await page.locator('.aw-tabs button').nth(2).click();await page.waitForTimeout(1500);
+ assert.ok(await page.locator('.aw-race').count()===4,'four award races');
  // The rules screen checks all eight teams.
  await page.getByRole('button',{name:'Правила'}).first().click();await page.waitForTimeout(1500);
  const ruleRows=await page.locator('.sp-table tr').count();assert.ok(ruleRows>=9,'rules table has eight teams: '+ruleRows);
@@ -38,6 +43,6 @@ try{
  assert.ok(found>=8,'rookie filter shows rookies: '+found);
  const toggles=page.locator('.player-toggle');for(let i=0;i<Math.min(5,await toggles.count());i++){await toggles.nth(i).click();await page.waitForTimeout(150);}
  assert.deepEqual(errors,[],'no script errors');
- console.log(`Browser smoke passed: ${found} rookies listed, players page, rules for 8 teams, transfer explanation and player cards render without errors`);
+ console.log(`Browser smoke passed: ${found} rookies listed, players and awards pages, rules for 8 teams, transfer explanation and player cards render without errors`);
  await browser.close();
 }finally{if(server)try{process.kill(-server.pid);}catch{}}
