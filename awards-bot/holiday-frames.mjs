@@ -56,7 +56,7 @@ No text, no letters, no numbers, no logos, no people, no faces.`;
 const file=(h,bg)=>path.join(DIR,`${h.key}${bg?'-bg':''}.webp`);
 async function draw(h,bg){
  const out=file(h,bg),raw=out.replace(/\.webp$/,'.raw.png');
- const {png,usage}=await generate(bg?{prompt:backgroundPrompt(h),size:'1024x1536'}:{prompt:prompt(h),size:'1024x1536',background:'transparent'},{key:process.env.OPENAI_API_KEY});
+ const {png,usage}=await generate(bg?{prompt:backgroundPrompt(h),size:'1024x1536',quality:'medium'}:{prompt:prompt(h),size:'1024x1536',quality:'medium',background:'transparent'},{key:process.env.OPENAI_API_KEY});
  fs.writeFileSync(raw,png);
  // A frame gets its centre cleared; both are packed as WebP (a PNG is megabytes).
  execFileSync('python3',['-I',fileURLToPath(new URL('./frame-clean.py',import.meta.url)),raw,out,...bg?['--keep']:[]],{stdio:'inherit'});

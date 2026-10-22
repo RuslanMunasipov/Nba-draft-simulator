@@ -1,7 +1,7 @@
 name: Mike Roffon
 # Mike Roffon's flash interview with the hero of a game day, by hand (awards-bot/mike-roffon.js). The awards bot posts
 # it by itself right after each day's post; this one is for a day it missed, or a test. Written by Claude through the
-# owner's subscription, drawn by OpenAI (about $0.04) and, with "send", posted into the league chat by Mike's bot.
+# owner's subscription, drawn by OpenAI (about $0.02) and, with "send", posted into the league chat by Mike's bot.
 # The day must be archived by the awards bot (data/awards-bot); its state is only read, never saved, so every run
 # with "send" posts again. Without "send": the interview in the run's log and its picture in the run's artifact.
 on:

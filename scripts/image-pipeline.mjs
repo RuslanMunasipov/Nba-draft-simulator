@@ -8,18 +8,22 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-export const MODEL='gpt-image-2.5-sunburst',QUALITY='medium',SIZE='1024x1024';
+export const MODEL='gpt-image-2.5-sunburst',QUALITY='low',SIZE='1024x1024';
 // USD per million tokens (developers.openai.com/api/docs/pricing, 22.10.2026): the same for gpt-image-2 and both 2.5.
-// A reference photo is about 1000 input tokens ($0.008), a medium square picture 439 output tokens ($0.013).
+// A reference is billed by its area, a token per 16×16 pixels up to 1521 (measured 22.10.2026): a 256² logo is 256 tokens
+// ($0.002), a 512² face 1024 ($0.008), which is why the references go as their small copies (readImage). A low square
+// picture is 196 output tokens ($0.006), a medium one 439 ($0.013).
 export const PRICE={text:5,image:8,output:30};
 export const ASSETS=fileURLToPath(new URL('./assets/',import.meta.url));
 const TYPES={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp'};
 
-// A reference image from disk: {bytes, name, type}; null when there is no such file.
+// A reference image from disk: {bytes, name, type}; null when there is no such file. Its small copy <name>.ref.<ext>
+// (scripts/shrink-references.py) goes instead where there is one, under the original's name.
 export function readImage(file){
  if(!file||!fs.existsSync(file))return null;
- const ext=path.extname(file).toLowerCase();
- return TYPES[ext]?{bytes:fs.readFileSync(file),name:path.basename(file),type:TYPES[ext]}:null;
+ const ext=path.extname(file).toLowerCase(),stem=file.slice(0,-ext.length);
+ const small=Object.keys(TYPES).map(e=>stem+'.ref'+e).find(f=>fs.existsSync(f));
+ return TYPES[ext]?{bytes:fs.readFileSync(small||file),name:path.basename(file),type:TYPES[small?path.extname(small):ext]}:null;
 }
 // The first file of a base name in any of the image formats.
 const find=(dir,base)=>{for(const ext of Object.keys(TYPES)){const f=path.join(dir,base+ext);if(fs.existsSync(f))return f;}return null;};
@@ -54,19 +58,19 @@ export function cost(usage){
 
 // One picture: the references edited by the prompt (without references, drawn from the prompt alone). Answers the PNG and
 // the usage. key: the OpenAI API key (without it the request goes out bare, for a proxy that adds it). A refused prompt,
-// a bad key or an empty balance is not tried again. size and background (transparent) override the defaults: a holiday
-// frame of the cards is a transparent portrait.
-export async function generate({prompt,images=[],size=SIZE,background},{key,fetchImpl=fetch,timeoutMs=180e3,attempts=3}={}){
+// a bad key or an empty balance is not tried again. size, quality and background (transparent) override the defaults: a
+// holiday frame of the cards is a transparent portrait in medium quality, drawn once for years.
+export async function generate({prompt,images=[],size=SIZE,quality=QUALITY,background},{key,fetchImpl=fetch,timeoutMs=180e3,attempts=3}={}){
  const auth=key?{authorization:`Bearer ${key}`}:{},edit=images.length>0;
  let last;
  for(let attempt=0;attempt<attempts;attempt++){
   let body;
   if(edit){
    body=new FormData();
-   body.append('model',MODEL);body.append('prompt',prompt);body.append('size',size);body.append('quality',QUALITY);body.append('n','1');
+   body.append('model',MODEL);body.append('prompt',prompt);body.append('size',size);body.append('quality',quality);body.append('n','1');
    if(background)body.append('background',background);
    for(const im of images)body.append('image[]',new Blob([im.bytes],{type:im.type||'image/jpeg'}),im.name);
-  }else body=JSON.stringify({model:MODEL,prompt,size,quality:QUALITY,n:1,...background?{background,output_format:'png'}:{}});
+  }else body=JSON.stringify({model:MODEL,prompt,size,quality,n:1,...background?{background,output_format:'png'}:{}});
   try{
    const r=await fetchImpl(`https://api.openai.com/v1/images/${edit?'edits':'generations'}`,{method:'POST',body,
     headers:edit?auth:{...auth,'content-type':'application/json'},signal:AbortSignal.timeout(timeoutMs)});

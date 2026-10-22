@@ -14,7 +14,7 @@ import {esc,badges} from './messages.js';
 import {MISSED_BRICKS} from './core.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 
-export const SIZE='1536x1024';
+export const SIZE='1024x1024';
 // Each league team's kit, from the colours of its logo (scripts/assets/team-logos/<team number>), told apart in one scene.
 export const KITS=[
  'black with blood-red and gold trim',
@@ -157,7 +157,7 @@ export function blockPicture(kind,rows,{faces=new Map(),form,root,written=null}=
    +`He ${acts[i].text}.`;});
  const order=rows.length>1?` The ${rows.length} players are side by side in one frame, each in his own moment and story, the one in the centre the star of the picture.`:'';
  const prompt=[refs.legend,`SCENE: ${written?written.setting.replace(/\.$/,''):SCENE[kind]}.${order} A banner above them reads "${TITLE_TEXT[kind]}".`,...people,
-  `STYLE: photorealistic sports-photo, cinematic arena lighting, 35mm lens, the savage humour of a viral basketball meme. Landscape composition, every face clearly visible. The only text in the picture: the exact words given in quotes, in Russian (Cyrillic), spelled exactly letter by letter, large and legible. No other captions, numbers or watermarks.`]
+  `STYLE: photorealistic sports-photo, cinematic arena lighting, 35mm lens, the savage humour of a viral basketball meme. Square composition, every face clearly visible. The only text in the picture: the exact words given in quotes, in Russian (Cyrillic), spelled exactly letter by letter, large and legible. No other captions, numbers or watermarks.`]
   .filter(Boolean).join('\n\n');
  return {images:refs.images,prompt,size:SIZE,moments:acts.map(a=>a.id),ideas:ideasOf(written)};
 }

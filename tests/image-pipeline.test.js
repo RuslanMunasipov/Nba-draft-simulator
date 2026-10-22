@@ -25,6 +25,23 @@ test('image pipeline: assets by team number, any image format, missing ones are 
  assert.deepEqual(references([]),{images:[],legend:'',has:{}});
 });
 
+test('image pipeline: a reference goes as its small copy under the original\'s name; the repository\'s copies are small',()=>{
+ const root=assets();
+ fs.writeFileSync(path.join(root,'team-logos','3.ref.jpg'),'small');
+ assert.deepEqual([teamLogo(2,root).name,String(teamLogo(2,root).bytes),teamLogo(2,root).type],['3.png','small','image/jpeg']);
+ assert.equal(String(gmPhoto(2,root).bytes),'3.webp','no copy: the original');
+ // The size of a JPEG or PNG from its header: width × height.
+ const size=b=>{if(b[0]===0x89)return [b.readUInt32BE(16),b.readUInt32BE(20)];
+  for(let i=2;i<b.length;){const m=b[i+1],len=b.readUInt16BE(i+2);if(m>=0xc0&&m<=0xc3)return [b.readUInt16BE(i+7),b.readUInt16BE(i+5)];i+=2+len;}};
+ const dirs=[['scripts/assets/team-logos',256],['awards-bot/assets',256],['scripts/assets/people',512],['scripts/assets/zak-onn',512]];
+ let copies=0;
+ for(const [dir,side] of dirs)for(const f of fs.readdirSync(dir).filter(f=>f.includes('.ref.'))){
+  const [w,h]=size(fs.readFileSync(path.join(dir,f)));copies++;
+  assert.ok(w*h<=side*side*1.01,`${dir}/${f}: ${w}×${h}, more than ${side}² (python3 scripts/shrink-references.py)`);}
+ assert.ok(copies>=20,'the copies are in the repository');
+ assert.notEqual(teamLogo(0).bytes.length,fs.readFileSync('scripts/assets/team-logos/1.jpg').length,'a logo goes small');
+});
+
 test('image pipeline: the price of a picture from the usage the API answers',()=>{
  // The trial picture of 22.10.2026: 271 text + 999 image tokens in, 439 image tokens out.
  assert.equal(cost({input_tokens:1270,input_tokens_details:{image_tokens:999,text_tokens:271},output_tokens:439}).toFixed(4),'0.0225');
@@ -42,8 +59,9 @@ test('image pipeline: an edit with every reference and the key, a generation wit
  assert.deepEqual([form.get('model'),form.get('quality'),form.get('size'),form.get('prompt')],[MODEL,QUALITY,SIZE,'P']);
  assert.deepEqual(form.getAll('image[]').map(f=>[f.name,f.type]),[['1.png','image/png'],['1.jpg','image/jpeg']]);
  await generate({prompt:'Q'},{fetchImpl:ok});
- await generate({prompt:'F',size:'1024x1536',background:'transparent'},{fetchImpl:ok});
- assert.deepEqual(JSON.parse(calls[2].init.body),{model:MODEL,prompt:'F',size:'1024x1536',quality:QUALITY,n:1,background:'transparent',output_format:'png'},'a holiday frame: a transparent portrait');
+ await generate({prompt:'F',size:'1024x1536',quality:'medium',background:'transparent'},{fetchImpl:ok});
+ assert.equal(QUALITY,'low');
+ assert.deepEqual(JSON.parse(calls[2].init.body),{model:MODEL,prompt:'F',size:'1024x1536',quality:'medium',n:1,background:'transparent',output_format:'png'},'a holiday frame: a transparent portrait');
  assert.equal(calls[1].url,'https://api.openai.com/v1/images/generations');
  assert.deepEqual(JSON.parse(calls[1].init.body),{model:MODEL,prompt:'Q',size:SIZE,quality:QUALITY,n:1});
  assert.deepEqual(calls[1].init.headers,{'content-type':'application/json'},'without a key the request goes out bare (a proxy adds it)');
