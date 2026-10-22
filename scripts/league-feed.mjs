@@ -131,6 +131,8 @@ const CONCLUSION={violation:(items,doubts,standingOnly)=>`🔏 <b>Заключе
  check:()=>'🔏 <b>Заключение:</b> явных нарушений нет, нужна проверка.',
  approved:()=>'🔏 <b>Заключение:</b> состав соответствует регламенту.'};
 // LEAGUE_FEED_PREVIEW=N: the last N protocols as a test (printed, or posted to the league chat), remembering nothing.
+// A test draws no picture, unless LEAGUE_FEED_PICTURE=1 asks for one (paid, by the owner's request): only its first protocol.
+let previewPictures=process.env.LEAGUE_FEED_PICTURE==='1'?1:0;
 const firstPreview=groups.size-preview;
 // When the transfer happened: the watcher's first sight of the journal row (within a minute), in Moscow time.
 const when=moves=>{const at=moves.map(m=>m.seenAt).filter(Boolean).sort().pop();return at?`🕒 Трансфер зафиксирован: ${moscow(at)}`:'🕒 Время трансфера: не зафиксировано (до начала наблюдения)';};
@@ -252,8 +254,9 @@ for(const idx of groups.values()){
  // Still too long (a big package): the photo carries the verdict, the protocol follows as a reply to it.
  const caption=message(...HEAD[v.kind](x.team,v,true),no,teamLine,'',conclusion,'','<i>Протокол — ответом на это сообщение.</i>');
  // His picture with the team's GM, drawn only for a protocol that goes to the chat; his usual photo when it cannot be.
- const picture=configured&&!preview&&process.env.OPENAI_API_KEY
-  ?await drawProtocol({kind:v.kind,team:x.team,no:issued+1,seed:key(news[0]),rules:rulesOf(v,c),standing:v.standingOnly,fixed:fixed.length>0,
+ const draws=configured&&process.env.OPENAI_API_KEY&&(!preview||previewPictures-->0);
+ const picture=draws
+  ?await drawProtocol({kind:v.kind,team:x.team,no:preview?number:issued+1,seed:key(news[0]),rules:rulesOf(v,c),standing:v.standingOnly,fixed:fixed.length>0,
    watched:Boolean(watched(x.team))},{key:process.env.OPENAI_API_KEY}):null;
  if(await send(text,{photo:picture||photo(v.kind),caption})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);events.push(...dealEvents(m));}issued++;save();}
 }
