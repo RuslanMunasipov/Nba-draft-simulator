@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseScoreboard,parseSummary,makeLeague,benchOf,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,sixthRace,monthFive,
- moved,withoutRookie,reportDay,nextStep,weekOf,isMonthEnd,isSunday,daysBetween,special} from '../awards-bot/core.js';
+ moved,withoutRookie,reportDay,nextStep,weekOf,isMonthEnd,isSunday,daysBetween,special,dayLists} from '../awards-bot/core.js';
 import {statLine,split,esc,dailyText,racesText,recordsText,monthText,rookieAlert,dayLabel} from '../awards-bot/messages.js';
 
 const line=(a,p,extra={})=>({d:'2026-10-21',e:'g1',a,n:'P'+a,c:'DEN',t:'2026-10-22T00:00Z',m:30,p,h:[],b:[],
@@ -76,6 +76,16 @@ test('awards bot: day blocks split the league players from free agents and apply
  const w=weeklyBlocks([line('a',10,{h:[0],m:30}),line('a',12,{h:[0],m:31,e:'g2'}),line('b',-3,{h:[1],m:50})]);
  assert.deepEqual(w.heroes.map(r=>[r.a,r.p,r.games]),[['a',22,2],['b',-3,1]]);
  assert.deepEqual(w.flops.map(r=>r.a),['a'],'a weekly flop needs 60 minutes');
+});
+test('the site\'s day lists: the best and the worst ten of the whole NBA, by the bot\'s own order, the antitop the same as the chat\'s',()=>{
+ const lines=Array.from({length:14},(_,i)=>line('p'+i,i*3-6,{h:i%2?[i%8]:[],m:i===13?5:30}));
+ const {top,antitop}=dayLists(lines);
+ assert.equal(top.length,10);assert.equal(antitop.length,10);
+ assert.deepEqual(top.slice(0,3).map(l=>l.a),['p13','p12','p11']);
+ assert.deepEqual(antitop.slice(0,3).map(l=>l.a),['p0','p1','p2']);
+ assert.deepEqual(antitop.slice(0,3).map(l=>l.a),dailyBlocks(lines).antitop.map(l=>l.a),'the chat posts the first three of the same list');
+ // At one score the line with fewer minutes ranks first, as in the bot's posts.
+ assert.deepEqual(dayLists([line('x',20,{m:30}),line('y',20,{m:20})]).top.map(l=>l.a),['y','x']);
 });
 test('awards bot: season records rank single games, an earlier game first at one score, and report what a day changed',()=>{
  const old=[line('a',60,{d:'2026-10-25',t:'2026-10-26T00:00Z'}),line('b',50,{d:'2026-10-26',t:'2026-10-27T00:00Z'}),line('c',50,{d:'2026-10-24',t:'2026-10-25T00:00Z'}),line('x',-10)];

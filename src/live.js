@@ -15,7 +15,9 @@ export function moscowDate(iso){return new Date(Date.parse(iso)+3*3600e3).toISOS
 export function eventInfo(e){
  const c=e.competitions?.[0],side=h=>c?.competitors?.find(x=>x.homeAway===h);
  const team=x=>({abbr:x?.team?.abbreviation,name:x?.team?.shortDisplayName||x?.team?.displayName,score:x?.score,winner:x?.winner});
- return {id:e.id,date:e.date,state:e.status?.type?.state,final:Boolean(e.status?.type?.completed),detail:e.status?.type?.shortDetail||'',home:team(side('home')),away:team(side('away'))};
+ // pause: halftime or the break after a quarter, when nobody is on the floor whatever the last lineup.
+ return {id:e.id,date:e.date,state:e.status?.type?.state,final:Boolean(e.status?.type?.completed),pause:/HALFTIME|END_PERIOD/.test(e.status?.type?.name||''),
+  detail:e.status?.type?.shortDetail||'',home:team(side('home')),away:team(side('away'))};
 }
 // While a game runs the scores refresh every 20 s. A game past its tip-off that ESPN still lists as not started is checked
 // every 30 s; otherwise the page wakes 15 s after the next tip-off within 12 hours. null: no game to watch.

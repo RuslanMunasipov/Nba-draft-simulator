@@ -222,6 +222,17 @@ test('live box scores: one point for the game played, whatever the minutes (Yaho
  const event={status:{type:{completed:false}}};
  const summary=lines=>({boxscore:{players:[{statistics:[{labels:Object.keys(line),athletes:lines.map((l,i)=>({athlete:{id:String(i)},stats:Object.values(l)}))}]}]}});
  const out=liveGamePoints(summary([line,{...line,MIN:'11'},{...line,MIN:'9'}]),event);
- assert.deepEqual({...out[0],name:undefined,team:undefined,line:undefined},{points:4,minutes:10,final:false,counting:3,name:undefined,team:undefined,line:undefined});assert.equal(out[0].line.MIN,'10');
+ assert.deepEqual({...out[0],name:undefined,team:undefined,line:undefined},{points:4,minutes:10,final:false,onCourt:false,counting:3,name:undefined,team:undefined,line:undefined});assert.equal(out[0].line.MIN,'10');
  assert.equal(out[1].points,4);assert.equal(out[2].points,4);
+});
+test('on the floor or on the bench: ESPN marks the five on the floor «active» while the game runs, never after it',()=>{
+ const line={MIN:'10',PTS:'4',FG:'2-3',FT:'0-0',REB:'1',AST:'0',STL:'0',BLK:'0',TO:'0',PF:'1'};
+ const summary={boxscore:{players:[{team:{abbreviation:'AAA'},statistics:[{labels:Object.keys(line),athletes:[
+  {athlete:{id:'1'},active:true,stats:Object.values(line)},{athlete:{id:'2'},active:false,stats:Object.values(line)},{athlete:{id:'3'},stats:Object.values(line)}]}]}]}};
+ const running=liveGamePoints(summary,{status:{type:{completed:false,state:'in'}}});
+ assert.deepEqual([running[1].onCourt,running[2].onCourt,running[3].onCourt],[true,false,false]);
+ // The last lineup stays «active» in a finished game; a game not started has no floor either.
+ const final=liveGamePoints(summary,{status:{type:{completed:true,state:'post'}}});
+ assert.deepEqual([final[1].onCourt,final[2].onCourt],[false,false]);
+ assert.equal(liveGamePoints(summary,{status:{type:{completed:false,state:'pre'}}})[1].onCourt,false);
 });

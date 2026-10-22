@@ -143,6 +143,8 @@ export function perPlayer(lines){
   s:sumStats(x.lines),h:[...new Set(x.lines.flatMap(l=>l.h))].sort((a,b)=>a-b)}));
 }
 const top=(rows,n,dir=-1)=>[...rows].sort((a,b)=>dir*(a.p-b.p)||a.m-b.m||String(a.t||'').localeCompare(String(b.t||''))||a.a.localeCompare(b.a)).slice(0,n);
+// The site's day lists: the best and the worst n lines of the whole NBA, every player who took the floor (as the antitop).
+export const dayLists=(lines,n=10)=>({top:top(lines,n),antitop:top(lines,n,1)});
 // The day: heroes and flops of the league's players, the best free agents, the NBA antitop.
 export function dailyBlocks(lines){
  const drafted=lines.filter(l=>l.h.length),free=lines.filter(l=>!l.h.length);

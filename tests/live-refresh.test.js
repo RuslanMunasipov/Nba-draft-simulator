@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {nextLiveDelay,LIVE_MS} from '../src/live.js';
+import {nextLiveDelay,LIVE_MS,eventInfo} from '../src/live.js';
 
 test('scores refresh every 20 s while a game runs, and the page wakes at the next tip-off', () => {
  const now=Date.parse('2026-10-21T22:00:00Z'),at=h=>new Date(now+h*36e5).toISOString();
@@ -14,4 +14,11 @@ test('scores refresh every 20 s while a game runs, and the page wakes at the nex
  assert.equal(nextLiveDelay([{state:'pre',date:at(13)}],now),null);
  assert.equal(nextLiveDelay([{state:'pre',date:at(-4)}],now),null);
  assert.equal(nextLiveDelay([],now),null);
+});
+
+test('a break between quarters or at halftime is a pause: nobody is on the floor then', () => {
+ const event=name=>({id:'1',date:'2026-10-22T02:00Z',status:{type:{name,state:'in',completed:false,shortDetail:''}},competitions:[{competitors:[]}]});
+ assert.equal(eventInfo(event('STATUS_HALFTIME')).pause,true);
+ assert.equal(eventInfo(event('STATUS_END_PERIOD')).pause,true);
+ assert.equal(eventInfo(event('STATUS_IN_PROGRESS')).pause,false);
 });

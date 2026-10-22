@@ -381,7 +381,7 @@ body.is-replacing .plan-box button{display:none}
 .season-section>.section-heading{margin-bottom:var(--s1)}
 .season-status{margin:0 0 var(--s4);font-size:var(--fs-sm);color:var(--text-2)}
 .season-status:empty{display:none}
-.season-nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));margin:0 0 var(--s4);box-shadow:inset 0 0 0 1px var(--line),var(--shadow-2)}
+.season-nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));margin:0 0 var(--s4);box-shadow:inset 0 0 0 1px var(--line),var(--shadow-2)}
 .season-nav button{padding:6px 8px;font-size:var(--fs-sm)}
 .season-nav button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-line),var(--shadow-1)}
 [data-theme=dark] .season-nav button[aria-pressed=true]{background:var(--raised)}
@@ -417,6 +417,16 @@ body.is-replacing .plan-box button{display:none}
 .sp-game li .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-game li .pts{flex:none;font-weight:700;color:var(--text-2)}
 .sp-game li.mine-player .who{color:var(--accent-text);font-weight:700}
+/* On the floor / on the bench during a running game: a filled pulsing dot and its words, or a hollow one. */
+.court{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-xs);font-weight:700;color:var(--text-3);white-space:nowrap}
+.court::before{content:'';flex:none;width:9px;height:9px;border-radius:50%;border:2px solid var(--text-3);box-sizing:border-box}
+.court.on{color:var(--accent-text)}
+.court.on::before{border:0;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);animation:pulse 1.4s ease-in-out infinite}
+.court.dot{gap:0;width:12px;justify-content:center}
+.who-col{display:grid;min-width:0;margin-right:auto}
+.who-col .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line-details>summary>.who{margin-right:auto}
+.sp-game li>.line-details{flex:1;min-width:0}
 .sp-top ol{list-style:none;padding:0;margin:0;counter-reset:top}
 .sp-top li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:var(--s2);align-items:baseline;margin:0;padding:8px 0;border-bottom:1px solid var(--line);counter-increment:top}
 .sp-top li:last-child{border-bottom:0}
@@ -748,3 +758,40 @@ body:has(.sheet[open]){overflow:hidden}
  .mk-seg.mk-pos-seg button,.mk-sort .mk-seg button{flex:1;padding-inline:4px}
  .mk-sort{display:grid;gap:var(--s1)}
 }
+
+/* ===== Season · Awards (the awards bot's day lists and season races) ===== */
+.aw-tabs{margin-bottom:var(--s3)}
+.aw-tabs button{font-size:var(--fs-sm)}
+.aw-tabs button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-line),var(--shadow-1)}
+[data-theme=dark] .aw-tabs button[aria-pressed=true]{background:var(--raised)}
+.aw-day{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--s3);padding:var(--s2) var(--s3);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface-2)}
+.aw-day button{min-width:44px}
+.aw-day+.sp-block-head{margin-top:var(--s4)}
+.aw-day-label{display:grid;justify-items:center;text-align:center}
+.aw-day-label strong{font-size:var(--fs-lg);font-weight:800}
+.aw-day-label small{font-size:var(--fs-xs);color:var(--text-3)}
+.aw-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.aw-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:var(--s3);align-items:center;margin:0;padding:10px var(--s2);border-bottom:1px solid var(--line)}
+.aw-row.mine{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.aw-rank{font-size:var(--fs-lg);font-weight:800;color:var(--text-3);text-align:center;font-variant-numeric:tabular-nums}
+.aw-main{display:grid;gap:3px;min-width:0}
+.aw-head{display:flex;flex-wrap:wrap;align-items:center;gap:4px var(--s2);min-width:0}
+.aw-who{display:grid;min-width:0}
+.aw-who strong{font-size:var(--fs-sm);font-weight:800;overflow-wrap:anywhere}
+.aw-ru{font-size:var(--fs-xs);color:var(--text-3)}
+.aw-club{font-size:var(--fs-xs);font-weight:800;color:var(--text-2);padding:1px 6px;border:1px solid var(--line);border-radius:6px}
+.aw-teams{display:inline-flex;gap:3px;align-items:center}
+.aw-teams .chip{min-height:20px;padding:1px 7px;font-size:11px}
+.aw-team{font-size:16px;line-height:1;color:var(--text)}
+.aw-stats{font-size:var(--fs-xs);color:var(--text-3);overflow-wrap:anywhere}
+.aw-pts{display:grid;justify-items:end;text-align:right}
+.aw-pts strong{font-size:var(--fs-xl);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.aw-pts small{font-size:11px;color:var(--text-3)}
+.aw-row.flop .aw-pts strong{color:var(--danger)}
+.aw-move{font-size:11px;font-weight:800;padding:1px 6px;border-radius:999px}
+.aw-move.up{color:var(--accent-text);background:var(--accent-soft)}
+.aw-move.down{color:var(--danger);background:var(--danger-bg)}
+.aw-move.new{color:var(--info);background:var(--info-bg)}
+.aw-race{margin-top:var(--s5)}
+@media(min-width:900px){.aw-races{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--s6)}}
+@media(max-width:559px){.aw-row{grid-template-columns:26px minmax(0,1fr) auto;gap:var(--s2);padding-inline:var(--s1)}.aw-rank{font-size:var(--fs-md)}}

@@ -804,7 +804,9 @@ export function boxScorePoints(stats){
 const LINE=['MIN','PTS','REB','AST','STL','BLK','FG','3PT','FT','TO','PF'];
 // ESPN summary -> {espnAthleteId: {points, minutes, final, counting, name, team, line}}.
 export function liveGamePoints(summary,event){
- const final=Boolean(event?.status?.type?.completed),out={};
+ // onCourt: while a game runs ESPN marks the five players on the floor of each team «active» (its last lineup stays marked
+ // after the final whistle, so only a running game reads it).
+ const final=Boolean(event?.status?.type?.completed),running=!final&&event?.status?.type?.state==='in',out={};
  for(const team of summary?.boxscore?.players||[]){
   for(const st of team.statistics||[]){
    const labels=st.labels||st.names||[];
@@ -813,7 +815,7 @@ export function liveGamePoints(summary,event){
     const points=boxScorePoints(stats),minutes=clockMinutes(stats.MIN);
     // counting: the line without the point for the game played.
     // line: the box-score stats the formula reads, for the live stat line; name and team for the full game list.
-    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,counting:points-GAME_PLAYED,
+    if(points!==null)out[String(a.athlete?.id)]={points,minutes,final,onCourt:running&&a.active===true,counting:points-GAME_PLAYED,
      name:a.athlete?.displayName||a.athlete?.shortName||'',team:team.team?.abbreviation||'',line:Object.fromEntries(LINE.filter(k=>k in stats).map(k=>[k,stats[k]]))};
    }
   }

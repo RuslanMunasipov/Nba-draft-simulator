@@ -2,7 +2,9 @@ import {readStored,writeStored} from './storage.js';
 import {teamLabel,teamName} from './teams.js';
 import {fblTransfers,checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from './rules.js';
 import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,perGame,horizons,gameWeeks,weekOf,current,playerOutlook,transferOptions,bestTransfers,bestPackage,marketAlerts,parseInjuries,allTransfers,withMarket,explainSwap,newsInjuries,withBoxScores,seasonEnding,CONFIDENT,DOUBTFUL} from './season.js';
-import {seasonForm,swapAnalyzer,takenIds,STREAK} from './season.js';
+import {seasonForm,swapAnalyzer,takenIds,STREAK,stints} from './season.js';
+import sportsMap from '../data/sports-player-map.json' with {type:'json'};
+import {LEAGUE_TEAMS} from './teams.js';
 import {playerSearchMatches} from './player-search.js';
 import {POSITIONS} from './engine.js';
 import {recommendPackage,contestedBy,transferWindow} from './season.js';
@@ -20,7 +22,7 @@ const LEAGUE_URL=`https://raw.githubusercontent.com/${REPO}/main/data/fbl-league
 const INJURY_URL='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries';
 const SPORTS_URL=id=>`https://www.sports.ru/fantasy/basketball/player/info/150/${id}.html`;
 const TEAM_URL=id=>`https://www.sports.ru/fantasy/basketball/team/${id}.html`;
-const VIEWS=[['overview','Обзор'],['teams','Команды'],['players','Игроки'],['transfers','Трансферы'],['injuries','Травмы'],['games','Матчи'],['rules','Правила']];
+const VIEWS=[['overview','Обзор'],['teams','Команды'],['players','Игроки'],['awards','Награды'],['transfers','Трансферы'],['injuries','Травмы'],['games','Матчи'],['rules','Правила']];
 const PERIOD={week:'Неделя',month:'4 недели',season:'Сезон'},PERIOD_LONG={week:'до конца недели',month:'за 4 недели',season:'до конца сезона'};
 const PERIOD_SHORT={week:'за неделю',month:'за 4 нед.',season:'за сезон'};
 const addDaysIso=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
@@ -79,6 +81,8 @@ const hasInjuryRows=feed=>Boolean(feed?.injuries?.some?.(t=>t?.injuries?.length)
 export async function refreshSeason(){
  if(loading)return loading;
  const refresh=$('season-refresh');refresh.disabled=true;refresh.setAttribute('aria-busy','true');
+ // The awards archive is read again with the season data once the page has been opened (the bot files games hourly).
+ if(awards.status!=='idle')loadAwards();
  loading=Promise.all([fetchLive(),fetchJson(INJURY_URL).catch(()=>null),fetchJson(LEAGUE_URL,{cache:'no-cache'}).catch(()=>null)]).then(async([l,inj,lg])=>{
   if(l){rawLive=live=l;src.live='ok';addMarket();}else src.live=live?'stale':'error';
   // A report that lists nobody is a broken feed, never «all healthy» (the collector's rule, espn_injuries): like a
@@ -262,11 +266,21 @@ function lineTable(x){
  const total=el('tr',null,'total');total.append(el('th','ФО'),el('td',x.final?'финал':'матч идёт','v'),el('td',int(s.total),'num'));t.append(total);
  return t;
 }
-// A player's line in a game card: tap to open his stat line, which stays open while the scores refresh.
-function lineRow(key,who,x,status,cls){
+// On the floor or on the bench right now (ESPN's lineup, refreshed with the scores): null outside a running game and in a
+// break, when nobody is on the floor. dot: the mark alone, its words in the tooltip, for the long all-players list.
+function court(x,g,dot=false){
+ if(!x||x.final||g?.state!=='in'||g.pause)return null;
+ const label=x.onCourt?'на паркете':'на скамейке',s=el('span',dot?null:label,'court'+(x.onCourt?' on':'')+(dot?' dot':''));
+ s.title=x.onCourt?'Сейчас на площадке (по протоколу ESPN)':'Сейчас на скамейке (по протоколу ESPN)';if(dot)s.setAttribute('aria-label',label);return s;
+}
+const courtWord=x=>x?.game?.state==='in'&&!x.game.pause&&!x.final?(x.onCourt?' · на паркете':' · на скамейке'):'';
+// A player's line in a game card: tap to open the stat line, which stays open while the scores refresh.
+function lineRow(key,who,x,status,cls,badge=null){
  if(!x){const li=el('li',null,cls);li.append(who,el('span',status,'pts'));return li;}
  const li=el('li',null,cls),d=el('details',null,'line-details'),sum=el('summary');d.dataset.key=key;
- sum.append(who,el('span',`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'),'pts'));d.append(sum,lineTable(x));li.append(d);return li;
+ // The words go under the name, so a long name keeps its room; the bare mark leads the row, in one column for the list.
+ if(badge?.classList.contains('dot'))sum.append(badge,who);else if(badge){const col=el('span',null,'who-col');col.append(who,badge);sum.append(col);}else sum.append(who);
+ sum.append(el('span',`${int(x.points)} ФО · ${x.minutes} мин`+(x.final?'':' *'),'pts'));d.append(sum,lineTable(x));li.append(d);return li;
 }
 function gameCard(g,focus,own,full=false){
  const item=el('div',null,'sp-game'+(g.state==='in'?' is-live':'')),head=el('div',null,'sp-game-head');
@@ -279,14 +293,14 @@ function gameCard(g,focus,own,full=false){
   ours.sort((a,b)=>(pts(b)?.points||0)-(pts(a)?.points||0));
   const ul=el('ul');
   for(const p of ours){const x=pts(p),inj=injuryText(p);
-   ul.append(lineRow(`line:${g.id}:${p.espnId}`,el('span',p.name+(g.state==='pre'&&inj?` (${inj.toLowerCase()})`:''),'who'),x,g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','mine-player'));}
+   ul.append(lineRow(`line:${g.id}:${p.espnId}`,el('span',p.name+(g.state==='pre'&&inj?` (${inj.toLowerCase()})`:''),'who'),x,g.state==='pre'?'':g.points?(g.state==='post'?'не играл':'ещё не выходил'):'','mine-player',court(x,g)));}
   item.append(ul);
  }
  // Every player of the game, best first: tap anyone to follow his stat line.
  const everyone=Object.entries(g.points||{}).sort((a,b)=>b[1].points-a[1].points);
  if(full&&everyone.length){
   const all=el('details',null,'inline sp-all');all.dataset.key='all:'+g.id;all.append(el('summary',`Все игроки матча (${everyone.length})`));
-  const ul=el('ul');for(const [id,x] of everyone)ul.append(lineRow(`all:${g.id}:${id}`,el('span',`${x.name||'—'} · ${x.team}`,'who'),x,'',''));
+  const ul=el('ul');for(const [id,x] of everyone)ul.append(lineRow(`all:${g.id}:${id}`,el('span',`${x.name||'—'} · ${x.team}`,'who'),x,'','',court(x,g,true)));
   all.append(ul);item.append(all);
  }
  return item;
@@ -301,7 +315,7 @@ function gamesToday(ctx,compact,focus){
  for(const g of list.slice(0,compact?4:99))box.append(gameCard(g,focus,own,!compact));
  if(compact&&shown.length>Math.min(list.length,4)){const more=button(`Все матчи (${shown.length})`,()=>setView('games'),'btn-ghost btn-sm');head.append(more);}
  if(!list.length)box.append(el('p',`Сегодня ${count(shown.length,'матч','матча','матчей')}, ${whose} в них нет.`,'muted'));
- if(list.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки предварительные, по протоколу ESPN. Нажми на игрока — откроется его статлиния по формуле.','sp-note'));
+ if(list.some(g=>g.state==='in'))box.append(el('p','* матч идёт: очки предварительные, по протоколу ESPN. «На паркете» и «на скамейке» — по составу на площадке в протоколе ESPN, обновляется вместе со счётом (каждые 20 с; ESPN может отставать на минуту), в перерывах не показывается. Нажми на игрока — откроется его статлиния по формуле.','sp-note'));
  return box;
 }
 function alertsBlock(ctx){
@@ -348,7 +362,7 @@ function playerRow(p,ctx,running,shadow,credit){
  const price=el('span',null,'sp-price'),delta=Number.isFinite(live1?.price)&&Number.isFinite(live1?.initialPrice)?live1.price-live1.initialPrice:0;
  price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
  const form=el('span',null,'sp-form'),last=(live1?.games||[]).filter(fblGame).slice(-3).map(x=>int(x.points));
- form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
+ form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}${courtWord(now)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
  const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running,shadow,credit),first=shadow.get(`${team}:${p.id}`),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
  left.title='Ожидаемых матчей до конца периода';next.append(factForecast(fact,fact+rest.points),left);
  row.append(name,price,form,next);
@@ -700,7 +714,7 @@ function marketRow(r,i,ctx,analyse,running){
  who.append(el('strong',p.name));if(row.fullName)who.append(el('small',row.fullName,'mk-ru'));
  const tags=[];
  if(form.streak)tags.push(streakChip(form.streak,form.norm));
- if(now)tags.push(el('span',`в игре ${int(now.points)}`,'chip chip--live'));
+ if(now)tags.push(el('span',`в игре ${int(now.points)}${courtWord(now)}`,'chip chip--live'));
  if(inj)tags.push(el('span',inj.text,'chip '+(inj.level==='out'?'chip--danger':'chip--warn')));
  if(p.isRookie)tags.push(el('span','rookie','chip'));
  if(r.owner!==null)tags.push(el('span',r.owner===team?'твой':r.owner>=0?teamName(r.owner):'в FBL','chip chip--info'));
@@ -764,6 +778,113 @@ function playersView(base){
  fill();
  const panel=el('div',null,'mk-panel');panel.append(head,search,filters,sortRow);
  return [controls(ctx),panel,info,...(early?[early]:[]),list,more];
+}
+
+// ---------- Awards: the day's top and antitop of the whole NBA and the season races ----------
+// The awards bot's own archive (branch data/awards-bot: every game line of the season with its FBL points by the league's
+// Yahoo formula and the league teams that held the player at tip-off), ranked by the bot's own code (awards-bot/core.js),
+// so the page and the league chat never disagree. The bot files each game at its final whistle and closes a day 15 minutes
+// after its last game; its hourly runs keep the archive current.
+const AWARDS_URL=f=>`https://raw.githubusercontent.com/${REPO}/data/awards-bot/${f}`;
+const AWARDS_TABS=[['top','Топ дня'],['flop','Антитоп дня'],['races','Гонки за награды']];
+let awards={status:'idle',lines:[],state:null,at:null},awardsCore=null,awardsPrices=[],awardsTab=readStored('fbl-awards-tab')||'top',awardsDay=null;
+async function loadAwards(){
+ if(awards.status==='loading')return;awards={...awards,status:'loading'};
+ try{
+  const [core,prices,archive,state]=await Promise.all([import('../awards-bot/core.js'),import('../data/sports-prices-2026-10-17.json'),
+   fetchJson(AWARDS_URL('archive.json'),{cache:'no-cache'}),fetchJson(AWARDS_URL('state.json'),{cache:'no-cache'}).catch(()=>null)]);
+  awardsCore=core;awardsPrices=(prices.default||prices).players||[];awards={status:'ok',lines:archive?.lines||[],state,at:Date.now()};
+ }catch{awards={...awards,status:awards.lines.length?'ok':'error'};}
+ if(tab()==='season'&&view==='awards')renderSeason();
+}
+// The races need the league as the bot sees it (holdings from the transfer journals, rookies, pre-season prices): built
+// once per archive and journal.
+let raceMemo=null;
+function awardRaces(ctx){
+ const key=[awards.lines,ctx.transfers,basePlayers,rawLive];
+ if(raceMemo&&key.every((v,i)=>v===raceMemo.key[i]))return raceMemo.value;
+ const C=awardsCore,league=C.makeLeague({players,live,holdings:stints(ctx.transfers),map:sportsMap.players,prices:awardsPrices});
+ const bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p]));
+ const rookies=new Set(players.filter(p=>p.isRookie===true).map(league.espnOf).filter(Boolean)),mef=new Map();
+ for(const r of awardsPrices)if(r.price>=C.MEF_PRICE.min&&r.price<=C.MEF_PRICE.max){const e=league.espnOf(bySid.get(String(r.sportsId)));if(e)mef.set(e,r.price);}
+ raceMemo={key,value:{league,races:C.races(awards.lines,{rostered:league.rostered(),rookies,mef})}};
+ return raceMemo.value;
+}
+const MONTHS_GEN=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const dayWord=d=>`${Number(d.slice(8,10))} ${MONTHS_GEN[Number(d.slice(5,7))-1]}`;
+// The player of an archive line: the database's name and Sports.ru's Russian one, else ESPN's short name.
+function awardWho(a,n,league){
+ const p=league?.player(a),box=el('span',null,'aw-who');
+ box.append(el('strong',p?.name||n||String(a)));const ru=p?live?.players?.[p.sportsId]?.fullName:null;if(ru)box.append(el('small',ru,'aw-ru'));
+ return box;
+}
+function teamMarks(teams,free=true){
+ const box=el('span',null,'aw-teams');
+ if(!teams?.length){if(free){const f=el('span','свободен','chip');f.title='Ни в одной команде FBL на начало матча';box.append(f);}return box;}
+ for(const t of teams){const s=el('span',LEAGUE_TEAMS[t]?.symbol||String(t+1),'aw-team'+(t===0?' mine':''));s.title=teamName(t);s.setAttribute('aria-label',teamName(t));box.append(s);}
+ return box;
+}
+const STAT_WORDS=[['pts','очк'],['reb','подб'],['ast','пер'],['stl','перехв'],['blk','блок'],['tov','пот']];
+const statWords=s=>STAT_WORDS.map(([k,l])=>`${s[k]} ${l}`).join(' · ')+` · с игры ${s.fgm}/${s.fga} · штрафные ${s.ftm}/${s.fta}`;
+const MEDAL=['🥇','🥈','🥉'];
+function awardLine(l,i,league,flop){
+ const li=el('li',null,'aw-row'+(flop?' flop':'')+(l.h?.includes(0)?' mine':''));
+ li.append(el('span',!flop&&i<3?MEDAL[i]:String(i+1),'aw-rank'));
+ const main=el('span',null,'aw-main'),head=el('span',null,'aw-head');
+ head.append(awardWho(l.a,l.n,league),el('span',l.c||'—','aw-club'),teamMarks(l.h));
+ main.append(head,el('small',`${statWords(l.s)} · ${dec(l.m)} мин`,'aw-stats'));
+ const pts=el('span',null,'aw-pts');pts.append(el('strong',int(l.p)),el('small','ФО'));
+ li.append(main,pts);return li;
+}
+function dayBlock(ctx,flop){
+ const C=awardsCore,days=[...new Set(awards.lines.map(l=>l.d))].sort().reverse();
+ if(!days.length)return [el('p','В архиве бота наград пока нет ни одного матча.','muted')];
+ if(!days.includes(awardsDay))awardsDay=days[0];
+ const i=days.indexOf(awardsDay),pick=el('div',null,'aw-day');
+ const go=d=>{awardsDay=d;renderSeason();},older=button('◀',()=>go(days[i+1]),'btn-secondary btn-sm'),newer=button('▶',()=>go(days[i-1]),'btn-secondary btn-sm');
+ older.disabled=i>=days.length-1;newer.disabled=i<=0;older.setAttribute('aria-label','Предыдущий игровой день');newer.setAttribute('aria-label','Следующий игровой день');
+ const rec=awards.state?.days?.[awardsDay],games=Object.values(rec?.games||{}),left=games.filter(g=>!g.final&&!g.off).length;
+ const label=el('div',null,'aw-day-label');label.append(el('strong',dayWord(awardsDay)),el('small',rec?.done?`${count(games.filter(g=>g.final).length,'матч','матча','матчей')} · день завершён`:left?`идёт: ещё ${count(left,'матч','матча','матчей')}, в списке — завершённые`:'игровой день США'));
+ pick.append(older,label,newer);
+ const lines=awards.lines.filter(l=>l.d===awardsDay),{top,antitop}=C.dayLists(lines,10),league=awardRaces(ctx).league;
+ const list=el('ol',null,'aw-list');list.append(...(flop?antitop:top).map((l,k)=>awardLine(l,k,league,flop)));
+ const title=el('div',null,'sp-block-head');title.append(el('h3',flop?'🤡 Антитоп дня · НБА':'⭐ Топ дня · НБА'),el('span',count(lines.length,'игрок','игрока','игроков'),'chip'));
+ return [pick,title,list,el('p',flop?'Все игроки, вышедшие на площадку, без порога минут — как антитоп в чате лиги. Значок — команда FBL, где игрок был на начало матча.':'Лучшие ФО дня по формуле лиги среди всех игроков НБА. Значок — команда FBL, где игрок был на начало матча.','sp-note')];
+}
+const raceArrow=(r,list,previous)=>{const m=previous?awardsCore.moved(r.key||r.a,list,previous):0;return m===null?el('span','new','aw-move new'):m>0?el('span','▲'+m,'aw-move up'):m<0?el('span','▼'+(-m),'aw-move down'):null;};
+function raceBlock(title,note,list,league,previous,value){
+ const box=el('div',null,'sp-block aw-race'),head=el('div',null,'sp-block-head');head.append(el('h3',title));box.append(head,el('p',note,'sp-note'));
+ if(!list.length){box.append(el('p','Пока никого: нет сыгранных матчей.','muted'));return box;}
+ const ol=el('ol',null,'aw-list');
+ list.forEach((r,i)=>{const li=el('li',null,'aw-row'+((r.teams||[]).includes(0)?' mine':'')),main=el('span',null,'aw-main'),head2=el('span',null,'aw-head');
+  // A player with no game yet has no club in the archive: the database's.
+  head2.append(awardWho(r.a,r.n,league),el('span',r.c||league.player(r.a)?.team||'—','aw-club'),teamMarks(r.teams,true));const mv=raceArrow(r,list,previous);if(mv)head2.append(mv);
+  const [big,small,line]=value(r);main.append(head2,el('small',line,'aw-stats'));
+  const pts=el('span',null,'aw-pts');pts.append(el('strong',big),el('small',small));
+  li.append(el('span',i<3&&r.p>0?MEDAL[i]:String(i+1),'aw-rank'),main,pts);ol.append(li);});
+ box.append(ol);return box;
+}
+function racesBlock(ctx){
+ const {league,races}=awardRaces(ctx),prev=awards.state?.ranks||{},games=r=>count(r.games,'матч','матча','матчей');
+ const avg=r=>r.games?` · ${dec(r.p/r.games)} за матч`:'';
+ return [
+  raceBlock('🏆 MVP','Больше всех ФО за сезон среди игроков, которые сейчас в командах FBL.',races.mvp,league,prev.mvp,r=>[int(r.p),'ФО',games(r)+avg(r)]),
+  raceBlock('🌱 Новичок года','То же среди новичков в командах FBL.',races.roy,league,prev.roy,r=>[int(r.p),'ФО',games(r)+avg(r)]),
+  raceBlock('💊 Mef player',`Цена Sports.ru до старта сезона от ${int(awardsCore.MEF_PRICE.min)} до ${int(awardsCore.MEF_PRICE.max)}: кто выжал больше всех из дешёвых.`,races.mef,league,prev.mef,
+   r=>[int(r.p),'ФО',`${games(r)} · цена до старта ${int(r.price)}`]),
+  raceBlock('🪑 Шестой игрок','Индекс = ФО × доля матчей, сыгранных запасным (дешевле из двух игроков своей позиции в команде FBL).',
+   races.sixth.map(x=>({...x,teams:[x.team]})),league,prev.sixth,r=>[int(r.index),'индекс',`ФО ${int(r.p)} · запасным ${r.bench} из ${r.games} (${Math.round(100*r.bench/r.games)}%)`])];
+}
+function awardsView(base){
+ const ctx=forGains(base),wait=needsLive('Награды');if(wait)return wait;
+ if(awards.status==='idle'){loadAwards();return [loadingBlock('Загружаю архив бота наград…')];}
+ if(awards.status==='loading'&&!awards.lines.length)return [loadingBlock('Загружаю архив бота наград…')];
+ if(awards.status==='error')return [errorBlock('Нет архива бота наград','GitHub не ответил. Повтори через минуту.',()=>loadAwards())];
+ const nav=el('div',null,'segmented aw-tabs');nav.setAttribute('role','group');nav.setAttribute('aria-label','Раздел наград');
+ for(const [k,t] of AWARDS_TABS){const b=button('',()=>{awardsTab=k;writeStored('fbl-awards-tab',k);renderSeason();},'');const [short,...rest]=t.split(' за ');b.append(short);if(rest.length)b.append(el('span',' за '+rest.join(' за '),'wide-only'));b.setAttribute('aria-pressed',String(awardsTab===k));nav.append(b);}
+ const updated=awards.state?.updatedAt?el('p',`Архив бота наград обновлён ${stampMsk(awards.state.updatedAt)} МСК: он пополняется каждый час, матч попадает в него после финальной сирены.`,'sp-note'):null;
+ let body;if(awardsTab==='races'){body=el('div',null,'aw-races');body.append(...racesBlock(ctx));body=[body];}else body=dayBlock(ctx,awardsTab==='flop');
+ return [nav,...body,...(updated?[updated]:[])];
 }
 
 // ---------- Upcoming games ----------
@@ -897,7 +1018,7 @@ export function renderSeason(busy=false){
  $('season-status').textContent=statusLine(ctx);
  const nav=el('nav',null,'season-nav segmented');nav.setAttribute('aria-label','Разделы сезона');
  for(const [k,label] of VIEWS){const b=el('button',label);b.type='button';b.setAttribute('aria-pressed',String(view===k));b.onclick=()=>{replacing=null;setView(k);};nav.append(b);}
- const content=view==='teams'?teams(ctx):view==='players'?playersView(ctx):view==='transfers'?transfersView(ctx):view==='injuries'?injuriesView(ctx):view==='games'?gamesView(ctx):view==='rules'?rulesView(ctx):overview(ctx);
+ const content=view==='teams'?teams(ctx):view==='players'?playersView(ctx):view==='awards'?awardsView(ctx):view==='transfers'?transfersView(ctx):view==='injuries'?injuriesView(ctx):view==='games'?gamesView(ctx):view==='rules'?rulesView(ctx):overview(ctx);
  const parts=[nav,...warnings(ctx),...content];
  if(METHOD[view]&&live){const method=el('details',null,'method');method.dataset.key='method:'+view;method.append(el('summary','Как считается'));const ul=el('ul');for(const l of METHOD[view])ul.append(el('li',l));method.append(ul);parts.push(method);}
  // Keep the replacement search focused and its caret in place across a re-render.
