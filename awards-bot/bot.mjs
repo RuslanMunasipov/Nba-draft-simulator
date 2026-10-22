@@ -273,18 +273,18 @@ async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true}={}){
  const faces=new Map((await Promise.all(ids.map(async a=>[a,await headshot(a)]))).filter(([,f])=>f));
  const pictures=dayPictures(blocks,ctx.who,{faces,form:form(lines,day)});
  if(!draw){for(const p of pictures)console.log(`\n===== ${day} ${p.kind} picture (prompt, ${p.images.length} references) =====\n${p.prompt}\n\n${p.caption}\n`);return {status:'prompts'};}
- let spent=0,sent=0;
+ let spent=0,sent=0,drawn=0;
  for(const p of pictures){
   try{
-   const r=await generate(p,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});spent+=cost(r.usage);
+   const r=await generate(p,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});spent+=cost(r.usage);drawn++;
    if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});const f=path.join(CARDS_DIR,`picture-${day}-${p.kind}.png`);fs.writeFileSync(f,r.png);
     fs.writeFileSync(f.replace(/png$/,'txt'),p.caption+'\n\n'+p.prompt+'\n');console.log('picture: '+f);}
    if(send){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',p.caption);form.append('parse_mode','HTML');
     form.append('photo',new Blob([r.png],{type:'image/png'}),`fbl-${p.kind}-${day}.png`);await telegram(TOKEN,'sendPhoto',form);sent++;}
   }catch(e){console.warn(`${day}: the ${p.kind} picture failed (${e.message}).`);}
  }
- console.log(`${day}: ${pictures.length} picture(s) drawn${send?`, ${sent} sent`:''}, $${spent.toFixed(3)}.`);
- return {status:send?(sent?'sent':'failed'):'preview',cost:Math.round(spent*1e4)/1e4};
+ console.log(`${day}: ${drawn} of ${pictures.length} picture(s) drawn${send?`, ${sent} sent`:''}, $${spent.toFixed(3)}.`);
+ return {status:send?(sent?'sent':'failed'):(drawn?'preview':'failed'),cost:Math.round(spent*1e4)/1e4};
 }
 
 // The day's post: its album, its text as the fallback.
