@@ -3,7 +3,7 @@
 // horizon is the FBL week a move counts in, and the confidence is the backtest's calibrated chance (src/confidence.js).
 import test from 'node:test';import assert from 'node:assert/strict';
 import {absenceRun,expectedPoints,playRate,horizons} from '../src/season.js';
-import {calibrated,interpolate,phaseOf} from '../src/confidence.js';
+import {calibrated,interpolate,phaseOf,normalCdf} from '../src/confidence.js';
 import CONFIDENCE from '../data/confidence-calibration.json' with {type:'json'};
 const days=(from,n,step=2)=>Array.from({length:n},(_,i)=>new Date(Date.parse(from+'T00:00:00Z')+i*step*864e5).toISOString().slice(0,10));
 const cal=days('2026-10-22',40).map((date,i)=>({date,week:1+Math.floor(i/3)}));
@@ -52,13 +52,16 @@ test('on a week\'s last Moscow date after its games the week horizon is the next
  assert.equal(horizons({live,today:'2026-10-26'}).week.to,'2026-10-26','without a clock (the league race): the week of the date');
 });
 
-test('the calibrated confidence follows the backtest\'s step map, never falls as z grows, and is Φ(z) beyond its evidence',()=>{
+test('the calibrated confidence is the shipped map of z, never falls as z grows, and is Φ(z) without a map',()=>{
  for(const h of ['week','month','season'])for(const day of ['2026-11-01','2027-01-10','2027-03-01']){
   const zs=Array.from({length:61},(_,i)=>-3+i/10),ps=zs.map(z=>calibrated(CONFIDENCE.maps,z,h,day));
   for(let i=1;i<ps.length;i++)assert.ok(ps[i]>=ps[i-1]-1e-12,`${h} ${day} at z=${zs[i]}`);
+  const m=CONFIDENCE.maps[h][phaseOf(day)];
+  assert.equal(calibrated(CONFIDENCE.maps,1,h,day),m.knots?interpolate(m.knots,1):normalCdf(m.a+m.b));
  }
- const m=CONFIDENCE.maps.season[phaseOf('2026-11-01')];
- assert.equal(calibrated(CONFIDENCE.maps,0,'season','2026-11-01'),interpolate(m.knots,0));
- assert.ok(calibrated(CONFIDENCE.maps,6,'season','2026-11-01')>.99,'far above the backtest\'s range: Φ(z)');
+ assert.equal(calibrated(null,1,'season','2026-11-01'),normalCdf(1));
+ // The step map form: its top step or Φ(z) above the largest z the backtest saw.
+ const steps={season:{early:{knots:[{upTo:0,p:.4},{upTo:null,p:.8}],zMax:2}}};
+ assert.equal(calibrated(steps,1,'season','2026-11-01'),.8);assert.ok(calibrated(steps,6,'season','2026-11-01')>.99);
  assert.deepEqual([phaseOf('2026-11-30'),phaseOf('2026-12-01'),phaseOf('2027-01-31'),phaseOf('2027-02-01')],['early','mid','mid','late']);
 });
