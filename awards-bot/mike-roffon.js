@@ -1,5 +1,5 @@
 // Mike Roffon, the league's reporter (Inside FBL): after the game day's post, a flash interview with the hero of the day,
-// posted by his own bot. The interview is written by an OpenAI text model in his voice (sharp, hard, ironic; the voice of
+// posted by his own bot. The interview is written by Claude through the owner's subscription (scripts/claude-text.mjs) in his voice (sharp, hard, ironic; the voice of
 // his Inside FBL pieces) from the facts of the game, and drawn by the picture pipeline: Mike, always with his white gloves
 // and microphone, and the real player. It is fiction and says so. Every number in it is a number of the facts: the FBL
 // points come from core.js (fblFormula); an interview that brings a number of its own, or a line of his old pieces word
@@ -10,10 +10,9 @@ import {LEAGUE_TEAMS} from '../src/teams.js';
 import {esc,dayLabel} from './messages.js';
 import {person,looks,readImage,ASSETS} from '../scripts/image-pipeline.mjs';
 import {dateTag} from './cards.js';
+import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 
-export const MIKE_MODEL=process.env.MIKE_MODEL||'gpt-5.4-mini';
-// USD per million tokens of gpt-5.4-mini (developers.openai.com/api/docs/pricing, 22.10.2026).
-export const TEXT_PRICE={input:0.75,output:4.5};
+export const MIKE_MODEL=process.env.MIKE_MODEL||CLAUDE_MODEL;
 
 // The facts of an interview: the hero of the day and his game. who: the league's (Sports.ru) name; form: core.js form().
 export function interviewFacts(day,line,who,{form,opponent,holiday}={}){
@@ -41,8 +40,13 @@ const RULES=`Правила:
 - 3 вопроса и 3 ответа. Пролог — 1–2 предложения, послесловие — 1–2 предложения. Всего не длиннее 1300 знаков.
 - Ответь строго JSON: {"title": "цитата игрока для заголовка, до 70 знаков, без кавычек и без его имени", "prologue": "...", "qa": [{"q": "...", "a": "..."}, ...], "remark": "колкая реплика Майка после одного из ответов или пустая строка", "afterword": "..."}`;
 export function interviewMessages(facts){
- return [{role:'system',content:`${VOICE}\n\n${RULES}`},{role:'user',content:`Флеш-интервью с героем игрового дня. Данные:\n${JSON.stringify(facts,null,1)}`}];
+ return {system:`${VOICE}\n\n${RULES}`,prompt:`Флеш-интервью с героем игрового дня. Данные:\n${JSON.stringify(facts,null,1)}`};
 }
+// The shape of the answer, for the CLI's structured output.
+const str={type:'string'};
+export const INTERVIEW_SCHEMA={type:'object',additionalProperties:false,required:['title','prologue','qa','remark','afterword'],properties:{
+ title:str,prologue:str,remark:str,afterword:str,
+ qa:{type:'array',minItems:3,maxItems:3,items:{type:'object',additionalProperties:false,required:['q','a'],properties:{q:str,a:str}}}}};
 
 // Every number a text may use: those of the facts, and small counting words written as digits (1 to 5).
 export function allowedNumbers(facts){
@@ -109,27 +113,21 @@ SCENE: a flash interview, ${scene.where}. Mike, in white gloves, holds his vinta
 STYLE: photorealistic sports-broadcast still, cinematic light, 35mm lens, shallow depth of field. Square composition. The only text: "INSIDE FBL" on the banner and on the press wall, spelled exactly. No other captions, numbers or watermarks.`};
 }
 
-// The interview from the model (chat completions, JSON). Answers {interview, usage} or throws.
-export async function writeInterview(facts,{key,fetchImpl=fetch,model=MIKE_MODEL,timeoutMs=120e3}={}){
- const r=await fetchImpl('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(timeoutMs),
-  headers:{'content-type':'application/json',...key?{authorization:`Bearer ${key}`}:{}},
-  body:JSON.stringify({model,messages:interviewMessages(facts),response_format:{type:'json_object'}})});
- const body=await r.json().catch(()=>({}));
- if(!r.ok)throw Error(`OpenAI text: ${r.status} ${body.error?.message||''}`.trim());
- let interview;try{interview=JSON.parse(body.choices?.[0]?.message?.content||'');}catch{throw Error('OpenAI text: not JSON');}
- if(!validInterview(interview))throw Error('OpenAI text: not an interview');
- return {interview,usage:body.usage||null};
+// The interview from Claude (one headless call of the CLI, JSON by the schema). Answers {interview, usage} or throws.
+export async function writeInterview(facts,{claude=claudeJSON,model=MIKE_MODEL,timeoutMs=180e3}={}){
+ const {data,usage}=await claude({...interviewMessages(facts),schema:INTERVIEW_SCHEMA,model,timeoutMs});
+ if(!validInterview(data))throw Error('Claude text: not an interview');
+ return {interview:data,usage:usage||null};
 }
-export const textCost=u=>((u?.prompt_tokens||0)*TEXT_PRICE.input+(u?.completion_tokens||0)*TEXT_PRICE.output)/1e6;
 // Written until it holds no number of its own and no line of his old pieces (two tries); null when it still does.
+// The subscription bills nothing per call, so the text costs nothing.
 export async function interviewFor(facts,opts){
- let spent=0;
  for(let i=0;i<2;i++){
-  const {interview,usage}=await writeInterview(facts,opts);spent+=textCost(usage);
+  const {interview}=await writeInterview(facts,opts);
   const stray=strayNumbers(interview,facts),copied=copiedLines(interview);
-  if(!stray.length&&!copied.length)return {interview,spent};
+  if(!stray.length&&!copied.length)return {interview};
   if(stray.length)console.warn(`Mike Roffon: numbers not in the facts (${stray.join(', ')}), written again.`);
   if(copied.length)console.warn(`Mike Roffon: lines of his old pieces (${copied.join(' | ')}), written again.`);
  }
- return {interview:null,spent};
+ return {interview:null};
 }

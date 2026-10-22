@@ -70,8 +70,9 @@ jobs:
           AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
-          # Mike Roffon's flash interview after the day's post (awards-bot/mike-roffon.js): his own bot, written and drawn
-          # by OpenAI. Without either secret there is no interview.
+          # Mike Roffon's flash interview after the day's post (awards-bot/mike-roffon.js): his own bot, written by Claude
+          # (CLAUDE_CODE_OAUTH_TOKEN below), drawn by OpenAI. Without his token or Claude's there is no interview; without
+          # the OpenAI key it goes without its picture.
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.

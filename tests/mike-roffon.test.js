@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
-import {interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES} from '../awards-bot/mike-roffon.js';
+import {interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA} from '../awards-bot/mike-roffon.js';
 
 const s={pts:45,reb:10,ast:3,stl:2,blk:1,tov:4,fgm:16,fga:29,ftm:4,fta:5,pf:1};
 const line={d:'2026-10-21',e:'g1',a:'4594268',n:'A. Edwards',c:'MIN',t:'2026-10-22T00:00Z',m:36.4,p:fblFormula(s),h:[5],b:[],s};
@@ -12,8 +12,8 @@ const good={title:'Когда темп мой — защита глохнет',p
 test('Mike Roffon: the facts carry the FBL points of the league formula and nothing else',()=>{
  assert.equal(facts.game.fo,39);assert.equal(facts.game.fo,fblFormula(s));
  assert.equal(facts.player.name,'Эдвардс');assert.equal(facts.player.opponent,'MIA');assert.equal(facts.fblTeams[0].team,'Texas 76 Citrus');
- const [sys,user]=interviewMessages(facts);
- assert.match(sys.content,/Майк Роффон/);assert.match(sys.content,/Используй только числа из данных/);assert.match(user.content,/"fo": 39/);
+ const {system,prompt}=interviewMessages(facts);
+ assert.match(system,/Майк Роффон/);assert.match(system,/Используй только числа из данных/);assert.match(prompt,/"fo": 39/);
 });
 
 test('Mike Roffon: an interview with a number of its own is caught',()=>{
@@ -24,7 +24,7 @@ test('Mike Roffon: an interview with a number of its own is caught',()=>{
 });
 
 test('Mike Roffon: his voice is described, his old pieces are never quoted, and a repeated line is caught',()=>{
- const sys=interviewMessages(facts)[0].content;
+ const sys=interviewMessages(facts).system;
  for(const l of SAMPLE_LINES)assert.ok(!sys.toLowerCase().replace(/ё/g,'е').includes(l.toLowerCase().replace(/ё/g,'е')),`the prompt quotes «${l}»`);
  assert.match(sys,/хлёсткий, жёсткий, ироничный/);
  assert.deepEqual(copiedLines(good),[]);
@@ -61,12 +61,20 @@ test('Mike Roffon: at the arena, under the stands and at the press conference he
  assert.ok([...seen].some(s=>/outside the arena/.test(s))&&[...seen].some(s=>/tunnel under the stands/.test(s))&&[...seen].some(s=>/press conference/.test(s)),[...seen].join(' / '));
 });
 
-test('Mike Roffon: written as JSON by the model, written again when it brings its own numbers, then dropped',async()=>{
- const reply=x=>async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(x)}}],usage:{prompt_tokens:1000,completion_tokens:500}}),{status:200});
- const {interview,usage}=await writeInterview(facts,{fetchImpl:reply(good)});assert.deepEqual(interview,good);assert.equal(usage.prompt_tokens,1000);
- let calls=0;const bad=async(...a)=>{calls++;return reply({...good,prologue:'Средние 28 очков.'})(...a);};
- const out=await interviewFor(facts,{fetchImpl:bad});assert.equal(out.interview,null);assert.equal(calls,2);
- let tries=0;const copyThenGood=async(...a)=>(tries++?reply(good):reply({...good,afterword:'Роль важнее фамилии.'}))(...a);
- assert.deepEqual((await interviewFor(facts,{fetchImpl:copyThenGood})).interview,good);assert.equal(tries,2);
- await assert.rejects(writeInterview(facts,{fetchImpl:reply({nope:1})}),/not an interview/);
+test('Mike Roffon: written by Claude (the subscription module, JSON by the schema), again on its own numbers or old lines, then dropped',async()=>{
+ const seen=[],reply=x=>async opts=>{seen.push(opts);return {data:x,text:JSON.stringify(x),usage:{output_tokens:500},costUsd:0.02};};
+ const {interview}=await writeInterview(facts,{claude:reply(good)});assert.deepEqual(interview,good);
+ assert.match(seen[0].system,/Майк Роффон/);assert.match(seen[0].prompt,/"fo": 39/);assert.equal(seen[0].schema,INTERVIEW_SCHEMA);
+ assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','afterword']);
+ let calls=0;const bad=async o=>{calls++;return reply({...good,prologue:'Средние 28 очков.'})(o);};
+ const out=await interviewFor(facts,{claude:bad});assert.equal(out.interview,null);assert.equal(calls,2);
+ let tries=0;const copyThenGood=async o=>(tries++?reply(good):reply({...good,afterword:'Роль важнее фамилии.'}))(o);
+ assert.deepEqual((await interviewFor(facts,{claude:copyThenGood})).interview,good);assert.equal(tries,2);
+ await assert.rejects(writeInterview(facts,{claude:reply({nope:1})}),/not an interview/);
+ await assert.rejects(interviewFor(facts,{claude:async()=>{throw Error('Claude Code: 401 expired');}}),/401/);
+});
+
+test('Mike Roffon: the interview goes through scripts/claude-text.mjs, never through the OpenAI text API',async()=>{
+ const src=(await import('node:fs')).readFileSync(new URL('../awards-bot/mike-roffon.js',import.meta.url),'utf8');
+ assert.match(src,/from '\.\.\/scripts\/claude-text\.mjs'/);assert.doesNotMatch(src,/api\.openai\.com|chat\/completions|gpt-/);
 });
