@@ -16,6 +16,15 @@ try{
  await page.getByRole('button',{name:'Трансферы'}).first().click();await page.waitForTimeout(2000);
  const why=page.locator('.sp-why').first();
  if(await why.count()){await why.locator('summary').click();await page.waitForTimeout(300);assert.match(await why.innerText(),/Уверенность/);}
+ // The players page: free players by this season's points, a row opens with its games and the analyser's swap, and
+ // sorting by the analyser keeps the list.
+ await page.getByRole('button',{name:'Игроки'}).first().click();await page.waitForSelector('.mk-list .mk-row',{timeout:30000});
+ const rows=await page.locator('.mk-row').count();assert.ok(rows>=10,'players page lists free players: '+rows);
+ await page.locator('.mk-row summary').first().click();await page.waitForTimeout(300);
+ assert.match(await page.locator('.mk-details').first().innerText(),/Матчи сезона|ещё не играл/);
+ await page.getByRole('button',{name:'Анализатор'}).first().click();await page.waitForTimeout(1500);
+ assert.ok(await page.locator('.mk-row').count()>=10,'sorted by the analyser');
+ await page.getByRole('button',{name:'ФО/матч'}).first().click();await page.waitForTimeout(500);
  // The rules screen checks all eight teams.
  await page.getByRole('button',{name:'Правила'}).first().click();await page.waitForTimeout(1500);
  const ruleRows=await page.locator('.sp-table tr').count();assert.ok(ruleRows>=9,'rules table has eight teams: '+ruleRows);
@@ -29,6 +38,6 @@ try{
  assert.ok(found>=8,'rookie filter shows rookies: '+found);
  const toggles=page.locator('.player-toggle');for(let i=0;i<Math.min(5,await toggles.count());i++){await toggles.nth(i).click();await page.waitForTimeout(150);}
  assert.deepEqual(errors,[],'no script errors');
- console.log(`Browser smoke passed: ${found} rookies listed, rules for 8 teams, transfer explanation and player cards render without errors`);
+ console.log(`Browser smoke passed: ${found} rookies listed, players page, rules for 8 teams, transfer explanation and player cards render without errors`);
  await browser.close();
 }finally{if(server)try{process.kill(-server.pid);}catch{}}

@@ -437,6 +437,55 @@ export function bestTransfers(ctx,{team,bankMoney,sort='month',limit=10}){
  return ctx.rosters[team].map(outId=>{const [best]=transferOptions(ctx,{team,outId,bankMoney,limit:1,sort});return best?{outId,...best}:null;})
   .filter(x=>x&&x.gain[sort]>0).sort((a,b)=>b.gain[sort]-a.gain[sort]).slice(0,limit);
 }
+// ---------- Players page: a player's season so far and the best move that brings them to a team ----------
+// A streak: the player's latest games in a row all well above (hot) or below (cold) the pre-season forecast per game, by 25% and at
+// least 3 FP. Checked on 2024/25 and 2025/26 regular seasons (the previous season's average as the norm, players of 8+ FP a
+// game): after two such games the next one averaged +2.2 FP over the norm (cold −2.5), after three +3.3 (−3.2).
+export const STREAK={hot:1.25,cold:.75,margin:3,min:2,shown:5};
+export function seasonForm(player,row,rule=STREAK){
+ const games=(row?.games||[]).filter(g=>g.played&&fblPoints(g)!==null).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+ const norm=Number.isFinite(player?.forecast?.meanPerGame)?player.forecast.meanPerGame:null,total=games.reduce((s,g)=>s+g.points,0);
+ const hot=x=>norm!==null&&x>=Math.max(rule.hot*norm,norm+rule.margin),cold=x=>norm!==null&&x<=Math.min(rule.cold*norm,norm-rule.margin);
+ const state=x=>hot(x)?'hot':cold(x)?'cold':'even';
+ let kind=games.length?state(games.at(-1).points):'even',length=0;
+ if(kind!=='even')for(let i=games.length-1;i>=0&&state(games[i].points)===kind;i--)length++;
+ return {games:games.length,total,average:games.length?total/games.length:null,norm,
+  minutes:games.length?games.reduce((s,g)=>s+clockMinutes(g.minutes),0)/games.length:null,
+  last:games.slice(-rule.shown).map(g=>({date:g.date,opponent:g.opponent||null,points:g.points,minutes:g.minutes??null,state:state(g.points)})),
+  streak:kind!=='even'&&length>=rule.min?{kind,length}:null};
+}
+// The best one-for-one swap that brings a free player to a team, by transferOptions' rules: swapAnalyzer works the sales
+// out once and answers per player (memoised), so a page can ask only for the rows it shows. A player no swap brings in
+// carries why: the money it lacks (the smallest gap over the sales the player's position allows), or the NBA club limit, the rookie
+// rule or the white rule. Null for a player an FBL team holds or not on the Sports.ru market.
+export function swapAnalyzer(ctx,{team,bankMoney,sort='month'}){
+ const byId=new Map(ctx.players.map(p=>[p.id,p])),taken=takenIds(ctx),memo=new Map();
+ const sales=ctx.rosters[team].map(id=>selling(ctx,team,id,bankMoney,byId)).filter(Boolean);
+ return id=>{
+  if(memo.has(id))return memo.get(id);
+  const raw=byId.get(id);let result=null;
+  if(raw&&!taken.has(id)&&onMarket(raw,ctx)){
+   const p=current(raw,ctx);let best=null,need=Infinity,rule=null,outlook=null;
+   for(const sale of sales){
+    if(!Number.isFinite(p.price)||!rosterFits([...sale.rest,p]))continue;
+    if(!clubRoom(sale.rest,p)){rule??='club';continue;}
+    if(sale.needRookie&&p.isRookie!==true){rule??='rookie';continue;}
+    if(sale.needWhite&&!sale.white.has(String(p.id))){rule??='white';continue;}
+    if(p.price>sale.money){need=Math.min(need,p.price-sale.money);continue;}
+    outlook??=playerOutlook(p,ctx);
+    const gain={};for(const k of Object.keys(outlook))gain[k]=outlook[k].points-sale.base[k].points;
+    if(!best||gain[sort]>best.gain[sort])best={outId:sale.leaving.id,player:p,outlook,gain,bankAfter:sale.money-p.price};
+   }
+   result=best?{best}:Number.isFinite(need)?{reason:'money',need}:{reason:rule||'position'};
+  }
+  memo.set(id,result);return result;
+ };
+}
+export function bestSwaps(ctx,options){
+ const analyse=swapAnalyzer(ctx,options),out=new Map();
+ for(const p of ctx.players){const r=analyse(p.id);if(r)out.set(p.id,r);}
+ return out;
+}
 // FBL points each team collected so far (each game's by the league's Yahoo formula on its box score, fblPoints; a game
 // whose points are not known adds nothing yet), counting a player only for the games he played while on the team and not
 // held first by another FBL team (inStint).

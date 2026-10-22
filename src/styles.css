@@ -13,7 +13,7 @@
  --warn:#f0c674;--warn-bg:#2e2510;--warn-line:#5c4a1f;
  --danger:#ff9d8c;--danger-bg:#3a1d1a;--danger-line:#6b3530;
  --info:#8ec5ff;--info-bg:#132a42;--info-line:#24476b;
- --live:#ff8a80;--focus:#9be7c0;
+ --live:#ff8a80;--focus:#9be7c0;--heat:#f0c674;--chill:#8ec5ff;--even:#56708a;
  --bar:#0f2333;--bar-text:#eef5fb;--bar-text-2:#b3c5d3;--bar-track:rgb(255 255 255/.14);
  --shadow-1:0 1px 2px rgb(0 0 0/.35);--shadow-2:0 8px 28px rgb(0 0 0/.35);
  --skeleton-a:#15263a;--skeleton-b:#1d3349;
@@ -28,7 +28,7 @@
  --warn:#8a5a00;--warn-bg:#fff4d8;--warn-line:#ecd28f;
  --danger:#b42318;--danger-bg:#fdecea;--danger-line:#f3b8b1;
  --info:#1d5fa8;--info-bg:#e8f1fb;--info-line:#b9d3f1;
- --live:#c4302b;--focus:#0b7a5c;
+ --live:#c4302b;--focus:#0b7a5c;--heat:#b86e00;--chill:#1d5fa8;--even:#6b7f7d;
  --bar:#122d3c;--bar-text:#f2f7f9;--bar-text-2:#c3d3d9;--bar-track:rgb(255 255 255/.18);
  --shadow-1:0 1px 2px rgb(18 45 60/.08);--shadow-2:0 8px 24px rgb(18 45 60/.14);
  --skeleton-a:#e9efed;--skeleton-b:#f5f8f7;
@@ -381,11 +381,11 @@ body.is-replacing .plan-box button{display:none}
 .season-section>.section-heading{margin-bottom:var(--s1)}
 .season-status{margin:0 0 var(--s4);font-size:var(--fs-sm);color:var(--text-2)}
 .season-status:empty{display:none}
-.season-nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 var(--s4);box-shadow:inset 0 0 0 1px var(--line),var(--shadow-2)}
+.season-nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));margin:0 0 var(--s4);box-shadow:inset 0 0 0 1px var(--line),var(--shadow-2)}
 .season-nav button{padding:6px 8px;font-size:var(--fs-sm)}
 .season-nav button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-line),var(--shadow-1)}
 [data-theme=dark] .season-nav button[aria-pressed=true]{background:var(--raised)}
-@media(max-width:559px){.season-nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:559px){.season-nav{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .season-section h3{margin:var(--s6) 0 var(--s3);font-size:var(--fs-lg)}
 .season-section h3:first-child{margin-top:0}
 .sp-block{margin-top:var(--s6)}
@@ -672,3 +672,79 @@ body:has(.sheet[open]){overflow:hidden}
 .sheet-body>.player-card{padding:0;border:0;background:none}
 .sheet-body>.player-card .player-toggle{pointer-events:none}
 .sheet-body>.player-card .pc-chevron{display:none}
+
+/* ===== Season · Players (the Sports.ru market by this season's points) =====
+   One grid for the header and every row: a table from 760px, a two-line card below it. Streak and game states are a
+   warm/cool pair around a neutral (hot = warn hue, cold = info hue, the rest line-strong), always next to their 🔥/🧊 label. */
+.chip--hot{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
+.chip--cold{background:var(--info-bg);border-color:var(--info-line);color:var(--info)}
+.mk-panel{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s3);padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface-2)}
+.mk-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s3)}
+.mk-head h3{margin:0}
+.mk-search input{width:100%;padding-left:40px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238496a7' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 4.5 4.5'/%3E%3C/svg%3E") no-repeat 12px center/18px}
+.mk-filters{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:flex-end}
+.mk-seg{flex:none;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.mk-seg button{flex:none;min-height:36px;padding:6px 12px;font-size:var(--fs-sm)}
+.mk-seg button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-line),var(--shadow-1)}
+[data-theme=dark] .mk-seg button[aria-pressed=true]{background:var(--raised)}
+.mk-select{display:grid;gap:2px;font-size:var(--fs-xs);font-weight:700;color:var(--text-3)}
+.mk-select select{min-height:36px;padding:6px 10px;font-size:var(--fs-sm);background:var(--surface)}
+.mk-check{display:inline-flex;align-items:center;gap:var(--s2);min-height:36px;font-size:var(--fs-sm);font-weight:700;color:var(--text-2);cursor:pointer}
+.mk-sort{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s3);padding-top:var(--s3);border-top:1px solid var(--line)}
+.mk-label{font-size:var(--fs-xs);font-weight:700;color:var(--text-3)}
+.mk-list{margin-top:var(--s3);border-top:1px solid var(--line)}
+.mk-header,.mk-sum{display:grid;grid-template-columns:28px minmax(0,1.6fr) 48px 44px 128px minmax(0,1.5fr) 72px;gap:var(--s3);align-items:center}
+.mk-header{position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);z-index:5;padding:8px var(--s2);background:var(--surface);border-bottom:1px solid var(--line);font-size:var(--fs-xs);font-weight:700;color:var(--text-3)}
+.mk-header .mk-avg,.mk-header .mk-price,.mk-header .mk-rank{text-align:right}
+.mk-row{border-bottom:1px solid var(--line)}
+.mk-row>summary{display:grid;min-height:0;margin:0;padding:10px var(--s2);font-weight:500;border-radius:var(--r-sm)}
+.mk-row>summary::before{display:none}
+.mk-row[open]>summary{margin:0;background:var(--surface-2)}
+.mk-row.is-hot>summary{box-shadow:inset 3px 0 0 var(--heat)}
+.mk-row.is-cold>summary{box-shadow:inset 3px 0 0 var(--chill)}
+@media(hover:hover){.mk-row>summary:hover{background:var(--hover)}}
+.mk-rank{font-size:var(--fs-sm);font-weight:800;color:var(--text-3);text-align:right;font-variant-numeric:tabular-nums}
+.mk-who{min-width:0;display:grid;gap:2px}
+.mk-who strong{font-size:var(--fs-sm);font-weight:800;overflow-wrap:anywhere}
+.mk-who small{font-size:var(--fs-xs);color:var(--text-3)}
+.mk-ru{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.mk-tags .chip{min-height:20px;padding:1px 7px;font-size:11px}
+.mk-meta{display:none}
+.mk-club,.mk-pos{font-size:var(--fs-sm);font-weight:700;color:var(--text-2)}
+.mk-avg{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2)}
+.mk-fig{display:grid;justify-items:end;text-align:right}
+.mk-fig strong{font-size:var(--fs-lg);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.mk-fig small{font-size:11px;color:var(--text-3);white-space:nowrap}
+.mk-spark{position:relative;flex:none;display:flex;align-items:flex-end;justify-content:flex-end;gap:2px;width:48px;height:26px;padding-bottom:1px;border-bottom:1px solid var(--line)}
+.mk-bar{flex:0 0 7px;border-radius:3px 3px 0 0;background:var(--even)}
+.mk-bar.hot{background:var(--heat)}
+.mk-bar.cold{background:var(--chill)}
+.mk-norm{position:absolute;left:-2px;right:-2px;height:0;border-top:1px solid var(--text-2);opacity:.7;pointer-events:none}
+.mk-ana{display:grid;justify-items:start;gap:3px;min-width:0}
+.mk-ana .chip{min-height:22px;padding:2px 8px}
+.mk-ana-note{font-size:var(--fs-xs);color:var(--text-2);overflow-wrap:anywhere}
+.mk-price{display:grid;justify-items:end;text-align:right}
+.mk-price strong{font-size:var(--fs-sm);font-weight:800;font-variant-numeric:tabular-nums}
+.mk-price small{font-size:11px}
+.mk-price small.up{color:var(--accent-text)}
+.mk-price small.down{color:var(--danger)}
+.mk-details{display:grid;gap:var(--s2);padding:var(--s2) var(--s2) var(--s4);min-width:0}
+.mk-details h4{margin-top:var(--s1)}
+.mk-games{min-width:320px}
+.mk-details>.table-scroll{max-width:620px}
+.mk-more{display:flex;width:100%;margin-top:var(--s3)}
+.mk-more[hidden]{display:none}
+@media(max-width:759px){
+ .mk-header{display:none}
+ .mk-sum{grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"rank who avg" "rank ana ana";gap:6px var(--s2)}
+ .mk-rank{grid-area:rank;align-self:start;padding-top:2px}
+ .mk-who{grid-area:who}
+ .mk-avg{grid-area:avg;align-self:start}
+ .mk-ana{grid-area:ana;display:flex;flex-wrap:wrap;align-items:center;gap:4px var(--s2)}
+ .mk-club,.mk-pos,.mk-price{display:none}
+ .mk-meta{display:block}
+ .mk-seg.mk-pos-seg,.mk-sort .mk-seg{width:100%}
+ .mk-seg.mk-pos-seg button,.mk-sort .mk-seg button{flex:1;padding-inline:4px}
+ .mk-sort{display:grid;gap:var(--s1)}
+}
