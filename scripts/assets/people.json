@@ -16,6 +16,7 @@
   {"id": "jonathan-zhopa", "name": "Джонатан Жопа", "en": "Jonathan Zhopa", "role": "reserve", "photo": "people/jonathan-zhopa.jpg",
    "keep": "curly brown hair, large metal-frame glasses, a red velour pullover with stripes"},
   {"id": "mike-roffon", "name": "Майк Роффон", "en": "Mike Roffon", "role": "reporter", "photo": "people/mike-roffon.jpg",
-   "keep": "an elderly war correspondent: camouflage helmet reading \"BORN TO ASK\", white shirt with a polka-dot tie, a PRESS vest, and always white gloves and a vintage chrome microphone"}
+   "keep": "white gloves and a vintage chrome microphone, always",
+   "outfit": "his clothes follow the scene: the camouflage helmet, the PRESS vest and the polka-dot tie of his photo are only one of his outfits"}
  ]
 }
