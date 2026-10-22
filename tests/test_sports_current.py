@@ -240,3 +240,53 @@ class JournalStampTests(unittest.TestCase):
         self.assertEqual((team['balance'], team['transfersLeft'], team['transfersUnlimited']), (200, None, True))
         self.assertEqual(collector.parse_team('<th>Трансферы</th><td>2</td>')['transfersLeft'], 2)
         self.assertEqual(collector.parse_team('<th>Дедлайн</th>\n<td>20 октября, 21:30 </td>')['deadline'], '20 октября, 21:30')
+
+
+class EspnBoxScoreTests(unittest.TestCase):
+    LABELS = ['MIN', 'PTS', 'FG', '3PT', 'FT', 'REB', 'AST', 'TO', 'STL', 'BLK', 'OREB', 'DREB', 'PF', '+/-']
+
+    def summary(self):
+        # Paul George, 20.10.2026: the NBA's line (5 fouls); Sports.ru's game table had 4.
+        return {'boxscore': {'players': [{'team': {'abbreviation': 'BOS'}, 'statistics': [{'labels': self.LABELS, 'athletes': [
+            {'athlete': {'id': '4251'}, 'stats': ['31', '38', '12-21', '7-12', '7-8', '5', '3', '3', '5', '0', '0', '5', '5', '+9']},
+            {'athlete': {'id': '9'}, 'didNotPlay': True, 'stats': []}]}]}]}}
+
+    def test_espn_lines_read_every_player_who_took_the_floor(self):
+        lines = collector.espn_lines(self.summary())
+        self.assertEqual(list(lines), ['4251'])
+        self.assertEqual(collector.fbl_points(lines['4251']), 31)
+
+    def test_finished_games_are_indexed_by_moscow_date_and_clubs(self):
+        sched = {'BOS': {'events': [
+            {'id': '1', 'date': '2026-10-20T23:00Z', 'competitions': [{'status': {'type': {'completed': True}}, 'competitors': [{'team': {'abbreviation': 'DET'}}, {'team': {'abbreviation': 'BOS'}}]}]},
+            {'id': '2', 'date': '2026-10-23T23:00Z', 'competitions': [{'status': {'type': {'completed': False}}, 'competitors': [{'team': {'abbreviation': 'NY'}}, {'team': {'abbreviation': 'BOS'}}]}]}]}}
+        self.assertEqual(collector.finished_games(sched), {'1': {'tip': '2026-10-20T23:00:00+00:00', 'day': '2026-10-21', 'teams': ['BOS', 'DET']}})
+
+    def test_rows_take_espn_box_scores_and_keep_sports_numbers_beside(self):
+        cache = {'events': {'1': {'tip': '2026-10-20T23:00:00+00:00', 'day': '2026-10-21', 'teams': ['BOS', 'DET'], 'players': collector.espn_lines(self.summary())}}}
+        players = {'s1': {'games': [{'date': '2026-10-21', 'opponent': 'Детройт', 'played': True, 'points': 32, 'pointsSource': 'BOX'},
+                                    {'date': '2026-10-23', 'opponent': 'Нью-Йорк', 'played': True, 'points': 10, 'pointsSource': 'BOX'}]},
+                   's2': {'games': [{'date': '2026-10-21', 'opponent': 'Бостон', 'played': True, 'points': 7, 'pointsSource': 'BOX'}]}}
+        self.assertEqual(collector.apply_espn(players, cache, {'s1': '4251', 's2': '77'}), 1)
+        george = players['s1']['games']
+        self.assertEqual((george[0]['points'], george[0]['pointsSource'], george[0]['boxPoints'], george[0]['espnEvent']), (31, 'ESPN', 32, '1'))
+        self.assertEqual(george[1]['pointsSource'], 'BOX', 'a game ESPN has not finished keeps the Sports.ru box score')
+        self.assertEqual(players['s2']['games'][0]['pointsSource'], 'BOX', 'a player ESPN does not list keeps the Sports.ru box score')
+
+    def test_the_cache_reads_new_and_recent_finals_only(self):
+        from datetime import datetime, timezone
+        now = datetime(2026, 10, 30, tzinfo=timezone.utc)
+        games = {'old': {'tip': '2026-10-20T23:00:00+00:00', 'day': '2026-10-21', 'teams': ['BOS', 'DET']},
+                 'new': {'tip': '2026-10-29T23:00:00+00:00', 'day': '2026-10-30', 'teams': ['NY', 'PHI']}}
+        cache = {'events': {'old': {**games['old'], 'players': {'1': {}}}}}
+        asked = []
+        real = collector.fetch
+        collector.fetch = lambda url, compressed=False: asked.append(url) or __import__('json').dumps(self.summary())
+        try:
+            self.assertEqual(collector.update_box_cache(cache, games, now), 1)
+        finally:
+            collector.fetch = real
+        self.assertEqual(asked, [collector.SUMMARY_URL.format(id='new')])
+        self.assertIn('4251', cache['events']['new']['players'])
+        self.assertEqual(cache['events']['old']['players'], {'1': {}}, 'an old final is not read again')
+

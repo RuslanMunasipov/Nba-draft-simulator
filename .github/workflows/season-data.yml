@@ -45,6 +45,7 @@ jobs:
           git show origin/data/season-live:notify-state.json > out/notify-state.json || rm -f out/notify-state.json
           git show origin/data/season-live:injury-history.json > out/injury-history.json || rm -f out/injury-history.json
           git show origin/data/season-live:league-state.json > out/league-state.json || rm -f out/league-state.json
+          git show origin/data/season-live:espn-box.json > out/espn-box.json || rm -f out/espn-box.json
       - name: Watch transfers and collect Sports.ru data
         env:
           GH_TOKEN: ${{ github.token }}

@@ -108,7 +108,7 @@ export function sportsCheckLine(c){
 
 // How the league scores a game, in the Yahoo settings' own categories (data/league-rules.json scoringFormula; owner,
 // 21.10.2026), and where the statistics come from: the game's own box score (season.js withBoxScores for ESPN's,
-// the collector's BOX rows for Sports.ru's game table). Sports.ru's own points (its result bonus, +2 for 10+ minutes)
+// the collector's ESPN rows, its BOX rows from Sports.ru's game table where ESPN lists nothing). Sports.ru's own points (its result bonus, +2 for 10+ minutes)
 // never become FBL points: a game without its box score has none yet (standings.js fblGame).
 export const LEAGUE_FORMULA='+1 за сыгранный матч, FGM−FGA, FTM−FTA, PTS, REB, AST, ST, BLK, TO −2, PF −1';
 export const POINTS_SOURCE='по подробной статистике каждого матча: за последние два дня — по протоколу ESPN сразу после финальной сирены, раньше — по таблице матча Sports.ru';

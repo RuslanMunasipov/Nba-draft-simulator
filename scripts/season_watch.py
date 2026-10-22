@@ -212,7 +212,7 @@ class Watch:
             git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com')
         git('add',self.live.name);
         if self.state.exists():git('add',self.state.name)
-        for name in ('injury-history.json','league-state.json'):
+        for name in ('injury-history.json','league-state.json','espn-box.json'):
             if (folder/name).exists():git('add',name)
         git('commit','-qm',message,'--allow-empty')
         # What was posted must reach GitHub: the next run starts from it, and a lost state would post again.
