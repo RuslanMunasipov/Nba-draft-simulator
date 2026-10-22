@@ -65,6 +65,10 @@ jobs:
           AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
+          # Mike Roffon's flash interview after the day's post (awards-bot/mike-roffon.js): his own bot, written and drawn
+          # by OpenAI. Without either secret there is no interview.
+          MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           RESEND: ${{ inputs.resend }}
           # One run follows a day for at most this long, then saves; the next hourly run goes on.
           WATCH_MINUTES: '330'

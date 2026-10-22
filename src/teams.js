@@ -1,10 +1,10 @@
 // FBL 2026-27 draft order (straight, 1-8 every round) as published by the commissioner.
 export const LEAGUE_TEAMS=[
  {name:'The Balkan Murderers',symbol:'🐎',gm:'Franky Murder'},
- {name:'Saint P Imperial',symbol:'👑',gm:''},
+ {name:'Saint P Imperial',symbol:'👑',gm:'Коуч I'},
  {name:'Black Jacks',symbol:'♠️',gm:'Jack Pott'},
  {name:'Команда им. Алачаняна А.М.',symbol:'🇦🇲',gm:'Роберт Хачатурян'},
- {name:'Volga Pirates',symbol:'🏴‍☠️',gm:'Roger Jolly'},
+ {name:'Volga Pirates',symbol:'🏴‍☠️',gm:'Капитан Торрес Нью-Вин'},
  {name:'Texas 76 Citrus',symbol:'🍋',gm:''},
  {name:'Karagali Brothers',symbol:'🏜️',gm:'Фы Жил'},
  {name:'School Shooters Team',symbol:'⚰️',gm:''}
