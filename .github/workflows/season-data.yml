@@ -56,6 +56,8 @@ jobs:
           LEAGUE_TELEGRAM_BOT_TOKEN: ${{ secrets.LEAGUE_TELEGRAM_BOT_TOKEN }}
           # Key of the encrypted Telegram usernames (data/telegram-handles.enc.json).
           LEAGUE_HANDLES_KEY: ${{ secrets.LEAGUE_HANDLES_KEY }}
+          # Зак Онн's protocol pictures with the team's GM and logo (scripts/zak-pictures.mjs); without it, his usual photos.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python scripts/season_watch.py out/sports-current.json out/notify-state.json --minutes 345 --every 60 --full-every 120
       - name: Start the next watch run
         if: success() || failure()

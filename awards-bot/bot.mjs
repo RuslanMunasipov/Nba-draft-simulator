@@ -14,7 +14,8 @@
 //                                                   (--images: the captions and scenes of the day's pictures, none drawn)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. OPENAI_API_KEY: the day's post
-// is followed by the pictures of Зак Онн, one for every hero and every flop (images.js); without it, no pictures.
+// is followed by its pictures, one for every hero and every flop (images.js); without it, no pictures.
+// AWARDS_IMAGES_PER_BLOCK: how many heroes and how many flops get a picture (3 by default, 0: none).
 // Optional: LIVE_URL (sports-current.json), DB_PATH (a local default-draft.json), NOW (ISO time, for a dry run),
 // WATCH_MINUTES (how long one run may stay, 330 by default: GitHub stops a job at 360), CHAIN (stay the whole time and
 // let the workflow start the next run).
@@ -26,7 +27,8 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
-import {dayImages,mediaGroup,generate,cost} from './images.js';
+import {dayImages,mediaGroup} from './images.js';
+import {generate,cost} from '../scripts/image-pipeline.mjs';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -111,16 +113,15 @@ async function post(text,chat=CHAT,label='league chat'){
 // The day's pictures: the pictures of an album (heroes, flops) are drawn at once, then sent as one Telegram media group.
 // They follow the day's post and never hold it: a picture that fails is left out, an album that fails is logged. Answers
 // what was sent and what the pictures cost.
-const OPENAI_KEY=env.OPENAI_API_KEY;
-const photoOf=ref=>({bytes:fs.readFileSync(new URL(`scripts/assets/zak-onn/${ref}.jpg`,ROOT)),name:ref+'.jpg'});
+const OPENAI_KEY=env.OPENAI_API_KEY,PER_BLOCK=env.AWARDS_IMAGES_PER_BLOCK===undefined||env.AWARDS_IMAGES_PER_BLOCK===''?3:Number(env.AWARDS_IMAGES_PER_BLOCK)||0;
 async function postImages(day,blocks,ctx){
- const albums=dayImages(day,blocks,ctx.who);let sent=0,spent=0;
+ const albums=dayImages(day,blocks,ctx.who,{perBlock:PER_BLOCK});let sent=0,spent=0;
  if(!live||!OPENAI_KEY){
-  for(const a of albums)a.items.forEach((it,i)=>console.log(`\n===== picture (${a.kind}, not drawn) =====\n${i?'':a.title+'\n'}${it.caption}\n${it.prompt.split('\n\n')[1]}`));
+  for(const a of albums)a.items.forEach((it,i)=>console.log(`\n===== picture (${a.kind}, not drawn, ${it.images.length} reference(s)) =====\n${i?'':a.title+'\n'}${it.caption}\n${it.prompt}`));
   return null;
  }
  for(const a of albums){
-  const drawn=await Promise.all(a.items.map(it=>generate({prompt:it.prompt,photo:photoOf(it.ref)},{key:OPENAI_KEY})
+  const drawn=await Promise.all(a.items.map(it=>generate(it,{key:OPENAI_KEY})
    .then(r=>{spent+=cost(r.usage);return {...it,png:r.png};},e=>{console.warn(`${day}: a ${a.kind} picture failed: ${e.message}`);return null;})));
   const done=drawn.filter(Boolean);
   if(!done.length)continue;

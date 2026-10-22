@@ -1,0 +1,71 @@
+// The league's picture pipeline, shared by its two bots: the awards bot (awards-bot/images.js: the heroes and the flops of
+// the day) and Зак Онн, the league's lawyer (scripts/zak-pictures.mjs: his transfer protocols). A picture is OpenAI's
+// Images API in edit mode: a prompt and up to a few reference images (Зак Онн's photo, a GM's photo, a team's logo).
+// The references live in scripts/assets/ (see its README): zak-onn/<mood>.jpg, gm/<team number>.<ext>,
+// team-logos/<team number>.<ext>, the team number being its place in the draft order (1 to 8, src/teams.js). A missing
+// GM photo or logo is simply left out of the picture.
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+export const MODEL='gpt-image-2.5-sunburst',QUALITY='medium',SIZE='1024x1024';
+// USD per million tokens (developers.openai.com/api/docs/pricing, 22.10.2026): the same for gpt-image-2 and both 2.5.
+// A reference photo is about 1000 input tokens ($0.008), a medium square picture 439 output tokens ($0.013).
+export const PRICE={text:5,image:8,output:30};
+export const ASSETS=fileURLToPath(new URL('./assets/',import.meta.url));
+const TYPES={'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp'};
+
+// A reference image from disk: {bytes, name, type}; null when there is no such file.
+export function readImage(file){
+ if(!file||!fs.existsSync(file))return null;
+ const ext=path.extname(file).toLowerCase();
+ return TYPES[ext]?{bytes:fs.readFileSync(file),name:path.basename(file),type:TYPES[ext]}:null;
+}
+// The first file of a base name in any of the image formats.
+const find=(dir,base)=>{for(const ext of Object.keys(TYPES)){const f=path.join(dir,base+ext);if(fs.existsSync(f))return f;}return null;};
+// team: the league team's index (0 to 7), as everywhere in the code; the files are numbered from 1.
+export const zakPhoto=(mood,root=ASSETS)=>readImage(find(path.join(root,'zak-onn'),mood));
+export const gmPhoto=(team,root=ASSETS)=>Number.isInteger(team)?readImage(find(path.join(root,'gm'),String(team+1))):null;
+export const teamLogo=(team,root=ASSETS)=>Number.isInteger(team)?readImage(find(path.join(root,'team-logos'),String(team+1))):null;
+
+// The references of a picture in order, with the words a prompt uses for each ("reference image 2"): only the ones that
+// exist. refs: [{key, image, what}] → {images, legend, has: key → its words}.
+export function references(refs){
+ const present=refs.filter(r=>r.image),has={};
+ present.forEach((r,i)=>{has[r.key]=`reference image ${i+1}`;});
+ const legend=present.length?'REFERENCES: '+present.map((r,i)=>`reference image ${i+1} is ${r.what}`).join('; ')+'.':'';
+ return {images:present.map(r=>r.image),legend,has};
+}
+
+// What a picture cost, in USD, from the usage the API answers with.
+export function cost(usage){
+ const d=usage?.input_tokens_details||{},text=d.text_tokens??0,image=d.image_tokens??Math.max(0,(usage?.input_tokens||0)-text);
+ return (text*PRICE.text+image*PRICE.image+(usage?.output_tokens||0)*PRICE.output)/1e6;
+}
+
+// One picture: the references edited by the prompt (without references, drawn from the prompt alone). Answers the PNG and
+// the usage. key: the OpenAI API key (without it the request goes out bare, for a proxy that adds it). A refused prompt,
+// a bad key or an empty balance is not tried again.
+export async function generate({prompt,images=[]},{key,fetchImpl=fetch,timeoutMs=180e3,attempts=3}={}){
+ const auth=key?{authorization:`Bearer ${key}`}:{},edit=images.length>0;
+ let last;
+ for(let attempt=0;attempt<attempts;attempt++){
+  let body;
+  if(edit){
+   body=new FormData();
+   body.append('model',MODEL);body.append('prompt',prompt);body.append('size',SIZE);body.append('quality',QUALITY);body.append('n','1');
+   for(const im of images)body.append('image[]',new Blob([im.bytes],{type:im.type||'image/jpeg'}),im.name);
+  }else body=JSON.stringify({model:MODEL,prompt,size:SIZE,quality:QUALITY,n:1});
+  try{
+   const r=await fetchImpl(`https://api.openai.com/v1/images/${edit?'edits':'generations'}`,{method:'POST',body,
+    headers:edit?auth:{...auth,'content-type':'application/json'},signal:AbortSignal.timeout(timeoutMs)});
+   const out=await r.json().catch(()=>({}));
+   if(r.ok&&out.data?.[0]?.b64_json)return {png:Buffer.from(out.data[0].b64_json,'base64'),usage:out.usage||null};
+   last=Error(`OpenAI images: ${r.status} ${out.error?.message||''}`.trim());
+   if(r.status!==429&&r.status<500)break;
+   if(out.error?.code==='credit_balance_exhausted'||out.error?.type==='insufficient_quota')break;
+  }catch(e){last=e;}
+  if(attempt<attempts-1)await new Promise(r=>setTimeout(r,5000*(attempt+1)));
+ }
+ throw last;
+}
