@@ -1,0 +1,86 @@
+{
+ "version": 1,
+ "generatedBy": "scripts/tune_transfer_policy.mjs",
+ "params": {
+  "weights": {
+   "season": 1
+  },
+  "movePrice": 25
+ },
+ "chosen": "season/25",
+ "method": "Grid of horizon weights (season, monthSeason, weekMonthSeason, month) × transfer prices (0, 25, 50 points of the weighted value per sale; the season weighting at 100 too), each played in 8 leagues a season on the transfer backtest (seeds 1-1); the variant with the most season points over both seasons is shipped.",
+ "crossSeason": {
+  "2024-25": {
+   "chosenOn": [
+    "2025-26"
+   ],
+   "variant": "season/25",
+   "points": 14012,
+   "bestHere": "monthSeason/25",
+   "bestHerePoints": 14071
+  },
+  "2025-26": {
+   "chosenOn": [
+    "2024-25"
+   ],
+   "variant": "monthSeason/25",
+   "points": 12265,
+   "bestHere": "season/25",
+   "bestHerePoints": 12351
+  }
+ },
+ "table": {
+  "season/0": {
+   "2024-25": 13972,
+   "2025-26": 12282
+  },
+  "season/25": {
+   "2024-25": 14012,
+   "2025-26": 12351
+  },
+  "season/50": {
+   "2024-25": 13894,
+   "2025-26": 11885
+  },
+  "monthSeason/0": {
+   "2024-25": 13916,
+   "2025-26": 12202
+  },
+  "monthSeason/25": {
+   "2024-25": 14071,
+   "2025-26": 12265
+  },
+  "monthSeason/50": {
+   "2024-25": 13733,
+   "2025-26": 11889
+  },
+  "weekMonthSeason/0": {
+   "2024-25": 13984,
+   "2025-26": 12270
+  },
+  "weekMonthSeason/25": {
+   "2024-25": 14016,
+   "2025-26": 12210
+  },
+  "weekMonthSeason/50": {
+   "2024-25": 13730,
+   "2025-26": 11701
+  },
+  "month/0": {
+   "2024-25": 13956,
+   "2025-26": 12133
+  },
+  "month/25": {
+   "2024-25": 13932,
+   "2025-26": 12261
+  },
+  "month/50": {
+   "2024-25": 13580,
+   "2025-26": 11726
+  },
+  "season/100": {
+   "2024-25": 13582,
+   "2025-26": 11377
+  }
+ }
+}

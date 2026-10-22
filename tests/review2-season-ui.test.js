@@ -136,7 +136,8 @@ test('transfer gains get the clock; «нужен ещё N командам» cou
  assert.match(FT.seasonMethod().transfers.join(' '),/Матч, который уже начался, в выигрыш не входит/);
  // The league race and the team forecasts keep counting a tipped game of a holder who has not checked in yet.
  assert.match(ui,/function context\(\)\{const m=merged\(\),list=m\.transfers;return \{players,live,injuries,today:moscowToday\(\),rosters/);assert.doesNotMatch(ui.match(/function context\(\)[^\n]*\n[^\n]*/)[0],/now:/);
- assert.match(ui,/contestedBy\(ctx,\{team,playerId:x\.in\.id,bankOf:t=>teamBank\(t,ctx\.transfers\),leftOf:t=>transfersLeft\(ctx,t\),sort:horizon\}\)/);
+ // The decision (src/transfer-plan.js) counts the rivals with the banks and the transfers left of each team.
+ assert.match(ui,/transferPlan\(ctx,\{team,bankMoney:money,left,bankOf:t=>teamBank\(t,ctx\.transfers\),leftOf:t=>transfersLeft\(ctx,t\)\}\)/);
  // Season-ending players come last in the injuries list: their ESPN date is a placeholder.
  assert.match(ui,/const back=r=>seasonEnding\(r\.i\)\?'99':String\(r\.i\.returnDate\|\|'9'\);/);
 });

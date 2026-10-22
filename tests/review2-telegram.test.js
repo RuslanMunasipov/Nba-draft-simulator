@@ -85,7 +85,7 @@ test('an ESPN answer that lists nobody is no fresh report: the kept one stays, w
 test('a game that has tipped off is not gainable any more, before its score is in (R20: ctx.now in the advisor)',()=>{
  // 22.10, 03:30 MSK: the night's game (02:00 MSK) is under way, Sports.ru has no score and no row for it yet. The advice
  // must be the one it gives once the game is gone from the calendar.
- const now='2026-10-22T00:30:00Z',free={X:['SF',45,1300]},gain=out=>out.match(/\n1\. D\d+ → <b>X<\/b>\n/)&&out.match(/🧩[^\n]*\n(\+\d+) ФО за сезон · (\+\d+) за 4 нед\./);
+ const now='2026-10-22T00:30:00Z',free={X:['SF',45,1300]},gain=out=>out.match(/\n1\. D\d+ → <b>X<\/b>\n/)&&out.match(/🧩[^\n]*\n[^\n]* за неделю · (\+\d+) за 4 нед\. · (\+\d+) за сезон/);
  const tipped=notify(league({free}),{now}).out,gone=notify(league({free,calendar:CAL.map((g,i)=>i?g:{...g,gone:true})}),{now}).out;
  const after=gain(tipped);assert.ok(after,tipped);
  assert.equal(tipped,gone);

@@ -2,59 +2,64 @@
 import {writeStored} from '../storage.js';
 import {teamName} from '../teams.js';
 import {fblTransfers} from '../rules.js';
-import {current,bestTransfers,marketAlerts,DOUBTFUL} from '../season.js';
-import {recommendPackage,contestedBy} from '../season.js';
+import {current,bestTransfers} from '../season.js';
+import {transferPlan,planValue} from '../transfer-plan.js';
 import {int,signed,count,ddmm} from '../format.js';
-import {$,PERIOD_LONG,button,byId,card,confidenceBadge,el,forGains,horizon,injuryText,issueUrl,league,link,needsLive,pending,players,renderSeason,replacing,same,setPending,setQuery,setReplacing,sportsTeam,team,teamBank,transfers,transfersLeft} from './state.js';
-import {EARLY,controls,gainCells,optionRow,replacementPanel,takeAction,whyBox} from './widgets.js';
+import {$,PERIOD_LONG,button,byId,card,el,forGains,horizon,injuryText,issueUrl,league,link,needsLive,pending,players,renderSeason,replacing,same,setPending,setQuery,setReplacing,sportsTeam,team,teamBank,transfers,transfersLeft} from './state.js';
+import {EARLY,controls,optionRow,replacementPanel,takeAction,whyBox} from './widgets.js';
 
 // ---------- Transfers assistant ----------
-// The answer to "what should I do now", the same as Telegram's (recommendPackage): the best package the model is confident
-// of (70%+), that does not cost the season and fits the week. Without one, the borderline package (60-69%) comes first
-// among the options, so the hold card names it with its confidence instead of "сделай". The players the shown package
-// buys carry the other FBL teams the same model advises to buy them.
-function recommendation(ctx,money,left){
- const {best,borderline,options}=recommendPackage(ctx,{team,bankMoney:money,left,sort:horizon}),shown=best||borderline;
- if(shown)shown.contested=new Map(shown.pairs.map(x=>[x.in.id,contestedBy(ctx,{team,playerId:x.in.id,bankOf:t=>teamBank(t,ctx.transfers),leftOf:t=>transfersLeft(ctx,t),sort:horizon})]));
- return {best,options:borderline?[borderline,...options.filter(o=>o!==borderline)]:options};
-}
+// The answer to "what should I do now", the same as Telegram's: src/transfer-plan.js weighs every package of up to the
+// transfers left over the week, 4 weeks and the season (the weights and the price of a transfer chosen on the backtest of
+// 2024/25 and 2025/26) and never lowers the season's expectation. A move comes with its gains, its calibrated confidence,
+// the main risks, what would change it and the best alternative; no move worth a transfer says «держать» and why.
+const SHORT={week:'неделя',month:'4 недели',season:'сезон'};
 function packageMoves(p){const ul=el('ul',null,'moves');for(const x of p.pairs){const li=el('li'),rivals=p.contested?.get(x.in.id)||[];li.append(el('span',x.out.name,'out'),el('span','→','arrow'),el('span',x.in.name,'in'),el('small',`${x.in.positions.join('/')} · ${int(x.in.price)}${injuryText(x.in)?' · '+injuryText(x.in):''}`));
  if(rivals.length){const c=el('span',`нужен ещё ${count(rivals.length,'команде','командам','командам')}`,'chip chip--warn');c.title=`По той же модели ${x.in.name} усиливает и ${rivals.map(teamName).join(', ')}. В FBL игрок может быть только в одной команде: кто купит позже, нарушит правило — перед покупкой проверь ленту лиги.`;li.append(c);}
  ul.append(li);}return ul;}
-function packageCard(p,ctx,left){
- const item=el('div',null,'sp-package'+(p.pairs.length>left?' over-limit':'')+(p.lvl==='DOUBTFUL'?' doubtful':''));
- const head=el('div',null,'sp-package-head'),title=el('div');title.append(el('strong',count(p.pairs.length,'трансфер','трансфера','трансферов')),confidenceBadge(p.why));
- if(p.pairs.length>left)title.append(el('span',`осталось ${left}`,'chip chip--warn'));
- head.append(title,gainCells(p.gains));item.append(head,packageMoves(p),el('small',`Банк после: ${int(p.bankAfter)}`),whyBox(p.why,ctx));
- if(p.pairs.length<=left)item.append(takeAction(p.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx,'Записать пакет'));
- return item;
+function planList(title,lines,cls=''){if(!lines?.length)return null;const box=el('div',null,'sp-plan-list '+cls);box.append(el('strong',title));const ul=el('ul');for(const l of lines)ul.append(el('li',l));box.append(ul);return box;}
+// Each roster player out now: hold him, or a replacement until he is back (two transfers, and he may be bought meanwhile).
+function injuredLines(plan){
+ return (plan.injured||[]).map(x=>{const who=`${x.player.name}${x.report?' ('+injuryText(x.player).toLowerCase()+')':` (пропустил ${count(x.away,'матч','матча','матчей')} подряд)`}`;
+  return x.verdict==='replace'&&x.replacement?`${who}: можно заменить на ${x.replacement.name} до возвращения (${signed(x.gains.month)} ФО за 4 недели) — это два трансфера, и его могут забрать`:`${who}: держать — замена и выкуп не окупают два трансфера`;});
+}
+function recommendationCard(ctx,plan,left,fbl){
+ const card=el('div',null,'sp-pick'+(plan.action==='move'?'':' hold'));
+ if(plan.action!=='move'){
+  card.append(el('p','Рекомендация','eyebrow'));
+  if(plan.reason==='no-transfers')card.append(el('h3','Держать: трансферы на эту неделю закончились'),el('p',`Следующие — с ${ddmm(fbl.resetOn)}. Варианты ниже — на будущее.`,'muted'));
+  else{
+   card.append(el('h3','Держать: сейчас ни один ход не окупает трансфер'));
+   const b=plan.best;
+   card.append(el('p',b?`Лучший ход — ${b.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', ')}: ${signed(b.gains.week)} ФО за неделю, ${signed(b.gains.month)} за 4 недели, ${signed(b.gains.season)} за сезон. По весам, подобранным на прошлых сезонах, это ${signed(b.value)}, меньше цены трансфера (${int(plan.price??b.price)}): прогнозы выигрыша завышают реальный, а трансфер может понадобиться позже на неделе.`:'Ни одна замена не добавляет очков по правилам состава и банку.','muted'));
+  }
+  const inj=planList('Травмированные в составе',injuredLines(plan));if(inj)card.append(inj);
+  return card;
+ }
+ card.append(el('p','Рекомендация','eyebrow'),el('h3',plan.pairs.length===1?'Сделай этот трансфер':`Сделай ${count(plan.pairs.length,'трансфер','трансфера','трансферов')}`),packageMoves(plan));
+ const kpis=el('div',null,'kpis'),kpi=(l,v,t)=>{const k=el('div',null,'kpi');k.append(el('small',l),el('strong',v));if(t)k.title=t;kpis.append(k);};
+ for(const h of ['week','month','season'])kpi('ФО · '+SHORT[h],signed(plan.gains[h]));
+ kpi('Уверенность',Math.floor(plan.confidence.season*100)+' %',`За сезон; за 4 недели ${Math.floor(plan.confidence.month*100)}%, за неделю ${Math.floor(plan.confidence.week*100)}%. Доля похожих обменов, давших плюс в прогоне советов на сезонах 2024/25 и 2025/26.`);
+ kpi('Банк после',int(plan.bankAfter));
+ const actions=el('div',null,'actions'),act=takeAction(plan.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx,'Записать');act.classList.replace('btn-secondary','btn-primary');actions.append(act);
+ card.append(kpis,actions);
+ for(const box of [planList('Зачем в пакете ход в минус',plan.forced),planList('Главные риски',plan.risks,'risks'),planList('Что изменит решение',plan.changes),
+  plan.alternative?planList('Лучшая альтернатива',[`${plan.alternative.pairs.map(x=>`${x.out.name} → ${x.in.name}`).join(', ')}: ${signed(plan.alternative.gains.week)} за неделю, ${signed(plan.alternative.gains.month)} за 4 недели, ${signed(plan.alternative.gains.season)} за сезон`]):null,
+  planList('Травмированные в составе',injuredLines(plan))])if(box)card.append(box);
+ card.append(whyBox(plan.why[horizon],ctx));
+ return card;
 }
 export function transfersView(base){
  const ctx=forGains(base),wait=needsLive('Помощник по трансферам');if(wait)return [controls(ctx),...wait];
  const money=teamBank(team,ctx.transfers),left=transfersLeft(ctx,team),fbl=fblTransfers(ctx.transfers,team,ctx.today),st=sportsTeam(team),out=[controls(ctx)];
- const {best,options}=recommendation(ctx,money,left);
- const pickCard=el('div',null,'sp-pick'+(best?'':' hold'));
- if(left===0){pickCard.append(el('p','Нет трансферов','eyebrow'),el('h3','Трансферы на эту неделю закончились'),el('p',`Следующие — с ${ddmm(fbl.resetOn)}. Варианты ниже — на будущее.`,'muted'));}
- else if(best){
-  pickCard.append(el('p','Рекомендация','eyebrow'),el('h3',best.pairs.length===1?'Сделай этот трансфер':`Сделай ${count(best.pairs.length,'трансфер','трансфера','трансферов')}`),packageMoves(best));
-  const kpis=el('div',null,'kpis'),kpi=(l,v)=>{const k=el('div',null,'kpi');k.append(el('small',l),el('strong',v));kpis.append(k);};
-  kpi('ФО '+PERIOD_LONG[horizon],signed(best.gains[horizon]));if(horizon!=='season')kpi('За сезон',signed(best.gains.season));kpi('Уверенность',Math.floor(best.why.confidence*100)+' %');kpi('Банк после',int(best.bankAfter));
-  const actions=el('div',null,'actions'),act=takeAction(best.pairs.map(x=>({outId:x.out.id,player:x.in})),ctx,'Записать');act.classList.replace('btn-secondary','btn-primary');actions.append(act);
-  pickCard.append(kpis,actions,whyBox(best.why,ctx));
- }else{
-  const top=options[0];pickCard.append(el('p','Рекомендация','eyebrow'),el('h3','Сейчас лучше не тратить трансферы'),
-   el('p',top?`Лучший вариант (${count(top.pairs.length,'трансфер','трансфера','трансферов')}) даёт ${signed(top.gains[horizon])} ФО ${PERIOD_LONG[horizon]}, но ${top.gains.season<0?'теряет '+int(-top.gains.season)+' ФО за сезон':top.pairs.length>left?'требует больше трансферов, чем осталось':'уверенность только '+Math.floor(top.why.confidence*100)+'%'}.`:'Ни одна замена не добавляет ФО за этот период.','muted'));
- }
- out.push(pickCard);
+ const plan=transferPlan(ctx,{team,bankMoney:money,left,bankOf:t=>teamBank(t,ctx.transfers),leftOf:t=>transfersLeft(ctx,t)});
+ out.push(recommendationCard(ctx,plan,left,fbl));
  if(st)out.push(el('p',`${teamName(team)} подключена к Sports.ru: трансфер делается там, здесь он появится сам примерно через минуту.`,'sp-note'));
- const early=options.some(o=>o.why.flags.some(f=>f.startsWith(EARLY)));
- if(early)out.push(el('p','Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.','warning'));
- const others=options.filter(o=>o!==best);
- if(others.length){const d=el('details',null,'sp-block');d.append(el('summary',`Другие пакеты (${others.length})`));for(const p of others)d.append(packageCard(p,ctx,left));out.push(d);}
+ if(plan.why?.season.flags.some(f=>f.startsWith(EARLY)))out.push(el('p','Сезон только начался: оценки опираются на прогноз, а не на игры этого сезона.','warning'));
  const singles=bestTransfers(ctx,{team,bankMoney:money,sort:horizon}).filter(b=>b.gain[horizon]>0);
- const alerts=new Set(marketAlerts(ctx,{team,bankMoney:money,sort:horizon==='season'?'season':'month',minGain:20}).map(a=>a.outId+'>'+a.player.id));
- const sb=el('details',null,'sp-block sp-best');sb.open=!best&&singles.length>0;sb.append(el('summary',`Лучшая замена для каждого игрока (${singles.length})`));
- if(singles.length){const ol=el('ol',null,'sp-options');for(const b of singles){const row=optionRow(b,b.outId,ctx,`${byId.get(b.outId).name} → ${b.player.name}`);if(alerts.has(b.outId+'>'+b.player.id))row.querySelector('.sp-name').append(el('span','Рекомендуем','chip chip--accent'));ol.append(row);}sb.append(ol);}
+ const sb=el('details',null,'sp-block sp-best');sb.open=plan.action!=='move'&&singles.length>0;sb.append(el('summary',`Лучшая замена для каждого игрока (${singles.length})`));
+ if(singles.length){const ol=el('ol',null,'sp-options');for(const b of singles){const row=optionRow(b,b.outId,ctx,`${byId.get(b.outId).name} → ${b.player.name}`);
+   row.querySelector('.sp-name').append(planValue(b.gain)>0?el('span','окупает трансфер','chip chip--accent'):el('span','не окупает трансфер','chip'));ol.append(row);}sb.append(ol);}
  else sb.append(el('p',`Ни одна одиночная замена не добавляет ФО ${PERIOD_LONG[horizon]}.`,'muted'));
  out.push(sb);
  const pick=el('div',null,'sp-block sp-best');pick.append(el('h3','Замена конкретному игроку'));
