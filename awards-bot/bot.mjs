@@ -39,7 +39,7 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
-import {dayPictures} from './images.js';
+import {dayPictures,momentFacts,momentProblems,writeMoments} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
 import {generate,cost} from '../scripts/image-pipeline.mjs';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
@@ -261,18 +261,27 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  }catch(e){console.warn(`${day}: Mike Roffon failed (${e.message}).`);return {status:'failed'};}
 }
 
-// --- The day's pictures (images.js): the heroes in one picture and the flops in another, drawn by OpenAI (about $0.08
-// each) and sent by the awards bot after the day's album, before Mike Roffon. Only with DAY_PICTURES=1 and
+// --- The day's pictures (images.js): the heroes in one picture and the flops in another, their moments written by Claude
+// through the owner's subscription (free; the code's own without it), drawn by OpenAI (about $0.07 each) and sent by
+// the awards bot after the day's album, before Mike Roffon. recent: the ideas of the last days, not to repeat. Only with DAY_PICTURES=1 and
 // OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and draws them with --pictures (paid; without the
 // key the request goes out bare, for a proxy that adds it). Never holds the awards: a failure is logged.
 const PICTURES=env.DAY_PICTURES==='1'&&!!OPENAI_KEY;
-async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true}={}){
- const blocks=dailyBlocks(lines.filter(l=>l.d===day));
+async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true,recent=[]}={}){
+ const blocks=dailyBlocks(lines.filter(l=>l.d===day)),f=form(lines,day),written={};
+ // --moments FILE (a preview): the moments as JSON {hero, flop} in Claude's shape, checked like his.
+ const given=opt('--moments')?JSON.parse(fs.readFileSync(opt('--moments'),'utf8')):null;
+ if(given)for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]]){const facts=momentFacts(kind,rows,{form:f}),x=given[kind];
+  const problems=x?momentProblems(x,facts):['none given'];if(problems.length)console.warn(`--moments ${kind}: ${problems.join('; ')}`);else written[kind]=x;}
+ else if(claudeConfigured(env))for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]])if(rows.length)
+  try{written[kind]=await writeMoments(momentFacts(kind,rows,{form:f}),{recent});}
+  catch(e){console.warn(`${day}: Claude did not write the ${kind} moments (${e.message}); the code's go instead.`);}
  const ids=[...new Set([...blocks.heroes.slice(0,3),...blocks.flops.slice(0,3)].map(l=>String(l.a)))];
  const {headshot}=await import('./render.mjs');
  const faces=new Map((await Promise.all(ids.map(async a=>[a,await headshot(a)]))).filter(([,f])=>f));
- const pictures=dayPictures(blocks,ctx.who,{faces,form:form(lines,day)});
- if(!draw){for(const p of pictures)console.log(`\n===== ${day} ${p.kind} picture (prompt, ${p.images.length} references) =====\n${p.prompt}\n\n${p.caption}\n`);return {status:'prompts'};}
+ const pictures=dayPictures(blocks,ctx.who,{faces,form:f,written}),ideas=pictures.flatMap(p=>p.ideas);
+ if(!draw){for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]])if(rows.length)console.log(`\n===== ${day} ${kind} facts =====\n${JSON.stringify(momentFacts(kind,rows,{form:f}).players)}`);
+  for(const p of pictures)console.log(`\n===== ${day} ${p.kind} picture (${p.ideas.length?'Claude\'s moments':'the code\'s moments'}, ${p.images.length} references) =====\n${p.prompt}\n\n${p.caption}\n`);return {status:'prompts',ideas};}
  let spent=0,sent=0,drawn=0;
  for(const p of pictures){
   try{
@@ -284,7 +293,7 @@ async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true}={}){
   }catch(e){console.warn(`${day}: the ${p.kind} picture failed (${e.message}).`);}
  }
  console.log(`${day}: ${drawn} of ${pictures.length} picture(s) drawn${send?`, ${sent} sent`:''}, $${spent.toFixed(3)}.`);
- return {status:send?(sent?'sent':'failed'):(drawn?'preview':'failed'),cost:Math.round(spent*1e4)/1e4};
+ return {status:send?(sent?'sent':'failed'):(drawn?'preview':'failed'),cost:Math.round(spent*1e4)/1e4,ideas};
 }
 
 // The day's post: its album, its text as the fallback.
@@ -308,7 +317,9 @@ async function watchDay(day,ctx,archive,state){
    await refresh([day],archive);
    await dayPost(day,archive.lines,ctx,Object.values(rec.games).filter(g=>g.off));
    state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);
-   if(PICTURES&&!state.posted.pictures?.[day]){(state.posted.pictures||={})[day]=await picturesPost(day,archive.lines,ctx);pushState(state,archive);}
+   if(PICTURES&&!state.posted.pictures?.[day]){
+    const recent=Object.keys(state.posted.pictures||{}).sort().slice(-7).flatMap(d=>state.posted.pictures[d].ideas||[]);
+    (state.posted.pictures||={})[day]=await picturesPost(day,archive.lines,ctx,{recent});pushState(state,archive);}
    if(!state.posted.mike?.[day]){const m=await mikeInterview(day,archive.lines,ctx,state);if(m){(state.posted.mike||={})[day]=m;pushState(state,archive);}}
    break;
   }
