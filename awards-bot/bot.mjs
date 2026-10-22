@@ -9,10 +9,12 @@
 //   node awards-bot/bot.mjs --state DIR --resend DAY
 //                                                   the day's post sent again from the archive (a corrected layout); the
 //                                                   state is not changed
-//   node awards-bot/bot.mjs --preview DAY [--week] [--month]
+//   node awards-bot/bot.mjs --preview DAY [--week] [--month] [--images]
 //                                                   the posts of US game day DAY rebuilt from ESPN; nothing saved or sent
+//                                                   (--images: the captions and scenes of the day's pictures, none drawn)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
-// the token and chat the posts are printed and kept in the state as previews, never sent.
+// the token and chat the posts are printed and kept in the state as previews, never sent. OPENAI_API_KEY: the day's post
+// is followed by the pictures of Зак Онн, one for every hero and every flop (images.js); without it, no pictures.
 // Optional: LIVE_URL (sports-current.json), DB_PATH (a local default-draft.json), NOW (ISO time, for a dry run),
 // WATCH_MINUTES (how long one run may stay, 330 by default: GitHub stops a job at 360), CHAIN (stay the whole time and
 // let the workflow start the next run).
@@ -24,6 +26,7 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
+import {dayImages,mediaGroup,generate,cost} from './images.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -105,6 +108,39 @@ async function post(text,chat=CHAT,label='league chat'){
  }
 }
 
+// The day's pictures: the pictures of an album (heroes, flops) are drawn at once, then sent as one Telegram media group.
+// They follow the day's post and never hold it: a picture that fails is left out, an album that fails is logged. Answers
+// what was sent and what the pictures cost.
+const OPENAI_KEY=env.OPENAI_API_KEY;
+const photoOf=ref=>({bytes:fs.readFileSync(new URL(`scripts/assets/zak-onn/${ref}.jpg`,ROOT)),name:ref+'.jpg'});
+async function postImages(day,blocks,ctx){
+ const albums=dayImages(day,blocks,ctx.who);let sent=0,spent=0;
+ if(!live||!OPENAI_KEY){
+  for(const a of albums)a.items.forEach((it,i)=>console.log(`\n===== picture (${a.kind}, not drawn) =====\n${i?'':a.title+'\n'}${it.caption}\n${it.prompt.split('\n\n')[1]}`));
+  return null;
+ }
+ for(const a of albums){
+  const drawn=await Promise.all(a.items.map(it=>generate({prompt:it.prompt,photo:photoOf(it.ref)},{key:OPENAI_KEY})
+   .then(r=>{spent+=cost(r.usage);return {...it,png:r.png};},e=>{console.warn(`${day}: a ${a.kind} picture failed: ${e.message}`);return null;})));
+  const done=drawn.filter(Boolean);
+  if(!done.length)continue;
+  // An album holds 2 to 10 pictures: a single one goes as a photo.
+  const group=mediaGroup(a.title,done,a.kind),form=new FormData(),one=group.media.length===1;
+  form.append('chat_id',String(CHAT));
+  if(one){form.append('caption',group.media[0].caption);form.append('parse_mode','HTML');form.append('photo',new Blob([group.files[0].bytes],{type:'image/png'}),group.files[0].name);}
+  else{form.append('media',JSON.stringify(group.media));for(const f of group.files)form.append(f.field,new Blob([f.bytes],{type:'image/png'}),f.name);}
+  try{
+   const r=await fetch(`https://api.telegram.org/bot${TOKEN}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:form});
+   const body=await r.json().catch(()=>({}));
+   if(!r.ok||!body.ok)throw Error(`${r.status} ${body.description||''}`);
+   sent+=done.length;
+  }catch(e){console.warn(`${day}: the ${a.kind} album failed: ${e.message}`);}
+  await sleep(1100);
+ }
+ console.log(`${day}: ${sent} picture(s) sent, $${spent.toFixed(3)} spent on images.`);
+ return {sent,cost:Math.round(spent*1e4)/1e4};
+}
+
 // Archive every finished game of a day not archived yet. Returns the day's games that will still be played.
 async function archiveDay(day,state,archive,league){
  const rec=state.days[day]||={games:{}},games=await scoreboard(day);
@@ -169,7 +205,10 @@ async function watchDay(day,ctx,archive,state){
   if(step.do==='post'){
    await refresh([day],archive);
    await post(dayPost(day,archive.lines,ctx,Object.values(rec.games).filter(g=>g.off)));
-   state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);break;
+   state.posted.daily[day]=live?'sent':'preview';pushState(state,archive);
+   const pictures=await postImages(day,dailyBlocks(archive.lines.filter(l=>l.d===day)),ctx);
+   if(pictures){(state.posted.images||={})[day]=pictures;pushState(state,archive);}
+   break;
   }
   if(step.do==='later'){console.log(`${day}: the last game tips off at ${step.until?new Date(step.until).toISOString():'?'}; a later run follows it.`);return false;}
   const until=step.until||now()+POLL_MS,wait=Math.max(POLL_MS,until-now());
@@ -233,6 +272,7 @@ async function preview(day){
  const ctx=await loadLeague(),state=fresh(),archive={lines:[]};
  for(let d=SEASON_START;d<=day;d=addDays(d,1))await archiveDay(d,state,archive,ctx.league);
  await post(dayPost(day,archive.lines,ctx,[]));
+ if(flag('--images'))await postImages(day,dailyBlocks(archive.lines.filter(l=>l.d===day)),ctx);
  if(flag('--week')||isSunday(day))await weekly(day,ctx,archive,state,false);
  if(flag('--month')||isMonthEnd(day))await monthly(day,ctx,archive,state,false);
 }
