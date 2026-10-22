@@ -93,6 +93,12 @@ def render():
     earlier = ' on the earlier backtest of 2024/25-2025/26 (prices fixed, no injury report)' if pol.get('version', 1) < 2 else ''
     lines.append(f"  - Tuning (`data/transfer-policy.json`{earlier}): {len(pol['table'])} variants; shipped {pol['chosen']}; season by season, the variant chosen on the other seasons and its points there against the best there: "
                  + '; '.join(f"{tag(s)} {c['variant']} {c['points']} vs {c['bestHere']} {c['bestHerePoints']}" for s, c in pol['crossSeason'].items()) + '.')
+    t = pol['table']
+    total = lambda k: sum(t[k].values())
+    pairs = [(f'{k}/decay', k) for k in t if f'{k}/decay' in t] + [(k, k.rsplit('/', 1)[0]) for k in t if k.endswith('/sure60') and k.rsplit('/', 1)[0] in t]
+    if pairs:
+        lines.append('  - Variants tried and not shipped, points over the seasons\' tuning leagues against the same variant without them: '
+                     + '; '.join(f"{a} {total(a)} vs {b} {total(b)}" for a, b in pairs) + '.')
     if cal and 'heldOut' not in cal:
         ins = cal['inSample']
         lines.append(f"  - Confidence (`data/confidence-calibration.json`, fitted on the earlier backtest of 2024/25-2025/26 (prices fixed, no injury report): {cal['method']}): in sample, swaps shown at 70-79% gained "
