@@ -1,0 +1,1 @@
+Manrope (Copyright 2019 The Manrope Project Authors) and Oswald (Copyright 2016 The Oswald Project Authors), both under the SIL Open Font License 1.1 (https://openfontlicense.org), from github.com/google/fonts. Used by the awards bot's cards (awards-bot/cards.js).

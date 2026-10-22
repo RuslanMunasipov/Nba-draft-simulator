@@ -268,10 +268,25 @@ async function scheduled(){
   save(state,archive);await sleep(Math.max(POLL_MS,wake-now()));
  }
 }
+// The cards of a day (--cards DIR): the day, its week and the awards race after it, as PNG files. Nothing is sent.
+async function previewCards(day,ctx,archive,dir){
+ const {dailyCards,weeklyCards,raceCards}=await import('./cards.js'),{loadLook,renderCards,FONTS}=await import('./render.mjs');
+ const mine=archive.lines.filter(l=>l.d===day),week=weekOf(day),all=archive.lines.filter(l=>l.d<=day);
+ const blocks=dailyBlocks(mine),wb=weeklyBlocks(all.filter(l=>l.d>=week.start)),r=races(all,{rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
+ const news=daysBetween(SEASON_START,day)>=RECORD_ALERTS_FROM_DAY?recordNews(archive.lines.filter(l=>l.d<day),mine):[];
+ const shown=[...Object.values(blocks).flat(),...Object.values(wb).flat(),...Object.values(r).flat(),...news.map(x=>x.line)];
+ const look=await loadLook(shown.map(x=>x.a));
+ const sets={day:dailyCards(day,blocks,ctx.who,look,FONTS,{news}),week:weeklyCards(week,wb,ctx.who,look,FONTS),race:raceCards(week,r,ctx.who,look,FONTS)};
+ fs.mkdirSync(dir,{recursive:true});
+ for(const [name,htmls] of Object.entries(sets)){const pngs=await renderCards(htmls);
+  pngs.forEach((png,i)=>{const f=path.join(dir,`${day}-${name}-${i+1}.png`);fs.writeFileSync(f,png);console.log('card: '+f);});}
+}
+
 // The posts of a past day rebuilt from ESPN with today's transfer journals: nothing saved or sent.
 async function preview(day){
  const ctx=await loadLeague(),state=fresh(),archive={lines:[]};
  for(let d=SEASON_START;d<=day;d=addDays(d,1))await archiveDay(d,state,archive,ctx.league);
+ if(opt('--cards')){await previewCards(day,ctx,archive,opt('--cards'));return;}
  await post(dayPost(day,archive.lines,ctx,[]));
  if(flag('--images'))await postImages(day,dailyBlocks(archive.lines.filter(l=>l.d===day)),ctx);
  if(flag('--week')||isSunday(day))await weekly(day,ctx,archive,state,false);
