@@ -1,6 +1,6 @@
 """A holiday frame of the awards bot's cards made safe and small (holiday-frames.mjs): the centre of the drawn frame is
 cleared to full transparency with a soft edge, so a frame never covers a card's numbers, and the result is packed as a
-WebP with alpha. Usage: python3 frame-clean.py <in.png> <out.webp>"""
+WebP with alpha. A background (--keep) is only packed. Usage: python3 frame-clean.py <in.png> <out.webp> [--keep]"""
 import sys
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -9,7 +9,10 @@ SIDE, TOP = 0.11, 0.09
 FEATHER = 24
 
 
-def clean(src, dst):
+def clean(src, dst, keep=False):
+    if keep:
+        Image.open(src).convert('RGB').save(dst, 'WEBP', quality=84, method=6)
+        return
     im = Image.open(src).convert('RGBA')
     w, h = im.size
     mask = Image.new('L', (w, h), 255)
@@ -21,4 +24,4 @@ def clean(src, dst):
 
 
 if __name__ == '__main__':
-    clean(sys.argv[1], sys.argv[2])
+    clean(sys.argv[1], sys.argv[2], '--keep' in sys.argv[3:])

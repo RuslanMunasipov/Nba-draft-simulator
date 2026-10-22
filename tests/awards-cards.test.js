@@ -57,7 +57,7 @@ test('awards cards: a holiday dresses the cards, the layout stays',()=>{
  const plain=dayAlbum('2026-10-21',blocks,who,look,fonts).cards,dressed=dayAlbum('2026-10-31',blocks,who,look,fonts,{holiday:holidayOf('2026-10-31')}).cards;
  assert.match(dressed[1],/Хэллоуин/);assert.match(dressed[1],/class="decor"/);assert.match(dressed[0],/🎃/);
  assert.doesNotMatch(plain[1],/class="decor"/);
- const strip=h=>h.replace(/<style>.*?<\/style>/s,'').replace(/<div class="decor">.*?<\/div>\n/s,'').replace(/<span class="badge">.*?<\/span>/,'').replace(/\s+/g,'');
+ const strip=h=>h.replace(/<style>.*?<\/style>/s,'').replace(/<div class="decor">.*?<\/div>\n/s,'').replace(/<span class="badge">.*?<\/span>/,'').replace(/ (themed|framed)/g,'').replace(/\s+/g,'');
  assert.equal(strip(dressed[1]).replace('31октября','21октября'),strip(plain[1]),'same layout, only the decor differs');
 });
 
@@ -68,6 +68,20 @@ test('awards cards: a holiday with a frame lays it behind the panels, without on
  for(const card of h){assert.match(card,/class="frame" style="border-image-source:url\(data:image\/webp;base64,AA\)"/);assert.match(card,/class="card[^"]* framed"/);assert.doesNotMatch(card,/class="decor"/);}
  const x=dayAlbum('2026-12-25',blocks,who,framedLook,fonts,{holiday:holidayOf('2026-12-25')}).cards;
  assert.match(x[1],/class="decor"/);assert.doesNotMatch(x[1],/class="frame"/);
+});
+
+test('awards cards: a holiday background beats its frame, styles the titles, and the holiday logo takes the opener',()=>{
+ const art={...look,frame:()=> 'data:image/webp;base64,FRAME',background:key=>key==='halloween'?'data:image/webp;base64,BG':null,
+  leagueLogo:key=>key==='halloween'?'data:image/png;base64,PUMPKIN':'data:image/png;base64,LOGO'};
+ const blocks={heroes:[line('1',44)],flops:[],gold:[],antitop:[]};
+ const h=dayAlbum('2026-10-31',blocks,who,art,fonts,{holiday:holidayOf('2026-10-31')}).cards;
+ for(const card of h){assert.match(card,/class="bg" style="background-image:url\(data:image\/webp;base64,BG\)"/);assert.doesNotMatch(card,/class="frame"/);
+  assert.match(card,/class="card[^"]* themed framed"/);}
+ assert.match(h[0],/data:image\/png;base64,PUMPKIN/,'the holiday logo');
+ const x=dayAlbum('2026-12-25',blocks,who,art,fonts,{holiday:holidayOf('2026-12-25')}).cards;
+ assert.match(x[1],/class="frame"/,'no background: the frame');assert.match(x[0],/data:image\/png;base64,LOGO/,'no holiday logo: the league\'s');
+ const plain=dayAlbum('2026-10-21',blocks,who,art,fonts).cards;
+ assert.doesNotMatch(plain[1],/class="card[^"]*themed|class="bg"|class="frame"/,'an ordinary day stays plain');
 });
 
 test('awards cards: the holiday calendar, Easter both ways, the season\'s events',()=>{

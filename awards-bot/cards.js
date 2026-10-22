@@ -42,7 +42,7 @@ body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,
  background:radial-gradient(1200px 700px at 100% -10%,${accent[0]}33 0%,transparent 60%),radial-gradient(900px 600px at -20% 110%,${accent[1]}2e 0%,transparent 55%),#0b1020}
 .decor{position:absolute;inset:0;pointer-events:none;z-index:0}
 .decor .emo{position:absolute}
-.card>:where(:not(.decor,.frame)){position:relative;z-index:1}
+.card>:where(:not(.decor,.frame,.bg)){position:relative;z-index:1}
 .top{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid;border-image:linear-gradient(90deg,${accent[0]},${accent[1]}) 1;padding-bottom:18px}
 .brand{font-family:Oswald;font-weight:600;font-size:28px;letter-spacing:4px;color:${accent[0]};text-transform:uppercase;display:flex;gap:14px;align-items:center}
 .badge{display:inline-flex;gap:8px;align-items:center;font-family:Manrope;letter-spacing:0;text-transform:none;font-size:22px;font-weight:800;color:#0b1020;background:linear-gradient(90deg,${accent[0]},${accent[1]});padding:4px 14px 4px 8px;border-radius:999px}
@@ -128,19 +128,29 @@ body{width:${WIDTH}px;height:${HEIGHT}px;background:#0b1020;font-family:Manrope,
 .framed .alert{background:#0d1430eb}
 .framed .title,.framed .sub,.framed .head,.framed .brand,.framed .foot{text-shadow:0 2px 12px #000,0 0 4px #000}
 .framed .otitle,.framed .odate,.framed .osub{text-shadow:0 2px 16px #000,0 0 6px #000}
+.bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center}
+.bg:after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 58%,#0b1020d9 0%,#0b1020a6 55%,#0b102040 100%)}
+.opener .bg:after{background:radial-gradient(ellipse at 50% 50%,#0b1020b3 0%,#0b102066 55%,#0b102000 100%)}
+.themed .title,.themed .otitle{background:linear-gradient(180deg,#ffffff 0%,${accent[0]} 40%,${accent[1]} 62%,#ffffff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+ -webkit-text-stroke:1.5px #00000080;text-shadow:none;filter:drop-shadow(0 0 16px ${accent[0]}b3) drop-shadow(0 4px 4px #000000cc)}
+.themed .otitle{white-space:nowrap}
 `;
 
-// --- The decor of a holiday: its frame (holiday-frames.mjs: an artwork along the edges, behind the panels and the text),
-// else its emoji at fixed places along the edges (faint on content cards, bold on the opener).
+// --- The decor of a holiday: its background (a full artwork in the style of a special-edition card: design/backgrounds,
+// else holiday-frames.mjs --backgrounds), else its frame (an artwork along the edges), both behind the panels and the
+// text; else its emoji at fixed places along the edges (faint on content cards, bold on the opener). A holiday also
+// styles the big titles in its colours (.themed).
 const SPOTS=[[1,1,96],[87,1,84],[46,0.5,60],[-1,30,80],[91,24,70],[1,58,66],[90,52,92],[-2,84,88],[88,86,78],[30,93,64],[62,92,72],[70,8,58]];
 function decor(look,holiday,bold){
  if(!holiday)return '';
+ const bg=look.background?.(holiday.key);
+ if(bg)return `<div class="bg" style="background-image:url(${bg})"></div>`;
  const frame=look.frame?.(holiday.key);
  if(frame)return `<div class="frame" style="border-image-source:url(${frame})"></div>`;
  return `<div class="decor">${SPOTS.map(([x,y,s],i)=>look.emoji(holiday.decor[i%holiday.decor.length])
   .replace('class="emo"',`class="emo" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;font-size:${s}px;opacity:${bold?0.9:0.18};transform:rotate(${(i*37)%50-25}deg)"`)).join('')}</div>`;
 }
-const framed=(look,holiday)=>holiday&&look.frame?.(holiday.key)?' framed':'';
+const framed=(look,holiday)=>!holiday?'':` themed${look.background?.(holiday.key)||look.frame?.(holiday.key)?' framed':''}`;
 const badge=(look,holiday)=>holiday?`<span class="badge">${look.emoji(holiday.emoji)}${esc(holiday.name)}</span>`:'';
 const ACCENT=['#3ea6ff','#a06bff'];
 
@@ -188,7 +198,7 @@ function page(look,fonts,{title,sub,foot='',holiday},body){
 // or the nomination's icon without it), its title and the date.
 const sized=(html,px)=>html.replace('class="emo"',`class="emo" style="width:${px}px;height:${px}px;font-size:${Math.round(px*0.87)}px"`);
 function emblem(look,nom,holiday){
- const [a,b]=nom.ring,logo=look.leagueLogo?.();
+ const [a,b]=nom.ring,logo=look.leagueLogo?.(holiday?.key);
  return `<svg class="emblem" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
 <path id="ring" d="M300,300 m-228,0 a228,228 0 1,1 456,0 a228,228 0 1,1 -456,0"/></defs>
 <circle cx="300" cy="300" r="292" fill="url(#g)"/><circle cx="300" cy="300" r="262" fill="#0b1020"/><circle cx="300" cy="300" r="196" fill="none" stroke="url(#g)" stroke-width="6"/>
