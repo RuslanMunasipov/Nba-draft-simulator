@@ -1,5 +1,5 @@
 {
- "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. team: the league team's index (0-7, src/teams.js) of a GM.",
+ "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. role: lawyer, commissioner, gm, reporter, reserve, member (a league person without a club), hologram. team: the league team's index (0-7, src/teams.js) of a GM.",
  "people": [
   {
    "id": "zak-onn",
@@ -22,10 +22,6 @@
   {
    "id": "franky-murder",
    "name": "Фрэнки Мердер",
-   "aliases": [
-    "Фрэнки Скайнет",
-    "Franky Skynet"
-   ],
    "en": "Franky Murder",
    "role": "gm",
    "team": 0,
@@ -107,6 +103,37 @@
    "photo": "people/coach-i.jpg",
    "style": "always rendered as a classical oil painting, exactly as in his photo, even inside a photographic scene",
    "keep": "always an emperor: imperial dark-green velvet uniform with gold embroidery, a blue sash and an ermine mantle; curly dark hair, short beard"
+  },
+  {
+   "id": "franky-skynet",
+   "name": "Фрэнки Скайнет",
+   "aliases": [
+    "Franky Skynet"
+   ],
+   "en": "Franky Skynet",
+   "role": "hologram",
+   "photo": "people/franky-skynet.jpg",
+   "style": "always a glowing blue translucent hologram made of light and scan lines, exactly as in his photo, even inside a photographic scene",
+   "keep": "curly hair and a full beard, dark sunglasses (his eyes are never shown); a holographic double of Franky Murder, not the man himself",
+   "outfit": "a holographic jacket and scarf, a floating holographic laptop"
+  },
+  {
+   "id": "steven-ex-pert",
+   "name": "Стивен Экс Перт",
+   "en": "Steven Ex Pert",
+   "role": "member",
+   "photo": "people/steven-ex-pert.jpg",
+   "keep": "short black hair, a thin moustache, a broad confident smile",
+   "outfit": "a dark suit, a white shirt and a blue striped tie, papers and a pen in hand"
+  },
+  {
+   "id": "christopher-dildo",
+   "name": "Кристофер Дилдо",
+   "en": "Christopher Dildo",
+   "role": "member",
+   "photo": "people/christopher-dildo.jpg",
+   "keep": "short brown hair, rectangular glasses, a young face",
+   "outfit": "a checked short-sleeve shirt, a notebook and a pen"
   },
   {
    "id": "jonathan-zhopa",
