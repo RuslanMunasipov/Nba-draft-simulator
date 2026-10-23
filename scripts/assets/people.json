@@ -60,8 +60,8 @@
    "role": "gm",
    "team": 4,
    "photo": "people/captain-torres-new-win.jpg",
-   "style": "always drawn exactly as in his photo: a flat hand-drawn cartoon character, even inside a photographic scene",
-   "keep": "always a pirate: black tricorn pirate hat with gold trim, red bandana, navy pirate coat with gold trim and buttons; short reddish beard"
+   "keep": "always a pirate: a weathered brown leather tricorn hat over a faded red bandana, long dark dreadlocks hung with beads and trinkets, a reddish-brown beard and moustache",
+   "outfit": "a worn brown pirate coat with silver buttons, a loose cream linen shirt, a dark patterned waistcoat, a leather baldric with an ornate silver buckle"
   },
   {
    "id": "lemarius",
