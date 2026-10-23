@@ -9,6 +9,7 @@ import {fetchDatabase} from './database-loader.js';
 import './theme.js';
 import {reportElement} from './rookie-reports.js';
 import {face,withFace} from './headshot.js';
+import {teamTag} from './team-logo.js';
 import {newDraft,pick,undo,replacePick,replayDraft,exportDraft,DEFAULT_CAP,safeUrl,rosterFits,POSITIONS} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
 import {setSeasonPlayers,setSeasonDatabaseState,initSeasonTabs,seasonLivePanel} from './season-ui.js';
@@ -364,7 +365,7 @@ function openSlots(roster){
 }
 function renderRoster(){
  const own=state.picks.filter(p=>p.team===0).map(p=>state.players.find(x=>x.id===p.playerId)).filter(Boolean),box=$('my-roster');
- document.querySelector('#my-team .section-heading .chip').textContent=teamName(0);
+ document.querySelector('#my-team .section-heading .chip').replaceChildren(teamTag(0,'xs'));
  const chips=el('div',null,'roster-summary'),budget=budgetSummary(state,0);
  chips.append(el('span',`${own.length}/10`,'chip'));
  if(state.priceMode==='ON')chips.append(el('span',`Бюджет ${int(budget.spent)} из ${int(state.cap)}`,'chip'));
@@ -383,7 +384,7 @@ function renderHistory(){
  if(!n)list.append(el('li','Пиков пока нет.','muted'));
  for(const [i,p] of state.picks.entries()){
   if(i%8===0)list.append(el('li',`Раунд ${i/8+1}`,'round'));
-  const row=el('li'),who=el('span',null,'pick-who');who.append(el('strong',playerName(p.playerId)),el('small',teamName(p.team)));
+  const row=el('li'),who=el('span',null,'pick-who');const whose=el('small');whose.append(teamTag(p.team,'xs'));who.append(el('strong',playerName(p.playerId)),whose);
   const edit=el('button','Перевыбрать','btn-ghost btn-sm replace-pick');edit.setAttribute('aria-label',`Перевыбрать пик #${p.number}: ${playerName(p.playerId)}`);edit.onclick=()=>startReplace(i);
   if(replacing===i)row.setAttribute('aria-current','true');
   row.append(el('span','#'+p.number,'pick-no'),who,edit);list.append(row);
@@ -430,7 +431,7 @@ function renderPostDraft(){
   const table=el('table',null,'standings-table'),head=el('tr');
   for(const [h,cls] of [['#',''],['Команда',''],['Прогноз','num'],['80% сценариев','num wide-only'],['1-е место','num']]){const th=el('th',h,cls);th.scope='col';head.append(th);}table.append(head);
   rows.forEach((t,rank)=>{const tr=el('tr');if(t.team===1)tr.className='mine';
-   const team=el('th',null,'team');team.scope='row';team.append(teamName(t.team-1));if(t.team===1)team.append(' ',el('span','ты','chip chip--accent'));
+   const team=el('th',null,'team');team.scope='row';team.append(teamTag(t.team-1));if(t.team===1)team.append(' ',el('span','ты','chip chip--accent'));
    tr.append(el('td',String(rank+1)),team,el('td',int(t.sim.mean),'num total'),el('td',`${int(t.sim.p10)}–${int(t.sim.p90)}`,'num wide-only'),el('td',dec(t.sim.firstPlaceShare)+' %','num'));table.append(tr);});
   $('standings').replaceChildren(table);
  }else $('standings').replaceChildren();
@@ -440,7 +441,7 @@ function renderPostDraft(){
  for(const t of rows){
   const team=t.team-1,players=teamRoster(state,team);if(!players.length)continue;
   const details=el('details',null,'team-roster');details.open=openTeams.has(team);
-  const sum=el('summary');sum.append(teamName(team),el('span',`${players.length}/10 · ${t.mean==null?'—':int(t.mean)+' ФО'}${state.priceMode==='ON'?` · ${int(t.cost)}`:''}`,'num'));details.append(sum);
+  const sum=el('summary');sum.append(teamTag(team),el('span',`${players.length}/10 · ${t.mean==null?'—':int(t.mean)+' ФО'}${state.priceMode==='ON'?` · ${int(t.cost)}`:''}`,'num'));details.append(sum);
   // Opening a team shows its players; one tap on a name opens the full card.
   const fill=()=>{if(details.open&&details.children.length===1)for(const p of players)details.append(card(p,null,true));};
   details.addEventListener('toggle',()=>{if(details.open)openTeams.add(team);else openTeams.delete(team);fill();});fill();
@@ -470,13 +471,13 @@ function renderScenarioAnalysis(){
   $('simulation-status').textContent=`Готово: ${count(result.runs,'вариант','варианта','вариантов')} драфта от пика №${startPick}.${bad?` В ${bad} боты собрали недопустимый состав — они не учтены.`:''}`;
   if(!result.wins){box.replaceChildren(el('p','Есть недопустимый состав, поэтому лидер не определяется.','muted'));return;}
   const table=el('table',null,'standings-table'),head=el('tr');for(const [h,c] of [['Команда',''],['Лидирует','num']])head.append(el('th',h,c));table.append(head);
-  result.wins.map((w,i)=>({i,share:w/result.runs})).sort((a,b)=>b.share-a.share).forEach(r=>{const tr=el('tr');if(r.i===0)tr.className='mine';tr.append(el('td',teamName(r.i)),el('td',pct(r.share),'num'));table.append(tr);});
+  result.wins.map((w,i)=>({i,share:w/result.runs})).sort((a,b)=>b.share-a.share).forEach(r=>{const tr=el('tr');if(r.i===0)tr.className='mine';const name=el('td');name.append(teamTag(r.i));tr.append(name,el('td',pct(r.share),'num'));table.append(tr);});
   box.replaceChildren(el('h4','Кто чаще лидирует, если остальные пики сделают боты'),table,el('p','Меняются только пики ботов; матчи не моделируются.','muted'));return;
  }
  $('simulation-status').textContent=`Готово: ${int(result.runs)} сценариев сезона.`;
  const table=el('table',null,'standings-table'),head=el('tr');for(const [h,c] of [['Команда',''],['Прогноз','num'],['80% сценариев','num wide-only'],['1-е место','num']])head.append(el('th',h,c));table.append(head);
  for(const t of [...result.teams].sort((a,b)=>b.base-a.base)){const tr=el('tr');if(t.team===1)tr.className='mine';const first=el('td',dec(t.firstPlaceShare)+' %','num');first.title=`Точность расчёта (Монте-Карло, 95%): ${t.firstPlaceCI.map(x=>dec(x)).join('–')}%. Не учитывает неточность самой модели.`;
-  tr.append(el('td',teamName(t.team-1)),el('td',int(t.base),'num'),el('td',`${int(t.p10)}–${int(t.p90)}`,'num wide-only'),first);table.append(tr);}
+  const name=el('td');name.append(teamTag(t.team-1));tr.append(name,el('td',int(t.base),'num'),el('td',`${int(t.p10)}–${int(t.p90)}`,'num wide-only'),first);table.append(tr);}
  const details=el('details',null,'method');details.append(el('summary','Как читать'),el('p',`${result.assumptions.range}. Корреляция: ${result.assumptions.correlation}. «1-е место» — доля первых мест в этих модельных сценариях, а не вероятность победы в FBL.`));
  const wrap=el('div',null,'table-scroll');wrap.append(table);box.replaceChildren(wrap,details);
 }

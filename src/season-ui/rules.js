@@ -1,6 +1,7 @@
 // Season → Правила: the league rules for every team and the appeals to the lawyer.
 import {writeStored} from '../storage.js';
 import {teamName} from '../teams.js';
+import {teamTag} from '../team-logo.js';
 import {checkRules,verdict,appeal,LAWYER,TRANSFER_HOURS} from '../rules.js';
 import {count,ddmm} from '../format.js';
 import {$,button,byId,card,clubOf,el,issueUrl,league,link,needsLive,pending,players,readJson,renderSeason,setTeam,setView,team,transfers} from './state.js';
@@ -27,7 +28,7 @@ export function rulesView(ctx){
   const has=r=>c.violations.some(x=>x.rule===r);
   // On phones each row becomes a card: the label comes from data-label and the content sits in one inner block.
   const cell=(label,value,cls)=>{const td=el('td',null,cls),inner=el('div');td.dataset.label=label;if(value!=null)inner.append(value);td.append(inner);tr.append(td);return inner;};
-  const name=cell('Команда',teamName(c.team),'team');if(c.team===0)name.append(' ',el('span','ты','chip chip--accent'));
+  const name=cell('Команда',teamTag(c.team),'team');if(c.team===0)name.append(' ',el('span','ты','chip chip--accent'));
   // No marked rookie beside a player whose rookie status the database does not know is a check, not a breach (rules.js).
   const rk=c.violations.find(x=>x.rule==='rookie'),unsure=rk?.certain===false;
   const rc=cell('Rookie',!rk?'✅ '+c.rookies.map(p=>p.name).join(', '):unsure?'⏳ не отмечен':'❌ нет',!rk?'':unsure?'wait':'bad');

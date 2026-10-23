@@ -9,6 +9,8 @@ import {openPlayerSheet} from '../sheet.js';
 import {$,PERIOD,SPORTS_URL,TEAM_URL,button,byId,card,el,horizon,injuryInfo,league,link,live,livePoints,needsLive,openRows,readJson,renderSeason,replacing,same,setQuery,setReplacing,sportsTeam,src,team,teamBank,transfers,transfersLeft} from './state.js';
 import {CHANCE_NOTE,controls,courtWord,race,replacementPanel} from './widgets.js';
 import {withFace} from '../headshot.js';
+import {teamLogo} from '../team-logo.js';
+import {LEAGUE_TEAMS} from '../teams.js';
 
 // ---------- Teams ----------
 // Fact and forecast windows (the current tour, 4 weeks = the transfer gains' 28 days, the season) and the facts in them,
@@ -75,7 +77,11 @@ export function teams(ctx){
  const wait=needsLive('Состав');if(wait)return [controls(ctx),...wait];
  const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),running=livePoints(),st=sportsTeam(team),shadow=shadowedHoldings(ctx),credit=runningCredit(ctx,running);
  const out=[controls(ctx),teamKpis(ctx,roster,running,shadow,credit)];
- if(st){const info=el('div',null,'sp-team-info');info.append(link('Команда на Sports.ru ↗',TEAM_URL(st.sportsTeamId)));out.push(info);}
+ // The team's own header: its logo, name and GM, and its page on Sports.ru when the team is connected.
+ const head=el('div',null,'sp-team-head'),who=el('div',null,'sp-team-who'),x=LEAGUE_TEAMS[team];
+ who.append(el('strong',x?.name||teamName(team)));if(x?.gm)who.append(el('small','GM '+x.gm));head.append(teamLogo(team,'lg'),who);
+ if(st)head.append(link('Sports.ru ↗',TEAM_URL(st.sportsTeamId)));
+ out.splice(1,0,head);
  const list=el('div',null,'sp-roster'),header=el('div',null,'sp-header');
  for(const t of ['Игрок','Цена','За матч','Факт / прогноз'])header.append(el('span',t));
  list.append(header,...roster.map(p=>playerRow(p,ctx,running,shadow,credit)));out.push(list);
