@@ -152,14 +152,15 @@ export function interviewCaption(facts,day){
 // --- His picture as Opus wrote it (the whole prompt): the code fills in the references and who is who. null when the
 // prompt breaks a rule: then the code's picture below.
 export const writtenPictureProblems=(text,facts)=>promptProblems(text,{required:['MIKE','PLAYER'],allowed:['MIKE','PLAYER','GM','LOGO','FBL'],numbers:allowedNumbers(facts),max:1400});
-export function writtenPicture(text,facts,{root=ASSETS,team=null}={}){
+// face: the hero's ESPN headshot (render.mjs headshot), his face's reference when ESPN has it.
+export function writtenPicture(text,facts,{root=ASSETS,team=null,face=null}={}){
  if(writtenPictureProblems(text,facts).length)return null;
  const mike=person('mike-roffon'),club=Number.isInteger(team)?LEAGUE_TEAMS[team]:null;
  const gm=facts.gmQuestion&&club?gmOf(team):null;
  return fillPrompt(text,[
   {key:'MIKE',image:readImage(`${root}/${mike.photo}`),name:'Mike Roffon',what:'Mike Roffon, the reporter (take only his face from it, not his clothes)',always:true,
    identity:`${looks({...mike,outfit:null})}; his face preserved precisely, instantly recognizable`},
-  {key:'PLAYER',image:null,name:`the NBA player ${facts.player.en}`,always:true,identity:`the real NBA player ${facts.player.en}, exactly as he really looks (face, build, hair)`},
+  {key:'PLAYER',image:face,name:`the NBA player ${facts.player.en}`,what:`the face of the NBA player ${facts.player.en}`,always:true,identity:`the real NBA player ${facts.player.en}, exactly as he really looks (face, build, hair)`},
   {key:'GM',image:gm?gmPhoto(team,root):null,name:'the general manager',what:'the general manager who picked the player',
    identity:gm?`${looks({...gm,outfit:null,en:'the general manager'})}; the face preserved precisely`:null},
   {key:'LOGO',image:club?teamLogo(team,root):null,name:'the fantasy team logo',what:"the logo of the player's fantasy team"},

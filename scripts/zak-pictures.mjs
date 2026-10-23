@@ -152,7 +152,8 @@ Rules:
 Answer only JSON: {"scene": "..."} (scene: the whole prompt)`;
 export const SCENE_SCHEMA={type:'object',additionalProperties:false,required:['scene'],properties:{scene:{type:'string'}}};
 export const sceneMessages=(facts,recent=[])=>({system:SCENE_SYSTEM,prompt:`${recent.length?`Recent scenes, do not repeat their ideas:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}\n\n`:''}The case:\n${JSON.stringify(facts,null,1)}`});
-const OUT_OF_BOUNDS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|shoot\w*|shot|bullets?|ammo|blood\w*|kill\w*|dead|death|dies?|corpses?|murder\w*|children|child|kids?|school\w*|drugs?|cocaine|sex\w*|naked|nude|punch\w*|torture\w*|explod\w*|bombs?)\b/i;
+// Basketball and photography words are not violence: shooting, a jump shot, a wide shot, dead silence pass.
+const OUT_OF_BOUNDS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|bullets?|ammo|blood\w*|kill\w*|death|corpses?|murder\w*|children|child|kids?|school\w*|drugs?|cocaine|sex\w*|naked|nude|punch\w*|torture\w*|explod\w*|bombs?)\b/i;
 // What is wrong with Claude's scene for these facts ([]: it may go into the picture).
 export function sceneProblems(text,facts){
  const out=[];
