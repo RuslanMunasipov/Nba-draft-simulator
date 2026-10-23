@@ -3,7 +3,7 @@ import {writeStored} from '../storage.js';
 import {teamLabel,teamName} from '../teams.js';
 import {fblTransfers} from '../rules.js';
 import {WEEKLY_TRANSFERS,seasonRosters,transfersThisWeek,horizons,gameWeeks,current,transferOptions,explainSwap,newsInjuries,CONFIDENT,DOUBTFUL} from '../season.js';
-import {transferWindow} from '../season.js';
+import {transferWindow,frozen} from '../season.js';
 import {leagueRace,fblGame,CHANCE_RUNS} from '../standings.js';
 import {combineNote,absenceShort,sportsSeasonsLine,espnNumbers,injuryUntil} from '../forecast-text.js';
 import {moscowDate,LIVE_MS} from '../live.js';
@@ -214,6 +214,8 @@ export function newsBlock(p){
 export function replacementPanel(p,base){
  const ctx=forGains(base);
  const box=el('div',null,'sp-replace'),money=teamBank(team,ctx.transfers),price=current(p,ctx).price,st=sportsTeam(team);
+ // Sports.ru emptied his card: he cannot be sold there, his price stays frozen in the team's value.
+ if(frozen(p,ctx)){box.append(el('h4',`Замена для ${p.name}`),el('p',`Sports.ru опустошил карточку ${p.name}: продать его нельзя, его ${int(price)} заморожены в стоимости команды.`,'muted'));return box;}
  box.append(el('h4',`Замена для ${p.name}`),el('p',`Бюджет до ${int(money+price)} (банк ${int(money)} + продажа ${int(price)}) · трансферов: ${transfersLeft(ctx,team)===Infinity?'без лимита':transfersLeft(ctx,team)+' из '+WEEKLY_TRANSFERS}. Цифры — сколько ФО ты получишь (+) или потеряешь (−) по сравнению с ${p.name}.`));
  if(st)box.append(el('p','Команда подключена к Sports.ru: трансфер делается там, здесь он появится сам примерно через минуту.','muted'));
  const search=el('input');search.type='search';search.enterKeyHint='search';search.placeholder='Найти свободного игрока';search.value=query;search.setAttribute('aria-label','Поиск замены для '+p.name);
