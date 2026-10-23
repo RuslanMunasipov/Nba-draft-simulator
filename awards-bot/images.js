@@ -24,7 +24,7 @@ export const KITS=[
  'black with red trim and bone-white details',
  'lemon yellow with navy-blue trim',
  'burnt orange with teal and cream trim',
- 'navy blue with red and white trim',
+ 'black with gold and diamond-white trim',
 ];
 // The name as the picture spells it: ESPN's short name in Latin letters ("N. Jokic"), which the model writes reliably.
 export const imageName=l=>String(l.n||l.a).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7e]/g,'').trim()||String(l.a);

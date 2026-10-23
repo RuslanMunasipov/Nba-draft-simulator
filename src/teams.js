@@ -9,7 +9,7 @@ export const LEAGUE_TEAMS=[
  {name:'Volga Pirates',symbol:'🏴‍☠️',gm:'Капитан Торрес Нью-Вин',kit:'black, red and white'},
  {name:'Texas 76 Citrus',symbol:'🍋',gm:'Лемариус',kit:'navy blue, lemon yellow and cream'},
  {name:'Karagali Brothers',symbol:'🏜️',gm:'Фы Жил',kit:'dark teal, burnt orange and cream'},
- {name:'School Sugars Team',symbol:'🍬',gm:'Strap Onn',kit:'navy blue, red and white'}
+ {name:'Shugars Team',symbol:'🍬',gm:'Strap Onn',kit:'black, gold and diamond white'}
 ];
 export function teamName(team){const t=LEAGUE_TEAMS[team];return t?`${t.symbol} ${t.name}`:`GM ${team+1}`;}
 export function teamLabel(team){const t=LEAGUE_TEAMS[team];return t?`${team+1}. ${t.symbol} ${t.name}${t.gm?' · GM '+t.gm:''}`:`GM ${team+1}`;}

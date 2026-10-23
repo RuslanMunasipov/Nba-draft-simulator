@@ -91,9 +91,9 @@ test('Mike Roffon: refused with the team logo, the hero is drawn again in the te
  const {LEAGUE_TEAMS}=await import('../src/teams.js');
  assert.ok(LEAGUE_TEAMS.every(t=>/^[a-z ,]+ and [a-z ]+$/.test(t.kit)),'every team has its colors');
  for(let d=1;d<=12;d++){
-  const p=interviewPicture(facts,`2026-11-${String(d).padStart(2,'0')}`,{team:7,crest:false});
+  const p=interviewPicture({...facts,gmQuestion:null},`2026-11-${String(d).padStart(2,'0')}`,{team:7,crest:false});
   assert.equal(p.images.length,2,'Mike and the league logo only');
-  assert.match(p.prompt,/navy blue, red and white/);assert.match(p.prompt,/no logos and no lettering/);
+  assert.match(p.prompt,/black, gold and diamond white/);assert.match(p.prompt,/no logos and no lettering/);
   assert.doesNotMatch(p.prompt,/School|Shooters|fantasy team|reference image 3|KIT|WARMUP|of the MIN/);
  }
 });

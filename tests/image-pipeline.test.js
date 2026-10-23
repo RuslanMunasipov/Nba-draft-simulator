@@ -117,7 +117,7 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  const {PEOPLE,person,gmOf,looks}=await import('../scripts/image-pipeline.mjs');
  for(const p of PEOPLE){assert.ok(fs.existsSync(new URL(`../scripts/assets/${p.photo}`,import.meta.url)),p.id);assert.ok(p.name&&p.en&&p.role,p.id);}
  assert.equal(gmOf(0).id,'franky-murder');assert.equal(gmOf(1).id,'coach-i');assert.equal(gmOf(4).id,'captain-torres-new-win');
- assert.deepEqual([2,3,5,6].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil']);assert.equal(gmOf(7),null,'Strap Onn: no avatar yet');
+ assert.deepEqual([2,3,5,6,7].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil','strap-onn']);
  assert.match(looks(person('captain-torres-new-win')),/never changes: always a pirate: a weathered brown leather tricorn hat.*dreadlocks/);assert.doesNotMatch(looks(person('captain-torres-new-win')),/cartoon/,'a real face now (23.10)');
  assert.match(looks(person('coach-i')),/always an emperor/);assert.match(looks(person('coach-i')),/oil painting/);
  assert.match(looks(person('franky-murder')),/the face exactly as in the photo.*usual look, which may change to fit the scene: dark aviator sunglasses/);
@@ -132,10 +132,9 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
 
 test('the league\'s team logos: one per team, in draft order, as the pictures and the awards cards read them',async()=>{
  const {teamLogo}=await import('../scripts/image-pipeline.mjs');
- for(let t=0;t<7;t++)assert.match(teamLogo(t)?.name||'',new RegExp(`^${t+1}\\.(ref\\.)?jpg$`),`team ${t+1}`);
- assert.equal(teamLogo(7),null,'School Sugars Team: its new logo has not come yet');
+ for(let t=0;t<8;t++)assert.match(teamLogo(t)?.name||'',new RegExp(`^${t+1}\\.(ref\\.)?jpg$`),`team ${t+1}`);
  const p=zakPicture({kind:'violation',team:7,no:5,seed:'s',rules:['rookie']});
- assert.deepEqual(p.images.map(i=>i.name),['check.jpg'],'neither an avatar nor a logo yet');assert.match(p.prompt,/seen only from behind/);
+ assert.deepEqual(p.images.map(i=>i.name),['check.jpg','strap-onn.jpg','8.jpg'],'Strap Onn and the Shugars logo');
 });
 
 test('a statement of Zak Onn: his photo the only reference, his identity, the scene of the statement, the style',async()=>{
@@ -198,7 +197,7 @@ test('Claude writes each scene anew: the case in words, placeholders the code fi
  const f=sceneFacts({kind:'approved',team:2,no:7,player:{name:'Anthony Edwards'}});
  assert.deepEqual({...f},{verdict:'approved',case:'a clean roster: the deal is approved',caseLabel:'FBL CASE 7',newPlayer:'Anthony Edwards',
   gm:'shown with his face',logo:true,commissioner:true});
- assert.match(sceneFacts({kind:'violation',team:7,no:8,rules:['time']}).case,/outside the hours/);assert.equal(sceneFacts({kind:'violation',team:7,no:8,rules:['time']}).gm,'shown only from behind');
+ assert.match(sceneFacts({kind:'violation',team:7,no:8,rules:['time']}).case,/outside the hours/);assert.equal(sceneFacts({kind:'violation',team:null,no:8,rules:['time']}).gm,'shown only from behind');
  const good='A diner at 3 a.m., rain on the window. Zak Onn slides a menu titled "TRANSFER CLEARED" to {PLAYER} while {GM} orders pancakes and {COMMISSIONER} reads the contract stamped {CASE}.';
  assert.deepEqual(sceneProblems(good,f),[]);
  assert.match(sceneProblems(good.replace('{PLAYER}','the player'),f).join(),/no \{PLAYER\}/);
