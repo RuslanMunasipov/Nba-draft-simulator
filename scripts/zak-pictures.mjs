@@ -153,7 +153,7 @@ Answer only JSON: {"scene": "..."} (scene: the whole prompt)`;
 export const SCENE_SCHEMA={type:'object',additionalProperties:false,required:['scene'],properties:{scene:{type:'string'}}};
 export const sceneMessages=(facts,recent=[])=>({system:SCENE_SYSTEM,prompt:`${recent.length?`Recent scenes, do not repeat their ideas:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}\n\n`:''}The case:\n${JSON.stringify(facts,null,1)}`});
 // Basketball and photography words are not violence: shooting, a jump shot, a wide shot, dead silence pass.
-const OUT_OF_BOUNDS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|bullets?|ammo|blood\w*|kill\w*|death|corpses?|murder\w*|children|child|kids?|school\w*|drugs?|cocaine|sex\w*|naked|nude|punch\w*|torture\w*|explod\w*|bombs?)\b/i;
+const OUT_OF_BOUNDS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|bullets?|ammo|blood\w*|kill\w*|death|corpses?|murder\w*|children|child|kids?|school\w*|drugs?|cocaine|sex\w*|naked|nude|punch(es|ed|ing)?|torture\w*|explod\w*|bombs?)\b/i;
 // What is wrong with Claude's scene for these facts ([]: it may go into the picture).
 export function sceneProblems(text,facts){
  const out=[];
@@ -231,7 +231,8 @@ export function zakPicture({kind,team,no,seed,root,player=null,written=null,...s
 // The scene of a statement's picture written by Claude from the statement itself, when the statement has no scene of its
 // own (league chat, 23.10.2026: a statement always goes with its picture). Zak Onn and, when it fits, the commissioner.
 const STATEMENT_SYSTEM=`You write the scene of one picture for a statement of Zak Onn, the lawyer of FBL, a fantasy basketball league of friends. The statement is posted in the league chat with a photorealistic picture: a still from a 90s American action film where the only plot is law and order, starring Zak Onn. The picture is drawn by an image model from your scene.
-Read the statement and show its point in one strong, inventive image: a place, an action, props, a gag that fits it. Zak Onn knows nothing about computers: never screens, code, servers or databases; show it as a case — suspects, documents, an investigation, a verdict. Never a plain portrait, never Zak just smiling at the camera. Something new every time.
+Read the statement and show its point, as the statement rules it, in one strong, inventive image: a place, an action, props, a gag that fits it. Zak Onn knows nothing about computers: never screens, code, servers or databases; show it as a case — suspects, documents, an investigation, a verdict. Never a plain portrait, never Zak just smiling at the camera. Something new every time.
+The picture agrees with the statement: whoever the statement rules for wins in the picture too, and no sign or prop says the opposite of the ruling.
 Placeholders (the code replaces them with the real person from his photo, do not describe his face or clothes): {COMMISSIONER} the league's commissioner, optional, when the statement concerns him or the league's decisions. Write "Zak Onn" by name; no other real people, other figures are anonymous or seen from behind.
 Rules:
 - 2 to 4 sentences of plain English, at most 600 characters, starting with the setting.

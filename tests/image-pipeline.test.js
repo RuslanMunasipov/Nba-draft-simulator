@@ -245,5 +245,7 @@ test('basketball and photography words are not violence: a scene or prompt with 
  assert.deepEqual(sceneProblems(s,f),[]);
  assert.deepEqual(promptProblems(`${s.replace('{GM}','{MIKE}')} A jump shot, a dead-eye shooter, 35mm.`,{required:['MIKE'],allowed:['MIKE']}),[]);
  assert.match(sceneProblems(s+' He pulls a gun.',f).join(),/out of bounds: gun/);
+ assert.deepEqual(sceneProblems(s+' The punchline: a punchy grin.',f),[]);
+ assert.match(sceneProblems(s+' He throws a punch.',f).join(),/out of bounds: punch/);
  assert.match(promptProblems(`${s.replace('{GM}','{MIKE}')} A rifle on the wall.`,{required:['MIKE'],allowed:['MIKE']}).join(),/off limits: rifle/);
 });
