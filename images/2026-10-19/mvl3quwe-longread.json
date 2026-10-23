@@ -1,0 +1,486 @@
+{
+ "facts": {
+  "week": {
+   "n": 1,
+   "label": "неделя 1, игры 19 октября – 22 октября"
+  },
+  "story": "лидер таблицы лиги: как живётся на вершине и сколько ещё продержится",
+  "table": [
+   {
+    "place": 1,
+    "team": "Texas 76 Citrus",
+    "gm": "Лемариус",
+    "points": 241,
+    "weekPoints": 241
+   },
+   {
+    "place": 2,
+    "team": "Saint P Imperial",
+    "gm": "Коуч I",
+    "points": 164,
+    "weekPoints": 164
+   },
+   {
+    "place": 3,
+    "team": "Volga Pirates",
+    "gm": "Капитан Торрес Нью-Вин",
+    "points": 159,
+    "weekPoints": 159
+   },
+   {
+    "place": 3,
+    "team": "Shugars Team",
+    "gm": "Strap Onn",
+    "points": 159,
+    "weekPoints": 159
+   },
+   {
+    "place": 5,
+    "team": "Команда им. Алачаняна А.М.",
+    "gm": "Роберт Хачатурян",
+    "points": 151,
+    "weekPoints": 151
+   },
+   {
+    "place": 5,
+    "team": "Karagali Brothers",
+    "gm": "Фы Жил",
+    "points": 151,
+    "weekPoints": 170
+   },
+   {
+    "place": 7,
+    "team": "The Balkan Murderers",
+    "gm": "Franky Murder",
+    "points": 137,
+    "weekPoints": 137
+   },
+   {
+    "place": 8,
+    "team": "Black Jacks",
+    "gm": "Jack Pott",
+    "points": 131,
+    "weekPoints": 131
+   }
+  ],
+  "weekHeroes": [
+   {
+    "name": "Макси",
+    "club": "PHI",
+    "fo": 49,
+    "games": 2,
+    "fblTeams": [
+     "Texas 76 Citrus"
+    ]
+   },
+   {
+    "name": "Холмгрен",
+    "club": "OKC",
+    "fo": 44,
+    "games": 2,
+    "fblTeams": [
+     "Texas 76 Citrus"
+    ]
+   },
+   {
+    "name": "Эдвардс",
+    "club": "MIN",
+    "fo": 39,
+    "games": 1,
+    "fblTeams": [
+     "Texas 76 Citrus"
+    ]
+   }
+  ],
+  "weekFlops": [
+   {
+    "name": "Джейлен Уильямс",
+    "club": "OKC",
+    "fo": 24,
+    "games": 2,
+    "fblTeams": [
+     "The Balkan Murderers"
+    ]
+   },
+   {
+    "name": "Джеймс",
+    "club": "PHI",
+    "fo": 31,
+    "games": 2,
+    "fblTeams": [
+     "Shugars Team"
+    ]
+   },
+   {
+    "name": "Эмбиид",
+    "club": "PHI",
+    "fo": 31,
+    "games": 2,
+    "fblTeams": [
+     "Shugars Team"
+    ]
+   }
+  ],
+  "races": {
+   "mvp": [
+    {
+     "place": 1,
+     "name": "Макси",
+     "club": "PHI",
+     "fo": 49,
+     "games": 2,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 2,
+     "name": "Джером",
+     "club": "MEM",
+     "fo": 45,
+     "games": 1,
+     "fblTeams": [
+      "Karagali Brothers"
+     ]
+    },
+    {
+     "place": 3,
+     "name": "Холмгрен",
+     "club": "OKC",
+     "fo": 44,
+     "games": 2,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 4,
+     "name": "Эдвардс",
+     "club": "MIN",
+     "fo": 39,
+     "games": 1,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 5,
+     "name": "Гилджес-Александер",
+     "club": "OKC",
+     "fo": 39,
+     "games": 2,
+     "fblTeams": [
+      "Команда им. Алачаняна А.М."
+     ]
+    }
+   ],
+   "rookies": [
+    {
+     "place": 1,
+     "name": "Беррис",
+     "club": "MIL",
+     "fo": 9,
+     "games": 1,
+     "fblTeams": [
+      "Volga Pirates"
+     ]
+    },
+    {
+     "place": 2,
+     "name": "Питерсон",
+     "club": "UTAH",
+     "fo": 8,
+     "games": 1,
+     "fblTeams": [
+      "Saint P Imperial"
+     ]
+    },
+    {
+     "place": 3,
+     "name": "Бузер",
+     "club": "MEM",
+     "fo": 7,
+     "games": 1,
+     "fblTeams": [
+      "Shugars Team"
+     ]
+    }
+   ],
+   "sixthMan": [
+    {
+     "place": 1,
+     "name": "Макси",
+     "club": "PHI",
+     "fo": 49,
+     "games": 2,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 2,
+     "name": "Банкеро",
+     "club": "ORL",
+     "fo": 34,
+     "games": 1,
+     "fblTeams": [
+      "Команда им. Алачаняна А.М."
+     ]
+    },
+    {
+     "place": 3,
+     "name": "Сабонис",
+     "club": "SAC",
+     "fo": 33,
+     "games": 1,
+     "fblTeams": [
+      "The Balkan Murderers"
+     ]
+    }
+   ]
+  },
+  "mikesShelf": [],
+  "lastGuests": [],
+  "guest": {
+   "kind": "GM",
+   "name": "Лемариус",
+   "team": "Texas 76 Citrus",
+   "kitColors": "navy blue, lemon yellow and cream",
+   "looks": "thin rimless tinted glasses, a full brown beard",
+   "lore": "Фанат Warhammer: его образ отсылает к инквизитору Империума (широкополая шляпа с золотым крылатым знаком, плащ, мрачная готика). Уместные отсылки в текстах и картинках: Император, Инквизиция, ересь, готика, свечи и витражи, пергаменты с печатями, сервиторы, покраска миниатюр, крестовые походы. Без оружия и сражений.",
+   "place": 1,
+   "points": 241,
+   "weekPoints": 241,
+   "gapToLeader": 0,
+   "weekBest": [
+    {
+     "name": "Макси",
+     "fo": 49,
+     "games": 2
+    },
+    {
+     "name": "Холмгрен",
+     "fo": 44,
+     "games": 2
+    },
+    {
+     "name": "Эдвардс",
+     "fo": 39,
+     "games": 1
+    }
+   ],
+   "weekWorst": [
+    {
+     "name": "Лендеборг",
+     "fo": 7,
+     "games": 1
+    },
+    {
+     "name": "Харпер",
+     "fo": 12,
+     "games": 1
+    }
+   ]
+  }
+ },
+ "longread": {
+  "title": "Лимоны на вершине: Лемариус и его теплица с отрывом",
+  "lead": "Майк Роффон провёл день в оранжерее у лидера FBL: поливал Макси, подпирал Холмгрена и пытался понять, сколько живёт лимон на самом солнцепёке.",
+  "prologue": [
+   "Неделя 1, игры 19 октября – 22 октября. Лига только успела разуться в прихожей сезона, а Texas 76 Citrus уже сидит во главе стола и просит передать соль. 241 ФО. Ближайший преследователь, Saint P Imperial, набрал 164 и сейчас, по слухам, перечитывает формулу лиги в надежде найти там опечатку.",
+   "Лемариус принимает меня не в кабинете и не в переговорной. Он принимает меня в теплице. Стеклянный дом, внутри влажно, как в раздевалке после овертайма, и ровными рядами стоят лимонные деревья в кадках. На каждой кадке табличка с фамилией. Дверь он открывает в фартуке цвета лимона, с лейкой в руке, и смотрит на мои белые перчатки так, будто сейчас выдаст мне секатор.",
+   "«Проходите, Майк. Только осторожно, тут всё растёт». Мне это знакомо. Неделю назад здесь тоже всё росло, просто таблицы ещё не было. Посмотрим, что будет с урожаем, когда соседи начнут заглядывать через забор."
+  ],
+  "chapters": [
+   {
+    "heading": "Стеклянный дом на вершине",
+    "story": [
+     "Таблица висит у входа: распечатка в рамке, на ней лимонный маркер и свежий отпечаток пальца, судя по всему, утренний. Лемариус проводит по ней рукой, как хозяин по капоту новой машины. Первая строка подчёркнута дважды. Остальные строки он, кажется, не читал вовсе.",
+     "Внутри сладко пахнет цитрусом и самодовольством. Вдоль прохода тянется поливочный шланг, на стене висит термометр, рядом расписание подкормки. Подкормку здесь, похоже, расписывают точнее, чем стартовые составы у половины лиги."
+    ],
+    "qa": [
+     {
+      "q": "Первое место после первой же недели. Не рановато ли вешать рамку?",
+      "a": "Рамку я вешаю на процесс, а не на результат. Таблица просто зафиксировала то, что я знал ещё на драфте: моя модель работает."
+     },
+     {
+      "q": "Модель? Это же теплица.",
+      "a": "Теплица и есть модель. Контролируемая среда, правильный свет, никакого сквозняка от чужих мнений."
+     },
+     {
+      "q": "А что вы будете делать, когда сквозняк придёт? Saint P Imperial уже стучит в стекло.",
+      "a": "Пусть стучит. Стекло у меня двойное, а у Коуча I — 164. Я уважаю соперника, но смотреть на него приходится сверху."
+     },
+     {
+      "q": "Сверху обычно смотрят те, кому дальше падать.",
+      "a": "Или те, кто построил лестницу. Я строил."
+     }
+    ],
+    "remark": "Лестница в теплице. Записал.",
+    "picture": "Warm 35mm film editorial photograph in the style of a glossy 1970s lifestyle magazine, Kodak Portra tones, palette of navy blue, lemon yellow and cream. Interior of a sunlit glass greenhouse filled with rows of potted lemon trees. {GUEST} in a lemon-yellow gardening apron over a navy shirt proudly points at a framed printed league table on the greenhouse wall, the top line underlined twice with yellow marker, the frame bearing a small brass plate reading \"241\". {MIKE}, in a cream linen summer suit and a navy bow tie, leans in with a sceptical squint, holding out his microphone toward {GUEST}. Medium-wide shot, 35mm lens, eye level, soft golden backlight through fogged glass panes, droplets on leaves, gentle humorous mood."
+   },
+   {
+    "heading": "Утренний полив Макси",
+    "story": [
+     "Первым делом мне вручают лейку. Самая большая кадка стоит в центре, табличка на ней написана от руки и обведена: «Макси». Лемариус поливает это дерево сам, медленно и почти благоговейно, я придерживаю шланг. Дерево ухоженное и блестит. С него не сводят глаз даже соседние кадки.",
+     "49 ФО за 2 игры: лучший в лиге за неделю, первый в гонке MVP и первый же в гонке лучших запасных. Звезда теплицы одновременно числится в запасе на скамейке. В обычном доме это назвали бы бардаком, а здесь называют глубиной ротации."
+    ],
+    "qa": [
+     {
+      "q": "Ваш лучший игрок лидирует в гонке запасных. То есть ваша главная звезда официально не стартует?",
+      "a": "Майк, хороший менеджер не спорит с определениями. Он собирает очки. Макси приносит 49 хоть из старта, хоть с лавки, хоть из подсобки."
+     },
+     {
+      "q": "А если в Филадельфии решат, что он стартер, вы потеряете приз?",
+      "a": "Потеряю строчку в одной гонке и сохраню лидерство в другой. Такую сделку я подпишу не читая."
+     },
+     {
+      "q": "Вся команда из Texas, а название тянется в Филадельфию. Подгоняли ростер под вывеску?",
+      "a": "Вывеска сама подтянула нужного человека. Это называется брендинг через результат."
+     },
+     {
+      "q": "Не боитесь перелить? Деревья от избытка внимания тоже вянут.",
+      "a": "Перелить можно воду. Доверие я дозирую."
+     }
+    ],
+    "remark": "Доверие дозировано, лейка пуста.",
+    "picture": "Warm 35mm film editorial photograph, same glossy 1970s magazine look, Kodak Portra palette of navy blue, lemon yellow and cream. In the centre of a sunlit lemon greenhouse stands the largest potted lemon tree, glowing with fruit, a hand-painted wooden sign on its pot reading \"Maxey\". {GUEST} in a lemon apron waters it reverently with a polished brass watering can while {MIKE}, in a cream linen suit with rolled trousers and rubber garden boots, struggles to hold a wildly spraying hose with one hand and extends his microphone to {GUEST} with the other. Water arcs catch the sunlight. Low angle, 28mm lens, shallow depth of field, playful mood."
+   },
+   {
+    "heading": "Подпорки для Холмгрена",
+    "story": [
+     "В углу растёт дерево, вымахавшее под самую крышу. Ветки тонкие и длинные, ствол прямой, как вертикальная линия на графике выигрышей. Табличка: «Холмгрен». Лемариус выдаёт мне бамбуковые подпорки и садовый шпагат, и следующие полчаса мы аккуратно его подвязываем, чтобы не гнулся.",
+     "44 ФО за 2 игры, третье место в гонке MVP. Дерево и правда держит потолок, только подпорок у него больше, чем у остальных. Я спрашиваю, сколько у нас ещё шпагата. Хозяин отвечает: «Хватит до плей-офф». Звучит уверенно, но катушка уже заметно похудела."
+    ],
+    "qa": [
+     {
+      "q": "Зачем подпорки, если он и так приносит 44?",
+      "a": "Потому что ставка на высокого игрока — это ставка на конструкцию. Я не жду, пока ветка треснет. Я страхую заранее."
+     },
+     {
+      "q": "То есть сами признаёте, что конструкция хрупкая?",
+      "a": "Признаю, что она высокая. У высокого и вид лучше, и ветер злее. Я менеджер, я работаю с ветром."
+     },
+     {
+      "q": "Джейлен Уильямс из той же Оклахомы набрал 24 и попал в антигерои недели. Не боитесь, что у них неурожай пойдёт по всей грядке?",
+      "a": "Это не моя грядка, а The Balkan Murderers. В одной почве растёт разное. Я выбрал правильный саженец."
+     }
+    ],
+    "remark": "Саженец правильный, шпагат кончается.",
+    "picture": "Warm 35mm film editorial photograph, glossy 1970s magazine style, palette of navy blue, lemon yellow and cream. In a corner of the glass greenhouse an absurdly tall, slender lemon tree reaches the glass roof, its trunk propped up by dozens of bamboo stakes and garden twine, a small sign reading \"Holmgren\" hanging from a high branch. {MIKE}, in a cream linen suit and a straw hat, stands on a wobbly wooden stepladder tying twine with gloved hands, microphone tucked under his arm. {GUEST} in a lemon apron below holds the ladder with one hand and speaks into the microphone {MIKE} lowers to him. Vertical composition, 24mm lens looking upward, sunlight flares through the roof, comic vertigo mood."
+   },
+   {
+    "heading": "Эдвардс и одна игра",
+    "story": [
+     "Следующая кадка стоит на отдельной подставке, ближе к солнцу. «Эдвардс». 39 ФО за 1 игру. Лемариус говорит о нём с придыханием, как о дереве, которое плодоносит раз в сезон, зато сразу корзиной. Я заглядываю в календарь игр, приколотый к стойке. Хозяин заглядывает туда же, но с другим выражением лица.",
+     "У соседей тоже есть такие деревья. Джером из Karagali Brothers за 1 игру принёс 45 и стоит вторым в гонке MVP, прямо между Макси и Холмгреном. Чужое дерево проросло в середину его личного рейтинга. Лемариус делает вид, что не заметил, но поливает Эдвардса как-то особенно тщательно."
+    ],
+    "qa": [
+     {
+      "q": "У Эдвардса одна игра. Это урожай или случайный солнечный день?",
+      "a": "Это показатель мощности. Одна игра — 39. Дайте ему две, и вы сами всё посчитаете."
+     },
+     {
+      "q": "Я ничего не считаю. А Джером за одну игру дал 45 и встал между вашими людьми в гонке MVP. Неприятно?",
+      "a": "Это нормально. Конкуренция в рейтинге подтверждает, что рейтинг живой. Я не против соседа на лестнице, пока у него ступенька ниже моей."
+     },
+     {
+      "q": "Karagali Brothers за неделю набрали 170. Больше, чем Saint P Imperial. Вы видите, кто реально идёт за вами?",
+      "a": "Вижу. У них 170 за неделю и 151 в таблице. Я смотрю туда, где строчки, а не туда, где шум."
+     }
+    ],
+    "remark": "Шум в таблицу не идёт. Пока.",
+    "picture": "Warm 35mm film editorial photograph, glossy 1970s magazine style, palette of navy blue, lemon yellow and cream. A single lemon tree on a raised wooden pedestal bathed in a dramatic shaft of sunlight like a museum exhibit, one enormous lemon hanging from it, a sign reading \"Edwards\". {GUEST} in a lemon apron polishes the giant lemon with a cream cloth. {MIKE}, in a cream linen suit, holds a paper game calendar pinned to a post, raising one eyebrow, and points the microphone at {GUEST}. In the blurred background, beyond the greenhouse glass, a neighbour's lemon tree peeks over the fence. 50mm lens, medium shot, warm haze, deadpan comedy mood."
+   },
+   {
+    "heading": "Кислый угол",
+    "story": [
+     "Есть в теплице и дальний угол, куда свет пробивается неохотно. Там стоят две кадки поменьше, листья у них какие-то задумчивые. Таблички: «Лендеборг» и «Харпер». Лемариус ведёт меня туда только после того, как я в третий раз спрашиваю, что там за ширмой.",
+     "Лендеборг — 7 ФО за 1 игру. Харпер — 12 за 1 игру. На фоне центральной кадки это не лимоны, а скорее косточки. Хозяин берёт пульверизатор и опрыскивает их с видом врача, который ещё не решил, выписывать ли пациента."
+    ],
+    "qa": [
+     {
+      "q": "Зачем вы прячете эти кадки за ширмой?",
+      "a": "Я их не прячу, я их отделяю. Карантин — нормальная практика в любом серьёзном хозяйстве."
+     },
+     {
+      "q": "Лендеборг за игру дал 7. Это ещё рост или уже приговор?",
+      "a": "Это ещё почва. Одна игра ничего не доказывает, если только это не игра Эдвардса."
+     },
+     {
+      "q": "Удобная арифметика: одна игра Эдвардса доказывает всё, одна игра Лендеборга не доказывает ничего.",
+      "a": "Это не арифметика, а менеджмент. Хорошее подтверждает модель, плохое уточняет. Но если кто-то в ростере начнёт проповедовать слабую игру, я назову это ересью и приму меры по уставу."
+     },
+     {
+      "q": "А Харпер со своими 12?",
+      "a": "Харпер пока на испытательном сроке. Лимоны тоже не сразу желтеют."
+     }
+    ],
+    "remark": "Ересь в ростере. Пульверизатор наготове.",
+    "picture": "Warm 35mm film editorial photograph, glossy 1970s magazine style, palette of navy blue, lemon yellow and cream, slightly cooler shadows in this frame. In a dim back corner of the greenhouse, half hidden behind a folding cream paper screen, two small sad lemon trees with drooping leaves stand in modest pots with signs reading \"Lendeborg\" and \"Harper\". {GUEST} in a lemon apron gently mists them with a tiny spray bottle and a serious, clinical expression. {MIKE}, in a cream linen suit, peeks around the screen with exaggerated curiosity, microphone extended. A single beam of light falls between them. 35mm lens, medium shot, gentle melancholic comedy."
+   },
+   {
+    "heading": "Кисточка и соседи по таблице",
+    "story": [
+     "После обеда хозяин ведёт меня в пристройку у теплицы. Там, между мешками с грунтом и пачкой распечаток, стоит стеллаж с крошечными раскрашенными фигурками в плащах и широкополых шляпах. Лемариус садится, надевает лупу и берёт тончайшую кисть. «Расслабляет», — объясняет он и красит золотом микроскопический крылатый значок на шляпе фигурки размером с лимонную косточку.",
+     "Я сажусь рядом, мне тоже выдают кисточку. Вскоре мой микрофон покрыт лимонной краской, а у фигурки на столе появилась цитрусовая полоса через плащ. Хозяин смотрит на это так, как смотрят на чужой состав без центрового, но молчит. Сосредоточенность у него как на драфте."
+    ],
+    "qa": [
+     {
+      "q": "Пока вы красите фигурки, за вами на 159 стоят сразу Volga Pirates и Shugars Team. Вы их тоже по одной раскрашиваете?",
+      "a": "Я не раскрашиваю соперников, я их изучаю. У Shugars Team неделя тяжёлая: Джеймс и Эмбиид по 31, оба в антигероях. Это не моя проблема, но мне полезно знать."
+     },
+     {
+      "q": "Злорадствуете?",
+      "a": "Наблюдаю. Злорадство — это лишние эмоции, а лишние эмоции — это мазок мимо контура."
+     },
+     {
+      "q": "Капитан Торрес Нью-Вин тоже на 159. Его вы как оцениваете?",
+      "a": "Его новичок Беррис возглавил гонку новичков. Девять ФО — немного, но это первый росток. Ростки я уважаю."
+     },
+     {
+      "q": "А кто красит вас, если вдруг начнёте тускнеть?",
+      "a": "Таблица. Пока она красит меня в нужный цвет."
+     }
+    ],
+    "remark": "Цвет — лимонный. Мой микрофон тоже.",
+    "picture": "Warm 35mm film editorial photograph, glossy 1970s magazine style, palette of navy blue, lemon yellow and cream. A cosy potting shed attached to the greenhouse: wooden workbench with soil bags, seed packets and stacks of printouts. On a small shelf behind them stand a few tiny hand-painted fantasy miniatures in cloaks and wide-brimmed hats. {GUEST}, wearing a magnifying headband, carefully paints a miniature with a fine brush. {MIKE}, in a cream linen suit, sits beside him holding a brush, his chrome microphone comically smeared with lemon-yellow paint, which he now points at {GUEST}. Close-up two-shot, 85mm lens, warm lamp light, dust motes, quiet comic concentration."
+   },
+   {
+    "heading": "Сколько живёт лимон на солнцепёке",
+    "story": [
+     "К вечеру солнце садится прямо на крышу теплицы, и стекло горит золотом. Лемариус надевает свою широкополую шляпу с золотым крылатым знаком — «для обхода» — и идёт вдоль рядов, трогая каждую табличку. Обход похож на перекличку, после которой в армию никто не уходит, зато все стоят по росту.",
+     "Мы садимся на перевёрнутые ящики у выхода. Он наливает лимонад из своих лимонов, что вполне ожидаемо. Лимонад кислый ровно настолько, насколько бывает лидер, которого спросили про вторую неделю."
+    ],
+    "qa": [
+     {
+      "q": "Главный вопрос: сколько вы продержитесь наверху?",
+      "a": "Столько, сколько будет работать модель. Я не меряю вершину неделями, я её удерживаю."
+     },
+     {
+      "q": "Красиво. А если на следующей неделе Макси, Холмгрен и Эдвардс одновременно сыграют как Лендеборг?",
+      "a": "Тогда у меня будет неделя Лендеборга, а у вас лучший заголовок сезона. Но рисковать в такой сценарий я не готов: я ставил на тех, кто такие недели не устраивает."
+     },
+     {
+      "q": "Гилджес-Александер у Роберта Хачатуряна дал 39 и стоит пятым в гонке MVP. Банкеро у него же второй среди лучших запасных. Команда им. Алачаняна А.М. на 151. Это опасно?",
+      "a": "Это серьёзно. Но пусть сначала поднимется на мою ступеньку и посмотрит вниз. Там совсем другой воздух."
+     },
+     {
+      "q": "Чем пахнет этот воздух?",
+      "a": "Лимоном. И немного ответственностью."
+     }
+    ],
+    "remark": "Ответственность с цедрой.",
+    "picture": "Warm 35mm film editorial photograph, glossy 1970s magazine style, palette of navy blue, lemon yellow and cream. Golden sunset blazes through the glass roof of the lemon greenhouse. {GUEST} wears a dramatic wide-brimmed navy hat with a small golden winged emblem and a cream cloak-like gardening coat, sitting on an upturned wooden fruit crate and holding a glass pitcher of lemonade, speaking into the microphone. {MIKE}, in a cream linen suit with loosened bow tie, sits on another crate, sipping lemonade with a sour wince, holding the microphone toward {GUEST}. Rows of lemon trees glow behind them. Wide shot, 35mm lens, rich warm backlight, long shadows, wistful comic mood."
+   }
+  ],
+  "epilogue": [
+   "Уже на пороге Лемариус вручает мне банку лимонного варенья. На этикетке аккуратным почерком: «Сварено на вершине». Крышка закручена так туго, будто внутри не варенье, а отрыв от второго места. Я везу её через весь город на коленях, как кубок, который ещё не разыграли.",
+   "Банка встаёт на мою полку первой. Полка пока пустая, и банке там просторно, как Texas 76 Citrus в таблице. Посмотрим, кто приедет следующим и не попытается ли он поставить свой подарок повыше.",
+   "Вершина — это теплица: снаружи все видят твои лимоны, а внутри только ты знаешь, сколько шпагата осталось. У Лемариуса его пока хватает. Вопрос в другом: сколько продержится стекло, когда в него начнут стучать всей лигой."
+  ],
+  "quote": "«Лидер — не тот, у кого больше лимонов, а тот, кто знает, какое дерево подпереть до того, как подует ветер».",
+  "gift": "Банка лимонного варенья с этикеткой «Сварено на вершине»",
+  "opener": "Warm 35mm film editorial magazine cover photograph, glossy 1970s lifestyle style, Kodak Portra palette of navy blue, lemon yellow and cream. Inside a sunlit glass greenhouse packed with potted lemon trees heavy with fruit, {GUEST} stands in the centre wearing a lemon-yellow gardening apron over a navy shirt, holding a brass watering can in one hand and {MIKE}'s vintage microphone in the other, speaking confidently. {MIKE}, in a cream linen summer suit and navy bow tie, leans toward him with a sceptical, amused look, notebook in gloved hand. Behind them a framed league table on the glass wall, its top line underlined in yellow. Bold cover title at the top reading \"INSIDE FBL\", and a small caption near the frame reading \"241\". Centred composition, 50mm lens, golden backlight through misted glass, sparkling water droplets, witty triumphant mood."
+ }
+}
