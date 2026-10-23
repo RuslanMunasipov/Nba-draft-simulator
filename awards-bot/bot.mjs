@@ -148,7 +148,8 @@ async function sendAlbum(pngs,caption){
   // A dropped connection (fetch throws, no answer at all: 23.10.2026) is tried again like a server error.
   let r;
   try{r=await fetch(`https://api.telegram.org/bot${TOKEN}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:data,signal:AbortSignal.timeout(120e3)});}
-  catch(e){if(attempt>=3)throw Error(`Telegram album: ${e.message}`);await sleep(5000*(attempt+1));continue;}
+  catch(e){const why=`${e.message}${e.cause?` (${e.cause.code||e.cause.message})`:''}`;
+   if(attempt>=3)throw Error(`Telegram album: ${why}`);console.warn(`Telegram album: ${why}, tried again.`);await sleep(5000*(attempt+1));continue;}
   const body=await r.json().catch(()=>({}));
   if(r.ok&&body.ok)return;
   if(attempt>=3||(r.status!==429&&r.status<500))throw Error(`Telegram album: ${r.status} ${body.description||''}`);
