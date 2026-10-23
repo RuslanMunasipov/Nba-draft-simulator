@@ -14,14 +14,18 @@ except ImportError:
 
 def now():return datetime.now(timezone.utc).isoformat(timespec='seconds')
 def teams_config():return json.loads(sports.TEAMS.read_text(encoding='utf-8')).get('teams',{})
-def journals(config):
-    """Current journal of every team; a team whose page fails this round is left out, not emptied."""
+def journals(config,snapshot=None):
+    """Current journal of every team; a team whose page fails this round is left out, not emptied. A player whose card
+    Sports.ru emptied keeps the name the snapshot's journal gave him (collect_sports_current.name_blanks), as in the full
+    collection: otherwise the minute read and the collection rename his rows back and forth, and each rename is a «new»
+    journal that the bots report again."""
+    old=(snapshot or {}).get('teams') or {}
     def one(item):
         team,sid=item
         try:page=sports.fetch(sports.JOURNAL_URL.format(id=sid))
         except Exception as e:  # noqa: BLE001
             print(f'journal {team}: {e}',flush=True);return team,None
-        return team,(sports.parse_journal(page) if page else None)
+        return team,(sports.name_blanks((old.get(team) or {}).get('journal'),sports.parse_journal(page)) if page else None)
     with ThreadPoolExecutor(8) as ex:return {t:j for t,j in ex.map(one,config.items()) if j is not None}
 def changed_teams(snapshot,fresh):
     """Teams whose journal differs from the published snapshot. Fewer events is a failed parse, not a reversal."""
@@ -255,7 +259,7 @@ def main():
             next_full=time.time()+(args.full_every if ok else 10)*60
         if w.live.exists():
             snapshot=json.loads(w.live.read_text(encoding='utf-8'))
-            read_from=now();fresh=journals(config);teams=changed_teams(snapshot,fresh)
+            read_from=now();fresh=journals(config,snapshot);teams=changed_teams(snapshot,fresh)
             mark_read(snapshot,{t:r for t,r in fresh.items() if t not in teams},read_from)
             # A held team's count is of reads in a row that showed its new rows.
             w.held={t:n for t,n in w.held.items() if t in teams}

@@ -6,7 +6,7 @@
 // Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (without them the message is only printed), FBL_TEAM (default 0).
 import fs from 'node:fs';
 import path from 'node:path';
-import {seasonRosters,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,withBoxScores,explainSwap,CONFIDENT,DOUBTFUL,WEEKLY_TRANSFERS} from '../src/season.js';
+import {seasonRosters,bank,offSportsBank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,withBoxScores,explainSwap,CONFIDENT,DOUBTFUL,WEEKLY_TRANSFERS} from '../src/season.js';
 import {packageVerdict,dealGroups,takenIds,contestedBy,transferWindow,confidencePercent,confidenceLevel} from '../src/season.js';
 import {transferPlan,planValue} from '../src/transfer-plan.js';
 import {count,injuryStatus} from '../src/format.js';
@@ -45,7 +45,7 @@ if(!injuryState.fresh){const now=await json('https://site.api.espn.com/apis/site
  if(hasInjuryRows(now))injuryState={feed:{...now,fetchedAt:at},fresh:true,fetchedAt:at};}
 // now: a game that has tipped off can no longer be gained by a move, even before its score or box line is in.
 const ctx={players,live,injuries:parseInjuries(injuryState.feed),today,now:Date.now(),rosters,transfers,white:new Set((league.white||[]).map(String).filter(x=>!x.startsWith('none:')))};
-const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance:Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
+const bankOf=t=>{const x=live.teams?.[t];return Number.isFinite(x?.balance)?x.balance+offSportsBank(t,transfers):Number.isFinite(league.banks?.[t])?league.banks[t]:bank(t,transfers,id=>live.players[byId.get(id)?.sportsId]?.initialPrice??byId.get(id)?.price??0);};
 // Both limits bind: Sports.ru's own weekly count (∞ in pre-season) and the FBL week (pre-season moves are free).
 const leftOf=t=>{const x=live.teams?.[t],sports=x?.transfersUnlimited?Infinity:Number.isFinite(x?.transfersLeft)?x.transfersLeft:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(transfers,t,today,gameWeeks(live)));
  return Math.min(sports,fblTransfers(transfers,t,today).left);};
@@ -177,7 +177,7 @@ function heads(players){
 // short name resolving to another player never repeats a message.
 const transferKey=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`;
 state.transferEvents=capEvents(reportedEvents(transfers,{events:previous.transferEvents,reported:previous.transfers}),[...journalEvents(live),...transfers.filter(x=>x.source!=='sports.ru').flatMap(dealEvents)]);
-const pending=unreported(transfers,[],state.transferEvents),told=x=>{state.transfers.push(transferKey(x));state.transferEvents.push(...dealEvents(x));};
+const pending=unreported(transfers,state.transfers,state.transferEvents),told=x=>{state.transfers.push(transferKey(x));state.transferEvents.push(...dealEvents(x));};
 // A package (the deals the watcher saw together) is judged as its net change: a chain of legs is one move, a round trip
 // none. The verdict is the expected gain, with the model's certainty of its sign next to it.
 const nameOf=id=>esc(byId.get(id)?.name);

@@ -81,7 +81,7 @@ function transferLog(ctx){
  const list=el('ol');
  [...ctx.transfers].reverse().forEach(x=>{
   const isPending=!x.source,li=el('li',null,isPending?'pending':''),what=el('span',null,'what');
-  what.append(el('strong',`${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`),el('small',`${teamName(x.team)} · ${int(x.outPrice)} → ${int(x.inPrice)}${x.source==='league'?' · журнал лиги':''}`));
+  what.append(el('strong',`${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`),el('small',`${teamName(x.team)} · ${int(x.outPrice)} → ${int(x.inPrice)}${x.offSports?` · журнал лиги, вне Sports.ru${x.platform?' ('+x.platform+')':''}`:x.source==='league'?' · журнал лиги':''}`));
   li.append(el('span',ddmm(x.date),'when'),what);
   if(isPending){li.append(el('span','только на этом устройстве','chip chip--warn'),link('Отправить в журнал ↗',issueUrl(`${teamName(x.team)}: ${byId.get(x.outId)?.name} → ${byId.get(x.inId)?.name}`,{action:'transfer',...x}),'btn-secondary btn-sm sp-send'));
    li.append(button('Удалить',()=>{setPending(pending.filter(p=>!same(p,x)));writeStored('fbl-transfers',JSON.stringify(pending));renderSeason();},'btn-ghost btn-sm'));}

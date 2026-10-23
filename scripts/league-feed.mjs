@@ -51,7 +51,7 @@ const key=x=>`${x.team}:${x.outId}>${x.inId}:${x.date}`,done=new Set(state.repor
 // They never exceed the journals' own events, and a state from before events were kept is migrated and saved at once.
 const migrated=!Array.isArray(state.events);
 const events=capEvents(reportedEvents(transfers,state),[...journalEvents(live),...transfers.filter(x=>x.source!=='sports.ru').flatMap(dealEvents)]);
-const pending=unreported(transfers,[],events);
+const pending=unreported(transfers,state.reported||[],events);
 const save=()=>{if(configured)fs.writeFileSync(statePath,JSON.stringify({...state,reported:[...done],events,count:issued,updatedAt:new Date().toISOString()}));};
 // Transfers grouped by team and day in the order they happened; a group's place in that order is its protocol number.
 // The league chat starts at leagueFeed.since: transfers the watcher saw before it (or never timed) get no protocol and
