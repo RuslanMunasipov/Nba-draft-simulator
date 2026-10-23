@@ -33,6 +33,8 @@ test('Inside FBL: the guest of the week by the stories in turn, never one of the
  assert.equal(new Set(seen).size,seen.length,'no guest twice within the window');
  assert.equal(pickGuest(data,[],{force:'gm:3'}).team,2);assert.equal(pickGuest(data,[],{force:'player:1'}).row.a,'1');
  assert.equal(pickGuest(data,[],{force:'commissioner'}).kind,'commissioner');
+ const kept=pickGuest({...data,week:{...data.week,n:3}},[],{keep:'gm:5'});assert.deepEqual([kept.key,kept.story.id],['gm:5','gm:leader'],'a redo keeps the guest and his story');
+ assert.equal(pickGuest(data,[],{keep:'player:4'}).row.a,'4');
  const leader=pickGuest({...data,week:{...data.week,n:1}},[]);assert.deepEqual([leader.kind,leader.team],['gm',5]);
 });
 
@@ -44,7 +46,8 @@ test('Inside FBL: the facts of a GM guest: his place, the gap, his week, the lea
  assert.equal(facts.table.length,8);assert.deepEqual(facts.mikesShelf,['банка лимонада']);
  const {system,prompt}=longreadMessages(facts);
  assert.match(system,/едешь в гости/);assert.match(system,/подарить/);assert.match(system,/Числа — только из данных/);assert.match(system,/и в обыгрывании названий команд и имён тоже/);
- assert.match(prompt,/"story": "лидер таблицы/);assert.ok(LONGREAD_SCHEMA.required.includes('opener'));
+ assert.match(prompt,/"story": "лидер таблицы/);
+ assert.match(longreadMessages(facts,'больше про подарок').prompt,/Пожелания редакции к этому выпуску \(учти их, правила выше важнее\): больше про подарок$/);assert.doesNotMatch(prompt,/Пожелания/);assert.ok(LONGREAD_SCHEMA.required.includes('opener'));
 });
 
 // A piece as Claude answers it: 6 chapters, only the facts' numbers.

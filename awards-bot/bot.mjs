@@ -18,15 +18,15 @@
 //                                                   --pictures: the pictures drawn by OpenAI, ~$0.05, into --cards;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
 //                                                   OPENAI_API_KEY, drawn, ~$0.02)
-//   node awards-bot/bot.mjs --inside-fbl --state DIR --inside DIR [--inside-week DAY] [--guest G] [--send] [--at]
+//   node awards-bot/bot.mjs --inside-fbl --state DIR --inside DIR --action draft|redo|approve|post [--inside-week DAY]
+//                          [--guest G] [--notes TEXT] [--after-thursday]
 //                                                   Mike Roffon's weekly long read (inside-fbl.js, workflow
 //                                                   inside-fbl.yml) of the week of DAY (by default the one of
 //                                                   yesterday: on Friday, Monday to Thursday): written, drawn, its pictures pushed to the
 //                                                   branch data/inside-fbl (the --inside DIR, a clone of it), the
-//                                                   Telegraph page published; --send posts the opener and the link
-//                                                   (--at: not before Friday 18:00 Moscow; a page made
-//                                                   without --send is held for review until a run with
-//                                                   --send and no --at; --again: written anew). G: gm:<1-8>,
+//                                                   Telegraph page published for the owner's review; post puts
+//                                                   an approved one into the league chat on Friday at 18:00
+//                                                   Moscow, never at another time (see insideFbl). G: gm:<1-8>,
 //                                                   player:<ESPN id> or commissioner
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--picture-only] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
@@ -47,7 +47,7 @@ import {withMarket,allTransfers,stints,seasonRosters,teamPoints} from '../src/se
 import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextStep,addDays,daysBetween,moscowDay,usDay,weekOf,form,
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie,siteSummary} from './core.js';
-import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey} from './messages.js';
+import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey,esc} from './messages.js';
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
 import {dayPictures,momentFacts,momentProblems,writeMoments} from './images.js';
@@ -481,59 +481,86 @@ async function longreadPictures(longread,guest){
  for(let i=0;i<todo.length;i+=3)await Promise.all(todo.slice(i,i+3).map(one));
  return {out,spent};
 }
+// The owner approves every issue (owner, 23.10.2026): a draft (its Telegraph page, sent to him for review when
+// INSIDE_FBL_REVIEW_CHAT_ID is set), approve, then the post run puts it into the league chat on Friday at 18:00 Moscow
+// and never at another time; an issue not approved by then does not go out. --action:
+//   draft    write, draw and publish the week's page unless there is one; --after-thursday: only once the awards bot
+//            posted Thursday's games (the scheduled drafts on Friday morning)
+//   redo     the same anew (--guest, --notes: the owner's wishes to the writer); the approval is gone
+//   approve  the week's page may go out at 18:00
+//   post     wait for Friday 18:00 Moscow, read the state again (an approval may have come meanwhile), post if approved
+const REVIEW=env.INSIDE_FBL_REVIEW_CHAT_ID;
+function insideRefresh(){
+ if(!fs.existsSync(path.join(INSIDE_DIR,'.git'))||!env.GH_TOKEN||!env.GITHUB_REPOSITORY)return;
+ try{execFileSync('git',['-C',INSIDE_DIR,'pull','-q','--ff-only',`https://x-access-token:${env.GH_TOKEN}@github.com/${env.GITHUB_REPOSITORY}.git`,'data/inside-fbl'],{stdio:'pipe'});}
+ catch(e){console.warn(`Inside FBL: could not read the state again (${String(e.stderr||e.message).trim().slice(-200)}).`);}
+}
+async function insidePhoto(chat,file,caption){
+ const bytes=file&&fs.existsSync(path.join(INSIDE_DIR,file))?fs.readFileSync(path.join(INSIDE_DIR,file)):null;
+ if(!bytes)return telegram(MIKE,'sendMessage',{chat_id:chat,text:caption,parse_mode:'HTML'});
+ const body=new FormData();body.append('chat_id',String(chat));body.append('caption',caption);body.append('parse_mode','HTML');
+ body.append('photo',new Blob([bytes],{type:'image/jpeg'}),'inside-fbl.jpg');return telegram(MIKE,'sendPhoto',body);
+}
 async function insideFbl(){
  if(!INSIDE_DIR)throw Error('--inside-fbl: --inside DIR (a clone of the branch data/inside-fbl, or an empty directory)');
- const archive=read('archive.json',{lines:[]}),inside=insideRead(),send=flag('--send');
+ const action=opt('--action')||'draft';
+ if(!['draft','redo','approve','post'].includes(action))throw Error(`--action: draft, redo, approve or post, not ${action}`);
+ const archive=read('archive.json',{lines:[]}),inside=insideRead();
  const w=weekOf(opt('--inside-week')||addDays(usDay(now()),-1)),rec=inside.weeks[w.start];
  if(rec?.status==='sent'){console.log(`Inside FBL, week ${w.n}: already sent (${rec.url}).`);return;}
- if(!archive.lines.some(l=>l.d>=w.start&&l.d<=w.end))throw Error(`Inside FBL: no archived games of the week ${w.start} – ${w.end}`);
- if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)],['OPENAI_API_KEY',OPENAI_KEY]].filter(x=>!x[1]).map(x=>x[0]);
-  if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
- // A page made by hand without send waits for the owner's review: the scheduled runs (--at) leave it, a run by hand with
- // send posts it; --again writes and draws the week anew.
- if(send&&flag('--at')&&rec?.hold){console.log(`Inside FBL, week ${w.n}: held for review (${rec.url}); a run by hand with send posts it.`);return;}
- let entry=rec?.status==='page'&&rec.url&&!flag('--again')?rec:null;
- if(!entry){
-  const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers);
-  const data=weekData(archive.lines,w.end,{table,who:ctx.who,rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
-  const past=Object.entries(inside.weeks).filter(([k,x])=>k<w.start&&x.status==='sent').sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x);
-  const guest=pickGuest(data,past.map(x=>x.guest),{force:opt('--guest')});
-  const facts=longreadFacts(data,guest,{who:ctx.who,gifts:past.map(x=>x.gift).filter(Boolean),guests:past.map(x=>x.guest.name)});
-  console.log(`Inside FBL, week ${w.n} (${w.start} – ${w.end}): ${facts.guest.name}, ${guest.story.id}.`);
-  const {longread,problems,tries}=await writeLongread(facts);
-  if(problems.length){console.warn(`Inside FBL: still wrong after ${tries} tries (${problems.join('; ')}): not published.`);
-   const dir=path.join(INSIDE_DIR,'images',w.start);fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'dropped.json'),JSON.stringify({facts,longread,problems},null,1));
-   inside.weeks[w.start]={status:'dropped',guest:{key:guest.key,name:facts.guest.name},problems,at:new Date().toISOString(),...send?{}:{hold:true}};insidePush(inside,`Inside FBL ${w.start}: dropped`);
-   process.exitCode=1;return;}
-  const {out,spent}=OPENAI_KEY?await longreadPictures(longread,guest):{out:{},spent:0};
-  const dir=path.join(INSIDE_DIR,'images',w.start);fs.mkdirSync(dir,{recursive:true});
-  for(const [k,bytes] of Object.entries(out))fs.writeFileSync(path.join(dir,`${k}.jpg`),bytes);
-  fs.writeFileSync(path.join(INSIDE_DIR,'images',w.start,'longread.json'),JSON.stringify({facts,longread},null,1));
-  insidePush(inside,`Inside FBL ${w.start}: pictures`);
-  const url=k=>out[k]?`${RAW}images/${w.start}/${k}.jpg`:null;
-  const page=await publishPage(longread,facts,{token:TELEGRAPH,opener:url('opener'),images:longread.chapters.map((_,i)=>url(String(i+1)))});
-  entry={status:'page',url:page,title:longread.title,guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',
-   caption:longreadCaption(longread,facts,page),opener:out.opener?`images/${w.start}/opener.jpg`:null,pictures:Object.keys(out).length,cost:Math.round(spent*1e4)/1e4,at:new Date().toISOString(),...send?{}:{hold:true}};
-  inside.weeks[w.start]=entry;insidePush(inside,`Inside FBL ${w.start}: page`);
-  console.log(`Inside FBL: ${page} (${entry.pictures} pictures, $${spent.toFixed(3)}).`);
-  if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL, неделя ${w.n}
-
-${facts.guest.name}: [${longread.title}](${page})
-
-`);
+ if(action==='approve'){
+  if(rec?.status!=='page')throw Error(`Inside FBL, week ${w.n}: no page to approve (${rec?.status||'nothing yet'}); run draft first`);
+  inside.weeks[w.start]={...rec,approved:true,approvedAt:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: approved`);
+  console.log(`Inside FBL, week ${w.n}: approved, goes out on ${new Date(postTime(w.start)).toISOString()} (${rec.url}).`);return;
  }
- if(!send){console.log(`
-===== Inside FBL (not sent) =====
-${entry.caption}
-`);return;}
- const at=postTime(w.start);
- if(flag('--at')&&now()<at){console.log(`Inside FBL: waiting for ${new Date(at).toISOString()}.`);await sleep(at-now());}
- const opener=entry.opener&&fs.existsSync(path.join(INSIDE_DIR,entry.opener))?fs.readFileSync(path.join(INSIDE_DIR,entry.opener)):null;
- if(opener){const body=new FormData();body.append('chat_id',String(CHAT));body.append('caption',entry.caption);body.append('parse_mode','HTML');
-  body.append('photo',new Blob([opener],{type:'image/jpeg'}),'inside-fbl.jpg');await telegram(MIKE,'sendPhoto',body);}
- else await telegram(MIKE,'sendMessage',{chat_id:CHAT,text:entry.caption,parse_mode:'HTML'});
- inside.weeks[w.start]={...entry,status:'sent',hold:false,sentAt:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: sent`);
- console.log(`Inside FBL, week ${w.n}: sent.`);
+ if(action==='post'){
+  const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);
+  if(missing.length)throw Error(`--action post: missing ${missing.join(', ')}`);
+  const at=postTime(w.start);
+  if(now()>at+30*60e3){console.log(`Inside FBL, week ${w.n}: its time (${new Date(at).toISOString()}) is past; not posted.`);return;}
+  if(now()<at){console.log(`Inside FBL: waiting for ${new Date(at).toISOString()}.`);await sleep(at-now());}
+  insideRefresh();const fresh=insideRead(),x=fresh.weeks[w.start];
+  if(x?.status==='sent'){console.log(`Inside FBL, week ${w.n}: already sent.`);return;}
+  if(x?.status!=='page'||!x.approved){console.log(`Inside FBL, week ${w.n}: not approved by 18:00 (${x?.status||'no page'}); not posted.`);return;}
+  await insidePhoto(CHAT,x.opener,x.caption);
+  fresh.weeks[w.start]={...x,status:'sent',sentAt:new Date().toISOString()};insidePush(fresh,`Inside FBL ${w.start}: sent`);
+  console.log(`Inside FBL, week ${w.n}: sent.`);return;
+ }
+ // draft or redo
+ if(action==='draft'&&rec?.status==='page'){console.log(`Inside FBL, week ${w.n}: the draft is there (${rec.url})${rec.approved?', approved':''}.`);return;}
+ if(flag('--after-thursday')&&!read('state.json',{posted:{daily:{}}}).posted.daily[addDays(w.start,3)]){
+  console.log(`Inside FBL, week ${w.n}: Thursday's games are not posted yet; a later run drafts.`);return;}
+ if(!archive.lines.some(l=>l.d>=w.start&&l.d<=w.end))throw Error(`Inside FBL: no archived games of the week ${w.start} – ${w.end}`);
+ const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers);
+ const data=weekData(archive.lines,w.end,{table,who:ctx.who,rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
+ const past=Object.entries(inside.weeks).filter(([k,x])=>k<w.start&&x.status==='sent').sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x);
+ const guest=pickGuest(data,past.map(x=>x.guest),{force:opt('--guest'),keep:action==='redo'?rec?.guest?.key:null});
+ const facts=longreadFacts(data,guest,{who:ctx.who,gifts:past.map(x=>x.gift).filter(Boolean),guests:past.map(x=>x.guest.name)});
+ console.log(`Inside FBL, week ${w.n} (${w.start} – ${w.end}): ${facts.guest.name}, ${guest.story.id}${action==='redo'?', anew':''}.`);
+ const {longread,problems,tries}=await writeLongread(facts,{notes:opt('--notes')||''});
+ const dir=path.join(INSIDE_DIR,'images',w.start);fs.mkdirSync(dir,{recursive:true});
+ if(problems.length){console.warn(`Inside FBL: still wrong after ${tries} tries (${problems.join('; ')}): no draft.`);
+  fs.writeFileSync(path.join(dir,'dropped.json'),JSON.stringify({facts,longread,problems},null,1));
+  if(rec?.status!=='page')inside.weeks[w.start]={status:'dropped',guest:{key:guest.key,name:facts.guest.name},problems,at:new Date().toISOString()};
+  insidePush(inside,`Inside FBL ${w.start}: dropped`);process.exitCode=1;return;}
+ const {out,spent}=OPENAI_KEY?await longreadPictures(longread,guest):{out:{},spent:0};
+ // Each draft its own files, so a page under review keeps its pictures while a new one is made.
+ const tag=Date.now().toString(36);
+ for(const [k,bytes] of Object.entries(out))fs.writeFileSync(path.join(dir,`${tag}-${k}.jpg`),bytes);
+ fs.writeFileSync(path.join(dir,`${tag}-longread.json`),JSON.stringify({facts,longread},null,1));
+ insidePush(inside,`Inside FBL ${w.start}: pictures`);
+ const url=k=>out[k]?`${RAW}images/${w.start}/${tag}-${k}.jpg`:null;
+ const page=await publishPage(longread,facts,{token:TELEGRAPH,opener:url('opener'),images:longread.chapters.map((_,i)=>url(String(i+1)))});
+ const entry={status:'page',url:page,title:longread.title,guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',approved:false,
+  caption:longreadCaption(longread,facts,page),opener:out.opener?`images/${w.start}/${tag}-opener.jpg`:null,pictures:Object.keys(out).length,
+  cost:Math.round(((rec?.cost||0)+spent)*1e4)/1e4,at:new Date().toISOString(),drafts:[...(rec?.drafts||[]),...rec?.url?[rec.url]:[]]};
+ inside.weeks[w.start]=entry;insidePush(inside,`Inside FBL ${w.start}: draft`);
+ console.log(`Inside FBL: draft ${page} (${entry.pictures} pictures, $${spent.toFixed(3)}).`);
+ if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL, неделя ${w.n}: черновик на согласование\n\n${facts.guest.name}: [${longread.title}](${page})\n\n`);
+ if(REVIEW&&MIKE){
+  const note=`📝 <b>На согласование: Inside FBL, неделя ${w.n}</b>\n${esc(facts.guest.name)} — <a href="${esc(page)}">${esc(longread.title)}</a>\n\nВыйдет в пятницу в 18:00 по Москве, только если одобришь: Actions → Inside FBL → approve. Переписать: redo (можно с пожеланиями).`;
+  try{await insidePhoto(REVIEW,entry.opener,note.slice(0,1024));}catch(e){console.warn(`Inside FBL: the review note failed (${e.message}).`);}
+ }
 }
 
 const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day');
