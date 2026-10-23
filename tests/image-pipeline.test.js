@@ -116,8 +116,11 @@ test('the checks of a prompt: the references it must use, the words the people b
  assert.match(promptProblems(ZAK+' Jack Pott smiles.',c,{numbers:nums}).join(),/names outside the quotes: Jack Pott/);
  assert.deepEqual(promptProblems(ZAK+' A sign reads "JACK POTT".',c,{numbers:nums}),[],'a name on a sign is drawn, not read as a name');
  assert.match(promptProblems(ZAK+' Суд.',c,{numbers:nums}).join(),/not plain English/);
- assert.match(promptProblems('Short.',c).join(),/length 6/);
+ assert.match(promptProblems('Short.',c).join(),/length 6/);assert.match(promptProblems(ZAK.repeat(12),c,{numbers:nums}).join(),/length \d+ \(200-4500\)/);
  assert.deepEqual(promptProblems(ZAK+' A wide shot, a jump shot, dead silence, a sharp shooter.',c,{numbers:nums}),[],'basketball and photography words are not violence');
+ assert.deepEqual(promptProblems(ZAK+' No weapons, helmets, knives or blood anywhere. Without a gun; never a rifle.',c,{numbers:nums}),[],'his own safety notes are not the picture');
+ assert.match(promptProblems(ZAK+' No one sees the gun under the table.',c,{numbers:nums}).join(),/off limits: gun/,'"no one" says nothing is missing');
+ assert.match(promptProblems(ZAK+' No hats. He holds a knife.',c,{numbers:nums}).join(),/off limits: knife/,'a negation ends with its sentence');
 });
 
 test('writePicture: Claude writes it, a refused prompt goes back to him with its problems, then none',async()=>{

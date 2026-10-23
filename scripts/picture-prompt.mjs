@@ -56,6 +56,9 @@ export function picture(prompt,c){
 // Words no picture of the league shows. Basketball and photography words are not among them: shooting, a jump shot, a wide
 // shot, dead silence (the picture-prompts check of 23.10 lost six scenes of seven to them).
 export const OFF_LIMITS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|bullets?|ammo|knife|knives|swords?|blood\w*|kill\w*|murder\w*|death|corpses?|suicide|drugs?|cocaine|sex\w*|naked|nude|torture\w*|explod\w*|bombs?|bolters?|chainswords?|lasguns?|nfl|american football|super bowl|touchdown|quarterback|helmets?)\b/i;
+// What a prompt says is in the picture: its clauses that say what is not there ("No weapons, helmets or blood.", "without
+// a knife") left out, as the check of 23.10 refused six prompts of nine for their own safety notes.
+export const affirmed=t=>String(t).replace(/\b(no|without|never|nor)\b(?!\s+(one|longer)\b)[^.;!?\n]*/gi,'');
 // The names a prompt never holds outside its quotes: the league's GMs and teams (a name like Franky Murder trips the image
 // model's safety system, as a team name once did). Zak Onn, Mike Roffon and Adam Silverov may be named.
 const latin=s=>/^[\x20-\x7e]+$/.test(s);
@@ -63,7 +66,7 @@ export const UNSAID=[...new Set([...PEOPLE.filter(p=>p.role==='gm').map(p=>p.en)
 const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 // What is wrong with Claude's prompt ([]: it may go to the image model). c: its cast; numbers: a Set of the numbers its
 // quotes may carry (they are drawn); forbidden: more words it must not hold (outside its quotes).
-export function promptProblems(text,c,{numbers=new Set(),min=200,max=3500,forbidden=null}={}){
+export function promptProblems(text,c,{numbers=new Set(),min=200,max=4500,forbidden=null}={}){
  if(typeof text!=='string'||!text.trim())return ['no prompt'];
  const t=text.trim(),out=[],bare=t.replace(/"[^"\n]*"/g,'""'),lower=t.toLowerCase();
  if(t.length<min||t.length>max)out.push(`length ${t.length} (${min}-${max})`);
@@ -75,7 +78,7 @@ export function promptProblems(text,c,{numbers=new Set(),min=200,max=3500,forbid
  c.refs.forEach((r,i)=>{if(named.includes(i+1)||r.need)for(const w of r.say||[])if(!lower.includes(w.toLowerCase()))out.push(`no "${w}" (reference image ${i+1}: ${r.is})`);});
  const quotes=t.match(/"[^"\n]*"/g)||[],strayN=(quotes.join(' ').match(/\d+/g)||[]).filter(n=>!numbers.has(n));
  if(strayN.length)out.push(`numbers in quotes not in the facts: ${[...new Set(strayN)].join(', ')}`);
- for(const re of [OFF_LIMITS,forbidden].filter(Boolean)){const bad=bare.match(re);if(bad)out.push(`off limits: ${bad[0]}`);}
+ for(const re of [OFF_LIMITS,forbidden].filter(Boolean)){const bad=affirmed(bare).match(re);if(bad)out.push(`off limits: ${bad[0]}`);}
  const names=UNSAID.filter(n=>new RegExp(`(^|[^A-Za-z])${esc(n)}([^A-Za-z]|$)`,'i').test(bare));
  if(names.length)out.push(`names outside the quotes: ${names.join(', ')} (call them by their reference image)`);
  return out;
@@ -88,7 +91,7 @@ export const CRAFT=`How you write the picture's prompt. Your prompt is the WHOLE
 - the league's GMs and teams are never named outside quotes (a name can trip the image model's safety system): call them by their reference image or their role. Zak Onn, Mike Roffon and Adam Silverov may be named;
 - any words drawn in the picture go in double quotes, spelled exactly, and the prompt says that no other text, captions or watermarks appear. Numbers in quotes only from the facts;
 - basketball is the only sport (NBA), never American football or any other; no weapons, shooting at people, blood, violence, death, drugs, nudity; no helmets;
-- plain English outside the quotes, no placeholders in curly braces.`;
+- plain English outside the quotes, no placeholders in curly braces, at most 4500 characters.`;
 const ANSWER='Answer only JSON: {"prompt": "the whole prompt", "idea": "the picture\'s idea in one line, so that later pictures do not repeat it"}';
 const str={type:'string'};
 export const PICTURE_SCHEMA={type:'object',additionalProperties:false,required:['prompt','idea'],properties:{prompt:str,idea:str}};

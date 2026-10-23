@@ -12,7 +12,7 @@ import {LEAGUE_TEAMS} from '../src/teams.js';
 import {wordNumbers} from './mike-roffon.js';
 import {esc,badges} from './messages.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
-import {cast,playerRef,logoRef,gmRef,promptProblems,writePicture,picture,CRAFT} from '../scripts/picture-prompt.mjs';
+import {cast,playerRef,logoRef,gmRef,promptProblems,writePicture,picture,affirmed,CRAFT} from '../scripts/picture-prompt.mjs';
 
 export const SIZE='1024x1024';
 // The name as the picture spells it: ESPN's short name in Latin letters ("N. Jokic"), which the model writes reliably.
@@ -71,7 +71,7 @@ export function momentProblems(text,facts,c){
  if(typeof text!=='string')return out;
  const signs=(text.match(/"[^"\n]*"/g)||[]).join(' '),strayW=wordNumbers(signs).filter(v=>!numbers.has(v));
  if(strayW.length)out.push(`numbers in words not in the lines: ${strayW.join(', ')}`);
- if(FORBIDDEN.test(text))out.push(`forbidden: ${text.match(FORBIDDEN)[0]}`);
+ const bad=affirmed(text).match(FORBIDDEN);if(bad)out.push(`forbidden: ${bad[0]}`);
  return out;
 }
 // Claude's picture of a block ({images, prompt, idea}), or null: then none is drawn. recent: the ideas of the last days.
