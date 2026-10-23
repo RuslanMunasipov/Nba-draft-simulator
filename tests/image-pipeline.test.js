@@ -117,7 +117,7 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  const {PEOPLE,person,gmOf,looks}=await import('../scripts/image-pipeline.mjs');
  for(const p of PEOPLE){assert.ok(fs.existsSync(new URL(`../scripts/assets/${p.photo}`,import.meta.url)),p.id);assert.ok(p.name&&p.en&&p.role,p.id);}
  assert.equal(gmOf(0).id,'franky-murder');assert.equal(gmOf(1).id,'coach-i');assert.equal(gmOf(4).id,'captain-torres-new-win');
- assert.deepEqual([2,3,5,6,7].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil','headshot-vanshotovich']);
+ assert.deepEqual([2,3,5,6].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil']);assert.equal(gmOf(7),null,'Strap Onn: no avatar yet');
  assert.match(looks(person('captain-torres-new-win')),/never changes: always a pirate/);assert.match(looks(person('captain-torres-new-win')),/cartoon/);
  assert.match(looks(person('coach-i')),/always an emperor/);assert.match(looks(person('coach-i')),/oil painting/);
  assert.match(looks(person('franky-murder')),/the face exactly as in the photo.*usual look, which may change to fit the scene: dark aviator sunglasses/);
@@ -129,19 +129,13 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  assert.match(p.prompt,/SCENE:.*Captain Torres New-Win \(the general manager, reference image 2\)/);
 });
 
-test('a GM drawn as a child is never restrained or hurt in Zak Onn\'s scenes, only a belt shaken at him; the others have no such block',()=>{
- for(const [kind,story] of [['violation',{rules:['rookie']}],['violation',{standing:true}],['check',{rules:['time']}],['approved',{}]]){
-  const p=zakPicture({kind,team:7,no:5,seed:'s',...story}).prompt;
-  assert.deepEqual(zakPicture({kind,team:7,no:5,seed:'s',...story}).images.map(i=>i.name).slice(1),['headshot-vanshotovich.jpg'],'no logo of crosshairs beside the boy');
-  assert.match(p,/HEADSHOT VANSHOTOVICH IS DRAWN AS A CHILD \(this overrides the scene\): he is never handcuffed/);
-  assert.match(p,/no weapon anywhere in the picture/);assert.match(p,/stern father: he holds a folded leather belt.*never striking/);
- }
- assert.doesNotMatch(zakPicture({kind:'violation',team:2,no:5,seed:'s'}).prompt,/AS A CHILD/);
-});
 
 test('the league\'s team logos: one per team, in draft order, as the pictures and the awards cards read them',async()=>{
  const {teamLogo}=await import('../scripts/image-pipeline.mjs');
- for(let t=0;t<8;t++)assert.equal(teamLogo(t)?.name,`${t+1}.jpg`,`team ${t+1}`);
+ for(let t=0;t<7;t++)assert.match(teamLogo(t)?.name||'',new RegExp(`^${t+1}\\.(ref\\.)?jpg$`),`team ${t+1}`);
+ assert.equal(teamLogo(7),null,'School Sugars Team: its new logo has not come yet');
+ const p=zakPicture({kind:'violation',team:7,no:5,seed:'s',rules:['rookie']});
+ assert.deepEqual(p.images.map(i=>i.name),['check.jpg'],'neither an avatar nor a logo yet');assert.match(p.prompt,/seen only from behind/);
 });
 
 test('a statement of Zak Onn: his photo the only reference, his identity, the scene of the statement, the style',async()=>{

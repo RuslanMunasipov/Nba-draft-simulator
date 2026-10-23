@@ -18,10 +18,6 @@ export const ZAK_MOOD={approved:'approved',check:'check',violation:'check'};
 const IDENTITY=zak=>`ZAK ONN (highest priority): the man from ${zak}. Preserve his face precisely: face shape, nose, brows, eyes, hairline, greying temples, age, skin tone; instantly recognizable. ${looks(person('zak-onn')).replace(/^Zak Onn; the face exactly as in the photo; never/,'Never')}.`;
 const STYLE=`STYLE: photorealistic still from a 90s American action film about law and order, cinematic contrast, 35mm lens, shallow depth of field. Square composition. The league is a basketball league: any sports props (balls, jerseys, trophies, helmets) are basketball only. The only text in the picture: the cap embroidery and the exact words given in quotes, spelled exactly. No other captions or watermarks.`;
 
-// A GM drawn as a child (child in people.json: his own generated picture) is never restrained or hurt: the scene keeps
-// its place and its props, and Zak, like a stern father, only shakes a folded belt at him (league chat, 22.10.2026).
-const CHILD=gm=>`${gm.en.toUpperCase()} IS DRAWN AS A CHILD (this overrides the scene): he is never handcuffed, restrained, strapped in, grabbed, arrested, hit or hurt, and there is no weapon anywhere in the picture. Wherever the scene says so, Zak Onn instead acts like a stern father: he holds a folded leather belt in his raised hand and shakes it at the boy, never striking, the case file under his other arm, while the boy stays cool behind his sunglasses. A light family comedy.`;
-
 // A scene: G is the GM (their reference, or an anonymous figure from behind), L the team's logo (null without one), C the
 // case number on the protocol.
 const SCENES={
@@ -104,14 +100,13 @@ export function zakPicture({kind,team,no,seed,root,...story}){
  const gm=gmOf(team),gmName=gm?.en||LEAGUE_TEAMS[team]?.gm;
  const refs=references([{key:'zak',image:zakPhoto(ZAK_MOOD[kind]||'check',root),what:'Zak Onn, the league lawyer'},
   {key:'gm',image:gmPhoto(team,root),what:`the general manager of the fantasy team${gmName?` (${gmName})`:''}`},
-  // A GM drawn as a child never shares a scene with a logo of crosshairs (School Shooters Team): his scenes go without one.
-  {key:'logo',image:gm?.child?null:teamLogo(team,root),what:'the fantasy team logo'}]);
+  {key:'logo',image:teamLogo(team,root),what:'the fantasy team logo'}]);
  const G=refs.has.gm?`${gm?.en||'the general manager'} (the general manager, ${refs.has.gm})`:'the team\'s general manager, seen only from behind';
  // Who the GM is and what never changes about them, in a block of its own (the scene names them only).
  const who=refs.has.gm?`GENERAL MANAGER: the exact person from ${refs.has.gm}, face preserved and recognizable${gm?`: ${looks(gm)}`:''}.`:'';
  const L=refs.has.logo?`the team logo from ${refs.has.logo}, reproduced exactly`:null;
  const key=sceneOf({kind,...story}),list=SCENES[key]||SCENES[kind]||SCENES.check,scene=list[hash(`${seed}:${key}`)%list.length];
- return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),who,scene({G,L,C:`FBL CASE ${no}`}),refs.has.gm&&gm?.child?CHILD(gm):null,STYLE].filter(Boolean).join('\n\n')};
+ return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),who,scene({G,L,C:`FBL CASE ${no}`}),STYLE].filter(Boolean).join('\n\n')};
 }
 
 // The picture of a statement of his (data/announcements/<name>.picture.txt holds its scene): Zak Onn alone, his photo of

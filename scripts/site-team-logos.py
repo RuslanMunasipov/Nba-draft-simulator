@@ -1,7 +1,7 @@
 """The site's copies of the league teams' logos (src/team-logo.js): src/assets/team-logos/<team number>.webp, 96×96, from
 scripts/assets/team-logos/<team number>.<ext> (the originals, 1254² and up to 500 KB, stay for the bots' cards). The site
 shows a logo at 48 px at most, so 96² covers a 2× screen at about 5 KB. Empty margins of the logo's background colour
-(read from its corners) are cut, and a logo that is not square (Black Jacks' card, School Shooters') is centred on that
+(read from its corners) are cut, and a logo that is not square (Black Jacks' card) is centred on that
 colour, so nothing of it is cut off and a small one fills its badge.
 
 Run it after adding or changing a logo in scripts/assets/team-logos: python3 scripts/site-team-logos.py
