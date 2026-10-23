@@ -121,7 +121,7 @@ test('Mike Roffon: every other day he turns to the GM of the hero\'s team too, a
  const asked=days.filter(d=>interviewFacts(d,hero(d),()=>'Эдвардс').gmQuestion);
  assert.ok(asked.length>0&&asked.length<days.length,'some days, not all');
  const day=asked[0],f=interviewFacts(day,hero(day),()=>'Эдвардс');
- assert.deepEqual(f.gmQuestion,{gm:'Капитан Торрес Нью-Вин',team:'Volga Pirates'});
+ assert.deepEqual(f.gmQuestion,{gm:'Капитан Торрес Нью-Вин',team:'Volga Pirates',lore:null});
  assert.deepEqual(interviewFacts(day,hero(day),()=>'Эдвардс').gmQuestion,f.gmQuestion,'the same for a day and a player');
  assert.equal(interviewFacts(day,{...line,d:day,h:[]},()=>'Эдвардс').gmQuestion,null,'no FBL team, no GM');
  assert.match(interviewMessages(f).system,/gmQuestion/);assert.match(interviewMessages(f).prompt,/"gm": "Капитан Торрес Нью-Вин"/);
