@@ -41,6 +41,16 @@ export const gmPhoto=(team,root=ASSETS)=>!Number.isInteger(team)?null:
 export const looks=p=>p?`${p.en}; the face exactly as in the photo${p.keep?`; never changes: ${p.keep}`:''}${p.style?`; ${p.style}`:''}${p.outfit?`; usual look, which may change to fit the scene: ${p.outfit}`:''}`:'';
 export const teamLogo=(team,root=ASSETS)=>Number.isInteger(team)?readImage(find(path.join(root,'team-logos'),String(team+1))):null;
 
+// A player's ESPN headshot as a reference ({bytes, name, type}): the small one by ESPN's own resizer when it answers
+// (384×279, about 420 input tokens; the full 600×436 about 1020), else the full one; null when it cannot be had.
+export async function espnHeadshot(a,{fetchImpl=fetch}={}){
+ const get=async url=>{try{const r=await fetchImpl(url,{signal:AbortSignal.timeout(15e3)});if(!r.ok)return null;
+  const type=r.headers.get('content-type')||'';return /image/.test(type)?Buffer.from(await r.arrayBuffer()):null;}catch{return null;}};
+ const full=`https://a.espncdn.com/i/headshots/nba/players/full/${a}.png`;
+ const bytes=await get(`https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${a}.png&w=384&h=279&scale=crop`)||await get(full);
+ return bytes?{bytes,name:`${a}.png`,type:'image/png'}:null;
+}
+
 // The references of a picture in order, with the words a prompt uses for each ("reference image 2"): only the ones that
 // exist. refs: [{key, image, what}] → {images, legend, has: key → its words}.
 export function references(refs){

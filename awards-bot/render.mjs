@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import {chromium} from '@playwright/test';
 import {WIDTH,HEIGHT,CARD_EMOJI} from './cards.js';
-import {teamLogo} from '../scripts/image-pipeline.mjs';
+import {teamLogo,espnHeadshot} from '../scripts/image-pipeline.mjs';
 
 const TYPE={png:'image/png',webp:'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg'};
 const dataUri=(bytes,type)=>`data:${type};base64,${Buffer.from(bytes).toString('base64')}`;
@@ -20,17 +20,8 @@ async function fetchBytes(url){
 export const twemojiName=e=>{const cps=[...e].map(c=>c.codePointAt(0));return (cps.includes(0x200d)?cps:cps.filter(c=>c!==0xfe0f)).map(c=>c.toString(16)).join('-');};
 const TWEMOJI='https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/';
 const HEADSHOT=a=>`https://a.espncdn.com/i/headshots/nba/players/full/${a}.png`;
-// The same headshot made small by ESPN's own resizer: 384×279 is about 420 input tokens of a picture, the full 600×436
-// about 1020 (OpenAI bills a reference by its area, image-pipeline.mjs).
-const SMALL_HEADSHOT=a=>`https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${a}.png&w=384&h=279&scale=crop`;
-
-// A player's ESPN headshot as a reference image for the picture pipeline ({bytes, name, type}), the small one when ESPN
-// answers it; null when it cannot be had.
-export async function headshot(a){
- const ok=x=>x&&/image/.test(x.type);
- let x=await fetchBytes(SMALL_HEADSHOT(a));if(!ok(x))x=await fetchBytes(HEADSHOT(a));
- return ok(x)?{bytes:x.bytes,name:`${a}.png`,type:'image/png'}:null;
-}
+// A player's ESPN headshot as a reference image for the picture pipeline (scripts/image-pipeline.mjs, espnHeadshot).
+export const headshot=a=>espnHeadshot(a);
 
 // The league's art of a holiday (design/, see its README), read once when a card asks for it; null where there is none.
 // A holiday's layers (design/holidays/<key>-<part>, made in ChatGPT): bg, the background of every card of the holiday,

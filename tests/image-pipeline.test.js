@@ -163,3 +163,32 @@ test('the commissioner joins the scenes written for him (the courtroom, the pres
  assert.match(st.prompt,/SCENE: Zak Onn and Adam Silverov \(the league commissioner, reference image 2\) sign the rules\./);
  assert.doesNotMatch(zakStatement({scene:'Zak alone.'}).prompt,/Silverov/);
 });
+
+test('an approved deal presents its new player: Zak and the GM unveil him, in a different scene from deal to deal',async()=>{
+ const player={name:'Anthony Edwards',image:{bytes:Buffer.from('face'),name:'4594268.png',type:'image/png'}};
+ const pics=Array.from({length:40},(_,i)=>zakPicture({kind:'approved',team:2,no:3,seed:'s'+i,player}));
+ const scenes=new Set(pics.map(p=>p.prompt.match(/SCENE: ([^,.]*)/)[1]));
+ assert.ok(scenes.size>=6,`varied: ${[...scenes].join(' / ')}`);
+ const p=pics[0];
+ assert.deepEqual(p.images.map(i=>i.name).slice(0,4),['approved.jpg','jack-pott.jpg','3.jpg','4594268.png']);
+ assert.match(p.prompt,/reference image 4 is Anthony Edwards, the newly signed NBA player/);
+ assert.match(p.prompt,/NEW PLAYER: the real NBA player Anthony Edwards, his face exactly as in reference image 4/);
+ assert.match(p.prompt,/SCENE:.*Anthony Edwards \(the newly signed real NBA player, reference image 4\)/);
+ for(const q of pics)assert.doesNotMatch(q.prompt,/undefined|null/);
+ const faceless=zakPicture({kind:'approved',team:2,no:3,seed:'s1',player:{name:'Anthony Edwards',image:null}});
+ assert.match(faceless.prompt,/the newly signed real NBA player Anthony Edwards/);assert.ok(!faceless.images.some(i=>i.name==='4594268.png'));
+ const plain=zakPicture({kind:'approved',team:2,no:3,seed:'s1'});
+ assert.doesNotMatch(plain.prompt,/NEW PLAYER|newly signed/,'no player, the plain approval');
+ assert.doesNotMatch(zakPicture({kind:'violation',team:2,no:3,seed:'s1',player,rules:['time']}).prompt,/newly signed/,'only an approval presents him');
+});
+
+test('the ESPN headshot: the small one first, the full one when ESPN has no small, null when neither',async()=>{
+ const {espnHeadshot}=await import('../scripts/image-pipeline.mjs');
+ const seen=[],answer=(ok,type='image/png')=>({ok,headers:{get:()=>type},arrayBuffer:async()=>new TextEncoder().encode('png').buffer});
+ const small=await espnHeadshot('42',{fetchImpl:async u=>{seen.push(u);return answer(true);}});
+ assert.deepEqual(small,{bytes:Buffer.from('png'),name:'42.png',type:'image/png'});assert.match(seen[0],/combiner.*42\.png&w=384/);
+ seen.length=0;await espnHeadshot('42',{fetchImpl:async u=>{seen.push(u);return answer(/full\/42\.png$/.test(u));}});
+ assert.equal(seen.length,2);assert.match(seen[1],/full\/42\.png$/);
+ assert.equal(await espnHeadshot('42',{fetchImpl:async()=>answer(true,'text/html')}),null);
+ assert.equal(await espnHeadshot('42',{fetchImpl:async()=>{throw Error('offline');}}),null);
+});
