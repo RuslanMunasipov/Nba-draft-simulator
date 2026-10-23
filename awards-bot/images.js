@@ -8,7 +8,7 @@
 // fblFormula) and the box score's own counts.
 import {int,count} from '../src/format.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
-import {references,teamLogo} from '../scripts/image-pipeline.mjs';
+import {references,teamLogo,gmOf,gmPhoto,looks} from '../scripts/image-pipeline.mjs';
 import {wordNumbers} from './mike-roffon.js';
 import {esc,badges} from './messages.js';
 import {MISSED_BRICKS} from './core.js';
@@ -94,7 +94,7 @@ const BANTER=`Ты — мем-редактор FBL (Fantasy Brothers League), ф
 Границы:
 - Стебём игру, а не человека: ничего про внешность, тело, расу, происхождение, семью, здоровье и личную жизнь.
 - Никакого оружия, стрельбы, насилия, крови, смерти, наркотиков и секса. Никаких судов, судей и юристов: закон лиги в награды не лезет.
-- На картинке только эти игроки и безликая массовка; GM его фэнтези-команды (gm из данных) можно упомянуть на табличке, но не показывать. Никаких логотипов клубов и лиг НБА.
+- На картинке только эти игроки и безликая массовка; GM фэнтези-команды можно упомянуть на табличке. GM центрального игрока картинка сама поставит на задний план — его не описывай. Никаких логотипов клубов и лиг НБА.
 - Форму не описывай: картинка сама оденет его в форму фэнтези-команды. Позы, реквизит и аксессуары приветствуются.
 Формат:
 - setting: одно предложение по-английски, место и настроение всей картинки (общий кадр для их разных историй), без цифр и без надписей.
@@ -141,14 +141,21 @@ export async function writeMoments(facts,{recent=[],claude=claudeJSON,model=CLAU
 // The ideas of a picture to keep, so that the next days do not repeat them.
 export const ideasOf=w=>w?[w.setting,...w.players.map(p=>`${p.scene} / ${p.sign}`)]:[];
 
+// The GM of the centre player's fantasy team in the background (league chat, 23.10.2026), when the league has his photo:
+// he celebrates the heroes and despairs at the flops. Never named in the picture: a name like Franky Murder can trip the
+// image model's safety system, as a team name once did.
+const GM_MOOD={hero:'celebrates wildly in the background, both arms up, as proud as if he had scored himself',
+ flop:'stands in the background with both hands on his head, in comic despair at the player he picked'};
 // One picture of a block: its references (each player's face when given, each league team's logo once) and its prompt.
 // faces: ESPN id → the headshot ({bytes, name, type}); root: the assets folder (team logos); written: Claude's moments
 // (writeMoments), else the code's.
 export function blockPicture(kind,rows,{faces=new Map(),form,root,written=null}={}){
  rows=rows.slice(0,3);
- const teams=[...new Set(rows.map(pictureTeam).filter(t=>t!==null))];
+ const teams=[...new Set(rows.map(pictureTeam).filter(t=>t!==null))],star=pictureTeam(rows[0]),gm=star!==null?gmOf(star):null;
  const refs=references([...rows.map(l=>({key:'face:'+l.a,image:faces.get(String(l.a))||null,what:`the face of ${imageName(l)}`})),
-  ...teams.map(t=>({key:'logo:'+t,image:teamLogo(t,root),what:`the logo of the fantasy team of ${rows.filter(l=>pictureTeam(l)===t).map(imageName).join(' and ')}`}))]);
+  ...teams.map(t=>({key:'logo:'+t,image:teamLogo(t,root),what:`the logo of the fantasy team of ${rows.filter(l=>pictureTeam(l)===t).map(imageName).join(' and ')}`})),
+  {key:'gm',image:gm?gmPhoto(star,root):null,what:`the general manager who picked ${imageName(rows[0])}`}]);
+ const manager=refs.has.gm?`BACKGROUND: the general manager who picked ${imageName(rows[0])}, the exact person from ${refs.has.gm}, face preserved and recognizable: ${looks({...gm,en:'the general manager'})}. He ${GM_MOOD[kind]}, smaller than the players and behind them.`:null;
  const acts=written?written.players.map(m=>({id:'claude',text:`${m.scene.replace(/^./,c=>c.toLowerCase())}; the words on his sign read "${m.sign}"`}))
   :moments(kind,rows,form);
  const people=rows.map((l,i)=>{const t=pictureTeam(l),face=refs.has['face:'+l.a],logo=refs.has['logo:'+t];
@@ -156,7 +163,7 @@ export function blockPicture(kind,rows,{faces=new Map(),form,root,written=null}=
    +`He wears a basketball uniform ${t!==null?KITS[t]:'in black and gold'}${logo?`, with the logo from ${logo} on the chest, reproduced exactly`:''} (the colours of his fantasy team, not his NBA team). `
    +`He ${acts[i].text}.`;});
  const order=rows.length>1?` The ${rows.length} players are side by side in one frame, each in his own moment and story, the one in the centre the star of the picture.`:'';
- const prompt=[refs.legend,`SCENE: ${written?written.setting.replace(/\.$/,''):SCENE[kind]}.${order} A banner above them reads "${TITLE_TEXT[kind]}".`,...people,
+ const prompt=[refs.legend,`SCENE: ${written?written.setting.replace(/\.$/,''):SCENE[kind]}.${order} A banner above them reads "${TITLE_TEXT[kind]}".`,...people,manager,
   `STYLE: photorealistic sports-photo, cinematic arena lighting, 35mm lens, the savage humour of a viral basketball meme. Square composition, every face clearly visible. The only text in the picture: the exact words given in quotes, in Russian (Cyrillic), spelled exactly letter by letter, large and legible. No other captions, numbers or watermarks.`]
   .filter(Boolean).join('\n\n');
  return {images:refs.images,prompt,size:SIZE,moments:acts.map(a=>a.id),ideas:ideasOf(written)};
