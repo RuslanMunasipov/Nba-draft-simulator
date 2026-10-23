@@ -15,8 +15,10 @@ const KEEP_NEWS_DAYS=120,KEEP_TEXT_DAYS=60;
 // A comment's key and a news item's text, as the site computes them.
 import {textKey,newsText} from '../src/translate.js';
 
-// Every number of a text, as written: a translation must keep the same ones (any order).
-export const numbersOf=s=>(String(s||'').match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>x.replace(',','.')).sort();
+// Every number of a text, as written: a translation must keep the same ones (any order). The 3 of a three-pointer is a
+// word, not a number («1-2 3Pt», «3-pointer», «3-очковые»): the first real run lost 133 of 300 stat lines on it.
+const THREES=/\b3-?(?:pt|pts|ptr|pm|pa|point|pointers?|очков\p{L}*)(?![\p{L}\d])/giu;
+export const numbersOf=s=>(String(s||'').replace(THREES,' ').match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>x.replace(',','.')).sort();
 export const sameNumbers=(a,b)=>JSON.stringify(numbersOf(a))===JSON.stringify(numbersOf(b));
 
 export const SYSTEM=`Ты переводишь на русский тексты ESPN для сайта фэнтези-лиги НБА: новости игроков (заголовок и текст) и комментарии к отчёту о травмах.
@@ -25,7 +27,7 @@ export const SYSTEM=`Ты переводишь на русский тексты 
 - Имена игроков, тренеров и журналистов оставляй латиницей, как в оригинале.
 - Клубы НБА называй по-русски, как принято в русской спортивной прессе: «Финикс», «Портленд», «Лейкерс», «Клипперс», «Никс», «Голден Стэйт»; издания и подкасты — как в оригинале.
 - Все числа оставляй теми же цифрами: счёт, статистику, минуты, даты, сроки. Не заменяй слова цифрами и цифры словами («four rebounds» — «четыре подбора», «23 points» — «23 очка»). Счёт можно писать через двоеточие.
-- Статистика по-русски: очки, подборы, передачи, перехваты, блок-шоты, потери, фолы, с игры, трёхочковые, штрафные, минуты. «Day-to-day» — «под вопросом на ближайшие матчи», «questionable» — «под вопросом», «out» — «не сыграет».
+- Статистика по-русски: очки, подборы, передачи, перехваты, блок-шоты, потери, фолы, с игры (FG), трёхочковые (3Pt), штрафные (FT), минуты. «Day-to-day» — «под вопросом на ближайшие матчи», «questionable» — «под вопросом», «out» — «не сыграет».
 - Пиши живым спортивным языком, без канцелярита.
 Ответ — JSON по схеме: для каждого текста его id и перевод.`;
 export const SCHEMA={type:'object',additionalProperties:false,required:['items'],properties:{items:{type:'array',items:{type:'object',additionalProperties:false,required:['id','headline','story'],
