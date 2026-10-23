@@ -219,3 +219,20 @@ test('Claude writes each scene anew: the case in words, placeholders the code fi
  assert.match(sceneMessages(f).system,/brand-new story every time/);
  assert.equal(await writeScene(f,{write:async()=>({data:{scene:'nope'}}),log:()=>{}}),null);
 });
+
+test('a statement without a scene of its own: Claude writes one from the statement, checked, in zakStatement\'s form',async()=>{
+ const {writeStatementScene,statementSceneProblems,zakStatement}=await import('../scripts/zak-pictures.mjs');
+ const statement='⚖️ <b>ЗАК ОНН. ДАННЫЕ СНОВА ДОСТОВЕРНЫ</b>\n2491 команда проверена. {@commissioner} в курсе.';
+ const good='A 90s records vault at night. Zak Onn checks endless file cabinets with a flashlight while {COMMISSIONER} holds a ledger stamped "2491 CHECKED".';
+ assert.deepEqual(statementSceneProblems(good,statement),[]);
+ assert.match(statementSceneProblems(good.replace('2491','9999'),statement).join(),/numbers in quotes 9999/);
+ assert.match(statementSceneProblems(good+' {GM} waits.',statement).join(),/placeholders \{GM\}/);
+ assert.match(statementSceneProblems(good+' A gun on the desk.',statement).join(),/out of bounds: gun/);
+ const seen=[],answers=[{scene:'Zak smiles.'},{scene:good}];
+ const scene=await writeStatementScene(statement,{write:async a=>{seen.push(a);return {data:answers.shift()};},log:()=>{}});
+ assert.equal(scene,good.replace('{COMMISSIONER}','{commissioner}'));assert.equal(seen.length,2);
+ assert.match(seen[0].prompt,/ЗАК ОНН\. ДАННЫЕ СНОВА ДОСТОВЕРНЫ/);assert.doesNotMatch(seen[0].prompt,/<b>|\{@commissioner\}/,'plain text, no tags');
+ assert.match(seen[0].system,/Never a plain portrait/);
+ assert.match(zakStatement({scene}).prompt,/Adam Silverov \(the league commissioner, reference image 2\) holds a ledger/);
+ assert.equal(await writeStatementScene(statement,{write:async()=>({data:{scene:'no'}}),log:()=>{}}),null);
+});
