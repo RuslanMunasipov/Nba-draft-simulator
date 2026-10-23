@@ -5,6 +5,7 @@ import {stints} from '../season.js';
 import sportsMap from '../../data/sports-player-map.json' with {type:'json'};
 import {LEAGUE_TEAMS} from '../teams.js';
 import {int,dec,count,stampMsk} from '../format.js';
+import {withFace} from '../headshot.js';
 import {REPO,button,context,el,errorBlock,fetchJson,live,loadingBlock,needsLive,players,refreshHooks,renderSeason,tab,view} from './state.js';
 
 // ---------- Awards: the day's top and antitop of the whole NBA and the season races ----------
@@ -66,7 +67,7 @@ function awardLine(l,i,flop){
  head.append(awardWho(l),el('span',l.c||'—','aw-club'),teamMarks(l.h));
  main.append(head,el('small',`${statWords(l.s)} · ${dec(l.m)} мин`,'aw-stats'));
  const pts=el('span',null,'aw-pts');pts.append(el('strong',int(l.p)),el('small','ФО'));
- li.append(main,pts);return li;
+ li.append(withFace({espnId:l.a,name:playerOf(l)?.name||l.n},main,'md'),pts);return li;
 }
 function dayBlock(flop){
  const all=awards.site?.days||{},days=Object.keys(all).sort().reverse();

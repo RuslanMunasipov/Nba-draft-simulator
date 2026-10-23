@@ -8,6 +8,7 @@ import {readStored,writeStored,storageFailed,readCache,writeCache} from './stora
 import {fetchDatabase} from './database-loader.js';
 import './theme.js';
 import {reportElement} from './rookie-reports.js';
+import {face,withFace} from './headshot.js';
 import {newDraft,pick,undo,replacePick,replayDraft,exportDraft,DEFAULT_CAP,safeUrl,rosterFits,POSITIONS} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
 import {setSeasonPlayers,setSeasonDatabaseState,initSeasonTabs,seasonLivePanel} from './season-ui.js';
@@ -146,7 +147,7 @@ function card(p,analysis=null,readonly=false){
  if(f){score.append(el('strong',dec(f.meanPerGame)),el('small','ФО за матч'),el('small',int(f.meanSeason)+' за сезон'));}
  else if(personal){score.append(el('strong',dec(personal.componentFPPerGame)),el('small','без фолов и +1 за матч'));}
  else if(Number.isFinite(p.projectedFP)){score.append(el('strong',dec(p.projectedFP)),el('small','ориентир'));}
- summary.append(main,score,el('span',null,'pc-chevron'));
+ summary.append(face(p,'md'),main,score,el('span',null,'pc-chevron'));
  summary.setAttribute('aria-label',`${p.name}: ${f?`${dec(f.meanPerGame)} ФО за матч, ${int(f.meanSeason)} за сезон`:'без прогноза'}. Открыть разбор`);
  details.append(summary);
  // The body is built on first open: thirty closed cards cost almost nothing to render.
@@ -320,7 +321,8 @@ function renderPlan(){
   head.append(title,el('span',`${int(a.best.value)} ФО`,'chip chip--accent'));
   const now=live(a.best.now.id),hero=el('div',null,'plan-now');
   if(now){
-   const f=now.forecast;hero.append(el('span',a.onTheClock?'Лучший выбор':'Лучший вариант к твоему пику','plan-now-label'),el('div',now.name,'plan-now-name'),el('p',[now.positions.join('/'),now.team,int(now.price)].filter(Boolean).join(' · '),'plan-now-meta'));
+   const f=now.forecast;const who=el('div');who.append(el('div',now.name,'plan-now-name'),el('p',[now.positions.join('/'),now.team,int(now.price)].filter(Boolean).join(' · '),'plan-now-meta'));
+   hero.append(el('span',a.onTheClock?'Лучший выбор':'Лучший вариант к твоему пику','plan-now-label'),withFace(now,who,'lg'));
    const kpis=el('div',null,'kpis'),kpi=(label,v)=>{const k=el('div',null,'kpi');k.append(el('small',label),el('strong',v));kpis.append(k);};
    if(f){kpi('ФО за матч',dec(f.meanPerGame));kpi('За сезон',int(f.meanSeason));}
    const first=a.best.plan.find(x=>x.player.id===now.id);if(!a.onTheClock&&first?.survival!=null)kpi('Шанс дожить',pct(first.survival));
@@ -369,8 +371,8 @@ function renderRoster(){
  const rookie=own.some(p=>p.isRookie);chips.append(el('span',rookie?'Rookie ✓':'Rookie нужен',rookie?'chip chip--accent':'chip chip--warn'));
  const total=own.reduce((s,p)=>s+(p.forecast?.meanSeason||0),0);if(own.length)chips.append(el('span',`Прогноз ${int(total)} ФО`,'chip'));
  const list=el('ol',null,'roster-grid');
- for(let i=0;i<10;i++){const p=own[i];const row=el('li',p?p.name:'Свободно');
-  if(p)row.append(el('small',[p.positions.join('/'),state.priceMode==='ON'?int(p.price):null,p.forecast?dec(p.forecast.meanPerGame)+' за матч':null].filter(Boolean).join(' · ')+(p.isRookie?' · rookie':'')));else row.className='empty-slot';list.append(row);}
+ for(let i=0;i<10;i++){const p=own[i];const row=el('li',p?null:'Свободно');
+  if(p){const who=el('span',p.name,'roster-who');who.append(el('small',[p.positions.join('/'),state.priceMode==='ON'?int(p.price):null,p.forecast?dec(p.forecast.meanPerGame)+' за матч':null].filter(Boolean).join(' · ')+(p.isRookie?' · rookie':'')));row.append(withFace(p,who));}else row.className='empty-slot';list.append(row);}
  const parts=[chips,list];
  if(own.length&&own.length<10){const open=openSlots(own);if(open.length)parts.push(el('p',`Свободные позиции: ${open.join(', ')}`,'muted'));}
  box.replaceChildren(...parts);

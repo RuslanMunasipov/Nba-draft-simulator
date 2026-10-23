@@ -3,6 +3,7 @@ import {writeStored} from '../storage.js';
 import {teamName} from '../teams.js';
 import {horizons,playerOutlook,seasonEnding} from '../season.js';
 import {dec,ddmm,stampMsk} from '../format.js';
+import {face} from '../headshot.js';
 import {$,bodyPart,button,clubOf,el,errorBlock,injuries,injuryInfo,injuryScope,league,live,loading,loadingBlock,openRows,owners,players,renderSeason,setInjuryScope,setReplacing,setTeam,setView,src,team} from './state.js';
 
 // ---------- Injuries ----------
@@ -23,7 +24,7 @@ export function injuriesView(ctx){
  for(const r of rows){const g=group(r);
   if(g!==last&&injuryScope==='league'){const h=el('h3',teamName(g));if(g===0)h.append(' ',el('span','ты','chip chip--accent'));list.append(h);last=g;}
   const info=injuryInfo(r.p),item=el('div',null,'sp-injury-item'+(info.level==='out'?' out':'')),head=el('div',null,'head');
-  head.append(el('strong',r.p.name),el('span',info.text,'chip '+(info.level==='out'?'chip--danger':'chip--warn')));
+  head.append(face(r.p),el('strong',r.p.name),el('span',info.text,'chip '+(info.level==='out'?'chip--danger':'chip--warn')));
   item.append(head,el('small',[r.p.team,bodyPart(r.i.type),r.i.date?'отчёт '+ddmm(String(r.i.date).slice(0,10)):''].filter(Boolean).join(' · ')));
   if(g===0){const o=playerOutlook(r.p,{...ctx,running:new Map()});const missed=Math.max(0,(live?.clubs?.[clubOf(r.p)]||[]).filter(x=>x.date>=ctx.today&&x.date<=horizons(ctx).week.to&&!x.score&&!x.gone).length-o.week.games);
    if(missed>=.5)item.append(el('p',`Пропустит ~${dec(missed)} матча до конца недели.`));
