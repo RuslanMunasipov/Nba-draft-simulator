@@ -9,10 +9,10 @@ import {claudeJSON,CLAUDE_MODEL} from './claude-text.mjs';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {PEOPLE,person,zakPhoto,gmPhoto,gmOf,teamLogo,readImage,ASSETS} from './image-pipeline.mjs';
 
-// A person of the people base as Claude sees them. named false: without the name (a GM's name never goes into a prompt).
-export function about(p,{named=true}={}){
+// A person of the people base as Claude sees them.
+export function about(p){
  if(!p)return {};
- return {...named?{name:p.en}:{},...p.keep?{neverChanges:p.keep}:{},...p.style?{alwaysDrawn:p.style}:{},...p.outfit?{usualLook:p.outfit}:{}};
+ return {name:p.en,...p.keep?{neverChanges:p.keep}:{},...p.style?{alwaysDrawn:p.style}:{},...p.outfit?{usualLook:p.outfit}:{}};
 }
 
 // The references of a picture: [{image ({bytes, name, type}, or null: then it is left out), is (what it is, for Claude),
@@ -30,9 +30,8 @@ export function commissionerRef(root,{need=false}={}){
  const p=PEOPLE.find(x=>x.role==='commissioner');
  return {image:p?readImage(path.join(root||ASSETS,p.photo)):null,is:'the photo of Adam Silverov, the league commissioner',facts:about(p),need};
 }
-// A GM: their photo, never their name.
 export const gmRef=(team,root,{is='the photo of the general manager (GM) of the fantasy team',need=true}={})=>
- ({image:gmPhoto(team,root),is,facts:about(gmOf(team),{named:false}),need});
+ ({image:gmPhoto(team,root),is,facts:about(gmOf(team)),need});
 export const logoRef=(team,root,{is='the logo of the fantasy team',need=false}={})=>
  ({image:teamLogo(team,root),is,facts:{teamColors:LEAGUE_TEAMS[team]?.kit||null},need});
 // Mike Roffon: only the face of his photo (its camouflage helmet and PRESS vest belong to a war zone), always his white
@@ -53,20 +52,10 @@ export function picture(prompt,c){
  return {images:keep.map(n=>c.images[n-1]),prompt:String(prompt).replace(REF,(m,n)=>to.has(Number(n))?m.replace(/\d+$/,String(to.get(Number(n)))):m).trim()};
 }
 
-// Words no picture of the league shows. Basketball and photography words are not among them: shooting, a jump shot, a wide
-// shot, dead silence (the picture-prompts check of 23.10 lost six scenes of seven to them).
-export const OFF_LIMITS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|bullets?|ammo|knife|knives|swords?|blood\w*|kill\w*|murder\w*|death|corpses?|suicide|drugs?|cocaine|sex\w*|naked|nude|torture\w*|explod\w*|bombs?|bolters?|chainswords?|lasguns?|nfl|american football|super bowl|touchdown|quarterback|helmets?)\b/i;
-// What a prompt says is in the picture: its clauses that say what is not there ("No weapons, helmets or blood.", "without
-// a knife") left out, as the check of 23.10 refused six prompts of nine for their own safety notes.
-export const affirmed=t=>String(t).replace(/\b(no|without|never|nor)\b(?!\s+(one|longer)\b)[^.;!?\n]*/gi,'');
-// The names a prompt never holds outside its quotes: the league's GMs and teams (a name like Franky Murder trips the image
-// model's safety system, as a team name once did). Zak Onn, Mike Roffon and Adam Silverov may be named.
-const latin=s=>/^[\x20-\x7e]+$/.test(s);
-export const UNSAID=[...new Set([...PEOPLE.filter(p=>p.role==='gm').map(p=>p.en),...LEAGUE_TEAMS.flatMap(t=>[t.gm,t.name])].filter(s=>s&&latin(s)))];
-const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 // What is wrong with Claude's prompt ([]: it may go to the image model). c: its cast; numbers: a Set of the numbers its
-// quotes may carry (they are drawn); forbidden: more words it must not hold (outside its quotes).
-export function promptProblems(text,c,{numbers=new Set(),min=200,max=4500,forbidden=null}={}){
+// quotes may carry (they are drawn). No list of forbidden words: OpenAI draws weapons, the dead and the rest (owner,
+// 23.10.2026), the story is Claude's.
+export function promptProblems(text,c,{numbers=new Set(),min=200,max=4500}={}){
  if(typeof text!=='string'||!text.trim())return ['no prompt'];
  const t=text.trim(),out=[],bare=t.replace(/"[^"\n]*"/g,'""'),lower=t.toLowerCase();
  if(t.length<min||t.length>max)out.push(`length ${t.length} (${min}-${max})`);
@@ -78,9 +67,6 @@ export function promptProblems(text,c,{numbers=new Set(),min=200,max=4500,forbid
  c.refs.forEach((r,i)=>{if(named.includes(i+1)||r.need)for(const w of r.say||[])if(!lower.includes(w.toLowerCase()))out.push(`no "${w}" (reference image ${i+1}: ${r.is})`);});
  const quotes=t.match(/"[^"\n]*"/g)||[],strayN=(quotes.join(' ').match(/\d+/g)||[]).filter(n=>!numbers.has(n));
  if(strayN.length)out.push(`numbers in quotes not in the facts: ${[...new Set(strayN)].join(', ')}`);
- for(const re of [OFF_LIMITS,forbidden].filter(Boolean)){const bad=affirmed(bare).match(re);if(bad)out.push(`off limits: ${bad[0]}`);}
- const names=UNSAID.filter(n=>new RegExp(`(^|[^A-Za-z])${esc(n)}([^A-Za-z]|$)`,'i').test(bare));
- if(names.length)out.push(`names outside the quotes: ${names.join(', ')} (call them by their reference image)`);
  return out;
 }
 
@@ -88,9 +74,8 @@ export function promptProblems(text,c,{numbers=new Set(),min=200,max=4500,forbid
 export const CRAFT=`How you write the picture's prompt. Your prompt is the WHOLE prompt the image model gets (gpt-image, editing the reference images listed in the task): the code adds nothing to it. Think the context over first, then write it in English:
 - everything is yours: the place, the story and the gag, who stands where and does what, the composition and framing, the camera and lens, the light, the mood, the colours, the visual style, the wardrobe;
 - name each person or thing of the references by its reference image ("the man from reference image 2") and say what to take from it: a face exactly, preserved and instantly recognizable; a logo reproduced exactly. Write in yourself what never changes about each person (neverChanges, alwaysDrawn), and dress them for the scene (usualLook is only their usual look). Use every reference marked mustUse; a reference you do not name is not sent;
-- the league's GMs and teams are never named outside quotes (a name can trip the image model's safety system): call them by their reference image or their role. Zak Onn, Mike Roffon and Adam Silverov may be named;
 - any words drawn in the picture go in double quotes, spelled exactly, and the prompt says that no other text, captions or watermarks appear. Numbers in quotes only from the facts;
-- basketball is the only sport (NBA), never American football or any other; no weapons, shooting at people, blood, violence, death, drugs, nudity; no helmets;
+- basketball is the only sport (NBA), never American football or any other;
 - plain English outside the quotes, no placeholders in curly braces, at most 4500 characters.`;
 const ANSWER='Answer only JSON: {"prompt": "the whole prompt", "idea": "the picture\'s idea in one line, so that later pictures do not repeat it"}';
 const str={type:'string'};

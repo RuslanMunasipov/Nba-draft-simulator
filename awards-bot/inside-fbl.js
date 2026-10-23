@@ -196,7 +196,7 @@ export async function guestReference(guest,{root=ASSETS,fetchImpl=fetch}={}){
 }
 // The references of a piece's pictures: Mike, then the guest (guestPhoto: guestReference's).
 export function longreadCast(guest,{guestPhoto=null,root=ASSETS}={}){
- const g=guest.kind==='gm'?{is:'the photo of the guest, the general manager (GM) of a fantasy team',facts:about(gmOf(guest.team),{named:false})}
+ const g=guest.kind==='gm'?{is:'the photo of the guest, the general manager (GM) of a fantasy team',facts:about(gmOf(guest.team))}
   :guest.kind==='commissioner'?{is:'the photo of the guest, Adam Silverov, the league commissioner',facts:about(person('adam-silverov'))}
   :{is:`the ESPN headshot of the guest, the real NBA player ${guest.row.en}`,facts:{}};
  return cast([mikeRef(root),{image:guestPhoto,...g,need:true}]);

@@ -76,7 +76,6 @@ test('Mike Roffon: Claude writes his picture from the interview; refused, it goe
  assert.match((await writeMikePicture(facts,null,c,{claude:async a=>{calls.push(a);return {data:{prompt:PIC,idea:''}};}})).prompt,/INSIDE FBL/);
  assert.match(calls.at(-1).prompt,/^Данные:/,'a picture drawn alone: from the game');
  assert.equal(await writeMikePicture(facts,good,c,{claude:async()=>({data:{prompt:PIC.replace('"INSIDE FBL"','"77 ФО"'),idea:''}})}),null,'numbers of its own: no picture');
- assert.equal(await writeMikePicture(facts,good,c,{claude:async()=>({data:{prompt:PIC.replace('hoodie','helmet'),idea:''}})}),null);
 });
 
 test('Mike Roffon: written by Claude (the subscription module, JSON by the schema), again on its own numbers or old lines, then dropped',async()=>{
@@ -113,6 +112,6 @@ test('Mike Roffon: every other day he turns to the GM of the hero\'s team too, a
  assert.deepEqual(strayNumbers({...withGm,gm:{q:'Сколько стоил?',a:'2000, и ни монетой больше.'}},f),['2000'],'his answer is checked too');
  const c=mikeCast(f,{team:4});
  assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','captain-torres-new-win.jpg','5.jpg','fbl-logo.png']);
- assert.match(c.list[1].is,/general manager \(GM\) who picked the player/);assert.match(c.list[1].neverChanges,/always a pirate/);assert.equal(c.list[1].name,undefined,'never named');
+ assert.match(c.list[1].is,/general manager \(GM\) who picked the player/);assert.match(c.list[1].neverChanges,/always a pirate/);assert.equal(c.list[1].name,'Captain Torres New-Win');
  assert.equal(mikeCast({...f,gmQuestion:null},{team:4}).images.length,3,'no GM on a day he is not asked');
 });

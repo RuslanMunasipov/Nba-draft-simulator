@@ -63,7 +63,7 @@ test('awards pictures: the references: each face given, each league team\'s logo
  assert.deepEqual(c.list.map(x=>x.is),['the ESPN headshot of the real NBA player P1. Name','the ESPN headshot of the real NBA player P3. Name',
   'the logo of the fantasy team of P1. Name and P3. Name','the logo of the fantasy team of P2. Name','the photo of the general manager (GM) who picked P1. Name']);
  assert.deepEqual(c.list.map(x=>x.mustUse||false),[true,true,false,false,false]);assert.equal(c.list[0].place,'centre');
- assert.equal(c.list[4].name,undefined,'the GM never named');
+ assert.equal(c.list[4].name,'Franky Murder');
  assert.deepEqual(blockCast('hero',[row('9',30,[5])],{root}).images,[],'no files: drawn from the prompt alone');
  assert.ok(c.images.every(im=>!/zak|approved|check|violation/.test(im.name)),'no photo of Зак Онн');
 });
@@ -83,7 +83,7 @@ const castOf=()=>blockCast('flop',[row('1',-12,[0],{fgm:3,fga:14,tov:6}),row('2'
  faces:new Map([['1',{bytes:Buffer.from('f1'),name:'1.png',type:'image/png'}],['2',{bytes:Buffer.from('f2'),name:'2.png',type:'image/png'}]])});
 const good='A dusty construction site at golden hour, shot like a glossy home-improvement commercial: the real NBA player from reference image 1, his face exactly as in the photo, lays bricks into a crooked wall with a trowel, his sign nailed to it reading "11 КИРПИЧЕЙ. ПРОРАБ ГОДА"; the player from reference image 2, face exactly as in the photo, poses in a sash of referee whistles, his sign at his feet reading "-3 ФО. ЗАТО 6 ФОЛОВ". Both in the colours of their fantasy teams, the logos from reference image 3 and reference image 4 on their chests. The Russian words drawn letter by letter in Cyrillic; no other text. Wide 24mm, warm haze, square frame.';
 
-test('awards pictures: Claude\'s prompt is checked: his players\' faces in it, their own numbers only, nothing forbidden',()=>{
+test('awards pictures: Claude\'s prompt is checked: his players\' faces in it, their own numbers only',()=>{
  const facts=factsOf(),c=castOf();
  assert.equal(facts.players[0].gm,'Franky Murder','the GM as the league writes him, for a sign');assert.equal(facts.players[0].fbl,-12);assert.equal(facts.players[0].game.fgMissed,11);
  assert.equal(facts.players[0].kitColors,'black, red and gold');
@@ -93,12 +93,7 @@ test('awards pictures: Claude\'s prompt is checked: his players\' faces in it, t
  assert.match(bad(good.replace('"11 КИРПИЧЕЙ','"ТРИНАДЦАТЬ КИРПИЧЕЙ')),/numbers in words not in the lines: 13/,'numbers in words too');
  assert.match(bad(good.replace('the player from reference image 2','a man')),/reference image 2 \(the ESPN headshot.*\) not used/);
  assert.deepEqual(momentProblems(good+' The general manager from reference image 5 despairs in the back.',facts,c),[],'the star\'s GM has a photo');
- assert.match(bad(good.replace('with a trowel','with a knife')),/off limits: knife/);
- assert.match(bad(good.replace('construction site','courtroom')),/forbidden: courtroom/,'the law stays out of the awards');
- assert.match(bad(good+' Zak Onn watches.'),/forbidden: zak/i,'Зак Онн never appears in the awards');
- assert.deepEqual(momentProblems(good+' No lawyers, judges or courtrooms.',facts,c),[],'a note of what is not there');
- assert.deepEqual(momentProblems(good.replace('ПРОРАБ ГОДА','СПАСИБО GM STRAP ONN'),facts,c),[],'GM Strap Onn on a sign is not Зак Онн');
- assert.match(bad(good+' Franky Murder despairs.'),/names outside the quotes: Franky Murder/);
+ assert.deepEqual(momentProblems(good.replace('with a trowel','with a knife')+' Franky Murder despairs.',facts,c),[],'no list of forbidden words, names allowed');
  const m=momentMessages(facts,['old idea']);
  assert.match(m,/^Картинка: the flops of the day\.\nНедавние идеи, не повторяй:\n- old idea\nДанные:/);
 });
