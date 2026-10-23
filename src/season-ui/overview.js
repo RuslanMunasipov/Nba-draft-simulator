@@ -6,6 +6,7 @@ import {placeLabel,chanceText,fblGame} from '../standings.js';
 import {int,dec,signed,count,ddmm} from '../format.js';
 import {$,button,byId,confidenceBadge,currentWeek,el,forGains,games,injuries,injuryText,live,livePoints,needsLive,openRows,owners,players,setReplacing,setTeam,setView,tab,team,teamBank,transfers} from './state.js';
 import {CHANCE_NOTE,gamesToday,race} from './widgets.js';
+import {withFace} from '../headshot.js';
 
 function standingsTable(ctx,running){
  const h=horizons(ctx),{started,rows:all}=race(ctx,running);
@@ -34,7 +35,7 @@ function topPlayers(ctx){
  const own=owners(ctx),rows=[];
  for(const p of players){const g=(live?.players?.[p.sportsId]?.games||[]).filter(fblGame);if(g.length)rows.push({p,total:g.reduce((s,x)=>s+x.points,0),games:g.length});}
  const box=el('div',null,'sp-block sp-top');
- const list=(items,line,value)=>{const ol=el('ol');for(const r of items){const li=el('li'),who=el('div');who.append(el('strong',r.p.name),el('small',line(r)));li.append(who,el('span',value(r),'val'));ol.append(li);}return ol;};
+ const list=(items,line,value)=>{const ol=el('ol');for(const r of items){const li=el('li'),who=el('div');who.append(el('strong',r.p.name),el('small',line(r)));li.append(withFace(r.p,who),el('span',value(r),'val'));ol.append(li);}return ol;};
  const free=(p)=>!own.has(p.id);
  if(rows.length){
   const fa=rows.filter(r=>free(r.p)&&r.games>=2).sort((a,b)=>b.total/b.games-a.total/a.games).slice(0,5);

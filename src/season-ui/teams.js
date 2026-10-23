@@ -8,6 +8,7 @@ import {int,dec,ddmm} from '../format.js';
 import {openPlayerSheet} from '../sheet.js';
 import {$,PERIOD,SPORTS_URL,TEAM_URL,button,byId,card,el,horizon,injuryInfo,league,link,live,livePoints,needsLive,openRows,readJson,renderSeason,replacing,same,setQuery,setReplacing,sportsTeam,src,team,teamBank,transfers,transfersLeft} from './state.js';
 import {CHANCE_NOTE,controls,courtWord,race,replacementPanel} from './widgets.js';
+import {withFace} from '../headshot.js';
 
 // ---------- Teams ----------
 // Fact and forecast windows (the current tour, 4 weeks = the transfer gains' 28 days, the season) and the facts in them,
@@ -33,7 +34,7 @@ function playerRow(p,ctx,running,shadow,credit){
  form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}${courtWord(now)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
  const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running,shadow,credit),first=shadow.get(`${team}:${p.id}`),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
  left.title='Ожидаемых матчей до конца периода';next.append(factForecast(fact,fact+rest.points),left);
- row.append(name,price,form,next);
+ row.append(withFace(p,name,'md'),price,form,next);
  if(inj){const line=el('span',null,'sp-injury'+(inj.level==='out'?' out':''));line.append(`🩹 ${inj.text}`);row.append(line);}
  if(first!=null)row.append(el('span',`⚖️ Его очки получает ${teamName(first)}: она взяла его раньше. Здесь он приносит 0, пока нарушение не исправлено`,'sp-injury'));
  sum.append(row);box.append(sum);
