@@ -58,6 +58,7 @@ test('Inside FBL: what a piece may not carry: numbers of its own (in words too),
  assert.deepEqual(longreadProblems(good,facts),[]);
  const bad={...good,prologue:[para,'Он живёт на двадцать втором этаже и держит триста тридцать три собаки.']};
  assert.match(longreadProblems(bad,facts).join(),/числа не из данных: 22, 333/);
+ assert.match(longreadProblems(bad,facts).join(),/вот где: «Он живёт на двадцать втором этаже и держит триста тридцать три собаки\.»/);
  assert.match(longreadProblems({...good,quote:'Роль важнее фамилии.'},facts).join(),/роль важнее фамилии/);
  assert.match(longreadProblems({...good,opener:'Mike holds a gun.'},facts).join(),/opener: forbidden words/);
  assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,scene:'Майк на кухне'})},facts).join(),/scene главы 1: not plain English/);

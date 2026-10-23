@@ -154,7 +154,8 @@ export const sceneProblem=s=>!s||!s.trim()?'empty':s.length>500?'too long':!/^[\
 export function longreadProblems(x,facts){
  if(!validLongread(x))return ['not a long read in the schema'];
  const out=[],text=longreadWords(x),stray=strayNumbersIn(text,allowedNumbers(facts)),copied=copiedIn(text);
- if(stray.length)out.push(`числа не из данных: ${stray.join(', ')} — убери их или замени словами без чисел`);
+ if(stray.length){const allowed=allowedNumbers(facts),where=text.split(/(?<=[.!?…])\s+|\n+/).filter(t=>strayNumbersIn(t,allowed).length).slice(0,4).map(t=>`«${t.trim().slice(0,200)}»`);
+  out.push(`числа не из данных: ${stray.join(', ')} (цифрами или словами, в том числе порядковыми вроде «шестой») — вот где: ${where.join('; ')}; перепиши эти фразы без чисел`);}
  if(copied.length)out.push(`дословные фразы из прошлых выпусков: ${copied.join(' | ')} — перепиши`);
  if(text.length<6000)out.push(`слишком коротко (${text.length} знаков), нужно 9000–16000`);
  x.chapters.forEach((c,i)=>{const p=sceneProblem(c.scene);if(p)out.push(`scene главы ${i+1}: ${p}`);});
