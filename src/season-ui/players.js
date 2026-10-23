@@ -18,7 +18,7 @@ import {teamTag} from '../team-logo.js';
 // Free players (or every player) ranked by their average FBL points in this season's games, with a streak mark
 // (season.js seasonForm), the best one-for-one swap that brings each one to the team chosen above over the chosen period
 // and the model's confidence in it (swapAnalyzer, explainSwap), and the Sports.ru price. The filters stay on this device.
-const MARKET_PAGE=40,MARKET_DEFAULT={scope:'free',pos:'all',minGames:1,maxPrice:0,sort:'avg',streaks:false};
+const MARKET_PAGE=40,MARKET_DEFAULT={scope:'free',pos:'all',minGames:1,maxPrice:0,sort:'avg',streaks:false,rookies:false};
 let market={...MARKET_DEFAULT,...readJson('fbl-market',{})},marketQuery='',marketShown=MARKET_PAGE;
 const saveMarket=()=>writeStored('fbl-market',JSON.stringify(market));
 // One analyser per data snapshot, team, period and bank: it answers per player and remembers, so a page asks only for the
@@ -45,7 +45,7 @@ const streakRank=r=>!r.form.streak?0:r.form.streak.kind==='hot'?100+r.form.strea
 function marketSorted(all,analyse){
  const q=marketQuery.trim();
  const rows=all.filter(r=>(market.pos==='all'||r.c.positions.includes(market.pos))&&r.form.games>=market.minGames&&(!market.maxPrice||r.c.price<=market.maxPrice)
-  &&(!market.streaks||r.form.streak)&&(!q||playerSearchMatches(r.p,q)));
+  &&(!market.streaks||r.form.streak)&&(!market.rookies||r.p.isRookie===true)&&(!q||playerSearchMatches(r.p,q)));
  const gainOf=r=>r.owner===null?analyse(r.p.id)?.best?.gain[horizon]??-Infinity:-Infinity;
  const byAvg=(a,b)=>avgOf(b)-avgOf(a)||b.form.games-a.form.games||(b.p.forecast?.meanPerGame??0)-(a.p.forecast?.meanPerGame??0);
  const order={avg:byAvg,form:(a,b)=>streakRank(b)-streakRank(a)||byAvg(a,b),gain:(a,b)=>gainOf(b)-gainOf(a)||byAvg(a,b),price:(a,b)=>b.c.price-a.c.price||byAvg(a,b)}[market.sort]||byAvg;
@@ -133,12 +133,18 @@ export function playersView(base){
  const search=el('label',null,'mk-search'),input=el('input');input.type='search';input.enterKeyHint='search';input.autocomplete='off';
  input.placeholder='Игрок или клуб NBA';input.value=marketQuery;input.setAttribute('aria-label','Поиск игрока: имя по-русски или по-английски, клуб');search.append(input);
  const streaks=el('label',null,'check mk-check'),cb=el('input');cb.type='checkbox';cb.checked=market.streaks;cb.onchange=()=>set('streaks',cb.checked);streaks.append(cb,'Только стрики');
+ const rookies=el('label',null,'check mk-check'),rb=el('input');rb.type='checkbox';rb.checked=market.rookies;rb.onchange=()=>set('rookies',rb.checked);rookies.append(rb,'Только новички');
  const filters=el('div',null,'mk-filters');
  filters.append(seg('Кто',[['free','Свободные'],['all','Все']],'scope'),seg('Позиция',[['all','Все'],...POSITIONS.map(x=>[x,x])],'pos','mk-pos-seg'),
   pick('Матчей',[[0,'любое'],[1,'от 1'],[3,'от 3'],[5,'от 5'],[10,'от 10']],'minGames'),
-  pick('Цена до',[[0,'любая'],[1300,'1 300'],[1500,'1 500'],[1800,'1 800'],[2200,'2 200'],[2800,'2 800']],'maxPrice'),streaks);
+  pick('Цена до',[[0,'любая'],[1300,'1 300'],[1500,'1 500'],[1800,'1 800'],[2200,'2 200'],[2800,'2 800']],'maxPrice'),streaks,rookies);
  const sortRow=el('div',null,'mk-sort');sortRow.append(el('span','Сортировка','mk-label'),seg('Сортировка',[['avg','ФО/матч'],['form','Стрики'],['gain','Анализатор'],['price','Цена']],'sort'));
  const info=el('p',`Анализатор — лучший обмен один на один для «${teamName(team)}» ${PERIOD_LONG[horizon]}: банк ${int(money)}, трансферов ${left===Infinity?'без лимита':left+' из '+WEEKLY_TRANSFERS}. Нажми на игрока — матчи сезона и разбор обмена.`,'sp-note');
+ // With the rookie filter: the chosen team's own rookies by the same numbers, to see whether a free one is better.
+ const mine=market.rookies?(ctx.rosters[team]||[]).map(id=>byId.get(id)).filter(p=>p?.isRookie===true):[];
+ const rookieNote=market.rookies?el('p',mine.length?`${mine.length>1?'Новички':'Новичок'} в составе «${teamName(team)}»: `+mine.map(p=>{const f=seasonForm(p,live?.players?.[p.sportsId]);
+   return `${p.name} — ${f.average!=null?dec(f.average)+' ФО/матч, '+count(f.games,'матч','матча','матчей'):'ещё не играл'}`;}).join('; ')+'. Продать единственного новичка можно только за другого новичка.'
+  :`В составе «${teamName(team)}» нет новичка — правило обязательного новичка нарушено.`,mine.length?'sp-note':'warning'):null;
  const games=Math.max(0,...all.map(r=>r.form.games)),early=games<5?el('p',`Сезон только начался: средние по ${games<=1?'одному матчу':'1–'+games+' матчам'} пока шумные. Стрик — от ${count(STREAK.min,'матча','матчей','матчей')} подряд заметно выше (🔥) или ниже (🧊) прогноза.`,'warning'):null;
  const list=el('div',null,'mk-list'),header=el('div',null,'mk-header');
  for(const [t,c] of [['#','mk-rank'],['Игрок','mk-who'],['Клуб','mk-club'],['Поз.','mk-pos'],['ФО/матч','mk-avg'],['Анализатор · '+PERIOD[horizon].toLowerCase(),'mk-ana'],['Цена','mk-price']])header.append(el('span',t,c));
@@ -154,5 +160,5 @@ export function playersView(base){
  input.oninput=()=>{marketQuery=input.value;marketShown=MARKET_PAGE;fill();};
  fill();
  const panel=el('div',null,'mk-panel');panel.append(head,search,filters,sortRow);
- return [controls(ctx),panel,info,...(early?[early]:[]),list,more];
+ return [controls(ctx),panel,info,...(rookieNote?[rookieNote]:[]),...(early?[early]:[]),list,more];
 }
