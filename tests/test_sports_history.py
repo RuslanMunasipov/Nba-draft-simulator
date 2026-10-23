@@ -15,6 +15,11 @@ class SportsHistory(unittest.TestCase):
         self.assertFalse(db['players'][1]['sportsCheck']['flag']);self.assertNotIn('sportsHistory',db['players'][2])
         self.assertEqual(db['players'][0]['sportsCheck']['basis'],'SPORTS_WITH_RESULT_BONUS')
 
+    def test_a_replaced_card_keeps_the_seasons_of_its_old_id(self):
+        db={'players':[{'id':1,'sportsId':'new','previousSportsIds':['old'],'forecast':{'meanPerGame':30.0}}]}
+        history={'players':{'new':{'seasons':{}},'old':{'seasons':{'2025-26':{'games':60,'points':1800,'perGame':30.0}}}}}
+        self.assertEqual(attach(db,history)['attached'],1);self.assertEqual(list(db['players'][0]['sportsHistory']),['2025-26'])
+
     def test_sports_ru_result_bonus_is_removed_before_the_check(self):
         # Sports.ru 10.0 a game on a winning club (+2.0 bonus a game): FBL 8.0. A 9.5 forecast is -5% against Sports.ru's
         # number but +19% against the like-for-like FBL number; a losing club's player gets the opposite correction.

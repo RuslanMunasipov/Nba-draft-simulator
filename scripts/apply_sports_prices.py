@@ -18,7 +18,10 @@ def apply(data, catalog, crosswalk, additions=None):
     if any(str(p.get('sportsPosition')) not in positions for p in prices.values()):
         raise ValueError('Unknown Sports.ru position code')
     entries = crosswalk['players']
-    if len({p['sportsId'] for p in entries}) != len(entries):
+    # A card Sports.ru replaced keeps its old id in previousSportsIds (Keaton Wagler: 2208842 emptied, 2208816 since
+    # 23.10.2026): the dated catalog lists the old card, the player carries the card Sports.ru shows now.
+    cards = lambda p: [p['sportsId'], *p.get('previousSportsIds', [])]
+    if len({s for p in entries for s in cards(p)}) != sum(len(cards(p)) for p in entries):
         raise ValueError('Duplicate Sports.ru crosswalk ID')
     by_espn = {str(p['espnId']): p for p in entries if p.get('espnId')}
     by_nba = {str(p['nbaId']): p for p in entries if p.get('nbaId')}
@@ -31,25 +34,28 @@ def apply(data, catalog, crosswalk, additions=None):
     for player in data['players']:
         player.update(yahooPositions=player.get('yahooPositions',list(player['positions'])),
                       yahooPositionStatus=player.get('yahooPositionStatus',player.get('positionStatus')))
-        player.pop('yahooPositionSource',None)
+        player.pop('yahooPositionSource',None);player.pop('previousSportsIds',None)
         player.update(price=None, priceStatus='MISSING',positions=[],positionStatus='MISSING',positionSource=None,positionProvider=None)
         espn=by_espn.get(str(player.get('espnId')));nba=by_nba.get(str(player.get('nbaId')))
         if espn and nba and espn['sportsId']!=nba['sportsId']:raise ValueError('Conflicting ESPN/NBA identity')
         entry = espn or nba
         if not entry:
             continue
-        source = prices.get(entry['sportsId'])
-        if not source:
+        key = next((s for s in cards(entry) if s in prices), None)
+        if not key:
             raise ValueError('Crosswalk references a missing Sports.ru ID')
+        source = prices[key]
         if identity_name(entry['name'])!=identity_name(player['name']):raise ValueError('Identity name mismatch: '+player['name'])
         if entry['sportsName']!=source['name'] or entry['sportsClub']!=source['club']:raise ValueError('Sports.ru identity mismatch')
-        dated = origin[entry['sportsId']]
+        dated = origin[key]
         player.update(positions=[positions[str(source['sportsPosition'])]],positionStatus='SPORTS_RU_VERIFIED',
                       positionSource=dated['source'],positionCheckedAt=dated['capturedAt'],positionProvider='Sports.ru',
-                      price=source['price'], priceStatus='VERIFIED', sportsId=source['sportsId'],
+                      price=source['price'], priceStatus='VERIFIED', sportsId=entry['sportsId'],
                       sportsName=source['name'], priceSource='Sports.ru',
                       priceCheckedAt=dated['capturedAt'], sportsClub=source['club'])
-        matched.append(source['sportsId'])
+        if entry.get('previousSportsIds'):
+            player['previousSportsIds'] = list(entry['previousSportsIds'])
+        matched.append(key)
     if len(set(matched)) != len(matched):
         raise ValueError('A Sports.ru price matched multiple NBA players')
     data.update(priceMode='ON', cap=20000,positionAuthority='Sports.ru')

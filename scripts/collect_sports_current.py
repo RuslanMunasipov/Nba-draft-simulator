@@ -561,6 +561,17 @@ def sports_to_espn(path=PLAYER_MAP):
         return {}
 
 
+def current_cards(pool, path=PLAYER_MAP):
+    """The pool with every card Sports.ru replaced read under its new id (the map's previousSportsIds: Keaton Wagler's
+    2208842 was emptied and 2208816 opened on 23.10.2026). The emptied card is not read again; the new one keeps the
+    catalog's name and club, and the map's ESPN id (sports_to_espn) scores its games."""
+    try:
+        new = {old: str(r['sportsId']) for r in json.loads(path.read_text(encoding='utf-8'))['players'] for old in r.get('previousSportsIds', [])}
+    except (OSError, ValueError, KeyError):
+        new = {}
+    return [{**p, 'sportsId': new.get(p['sportsId'], p['sportsId'])} for p in pool]
+
+
 STAT_KEYS = ('pts', 'reb', 'ast', 'stl', 'blk', 'tov', 'pf', 'fgm', 'fga', 'ftm', 'fta')
 
 
@@ -1050,7 +1061,7 @@ def quality(pool, players):
 
 
 def main():
-    pool = json.loads(PRICES.read_text(encoding='utf-8'))['players'] + json.loads(ADDITIONS.read_text(encoding='utf-8'))['players']
+    pool = current_cards(json.loads(PRICES.read_text(encoding='utf-8'))['players'] + json.loads(ADDITIONS.read_text(encoding='utf-8'))['players'])
     try:
         previous = json.loads(OUT.read_text(encoding='utf-8'))
     except (FileNotFoundError, ValueError):
