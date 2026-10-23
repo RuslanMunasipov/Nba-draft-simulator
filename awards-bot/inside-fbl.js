@@ -1,5 +1,5 @@
-// Inside FBL, Mike Roffon's weekly long read (league chat, 23.10.2026): every Monday at 18:00 (Moscow) a big interview
-// with a guest of the week, a GM, a player or the commissioner, picked by what the week did to them: the league table,
+// Inside FBL, Mike Roffon's weekly long read (league chat, 23.10.2026): every Friday at 18:00 (Moscow) a big interview
+// with a guest of the week (the league week so far, Monday to Thursday's games, and the table and races as they stand), a GM, a player or the commissioner, picked by what the week did to them: the league table,
 // the award races, the antitop. Mike goes to see them where they live and work, watches what they do, and they may give
 // him something. The piece is written by Claude through the owner's subscription (scripts/claude-text.mjs) in his voice
 // (mike-roffon.js), one funny picture per chapter and an opener with Mike interviewing the guest are drawn by OpenAI
@@ -16,8 +16,8 @@ import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 import {esc} from './messages.js';
 
 export const LONGREAD_MODEL=process.env.INSIDE_FBL_MODEL||CLAUDE_MODEL;
-// Monday 18:00 in Moscow (UTC+3 all year): when the piece goes out.
-export const POST_AT={weekday:1,hour:18};
+// Friday 18:00 in Moscow (UTC+3 all year): when the piece goes out.
+export const POST_AT={weekday:5,hour:18};
 const round=x=>Math.round(Number(x)||0);
 const MONTHS=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 const dayRu=d=>`${Number(d.slice(8))} ${MONTHS[Number(d.slice(5,7))-1]}`;
@@ -33,7 +33,8 @@ export function weekData(lines,day,{table,who,rostered,rookies,mef}){
  const blocks=weeklyBlocks(mine),r=races(season,{rostered,rookies,mef});
  const player=row=>row&&{a:row.a,name:who(row.a,row.n),en:imageName(row),club:row.c||null,fo:round(row.p),games:row.games,
   teams:(row.teams||row.h||[]).filter(Number.isInteger)};
- return {week:w,weekPoints,rank,order,table:table.map(round),
+ const lastDay=mine.reduce((m,l)=>l.d>m?l.d:m,w.start);
+ return {week:w,lastDay,weekPoints,rank,order,table:table.map(round),
   heroes:blocks.heroes.map(player),flops:blocks.flops.map(player),gold:blocks.gold.map(player),
   mvp:r.mvp.slice(0,5).map(player),roy:r.roy.slice(0,3).map(player),sixth:r.sixth.slice(0,3).map(x=>({...player(x),teams:[x.team],bench:x.bench})),
   seasonRows:new Map(perPlayer(season).map(x=>[x.a,x])),weekRows:new Map(perPlayer(mine).map(x=>[x.a,x])),mine};
@@ -43,12 +44,12 @@ export function weekData(lines,day,{table,who,rostered,rookies,mef}){
 // who was not on in the last REPEAT_WEEKS weeks. history: [{key}] of the past pieces, newest last.
 export const STORIES=[
  {id:'gm:leader',ru:'лидер таблицы лиги: как живётся на вершине и сколько ещё продержится'},
- {id:'player:weekHero',ru:'герой недели: лучший по ФО игрок лиги за неделю'},
- {id:'gm:weekWorst',ru:'худшая неделя лиги: команда собрала меньше всех ФО за неделю'},
+ {id:'player:weekHero',ru:'герой недели: лучший по ФО игрок лиги за эту неделю (с понедельника)'},
+ {id:'gm:weekWorst',ru:'худшая неделя лиги: команда собрала меньше всех ФО за эту неделю (с понедельника)'},
  {id:'player:mvp',ru:'лидер гонки MVP лиги'},
  {id:'gm:last',ru:'последнее место в таблице: дно, с которого надо выбираться'},
- {id:'player:weekFlop',ru:'антигерой недели: худший по ФО игрок лиги за неделю (антитоп)'},
- {id:'gm:weekBest',ru:'лучшая неделя лиги: команда собрала больше всех ФО за неделю'},
+ {id:'player:weekFlop',ru:'антигерой недели: худший по ФО игрок лиги за эту неделю (антитоп, с понедельника)'},
+ {id:'gm:weekBest',ru:'лучшая неделя лиги: команда собрала больше всех ФО за эту неделю (с понедельника)'},
  {id:'player:roy',ru:'лидер гонки новичков'},
  {id:'commissioner',ru:'комиссар лиги: власть, правила и что он думает о таблице'},
 ];
@@ -89,7 +90,7 @@ const teamOf=t=>Number.isInteger(t)?{team:LEAGUE_TEAMS[t]?.name,gm:LEAGUE_TEAMS[
 const lineOut=p=>p&&{name:p.name,club:p.club,fo:p.fo,games:p.games,fblTeams:(p.teams||[]).map(t=>LEAGUE_TEAMS[t]?.name)};
 export function longreadFacts(data,guest,{who,gifts=[],guests=[]}={}){
  const w=data.week,table=data.order.map(x=>({place:data.rank(x.t),...teamOf(x.t),points:x.points,weekPoints:data.weekPoints[x.t]}));
- const facts={week:{n:w.n,label:`неделя ${w.n}, ${dayRu(w.start)} – ${dayRu(w.end)}`},
+ const facts={week:{n:w.n,label:`неделя ${w.n}, игры ${dayRu(w.start)} – ${dayRu(data.lastDay)}`},
   story:guest.story.ru,table,
   weekHeroes:data.heroes.map(lineOut),weekFlops:data.flops.map(lineOut),
   races:{mvp:data.mvp.map((p,i)=>({place:i+1,...lineOut(p)})),rookies:data.roy.map((p,i)=>({place:i+1,...lineOut(p)})),sixthMan:data.sixth.map((p,i)=>({place:i+1,...lineOut(p)}))},
@@ -111,7 +112,7 @@ export function longreadFacts(data,guest,{who,gifts=[],guests=[]}={}){
 
 // --- His voice, long form (his Inside FBL pieces of Dec 2025, described, never quoted).
 const VOICE=`Ты — Майк Роффон, легендарный репортёр рубрики Inside FBL фэнтези-лиги FBL (Fantasy Brothers League) — лиги друзей. Ветеран, которого не впечатлить ни цифрами, ни позой; всегда в белых перчатках и с винтажным микрофоном.
-Каждый понедельник ты выпускаешь большое интервью — лонгрид. Ты едешь в гости к герою недели: домой, в офис, на корабль, во дворец, в тренировочный зал — туда, где он живёт и работает. Смотришь, чем он занят по жизни, участвуешь в его быте и ритуалах, а между делом задаёшь вопросы. Герой может что-то подарить тебе — смешной, говорящий подарок, связанный с его историей; подарки ты бережно ставишь на свою полку (mikesShelf — что там уже стоит, можно вспомнить).
+Каждую пятницу ты выпускаешь большое интервью — лонгрид. Ты едешь в гости к герою недели: домой, в офис, на корабль, во дворец, в тренировочный зал — туда, где он живёт и работает. Смотришь, чем он занят по жизни, участвуешь в его быте и ритуалах, а между делом задаёшь вопросы. Герой может что-то подарить тебе — смешной, говорящий подарок, связанный с его историей; подарки ты бережно ставишь на свою полку (mikesShelf — что там уже стоит, можно вспомнить).
 Твой стиль: хлёсткий, жёсткий, ироничный. Вопросы короткие и бьют в слабое место (место в таблице, отставание, провальная неделя, потери и промахи его игроков, «а если так и дальше?»). Цепляйся за слово из ответа и разворачивай его против собеседника. Реплика после ответа — одна сухая строка, как штамп в протоколе. Метафоры свои, свежие, из жизни. Ирония — через точное наблюдение, а не через грубость. Это вымысел, и он должен быть по-настоящему смешным: неожиданные повороты, абсурд быта, гипербола.
 Герой отвечает в своей манере: GM — как менеджер, который сделал ставку и защищает её; игрок — уверенно, с баскетбольным жаргоном и вкраплением английских терминов; комиссар — властно и уклончиво. У каждого — одна цитата-афоризм собственного сочинения.
 Никаких дословных фраз из прошлых выпусков Inside FBL: каждый лонгрид пишется заново.
@@ -241,5 +242,5 @@ export function longreadCaption(x,facts,url){
  const kind=facts.guest.kind==='GM'?`GM ${facts.guest.team}`:facts.guest.kind==='игрок'?facts.guest.club||'игрок':'комиссар лиги';
  return `<b>🎙 Inside FBL • Большое интервью</b>\n<b>${esc(facts.guest.name)}</b> (${esc(kind)}) — <i>${esc(String(x.title).replace(/^[«"„“]+|[»"“”]+$/g,''))}</i>\n\n${esc(x.lead)}\n\n<a href="${esc(url)}">Читать лонгрид →</a>\n\n#inside_fbl #лонгрид #неделя_${facts.week.n}`.slice(0,1024);
 }
-// When the piece of a week goes out: Monday 18:00 Moscow after that week's Sunday.
-export const postTime=weekStart=>Date.parse(`${addDays(weekStart,7)}T${String(POST_AT.hour-3).padStart(2,'0')}:00:00Z`);
+// When the piece of a week goes out: that week's Friday at 18:00 Moscow.
+export const postTime=weekStart=>Date.parse(`${addDays(weekStart,POST_AT.weekday-1)}T${String(POST_AT.hour-3).padStart(2,'0')}:00:00Z`);

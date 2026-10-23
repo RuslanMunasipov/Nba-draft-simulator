@@ -20,11 +20,11 @@
 //                                                   OPENAI_API_KEY, drawn, ~$0.02)
 //   node awards-bot/bot.mjs --inside-fbl --state DIR --inside DIR [--inside-week DAY] [--guest G] [--send] [--at]
 //                                                   Mike Roffon's weekly long read (inside-fbl.js, workflow
-//                                                   inside-fbl.yml) of the week of DAY (by default the one that
-//                                                   ended yesterday): written, drawn, its pictures pushed to the
+//                                                   inside-fbl.yml) of the week of DAY (by default the one of
+//                                                   yesterday: on Friday, Monday to Thursday): written, drawn, its pictures pushed to the
 //                                                   branch data/inside-fbl (the --inside DIR, a clone of it), the
 //                                                   Telegraph page published; --send posts the opener and the link
-//                                                   (--at: not before Monday 18:00 Moscow). G: gm:<1-8>,
+//                                                   (--at: not before Friday 18:00 Moscow). G: gm:<1-8>,
 //                                                   player:<ESPN id> or commissioner
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--picture-only] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow

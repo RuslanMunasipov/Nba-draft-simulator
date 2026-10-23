@@ -101,6 +101,8 @@ test('Inside FBL: the Telegraph page: chapters numbered, a picture after each, t
  assert.equal(pageTitle({title:'«Да»'}),'Inside FBL — Да');
 });
 
-test('Inside FBL: a week\'s piece goes out the Monday after, at 18:00 Moscow',()=>{
- assert.equal(new Date(postTime('2026-10-26')).toISOString(),'2026-11-02T15:00:00.000Z');
+test('Inside FBL: a week\'s piece goes out on its Friday at 18:00 Moscow, the games Monday to Thursday',()=>{
+ assert.equal(new Date(postTime('2026-10-26')).toISOString(),'2026-10-30T15:00:00.000Z');
+ assert.equal(new Date(postTime('2026-10-19')).toISOString(),'2026-10-23T15:00:00.000Z');
+ assert.equal(data.lastDay,'2026-10-31');assert.match(facts.week.label,/игры 26 октября – 31 октября/);
 });
