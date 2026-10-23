@@ -1,5 +1,5 @@
 {
- "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. child: a GM drawn as a child (his own generated picture), never restrained or hurt in a scene: Zak only shakes a folded belt at him like a stern father. team: the league team's index (0-7, src/teams.js) of a GM.",
+ "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. team: the league team's index (0-7, src/teams.js) of a GM.",
  "people": [
   {
    "id": "zak-onn",
@@ -82,17 +82,6 @@
    "photo": "people/fy-zhil.jpg",
    "keep": "long dark braids with bronze beads, a short dark beard, black sunglasses (his eyes are never shown)",
    "outfit": "a black nomad's robe with orange-patterned leather straps and bronze buckles, a long orange scarf"
-  },
-  {
-   "id": "headshot-vanshotovich",
-   "name": "Хэдшот Ваншотович",
-   "en": "Headshot Vanshotovich",
-   "role": "gm",
-   "team": 7,
-   "photo": "people/headshot-vanshotovich.jpg",
-   "child": true,
-   "keep": "always the boy of his photo: dark oval sunglasses, short brown hair, a cool unimpressed look",
-   "outfit": "an oversized black suit, a light-blue shirt and a wide patterned burgundy tie, a bouquet of white chrysanthemums"
   },
   {
    "id": "coach-i",
