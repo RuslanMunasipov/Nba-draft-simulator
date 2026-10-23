@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {references,zakPhoto,gmPhoto,gmOf,person,looks,teamLogo,generate,cost,PEOPLE,readImage,ASSETS} from './image-pipeline.mjs';
+import {claudeJSON} from './claude-text.mjs';
 
 // The league's commissioner as the n-th reference of a picture: his photo, its legend, his block, his name in a scene;
 // null without his photo.
@@ -118,8 +119,73 @@ export function sceneOf({kind,rules=[],standing=false,fixed=false,watched=false}
 }
 // The picture of a protocol: kind (approved, check, violation), the team's index (0 to 7), the protocol's number, a seed
 // (its first deal: a protocol always gets the same scene) and the case (sceneOf).
+// --- The scene written by Claude (league chat, 23.10.2026: always a new story, never the same one twice). Claude gets the
+// case in words and writes one scene with placeholders for the people the code draws from their photos; the code checks it
+// (plain English, Zak and the GM in it, the new player in an approval, only allowed placeholders and numbers, nothing
+// violent or out of bounds) and fills the placeholders. The scenes above are the fallback when Claude cannot write.
+const CASE={approved:'a clean roster: the deal is approved',watched:'a clean roster of a team on Zak\'s watchlist: approved, but he keeps watching',
+ closed:'case closed: these deals repaired an earlier breach',repeat:'a repeat offender: the roster still breaks a rule it broke before',
+ violation:'a fresh breach of the league rules','check-time':'in doubt: the deal was made right at the 08:00 or 22:00 edge of the transfer hours',
+ 'check-white':'in doubt: the white-list rule','check':'in doubt: something about the deal needs checking',
+ rookie:'a fresh breach: the roster has no rookie',white:'a fresh breach: no player of the league\'s white list on the roster',
+ club:'a fresh breach: three players of one NBA club (the limit is 2)',transfers:'a fresh breach: a fourth transfer this week (the limit is 3)',
+ time:'a fresh breach: a transfer made outside the hours 08:00-22:00 Moscow time',duplicate:'a fresh breach: a player another league team already holds'};
+// The facts of a picture's scene, all Claude sees. has: what the picture can show (the GM's face, the logo, the new player,
+// the commissioner).
+export function sceneFacts({kind,team,no,root,player=null,...story}){
+ const key=sceneOf({kind,...story}),signing=key==='approved'&&Boolean(player?.name);
+ return {verdict:kind,case:CASE[key]||CASE[kind],caseLabel:`FBL CASE ${no}`,newPlayer:signing?player.name:null,
+  gm:gmPhoto(team,root)?'shown with his face':'shown only from behind',logo:Boolean(teamLogo(team,root)),
+  commissioner:Boolean(PEOPLE.find(x=>x.role==='commissioner'&&readImage(path.join(root||ASSETS,x.photo))))};
+}
+const SCENE_SYSTEM=`You write the scene of one picture for Zak Onn, the lawyer of FBL, a fantasy basketball league of friends. Each transfer protocol of the league gets a photorealistic picture: a still from a 90s American action film where the only plot is law and order, starring Zak Onn and the general manager (GM) of the team. The picture is drawn by an image model from your scene.
+Write a brand-new story every time: a new place, a new situation, new props, a new gag. Never reuse an idea from the list of recent scenes. Think of anything: a car chase, a stakeout, a diner at 3 a.m., a car wash, a casino, a train, a rooftop, a bowling alley, a talk show, a hospital, a ferry, a bank vault, a fashion show, a wedding, a TV studio, a construction site, a museum — invent your own.
+The story fits the case: an approval celebrates but Zak stays suspicious; a doubt is an investigation; a fresh breach is a bust; a repeat offence is harsher; a closed case is a release; a watched team is a stakeout. When there is a new player, the scene presents him: Zak and the GM introduce the new signing.
+Placeholders (the code replaces them with the real people and things from photos, do not describe their faces or clothes): {GM} the general manager (always in the scene), {PLAYER} the new player (always in the scene when newPlayer is given, never otherwise), {LOGO} the team's logo on some object (only if logo is true), {COMMISSIONER} the league's commissioner (optional, only if commissioner is true), {CASE} the case label on a file or a tag (optional). Write "Zak Onn" by name.
+Rules:
+- 2 to 4 sentences of plain English, at most 600 characters, starting with the setting.
+- Zak Onn is always the Lawyer in a red "God Bless America" cap (the code says so; do not mention the cap). He may wear what the scene needs.
+- At most two short signs or labels in English capitals in double quotes, at most 4 words each. No other text.
+- Comedy of the 90s action film: tough, ironic, never cruel. Handcuffs, files, stamps, flashlights, binoculars, magnifying glasses are fine. No guns or any weapons, no shooting, no blood, no violence or hitting, no death, no children or schools, no drugs, no sex.
+- Numbers in the quoted signs: only those of the facts (the case label, the limits, the hours). Basketball is the only sport.
+Answer only JSON: {"scene": "..."}`;
+export const SCENE_SCHEMA={type:'object',additionalProperties:false,required:['scene'],properties:{scene:{type:'string'}}};
+export const sceneMessages=(facts,recent=[])=>({system:SCENE_SYSTEM,prompt:`${recent.length?`Recent scenes, do not repeat their ideas:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}\n\n`:''}The case:\n${JSON.stringify(facts,null,1)}`});
+const OUT_OF_BOUNDS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|shoot\w*|shot|bullets?|ammo|blood\w*|kill\w*|dead|death|dies?|corpses?|murder\w*|children|child|kids?|school\w*|drugs?|cocaine|sex\w*|naked|nude|punch\w*|torture\w*|explod\w*|bombs?)\b/i;
+// What is wrong with Claude's scene for these facts ([]: it may go into the picture).
+export function sceneProblems(text,facts){
+ const out=[];
+ if(typeof text!=='string'||!text.trim())return ['no scene'];
+ const t=text.trim();
+ if(t.length<40||t.length>700)out.push(`length ${t.length}`);
+ if(!/^[\x20-\x7e]+$/.test(t))out.push('not plain English');
+ if(!/Zak Onn/.test(t))out.push('no Zak Onn');
+ if(!t.includes('{GM}'))out.push('no {GM}');
+ if(facts.newPlayer&&!t.includes('{PLAYER}'))out.push('no {PLAYER}');
+ const allowed=new Set(['{GM}','{CASE}',...facts.newPlayer?['{PLAYER}']:[],...facts.logo?['{LOGO}']:[],...facts.commissioner?['{COMMISSIONER}']:[]]);
+ const stray=(t.match(/\{[^}]*\}/g)||[]).filter(x=>!allowed.has(x));if(stray.length)out.push(`placeholders ${[...new Set(stray)].join(', ')}`);
+ const quotes=t.match(/"[^"]*"/g)||[];if(quotes.length>2||quotes.some(q=>q.length>40))out.push('too much text in quotes');
+ // The words in quotes are drawn: their numbers only the facts' own.
+ const numbers=new Set(JSON.stringify(facts).match(/\d+/g)||[]),strayN=(quotes.join(' ').match(/\d+/g)||[]).filter(n=>!numbers.has(n));
+ if(strayN.length)out.push(`numbers in quotes ${strayN.join(', ')}`);
+ const bad=t.match(OUT_OF_BOUNDS);if(bad)out.push(`out of bounds: ${bad[0]}`);
+ return out;
+}
+// Claude's scene (two tries), or null: then the fixed scenes. A ClaudeError (no CLI, the token, the limit, no answer in
+// time) is the caller's.
+export async function writeScene(facts,{recent=[],write=claudeJSON,timeoutMs=45e3,log=console.warn}={}){
+ for(let i=0;i<2;i++){
+  const {data}=await write({...sceneMessages(facts,recent),schema:SCENE_SCHEMA,timeoutMs});
+  const problems=sceneProblems(data?.scene,facts);
+  if(!problems.length)return data.scene.trim();
+  log(`Zak Onn's scene refused (${problems.join('; ')})${i?': a fixed scene goes instead':', written again'}.`);
+ }
+ return null;
+}
+
 // player: the newly signed player of an approved deal, {name (in Latin letters), image (his ESPN headshot, or null)}.
-export function zakPicture({kind,team,no,seed,root,player=null,...story}){
+// written: Claude's scene (writeScene), with its placeholders; without it, a fixed scene.
+export function zakPicture({kind,team,no,seed,root,player=null,written=null,...story}){
  const gm=gmOf(team),gmName=gm?.en||LEAGUE_TEAMS[team]?.gm;
  // An approved deal with its new player is presented, one of the signing scenes; without him, the plain approval.
  const key=sceneOf({kind,...story}),signing=key==='approved'&&Boolean(player?.name);
@@ -131,7 +197,9 @@ export function zakPicture({kind,team,no,seed,root,player=null,...story}){
  // Who the GM is and what never changes about them, in a block of its own (the scene names them only).
  const who=refs.has.gm?`GENERAL MANAGER: the exact person from ${refs.has.gm}, face preserved and recognizable${gm?`: ${looks(gm)}`:''}.`:'';
  const L=refs.has.logo?`the team logo from ${refs.has.logo}, reproduced exactly`:null;
- const list=signing?SIGNING:SCENES[key]||SCENES[kind]||SCENES.check,scene=list[hash(`${seed}:${signing?'signing':key}`)%list.length];
+ const list=signing?SIGNING:SCENES[key]||SCENES[kind]||SCENES.check,fixed=list[hash(`${seed}:${signing?'signing':key}`)%list.length];
+ const scene=written?({G,L,C,P,K})=>`SCENE: ${written.replaceAll('{GM}',G).replaceAll('{PLAYER}',P||'the new player').replaceAll('{LOGO}',L||'the team logo')
+  .replaceAll('{CASE}',`"${C}"`).replaceAll('{COMMISSIONER}',K||'the league commissioner')}`:fixed;
  const P=signing?(refs.has.player?`${player.name} (the newly signed real NBA player, ${refs.has.player})`:`the newly signed real NBA player ${player.name}`):null;
  const newcomer=signing?`NEW PLAYER: the real NBA player ${player.name}${refs.has.player?`, his face exactly as in ${refs.has.player}`:''}, exactly as he really looks, in smart casual clothes unless the scene gives him a jersey.`:null;
  // The commissioner joins only the scenes written for him, and only with his photo.

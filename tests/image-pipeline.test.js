@@ -192,3 +192,29 @@ test('the ESPN headshot: the small one first, the full one when ESPN has no smal
  assert.equal(await espnHeadshot('42',{fetchImpl:async()=>answer(true,'text/html')}),null);
  assert.equal(await espnHeadshot('42',{fetchImpl:async()=>{throw Error('offline');}}),null);
 });
+
+test('Claude writes each scene anew: the case in words, placeholders the code fills, checked before it is drawn',async()=>{
+ const {sceneFacts,sceneProblems,writeScene,sceneMessages,SCENE_SCHEMA}=await import('../scripts/zak-pictures.mjs');
+ const f=sceneFacts({kind:'approved',team:2,no:7,player:{name:'Anthony Edwards'}});
+ assert.deepEqual({...f},{verdict:'approved',case:'a clean roster: the deal is approved',caseLabel:'FBL CASE 7',newPlayer:'Anthony Edwards',
+  gm:'shown with his face',logo:true,commissioner:true});
+ assert.match(sceneFacts({kind:'violation',team:7,no:8,rules:['time']}).case,/outside the hours/);assert.equal(sceneFacts({kind:'violation',team:7,no:8,rules:['time']}).gm,'shown only from behind');
+ const good='A diner at 3 a.m., rain on the window. Zak Onn slides a menu titled "TRANSFER CLEARED" to {PLAYER} while {GM} orders pancakes and {COMMISSIONER} reads the contract stamped {CASE}.';
+ assert.deepEqual(sceneProblems(good,f),[]);
+ assert.match(sceneProblems(good.replace('{PLAYER}','the player'),f).join(),/no \{PLAYER\}/);
+ assert.match(sceneProblems(good.replace('{GM}','the boss'),f).join(),/no \{GM\}/);
+ assert.match(sceneProblems(good+' {DOG} barks.',f).join(),/placeholders \{DOG\}/);
+ assert.match(sceneProblems(good.replace('TRANSFER CLEARED','DEAL 99'),f).join(),/numbers in quotes 99/);
+ assert.match(sceneProblems(good+' Zak Onn draws a gun.',f).join(),/out of bounds: gun/);
+ assert.match(sceneProblems(good.replace('Zak Onn','The lawyer'),f).join(),/no Zak Onn/);
+ assert.match(sceneProblems('Zak Onn {GM} {PLAYER} ты',f).join(),/not plain English/);
+ const p=zakPicture({kind:'approved',team:2,no:7,seed:'x',player:{name:'Anthony Edwards',image:null},written:good});
+ const scene=p.prompt.split('\n\n').find(x=>x.startsWith('SCENE'));
+ assert.match(scene,/to the newly signed real NBA player Anthony Edwards while Jack Pott \(the general manager, reference image 2\) orders pancakes and Adam Silverov \(the league commissioner, reference image 4\) reads the contract stamped "FBL CASE 7"\./);
+ assert.deepEqual(p.images.map(i=>i.name).slice(-1),['adam-silverov.jpg']);
+ const calls=[],answers=[{scene:'Zak Onn alone.'},{scene:good}];
+ assert.equal(await writeScene(f,{recent:['an old idea'],write:async a=>{calls.push(a);return {data:answers.shift()};},log:()=>{}}),good);
+ assert.equal(calls.length,2);assert.equal(calls[0].schema,SCENE_SCHEMA);assert.match(calls[0].prompt,/Recent scenes, do not repeat their ideas:\n- an old idea/);
+ assert.match(sceneMessages(f).system,/brand-new story every time/);
+ assert.equal(await writeScene(f,{write:async()=>({data:{scene:'nope'}}),log:()=>{}}),null);
+});
