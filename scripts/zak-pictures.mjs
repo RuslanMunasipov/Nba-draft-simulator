@@ -227,6 +227,44 @@ export function zakPicture({kind,team,no,seed,root,player=null,written=null,...s
  return {images:all.images,prompt:[all.legend,IDENTITY(refs.has.zak),who,newcomer,k?.block,scene({G,L,C,P,K:k?.name||null}),STYLE].filter(Boolean).join('\n\n')};
 }
 
+// The scene of a statement's picture written by Claude from the statement itself, when the statement has no scene of its
+// own (league chat, 23.10.2026: a statement always goes with its picture). Zak Onn and, when it fits, the commissioner.
+const STATEMENT_SYSTEM=`You write the scene of one picture for a statement of Zak Onn, the lawyer of FBL, a fantasy basketball league of friends. The statement is posted in the league chat with a photorealistic picture: a still from a 90s American action film where the only plot is law and order, starring Zak Onn. The picture is drawn by an image model from your scene.
+Read the statement and show its point in one strong, inventive image: a place, an action, props, a gag that fits it. Never a plain portrait, never Zak just smiling at the camera. Something new every time.
+Placeholders (the code replaces them with the real person from his photo, do not describe his face or clothes): {COMMISSIONER} the league's commissioner, optional, when the statement concerns him or the league's decisions. Write "Zak Onn" by name; no other real people, other figures are anonymous or seen from behind.
+Rules:
+- 2 to 4 sentences of plain English, at most 600 characters, starting with the setting.
+- Zak Onn is always the Lawyer in a red "God Bless America" cap (the code says so; do not mention the cap). He may wear what the scene needs.
+- At most two short signs or labels in English capitals in double quotes, at most 4 words each. No other text. Numbers in them only from the statement.
+- Tough, ironic 90s action-film tone, never cruel. No guns or any weapons, no shooting, no blood, no violence, no death, no children or schools, no drugs, no sex. Basketball is the only sport.
+Answer only JSON: {"scene": "..."}`;
+// What is wrong with a statement's scene ([]: it may be drawn).
+export function statementSceneProblems(scene,statement){
+ const out=[];
+ if(typeof scene!=='string'||!scene.trim())return ['no scene'];
+ const t=scene.trim(),quotes=t.match(/"[^"]*"/g)||[];
+ if(t.length<40||t.length>700)out.push(`length ${t.length}`);
+ if(!/^[\x20-\x7e]+$/.test(t))out.push('not plain English');
+ if(!/Zak Onn/.test(t))out.push('no Zak Onn');
+ const stray=(t.match(/\{[^}]*\}/g)||[]).filter(x=>x!=='{COMMISSIONER}');if(stray.length)out.push(`placeholders ${[...new Set(stray)].join(', ')}`);
+ if(quotes.length>2||quotes.some(q=>q.length>40))out.push('too much text in quotes');
+ const numbers=new Set(String(statement).match(/\d+/g)||[]),strayN=(quotes.join(' ').match(/\d+/g)||[]).filter(n=>!numbers.has(n));
+ if(strayN.length)out.push(`numbers in quotes ${strayN.join(', ')}`);
+ const bad=t.match(OUT_OF_BOUNDS);if(bad)out.push(`out of bounds: ${bad[0]}`);
+ return out;
+}
+// Claude's scene of a statement (two tries) in zakStatement's form ({commissioner}), or null.
+export async function writeStatementScene(statement,{write=claudeJSON,timeoutMs=90e3,log=console.warn}={}){
+ const text=String(statement).replace(/<[^>]+>/g,'').replace(/\{@[^}]*\}/g,'').trim();
+ for(let i=0;i<2;i++){
+  const {data}=await write({system:STATEMENT_SYSTEM,prompt:`The statement:\n${text}`,schema:SCENE_SCHEMA,timeoutMs});
+  const problems=statementSceneProblems(data?.scene,text);
+  if(!problems.length)return data.scene.trim().replaceAll('{COMMISSIONER}','{commissioner}');
+  log(`The statement's scene refused (${problems.join('; ')})${i?'':', written again'}.`);
+ }
+ return null;
+}
+
 // The picture of a statement of his (data/announcements/<name>.picture.txt holds its scene): Zak Onn alone, his photo of
 // the given mood the only reference.
 // {commissioner} in the scene brings in the league's commissioner, Adam Silverov, with his photo (without it, the words
