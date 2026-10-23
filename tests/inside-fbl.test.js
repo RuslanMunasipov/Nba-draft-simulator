@@ -82,7 +82,7 @@ test('Inside FBL: the pictures: Mike and the guest in the scene, faces from the 
  assert.doesNotMatch(p.prompt,/Texas|Citrus|Лемариус|gunslinger|School|Shooters|REFERENCES: REFERENCES/);
  const o=longreadPicture(good.opener,gm,{mikePhoto:img,guestPhoto:img,opener:true});assert.match(o.prompt,/INSIDE FBL/);assert.match(o.prompt,/microphone up to the guest/);
  const pl=longreadPicture(SAFE_SCENE,{kind:'player',row:{a:'3',en:'T. Young',teams:[7]}},{mikePhoto:img,guestPhoto:null});
- assert.equal(pl.images.length,1);assert.match(pl.prompt,/the real NBA player T\. Young/);assert.match(pl.prompt,/navy blue with red and white trim, no logos/);assert.doesNotMatch(pl.prompt,/Shooters/);
+ assert.equal(pl.images.length,1);assert.match(pl.prompt,/the real NBA player T\. Young/);assert.match(pl.prompt,/black with gold and diamond-white trim, no logos/);assert.doesNotMatch(pl.prompt,/Shooters|Shugars/);
 });
 
 test('Inside FBL: the Telegraph page: chapters numbered, a picture after each, the fiction marked; the post links it',async()=>{

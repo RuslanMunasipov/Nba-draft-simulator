@@ -169,7 +169,7 @@ export function markOf(kind,line,f){
 const photo=(look,r,tone,mark)=>{const src=look.photo(r.a);
  return `<div class="ph"><div class="photo" style="border-color:${tone}">${src?`<img src="${src}">`:`<span class="ini">${initials(r.n)}</span>`}</div>${mark?`<span class="mark">${look.emoji(mark.emoji)}${esc(mark.text)}</span>`:''}</div>`;};
 // Short team names for the two-column lists, where the full ones do not fit.
-const SHORT=['Balkan Murderers','Saint P','Black Jacks','Алачанян','Volga Pirates','Texas Citrus','Karagali','School Sugars'];
+const SHORT=['Balkan Murderers','Saint P','Black Jacks','Алачанян','Volga Pirates','Texas Citrus','Karagali','Shugars'];
 const teamPill=(look,t,short)=>{const x=LEAGUE_TEAMS[t];if(!x)return '';const logo=look.logo(t);
  return `<span class="team">${logo?`<img src="${logo}">`:look.emoji(x.symbol)}${esc(short?SHORT[t]||x.name:x.name)}</span>`;};
 const teams=(look,list,free,short)=>list?.length?list.map(t=>teamPill(look,t,short)).join(''):free?`<span class="team">${look.emoji('🆓')}${short?'свободен':'свободный агент'}</span>`:'';

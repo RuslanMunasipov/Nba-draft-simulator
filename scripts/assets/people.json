@@ -84,6 +84,16 @@
    "outfit": "a black nomad's robe with orange-patterned leather straps and bronze buckles, a long orange scarf"
   },
   {
+   "id": "strap-onn",
+   "name": "Strap Onn",
+   "en": "Strap Onn",
+   "role": "gm",
+   "team": 7,
+   "photo": "people/strap-onn.jpg",
+   "keep": "slicked-back dark hair greying at the temples, a deep tan, a weathered face with a confident smirk",
+   "outfit": "a dark suit over an open white silk shirt, a gold chain with a medallion, a gold watch, gold rings and a cigar"
+  },
+  {
    "id": "coach-i",
    "name": "Коуч I",
    "aliases": [
