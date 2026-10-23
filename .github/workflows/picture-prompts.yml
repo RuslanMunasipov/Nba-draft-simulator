@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
+      # No browser: the awards bot's posts print as text, the pictures' prompts are all this needs.
       - name: Install Claude Code
         run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
       - name: Zak Onn's pictures
