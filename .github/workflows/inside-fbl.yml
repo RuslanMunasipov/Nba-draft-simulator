@@ -4,7 +4,7 @@ name: Inside FBL
 # subscription, a picture per chapter and an opener drawn by OpenAI (about $0.15), published on Telegraph and posted
 # into the league chat by Mike's bot: the opener and the link. The owner approves every issue first (23.10.2026):
 #   - Friday morning (09:07-11:07 Moscow, once Thursday's games are posted) the draft: its Telegraph page, sent to the
-#     owner by Mike's bot when INSIDE_FBL_REVIEW_CHAT_ID is set (his chat with the bot), its link in the run's summary;
+#     owner by Mike's bot (INSIDE_FBL_REVIEW_CHAT_ID, else his personal TELEGRAM_CHAT_ID), its link in the run's summary;
 #   - by hand: approve (it goes out at 18:00), or redo (written and drawn anew, with the owner's notes if any);
 #   - from 14:07 Moscow the post runs wait for 18:00, read the state again and post an approved issue; one not approved
 #     by then does not go out. GitHub's schedule is best-effort, so they start hours early (a post run by hand too).
@@ -88,8 +88,9 @@ jobs:
           # The league's Telegraph account (createAccount once), so the pages can be edited; without it each page gets
           # an account of its own.
           TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
-          # The owner's chat with Mike's bot: the drafts go there for review.
-          INSIDE_FBL_REVIEW_CHAT_ID: ${{ secrets.INSIDE_FBL_REVIEW_CHAT_ID }}
+          # The owner's chat with Mike's bot: the drafts go there for review. Without a chat of its own, the owner's personal
+          # chat (TELEGRAM_CHAT_ID, where Zak Onn's samples go); Mike's bot reaches it once the owner has started it.
+          INSIDE_FBL_REVIEW_CHAT_ID: ${{ secrets.INSIDE_FBL_REVIEW_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}
           GH_TOKEN: ${{ github.token }}
         run: >-
           node awards-bot/bot.mjs --inside-fbl --state "$RUNNER_TEMP/awards" --inside "$RUNNER_TEMP/inside" --action "$ACTION"
