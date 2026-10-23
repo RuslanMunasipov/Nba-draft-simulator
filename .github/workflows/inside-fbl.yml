@@ -1,39 +1,42 @@
 name: Inside FBL
-# Mike Roffon's weekly long read (awards-bot/inside-fbl.js): every Friday at 18:00 Moscow a big interview with the guest
-# of the week (the league week so far, Monday to Thursday's games), written by Claude through the owner's subscription,
-# a picture per chapter and an opener drawn by OpenAI (about $0.12), published on Telegraph, and posted into the league
-# chat by Mike's bot: the opener and the link.
-# The runs start hours early (GitHub's schedule is best-effort, often late): the first one writes, draws and publishes
-# the page, then waits for 18:00 and posts; the later ones see the week sent and stop. State and pictures live on the
-# branch data/inside-fbl (the pictures are the page's, by their raw URLs).
-# By hand: a week (any of its US days; empty: the one of yesterday), a guest (gm:<1-8>, player:<ESPN id> or
-# commissioner; empty: the week's story picks one) and "send" (unticked: only the page, its link in the run's summary,
-# held for review: the scheduled runs leave it, a run by hand with "send" posts it; "again" writes it anew).
+# Mike Roffon's weekly long read (awards-bot/inside-fbl.js): every Friday at 18:00 Moscow, and only then, a big interview
+# with the guest of the week (the league week so far, Monday to Thursday's games), written by Claude through the owner's
+# subscription, a picture per chapter and an opener drawn by OpenAI (about $0.15), published on Telegraph and posted
+# into the league chat by Mike's bot: the opener and the link. The owner approves every issue first (23.10.2026):
+#   - Friday morning (09:07-11:07 Moscow, once Thursday's games are posted) the draft: its Telegraph page, sent to the
+#     owner by Mike's bot when INSIDE_FBL_REVIEW_CHAT_ID is set (his chat with the bot), its link in the run's summary;
+#   - by hand: approve (it goes out at 18:00), or redo (written and drawn anew, with the owner's notes if any);
+#   - from 14:07 Moscow the post runs wait for 18:00, read the state again and post an approved issue; one not approved
+#     by then does not go out. GitHub's schedule is best-effort, so they start hours early (a post run by hand too).
+# State and pictures live on the branch data/inside-fbl (the pictures are the pages', by their raw URLs).
 on:
   schedule:
+    - cron: '7 6,7,8 * * 5'
     - cron: '7 11,12,13,14 * * 5'
   workflow_dispatch:
     inputs:
+      action:
+        description: 'draft: the week''s page for review; approve: it goes out on Friday at 18:00; redo: written anew; post: wait for 18:00 and post if approved'
+        type: choice
+        options: [draft, approve, redo, post]
+        default: draft
+      notes:
+        description: 'For redo: what to change (the writer gets it as the editor''s wishes)'
+        required: false
+        default: ''
+      guest:
+        description: 'For draft/redo: gm:<1-8>, player:<ESPN id> or commissioner (empty: by the week''s story; redo keeps the guest)'
+        required: false
+        default: ''
       week:
         description: 'A US day of the week, YYYY-MM-DD (empty: the week of yesterday)'
         required: false
         default: ''
-      guest:
-        description: 'Guest: gm:<1-8>, player:<ESPN id> or commissioner (empty: by the week''s story)'
-        required: false
-        default: ''
-      send:
-        description: 'Post it into the league chat now (unticked: only the Telegraph page, held for review)'
-        type: boolean
-        default: false
-      again:
-        description: 'Write and draw the week anew (a page not sent yet is replaced)'
-        type: boolean
-        default: false
 permissions:
   contents: write
 concurrency:
-  group: inside-fbl
+  # The post runs wait hours for 18:00 in a group of their own, so an approval or a redo is never queued behind them.
+  group: ${{ (github.event.schedule == '7 11,12,13,14 * * 5' || inputs.action == 'post') && 'inside-fbl-post' || 'inside-fbl' }}
   cancel-in-progress: false
 jobs:
   longread:
@@ -61,13 +64,13 @@ jobs:
             [ "$code" = 2 ] || { echo "Cannot clone data/inside-fbl"; exit 1; }
             mkdir -p "$RUNNER_TEMP/inside"
           fi
-      - name: Write, draw, publish and post
+      - name: Draft, approve or post
         env:
+          ACTION: ${{ github.event.schedule == '7 11,12,13,14 * * 5' && 'post' || github.event.schedule == '7 6,7,8 * * 5' && 'draft' || inputs.action }}
+          AFTER: ${{ github.event.schedule == '7 6,7,8 * * 5' && '--after-thursday' || '' }}
           WEEK: ${{ inputs.week }}
           GUEST: ${{ inputs.guest }}
-          SEND: ${{ (github.event_name == 'schedule' || inputs.send) && '--send' || '' }}
-          AT: ${{ github.event_name == 'schedule' && '--at' || '' }}
-          AGAIN: ${{ inputs.again && '--again' || '' }}
+          NOTES: ${{ inputs.notes }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -75,7 +78,9 @@ jobs:
           # The league's Telegraph account (createAccount once), so the pages can be edited; without it each page gets
           # an account of its own.
           TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
+          # The owner's chat with Mike's bot: the drafts go there for review.
+          INSIDE_FBL_REVIEW_CHAT_ID: ${{ secrets.INSIDE_FBL_REVIEW_CHAT_ID }}
           GH_TOKEN: ${{ github.token }}
         run: >-
-          node awards-bot/bot.mjs --inside-fbl --state "$RUNNER_TEMP/awards" --inside "$RUNNER_TEMP/inside"
-          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} $SEND $AT $AGAIN
+          node awards-bot/bot.mjs --inside-fbl --state "$RUNNER_TEMP/awards" --inside "$RUNNER_TEMP/inside" --action "$ACTION"
+          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} ${NOTES:+--notes "$NOTES"} $AFTER

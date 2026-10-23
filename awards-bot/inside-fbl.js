@@ -70,8 +70,11 @@ export function storyGuest(id,data){
  }
  return null;
 }
-export function pickGuest(data,history=[],{force=null}={}){
+export function pickGuest(data,history=[],{force=null,keep=null}={}){
  if(force){const g=forcedGuest(force,data);if(g)return g;}
+ // keep: the guest of the draft being redone (its key), with the story that brought them.
+ if(keep){for(const st of STORIES){const g=storyGuest(st.id,data);if(g?.key===keep)return {...g,story:st};}
+  const [kind,id]=keep.split(':'),g=forcedGuest(kind==='gm'?`gm:${Number(id)+1}`:keep,data);if(g)return g;}
  const recent=new Set(history.slice(-REPEAT_WEEKS).map(h=>h.key)),start=(data.week.n-1)%STORIES.length;
  for(let i=0;i<STORIES.length;i++){const s=STORIES[(start+i)%STORIES.length],g=storyGuest(s.id,data);if(g&&!recent.has(g.key))return {...g,story:s};}
  const s=STORIES[start];return {...storyGuest(s.id,data)||{key:'commissioner',kind:'commissioner'},story:s};
@@ -136,8 +139,9 @@ export const LONGREAD_SCHEMA={type:'object',additionalProperties:false,required:
   heading:str,story:{type:'array',minItems:1,maxItems:4,items:str},qa:{type:'array',minItems:2,maxItems:6,items:{type:'object',additionalProperties:false,required:['q','a'],properties:{q:str,a:str}}},
   remark:str,scene:str}}},
  epilogue:{type:'array',minItems:1,maxItems:4,items:str},quote:str,gift:str,opener:str}};
-export function longreadMessages(facts){
- return {system:`${VOICE}\n\n${RULES}`,prompt:`Большое интервью недели. Данные:\n${JSON.stringify(facts,null,1)}`};
+// notes: the owner's wishes for this issue (a redo), given to the writer as the editor's.
+export function longreadMessages(facts,notes=''){
+ return {system:`${VOICE}\n\n${RULES}`,prompt:`Большое интервью недели. Данные:\n${JSON.stringify(facts,null,1)}${notes?`\n\nПожелания редакции к этому выпуску (учти их, правила выше важнее): ${notes}`:''}`};
 }
 
 // --- The checks: the shape, the numbers, the old lines and the pictures' scenes.
@@ -164,8 +168,8 @@ export function longreadProblems(x,facts){
 }
 // Written, then sent back with its problems to be fixed (up to `fixes` times). {longread, problems, tries}: problems []
 // when it may go out. claude: scripts/claude-text.mjs claudeJSON (a stand-in in the tests).
-export async function writeLongread(facts,{claude=claudeJSON,model=LONGREAD_MODEL,timeoutMs=600e3,fixes=2}={}){
- const base=longreadMessages(facts);
+export async function writeLongread(facts,{claude=claudeJSON,model=LONGREAD_MODEL,timeoutMs=600e3,fixes=2,notes=''}={}){
+ const base=longreadMessages(facts,notes);
  let {data}=await claude({...base,schema:LONGREAD_SCHEMA,model,timeoutMs}),problems=longreadProblems(data,facts),tries=1;
  while(problems.length&&tries<=fixes){
   console.warn(`Inside FBL: fixing (${problems.join('; ')}).`);
