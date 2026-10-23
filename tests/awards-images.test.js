@@ -54,9 +54,11 @@ test('awards pictures: the first of the block in the centre, each player in his 
  assert.equal(pictureTeam(rows[0]),0,'a shared player: his first holder');
  const faces=new Map([['1',{bytes:Buffer.from('f1'),name:'1.png',type:'image/png'}],['3',{bytes:Buffer.from('f3'),name:'3.png',type:'image/png'}]]);
  const p=blockPicture('hero',rows,{faces,root});
- assert.deepEqual(p.images.map(i=>i.name),['1.png','3.png','1.png','4.png'],'the faces given, then each team\'s logo once');
- assert.match(p.prompt,/reference image 1 is the face of P1\. Name; reference image 2 is the face of P3\. Name; reference image 3 is the logo of the fantasy team of P1\. Name and P3\. Name; reference image 4 is the logo of the fantasy team of P2\. Name\./);
+ assert.deepEqual(p.images.map(i=>i.name),['1.png','3.png','1.png','4.png','1.jpg'],'the faces given, each team\'s logo once, then the centre player\'s GM');
+ assert.match(p.prompt,/reference image 1 is the face of P1\. Name; reference image 2 is the face of P3\. Name; reference image 3 is the logo of the fantasy team of P1\. Name and P3\. Name; reference image 4 is the logo of the fantasy team of P2\. Name; reference image 5 is the general manager who picked P1\. Name\./);
  const part=k=>p.prompt.split('\n\n').find(x=>x.startsWith(k));
+ assert.match(part('BACKGROUND'),/the exact person from reference image 5.*celebrates wildly in the background/);assert.doesNotMatch(p.prompt,/Franky|Murder/,'never named');
+ assert.match(blockPicture('flop',rows,{root}).prompt,/hands on his head, in comic despair/);
  assert.match(part('CENTRE'),/P1\. Name of the DEN, his face exactly as in reference image 1/);
  assert.ok(part('CENTRE').includes(KITS[0]));assert.match(part('CENTRE'),/logo from reference image 3 on the chest/);
  assert.ok(part('LEFT').includes(KITS[3]));assert.match(part('LEFT'),/logo from reference image 4/);assert.doesNotMatch(part('LEFT'),/his face exactly/);

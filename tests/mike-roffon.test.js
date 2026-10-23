@@ -74,7 +74,7 @@ test('Mike Roffon: at the arena, under the stands and at the press conference he
 
 test('Mike Roffon: the hero wears his FBL team: its colors and its logo, the logo as the third reference',()=>{
  for(let d=1;d<=12;d++){
-  const day=`2026-11-${String(d).padStart(2,'0')}`,p=interviewPicture(facts,day,{team:5});
+  const day=`2026-11-${String(d).padStart(2,'0')}`,p=interviewPicture({...facts,gmQuestion:null},day,{team:5});
   assert.equal(p.images.length,3,'Mike, the league logo, the team logo');
   assert.match(p.prompt,/reference image 3 is the logo of Texas 76 Citrus, the player's fantasy team/);
   assert.match(p.prompt,/dressed not in his NBA club's uniform but in the kit of his fantasy team Texas 76 Citrus: its colors and its logo exactly as in reference image 3, no NBA club logos/);
@@ -101,7 +101,7 @@ test('Mike Roffon: written by Claude (the subscription module, JSON by the schem
  const seen=[],reply=x=>async opts=>{seen.push(opts);return {data:x,text:JSON.stringify(x),usage:{output_tokens:500},costUsd:0.02};};
  const {interview}=await writeInterview(facts,{claude:reply(good)});assert.deepEqual(interview,good);
  assert.match(seen[0].system,/Майк Роффон/);assert.match(seen[0].prompt,/"fo": 39/);assert.equal(seen[0].schema,INTERVIEW_SCHEMA);
- assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','afterword']);
+ assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','gm','afterword']);
  let calls=0;const bad=async o=>{calls++;return reply({...good,prologue:'Средние 28 очков.'})(o);};
  const out=await interviewFor(facts,{claude:bad});assert.equal(out.interview,null);assert.equal(calls,2);
  let tries=0;const copyThenGood=async o=>(tries++?reply(good):reply({...good,afterword:'Роль важнее фамилии.'}))(o);
@@ -113,4 +113,26 @@ test('Mike Roffon: written by Claude (the subscription module, JSON by the schem
 test('Mike Roffon: the interview goes through scripts/claude-text.mjs, never through the OpenAI text API',async()=>{
  const src=(await import('node:fs')).readFileSync(new URL('../awards-bot/mike-roffon.js',import.meta.url),'utf8');
  assert.match(src,/from '\.\.\/scripts\/claude-text\.mjs'/);assert.doesNotMatch(src,/api\.openai\.com|chat\/completions|gpt-/);
+});
+
+test('Mike Roffon: every other day he turns to the GM of the hero\'s team too, and the GM stands beside him in the picture',()=>{
+ const days=Array.from({length:12},(_,i)=>`2026-11-${String(i+1).padStart(2,'0')}`),hero=d=>({...line,d,h:[4]});
+ const asked=days.filter(d=>interviewFacts(d,hero(d),()=>'Эдвардс').gmQuestion);
+ assert.ok(asked.length>0&&asked.length<days.length,'some days, not all');
+ const day=asked[0],f=interviewFacts(day,hero(day),()=>'Эдвардс');
+ assert.deepEqual(f.gmQuestion,{gm:'Капитан Торрес Нью-Вин',team:'Volga Pirates'});
+ assert.deepEqual(interviewFacts(day,hero(day),()=>'Эдвардс').gmQuestion,f.gmQuestion,'the same for a day and a player');
+ assert.equal(interviewFacts(day,{...line,d:day,h:[]},()=>'Эдвардс').gmQuestion,null,'no FBL team, no GM');
+ assert.match(interviewMessages(f).system,/gmQuestion/);assert.match(interviewMessages(f).prompt,/"gm": "Капитан Торрес Нью-Вин"/);
+ const withGm={...good,gm:{q:'Зачем он вам?',a:'Пиратам нужен штурман.'}};
+ const t=interviewText(withGm,f);
+ assert.match(t,/<b>Майк Роффон\.<\/b> Зачем он вам\?\n<b>GM Капитан Торрес Нью-Вин \(Volga Pirates\)\.<\/b> Пиратам нужен штурман\./);
+ assert.doesNotMatch(interviewText(withGm,{...f,gmQuestion:null}),/Пиратам/,'no GM block on a day he is not asked');
+ assert.deepEqual(strayNumbers({...withGm,gm:{q:'Сколько стоил?',a:'2000, и ни монетой больше.'}},f),['2000'],'his answer is checked too');
+ const p=interviewPicture(f,day,{team:4});
+ assert.deepEqual(p.images.map(i=>i.name).slice(-1),['captain-torres-new-win.jpg']);
+ assert.match(p.prompt,/GENERAL MANAGER: the exact person from reference image 4.*always a pirate/);assert.match(p.prompt,/Beside the player stands the general manager who picked him \(reference image 4\)/);
+ assert.doesNotMatch(p.prompt,/Torres|Нью-Вин/,'the GM is never named in the picture');
+ assert.doesNotMatch(interviewPicture({...f,gmQuestion:null},day,{team:4}).prompt,/GENERAL MANAGER|Torres/);
+ assert.doesNotMatch(interviewPicture(f,day,{team:4,crest:false}).prompt,/fantasy team/,'the crest-less picture names no fantasy team');
 });
