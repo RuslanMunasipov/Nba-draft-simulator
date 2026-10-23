@@ -130,3 +130,17 @@ class WatchTests(unittest.TestCase):
   cur={'players':{'9':{'name':'Новый','fromRoster':True},'1':{'name':'A','price':1}},'teams':{}}
   out=merge_full({'players':{'1':{'name':'A','price':2}},'teams':{}},cur)
   self.assertEqual(out['players'],{'1':{'name':'A','price':2},'9':{'name':'Новый','fromRoster':True}})
+ def test_the_minute_read_keeps_the_name_of_a_player_whose_card_was_emptied(self):
+  # Karagali Brothers, 23.10.2026: the full collection named Wagler's blank rows, the minute read did not, and each read
+  # renamed them back: a «new» journal every time, its round trip posted again.
+  import scripts.season_watch as sw
+  page="""<td>Покупки</td><tbody>
+<tr><td>20.10.26</td><td>куплен за <span>1400</span></td><td>продан Уайт за <span>1800</span></td></tr>
+<tr><td>20.10.26</td><td>куплен Уайт за <span>1800</span></td><td>продан за <span>1400</span></td></tr></tbody>"""
+  old=[{'date':'2026-10-20','buy':{'name':'Уайт','price':1800},'sell':{'name':'Уоглер','price':1400},'seenAt':'t1'},
+       {'date':'2026-10-20','buy':{'name':'Уоглер','price':1400},'sell':{'name':'Уайт','price':1800},'seenAt':'t2'}]
+  real=sw.sports.fetch;sw.sports.fetch=lambda url:page
+  try:fresh=sw.journals({'6':'s6'},{'teams':{'6':{'journal':old}}})
+  finally:sw.sports.fetch=real
+  self.assertEqual(sw.sports.journal_events(fresh['6']),sw.sports.journal_events(old))
+  self.assertEqual(changed_teams({'teams':{'6':{'journal':old}}},fresh),[])

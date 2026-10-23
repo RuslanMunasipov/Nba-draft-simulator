@@ -165,9 +165,51 @@ test('Sports.ru journals become FBL transfers after the roster matches the draft
  const r=journalTransfers(named,liveTeams,picks);
  assert.equal(r.transfers.length,1);assert.equal(r.transfers[0].outId,1);assert.ok([81,91].includes(r.transfers[0].inId));
  assert.ok(r.warnings.some(w=>/неоднозначен/.test(w.message)));
- // Connected teams take transfers from Sports.ru only; the league log still covers the others.
- const all=allTransfers(named,liveTeams,{transfers:[{team:0,outId:9,inId:82,date:'2026-10-20'},{team:1,outId:2,inId:83,date:'2026-10-20',outPrice:1,inPrice:1}]},picks);
- assert.deepEqual(all.transfers.map(x=>[x.team,x.source]),[[1,'league'],[0,'sports.ru']]);
+ // The league log covers the teams Sports.ru does not show, and a connected team's deal the league approved off
+ // Sports.ru (Yahoo): it counts beside the journal's.
+ const all=allTransfers(named,liveTeams,{transfers:[{team:0,outId:9,inId:82,date:'2026-10-20',outPrice:1500,inPrice:1500,platform:'Yahoo'},{team:1,outId:2,inId:83,date:'2026-10-20',outPrice:1,inPrice:1}]},picks);
+ assert.deepEqual(all.transfers.map(x=>[x.team,x.source,Boolean(x.offSports)]),[[0,'league',true],[1,'league',false],[0,'sports.ru',false]]);
+});
+test('a deal the league approved off Sports.ru counts at once and is not doubled when Sports.ru repeats it',async()=>{
+ const {offSportsBank,takenIds}=await import('../src/season.js');
+ // Karagali Brothers, 23.10.2026: Sports.ru could not carry the deal, the league approved it on Yahoo (Irving and
+ // Edey out, Jerome and Reid in). Here: team 0 sells #1 and #9 for free agents 81 and 89.
+ const named=players.map(p=>({...p,sportsName:'N'+p.id}));
+ const draft=picks.filter((_,i)=>i%8===0).map(id=>({date:'2026-10-18',buy:{name:'N'+id,price:1500},sell:null}));
+ const yahoo=[{team:0,outId:1,inId:81,date:'2026-10-23',outPrice:2110,inPrice:1448,platform:'Yahoo'},{team:0,outId:9,inId:89,date:'2026-10-23',outPrice:1516,inPrice:1525,platform:'Yahoo'}];
+ const at=journal=>({...live,teams:{0:{journal:[...draft,...journal],balance:400}}});
+ const r=allTransfers(named,at([]),{transfers:yahoo},picks),roster=seasonRosters(r.transfers,picks)[0];
+ assert.ok(roster.includes(81)&&roster.includes(89)&&!roster.includes(1)&&!roster.includes(9));
+ // Sports.ru's balance does not hold the deal yet: 400 + 2110 + 1516 − 1448 − 1525.
+ assert.equal(400+offSportsBank(0,r.transfers),1053);
+ // Sports.ru's roster still shows the two sold players: in FBL they are free, the two bought ones are not.
+ const shown=picks.filter((_,i)=>i%8===0).map(id=>({sportsId:String(1000+id)}));
+ const taken=takenIds({players:named,rosters:seasonRosters(r.transfers,picks),transfers:r.transfers,live:{teams:{0:{roster:shown}}}});
+ assert.ok(!taken.has(1)&&!taken.has(9)&&taken.has(81)&&taken.has(89));
+ // Sports.ru later carries it, paired its own way and a day later: no second deal, and the balance holds it all.
+ const mirror=[{date:'2026-10-24',sell:{name:'N1',price:2110},buy:{name:'N89',price:1525}},{date:'2026-10-24',sell:{name:'N9',price:1516},buy:{name:'N81',price:1448}}];
+ const m=allTransfers(named,at(mirror),{transfers:yahoo},picks);
+ assert.deepEqual(m.transfers.filter(x=>x.team===0).map(x=>[x.source,x.outId,x.inId]),[['league',1,81],['league',9,89]]);
+ assert.equal(offSportsBank(0,m.transfers),0);assert.deepEqual(m.warnings,[]);
+ // A later Sports.ru deal of the team is its own.
+ const later=allTransfers(named,at([...mirror,{date:'2026-10-25',sell:{name:'N17',price:1500},buy:{name:'N82',price:1500}}]),{transfers:yahoo},picks);
+ assert.deepEqual(later.transfers.filter(x=>x.source==='sports.ru').map(x=>[x.outId,x.inId]),[[17,82]]);
+});
+test('a journal whose player Sports.ru left unnamed still gives his deals, reported only once',async()=>{
+ const {unreported,dealEvents}=await import('../src/season.js');
+ // Karagali Brothers, 23.10.2026: Wagler's card was emptied, his name gone from every row («куплен за 1400»).
+ const named=players.map(p=>({...p,sportsName:'N'+p.id}));
+ const draft=picks.filter((_,i)=>i%8===0).map(id=>({date:'2026-10-18',buy:{name:id===73?'':'N'+id,price:1500},sell:null}));
+ // The renamed rows were stamped again on 23.10: that read is no time of a deal dated 20.10.
+ const again={seenAt:'2026-10-23T07:09:01+00:00',seenAfter:'2026-10-23T07:07:48+00:00'};
+ const trip=[{date:'2026-10-20',buy:{name:'N81',price:1800},sell:{name:'',price:1500},...again},{date:'2026-10-20',buy:{name:'',price:1500},sell:{name:'N81',price:1800},...again}];
+ const r=journalTransfers(named,{...live,players:{1073:{name:'N73'}},teams:{0:{journal:[...draft,...trip],roster:picks.filter((_,i)=>i%8===0&&i!==72).map(id=>({sportsId:String(1000+id)}))}}},picks);
+ assert.deepEqual(r.transfers.map(x=>[x.outId,x.inId,x.outName,x.inName]),[[73,81,'','N81'],[81,73,'N81','']]);
+ assert.deepEqual(r.warnings,[]);assert.ok(r.transfers.every(x=>!x.seenAt&&!x.seenAfter));
+ // Reported before under his name (the id keys of the state), the round trip is not posted again in blank words.
+ assert.equal(unreported(r.transfers,['0:73>81:2026-10-20','0:81>73:2026-10-20'],[]).size,0);
+ assert.equal(unreported(r.transfers,[],[]).size,2);
+ assert.equal(unreported(r.transfers,[],r.transfers.flatMap(dealEvents)).size,0);
 });
 test('a sold player is matched by name and the buy by position and price',()=>{
  const named=players.map(p=>({...p,sportsName:[82,84].includes(p.id)?'Same':'N'+p.id}));

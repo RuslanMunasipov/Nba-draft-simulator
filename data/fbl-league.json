@@ -1,5 +1,24 @@
 {
-  "transfers": [],
+  "transfers": [
+    {
+      "team": 6,
+      "outId": 202681,
+      "inId": 1629660,
+      "date": "2026-10-23",
+      "outPrice": 2110,
+      "inPrice": 1448,
+      "platform": "Yahoo"
+    },
+    {
+      "team": 6,
+      "outId": 1641744,
+      "inId": 1629675,
+      "date": "2026-10-23",
+      "outPrice": 1516,
+      "inPrice": 1525,
+      "platform": "Yahoo"
+    }
+  ],
   "banks": {},
   "white": [
     1629111,

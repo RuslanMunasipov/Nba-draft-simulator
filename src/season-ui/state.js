@@ -3,7 +3,7 @@
 import {readStored,writeStored} from '../storage.js';
 import {teamName} from '../teams.js';
 import {fblTransfers} from '../rules.js';
-import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,gameWeeks,weekOf,current,parseInjuries,allTransfers,withMarket,withBoxScores,CONFIDENT,DOUBTFUL} from '../season.js';
+import {WEEKLY_TRANSFERS,moscowToday,seasonRosters,bank,transfersThisWeek,gameWeeks,weekOf,current,parseInjuries,allTransfers,offSportsBank,withMarket,withBoxScores,CONFIDENT,DOUBTFUL} from '../season.js';
 import {injuryUntil} from '../forecast-text.js';
 import {fetchLiveGames,moscowDate,nextLiveDelay,LIVE_MS} from '../live.js';
 import {count,injuryStatus} from '../format.js';
@@ -50,8 +50,9 @@ export const sportsTeam=t=>live?.teams?.[t]||null;
 export function transfersLeft(ctx,t){const x=sportsTeam(t)?.transfersLeft,sports=sportsTeam(t)?.transfersUnlimited?Infinity:Number.isFinite(x)?x:Math.max(0,WEEKLY_TRANSFERS-transfersThisWeek(ctx.transfers,t,ctx.today,gameWeeks(live)));
  return Math.min(sports,fblTransfers(ctx.transfers,t,ctx.today).left);}
 export const draftPrice=id=>{const p=byId.get(id);return live?.players?.[p?.sportsId]?.initialPrice??p?.price??0;};
-// Sports.ru's own balance wins: a number typed on this device only stands in for a team Sports.ru does not show.
-export function teamBank(t,list=transfers()){const sports=sportsTeam(t)?.balance;if(Number.isFinite(sports))return sports;const local=readJson('fbl-bank',{})[t];if(Number.isFinite(local))return local;const shared=league.banks?.[t];if(Number.isFinite(shared))return shared;return bank(t,list,draftPrice);}
+// Sports.ru's own balance wins (with the league's deals Sports.ru could not carry yet: season.js offSportsBank): a
+// number typed on this device only stands in for a team Sports.ru does not show.
+export function teamBank(t,list=transfers()){const sports=sportsTeam(t)?.balance;if(Number.isFinite(sports))return sports+offSportsBank(t,list);const local=readJson('fbl-bank',{})[t];if(Number.isFinite(local))return local;const shared=league.banks?.[t];if(Number.isFinite(shared))return shared;return bank(t,list,draftPrice);}
 export function context(){const m=merged(),list=m.transfers;return {players,live,injuries,today:moscowToday(),rosters:seasonRosters(list),transfers:list,warnings:m.warnings,connected:m.connected,
  white:new Set(whiteList().filter(x=>!x.startsWith('none:')))};}
 // Transfer gains count only games a move can still win: one that has tipped off by now scores for the seller (season.js
