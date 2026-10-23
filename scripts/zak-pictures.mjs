@@ -114,6 +114,23 @@ export function zakPicture({kind,team,no,seed,root,...story}){
  return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),who,scene({G,L,C:`FBL CASE ${no}`}),refs.has.gm&&gm?.child?CHILD(gm):null,STYLE].filter(Boolean).join('\n\n')};
 }
 
+// The picture of a statement of his (data/announcements/<name>.picture.txt holds its scene): Zak Onn alone, his photo of
+// the given mood the only reference.
+export function zakStatement({scene,mood='check',root}){
+ const refs=references([{key:'zak',image:zakPhoto(mood,root),what:'Zak Onn, the league lawyer'}]);
+ return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),`SCENE: ${scene.trim()}`,STYLE].filter(Boolean).join('\n\n')};
+}
+// Draws a statement's picture into a temporary PNG; null when it could not be drawn (his photo goes instead).
+export async function drawStatement(args,{key,root,timeoutMs=120e3,attempts=2}={}){
+ try{
+  const {png,usage}=await generate(zakStatement({...args,root}),{key,timeoutMs,attempts});
+  const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'zak-')),'zak-onn-statement.png');
+  fs.writeFileSync(file,png);
+  console.log(`Picture of the statement: $${cost(usage).toFixed(3)}`);
+  return file;
+ }catch(e){console.warn(`Picture of the statement failed (${e.message}): his photo goes instead.`);return null;}
+}
+
 // Draws a protocol's picture into a temporary PNG. Answers its path, or null when it could not be drawn (the protocol then
 // goes with his usual photo: a picture never holds a protocol back). Quick by design: the feed runs every minute.
 export async function drawProtocol(args,{key,root,timeoutMs=90e3,attempts=2}={}){

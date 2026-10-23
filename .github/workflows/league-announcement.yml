@@ -10,6 +10,10 @@ on:
       photo:
         description: 'Photo of Зак Онн: check (frowning), approved (thumbs up) or violation (thumbs down)'
         default: 'check'
+      picture:
+        description: "Draw the statement's picture from <file>.picture.txt (OpenAI, paid: about $0.03)"
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -21,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # The Telegram formatting reads the season's calendar (src/season.js), which needs the project's packages.
+      - run: npm ci --no-audit --no-fund
       - name: Post to the league chat
         env:
           LEAGUE_TELEGRAM_BOT_TOKEN: ${{ secrets.LEAGUE_TELEGRAM_BOT_TOKEN }}
@@ -30,6 +36,9 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FILE: ${{ github.event.inputs.file }}
           PHOTO: ${{ github.event.inputs.photo }}
+          # The OpenAI key only for a run that asks for the picture.
+          ANNOUNCE_PICTURE: ${{ inputs.picture && '1' || '' }}
+          OPENAI_API_KEY: ${{ inputs.picture && secrets.OPENAI_API_KEY || '' }}
         run: |
           case "$FILE" in */*|..*) echo "file name only"; exit 1;; esac
           node scripts/league-announce.mjs "data/announcements/$FILE" "$PHOTO"

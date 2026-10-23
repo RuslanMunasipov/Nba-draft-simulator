@@ -143,3 +143,13 @@ test('the league\'s team logos: one per team, in draft order, as the pictures an
  const {teamLogo}=await import('../scripts/image-pipeline.mjs');
  for(let t=0;t<8;t++)assert.equal(teamLogo(t)?.name,`${t+1}.jpg`,`team ${t+1}`);
 });
+
+test('a statement of Zak Onn: his photo the only reference, his identity, the scene of the statement, the style',async()=>{
+ const {zakStatement}=await import('../scripts/zak-pictures.mjs');
+ const p=zakStatement({scene:'  A desk, a stamp reading "OFFICIAL WARNING".\n'});
+ assert.deepEqual(p.images.map(i=>i.name),['check.jpg']);
+ assert.match(p.prompt,/ZAK ONN \(highest priority\): the man from reference image 1/);assert.match(p.prompt,/God Bless America/);
+ assert.match(p.prompt,/SCENE: A desk, a stamp reading "OFFICIAL WARNING"\.\n\nSTYLE:/);
+ const file=new URL('../data/announcements/2026-10-23-school-shooters-warning.picture.txt',import.meta.url);
+ assert.match(fs.readFileSync(file,'utf8'),/No weapons of any kind.*no children, no school/);
+});
