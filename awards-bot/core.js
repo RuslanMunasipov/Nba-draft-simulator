@@ -81,6 +81,10 @@ export function parseSummary(json,game,day){
 // holdings: season.js stints(allTransfers(...).transfers); map: data/sports-player-map.json players; prices: the pre-season
 // Sports.ru price snapshot's players.
 const moveAt=(day,at)=>at?Date.parse(at):Date.parse(`${day}T${TRANSFER_HOURS.from}:00+03:00`);
+// Every Sports.ru card of a player: the current one and those Sports.ru replaced (previousSportsIds: Keaton Wagler's
+// 2208842, 2208816 since 23.10.2026). The pre-season price snapshot names the card of its day.
+export const cardsOf=p=>[p?.sportsId,...(p?.previousSportsIds||[])].filter(Boolean).map(String);
+export const byCard=players=>new Map(players.flatMap(p=>cardsOf(p).map(s=>[s,p])));
 export function makeLeague({players,live,holdings,map=[],prices=[]}){
  const bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p])),byId=new Map(players.map(p=>[p.id,p]));
  const byEspn=new Map();
@@ -100,7 +104,7 @@ export function makeLeague({players,live,holdings,map=[],prices=[]}){
  const positionOf=p=>sportsRow(p)?.position||p?.positions?.[0]||null;
  // Sports.ru price before a game day: after his last game filed under an earlier Moscow date, else the initial one.
  const priceBefore=(p,moscowDate)=>{const rows=(sportsRow(p)?.games||[]).filter(g=>g.date<moscowDate&&Number.isFinite(g.price));
-  return rows.length?rows[rows.length-1].price:sportsRow(p)?.initialPrice??initial.get(String(p?.sportsId))??p?.price??0;};
+  return rows.length?rows[rows.length-1].price:sportsRow(p)?.initialPrice??cardsOf(p).map(s=>initial.get(s)).find(Number.isFinite)??p?.price??0;};
  // Order of a team's roster on its Sports.ru page: the tie-break of two players of one price at the season start.
  // When the team's current holding of a player began (a draft holding: before every move).
  const joinedAt=(team,p,line)=>{const g=asGame(line),s=holdings.find(x=>x.team===team&&x.playerId===p.id&&heldAt(g,x));return s?moveAt(s.from,s.fromAt):0;};

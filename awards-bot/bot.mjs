@@ -46,7 +46,7 @@ import {execFileSync} from 'node:child_process';
 import {withMarket,allTransfers,stints,seasonRosters,teamPoints} from '../src/season.js';
 import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextStep,addDays,daysBetween,moscowDay,usDay,weekOf,form,
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
- withoutRookie,siteSummary} from './core.js';
+ withoutRookie,siteSummary,byCard} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey,esc} from './messages.js';
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
@@ -79,7 +79,8 @@ async function loadLeague(){
  const players=withMarket(db.players,live),{transfers,warnings}=allTransfers(players,live,local('data/fbl-league.json'));
  for(const w of warnings)console.warn(`team ${w.team+1}: ${w.message}`);
  const league=makeLeague({players,live,holdings:stints(transfers),map:local('data/sports-player-map.json').players,prices:local('data/sports-prices-2026-10-17.json').players});
- const byId=new Map(players.map(p=>[p.id,p])),bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p]));
+ // The snapshot names a player's card of 17.10: one Sports.ru replaced since is his previous one (byCard).
+ const byId=new Map(players.map(p=>[p.id,p])),bySid=byCard(players);
  // The Sports.ru short name, as the league knows its players; ESPN's for the rest of the NBA.
  const who=(a,n)=>{const p=league.player(a);return p?.sportsName||live.players?.[p?.sportsId]?.name||n||String(a);};
  const rookies=new Set(players.filter(p=>p.isRookie===true).map(league.espnOf).filter(Boolean));

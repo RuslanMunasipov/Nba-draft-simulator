@@ -1063,6 +1063,14 @@ export function allTransfers(players,live,league={transfers:[]},picks=DRAFT_PICK
   const missing=now[Number(key)].map(id=>byId.get(id)).filter(p=>!held.has(p?.sportsId)),odd=missing.filter(p=>!gone(p)),empty=missing.filter(gone);
   if(odd.length)warnings.push({team:Number(key),message:`Состав по журналу расходится с составом Sports.ru: ${odd.map(p=>p?.name).join(', ')} — проверь трансферы.`});
   if(empty.length)warnings.push({team:Number(key),message:`Sports.ru опустошил карточку: ${empty.map(p=>p?.name).join(', ')} — в составе по журналу, в составе Sports.ru не показан.`});}
+ // A held card the reviewed map does not know (Sports.ru opened a new one for a known player: Keaton Wagler's 2208816 on
+ // 23.10.2026, read as a stranger with no history) or one Sports.ru renamed (its journal rows no longer name the
+ // player) misjoins identities: reported until data/sports-player-map.json is reviewed.
+ const bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p]));
+ for(const [key,team] of Object.entries(live?.teams||{}))for(const r of team.roster||[]){const p=bySid.get(String(r.sportsId));
+  const card={sportsId:String(r.sportsId),name:r.name};
+  if(!p||String(p.id).startsWith('sports:'))warnings.push({team:Number(key),card,message:`Карточка Sports.ru ${r.sportsId} (${r.name}, ${r.club}) не сверена с базой — проверь data/sports-player-map.json.`});
+  else if(r.name&&p.sportsName&&r.name!==p.sportsName)warnings.push({team:Number(key),card,message:`Sports.ru переименовал карточку ${r.sportsId}: ${p.sportsName} → ${r.name} — проверь data/sports-player-map.json.`});}
  return {transfers:valid,warnings,connected:covered};
 }
 // What a connected team's Sports.ru balance does not hold yet: the league's off-Sports.ru deals (allTransfers), each side

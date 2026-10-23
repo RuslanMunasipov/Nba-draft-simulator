@@ -11,7 +11,8 @@ def apply(data, catalog, crosswalk, additions=None):
     for p in (additions or {}).get('players', []):
         if p['sportsId'] in prices:
             raise ValueError('Market addition already in the catalog: ' + p['sportsId'])
-        prices[p['sportsId']], origin[p['sportsId']] = p, additions
+        # A row captured apart from the file (Kenrich Williams, 23.10.2026) carries its own source and capturedAt.
+        prices[p['sportsId']], origin[p['sportsId']] = p, {**additions, **{k: p[k] for k in ('source', 'capturedAt') if k in p}}
     if any(not isinstance(p['price'], (int, float)) or p['price'] <= 0 for p in prices.values()):
         raise ValueError('Invalid Sports.ru price catalog')
     positions={'1':'PG','2':'SG','3':'SF','4':'PF','5':'C'}
@@ -19,7 +20,8 @@ def apply(data, catalog, crosswalk, additions=None):
         raise ValueError('Unknown Sports.ru position code')
     entries = crosswalk['players']
     # A card Sports.ru replaced keeps its old id in previousSportsIds (Keaton Wagler: 2208842 emptied, 2208816 since
-    # 23.10.2026): the dated catalog lists the old card, the player carries the card Sports.ru shows now.
+    # 23.10.2026), one it renamed its old name in previousSportsNames (Tobi Lawal: Lawal, Лавал since): the dated catalog
+    # lists the old card and name, the player carries the card and the name Sports.ru shows now.
     cards = lambda p: [p['sportsId'], *p.get('previousSportsIds', [])]
     if len({s for p in entries for s in cards(p)}) != sum(len(cards(p)) for p in entries):
         raise ValueError('Duplicate Sports.ru crosswalk ID')
@@ -46,12 +48,12 @@ def apply(data, catalog, crosswalk, additions=None):
             raise ValueError('Crosswalk references a missing Sports.ru ID')
         source = prices[key]
         if identity_name(entry['name'])!=identity_name(player['name']):raise ValueError('Identity name mismatch: '+player['name'])
-        if entry['sportsName']!=source['name'] or entry['sportsClub']!=source['club']:raise ValueError('Sports.ru identity mismatch')
+        if source['name'] not in [entry['sportsName'], *entry.get('previousSportsNames', [])] or entry['sportsClub']!=source['club']:raise ValueError('Sports.ru identity mismatch')
         dated = origin[key]
         player.update(positions=[positions[str(source['sportsPosition'])]],positionStatus='SPORTS_RU_VERIFIED',
                       positionSource=dated['source'],positionCheckedAt=dated['capturedAt'],positionProvider='Sports.ru',
                       price=source['price'], priceStatus='VERIFIED', sportsId=entry['sportsId'],
-                      sportsName=source['name'], priceSource='Sports.ru',
+                      sportsName=entry['sportsName'], priceSource='Sports.ru',
                       priceCheckedAt=dated['capturedAt'], sportsClub=source['club'])
         if entry.get('previousSportsIds'):
             player['previousSportsIds'] = list(entry['previousSportsIds'])

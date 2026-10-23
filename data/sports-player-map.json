@@ -3835,7 +3835,10 @@
       "espnId": "5106040",
       "nbaId": null,
       "name": "Tobi Lawal",
-      "sportsName": "Lawal",
+      "sportsName": "Лавал",
+      "previousSportsNames": [
+        "Lawal"
+      ],
       "sportsClub": "Даллас"
     },
     {
@@ -3843,7 +3846,10 @@
       "espnId": "4565698",
       "nbaId": null,
       "name": "Bryce Hopkins",
-      "sportsName": "Hopkins",
+      "sportsName": "Хопкинс",
+      "previousSportsNames": [
+        "Hopkins"
+      ],
       "sportsClub": "Денвер"
     },
     {
@@ -3853,6 +3859,14 @@
       "name": "Kawhi Leonard",
       "sportsName": "Ленард",
       "sportsClub": "Торонто"
+    },
+    {
+      "sportsId": "1991767",
+      "espnId": "3133626",
+      "nbaId": 1629026,
+      "name": "Kenrich Williams",
+      "sportsName": "К. Уильямс",
+      "sportsClub": "Оклахома-Сити"
     }
   ]
 }

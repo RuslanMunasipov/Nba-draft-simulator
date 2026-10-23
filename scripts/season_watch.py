@@ -68,10 +68,11 @@ def merge_full(full,cur):
         entry['journalReadAt']=max(filter(None,(mine.get('journalReadAt'),entry.get('journalReadAt'))),default=None)
     # A player the watcher took from a roster (new to the market) stays known: the collection may have started before.
     # One whose page failed keeps his last entry, marked stale, with only its box-scored games as FBL points: an older
-    # collector's rows (Sports.ru's ФО, 0 till it counts a game) cannot be scored again without the page.
-    players=full.setdefault('players',{})
+    # collector's rows (Sports.ru's ФО, 0 till it counts a game) cannot be scored again without the page. A card Sports.ru
+    # replaced (collect_sports_current.retired_cards) is not read any more and goes.
+    players,retired=full.setdefault('players',{}),sports.retired_cards()
     for sid,p in (cur.get('players') or {}).items():
-        if sid not in players:players[sid]=p if p.get('fromRoster') else {**p,'stale':True,'games':sports.unscored([dict(g) for g in p.get('games') or []])}
+        if sid not in players and sid not in retired:players[sid]=p if p.get('fromRoster') else {**p,'stale':True,'games':sports.unscored([dict(g) for g in p.get('games') or []])}
     return full
 def unscore_old_rows(snapshot):
     """The snapshot a run starts from may be an older collector's: its played rows carry Sports.ru's ФО (0 till it counts

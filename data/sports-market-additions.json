@@ -1,5 +1,5 @@
 {
-  "note": "Players who entered the Sports.ru market after the dated 2026-10-17 catalog. Each row is copied from a public Sports.ru team roster (points JSON) with its fantasy id, club, position code and price on the capture date.",
+  "note": "Players who entered the Sports.ru market after the dated 2026-10-17 catalog. Each row is copied from a public Sports.ru team roster (points JSON) with its fantasy id, club, position code and price on the capture date; a row with its own source and capturedAt was captured apart from the file's.",
   "source": "https://www.sports.ru/fantasy/basketball/team/points/5930735/0.json",
   "capturedAt": "2026-10-19T12:40:00Z",
   "players": [
@@ -10,6 +10,16 @@
       "price": 2400,
       "sportsId": "1796991",
       "sportsPosition": "3"
+    },
+    {
+      "club": "Оклахома-Сити",
+      "clubId": "4195",
+      "name": "К. Уильямс",
+      "price": 1214,
+      "sportsId": "1991767",
+      "sportsPosition": "3",
+      "source": "https://www.sports.ru/fantasy/basketball/team/points/5931824/0.json",
+      "capturedAt": "2026-10-23T15:06:00Z"
     }
   ]
 }
