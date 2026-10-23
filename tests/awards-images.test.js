@@ -95,36 +95,37 @@ test('awards pictures: captions, at most three players, no lines no pictures',()
 });
 
 const factsOf=()=>momentFacts('flop',[row('1',-12,[0],{fgm:3,fga:14,tov:6}),row('2',-3,[3],{pf:6})]);
-const good={setting:'A dusty construction site at golden hour',players:[{scene:'Lays bricks into a wall with a trowel, his sign nailed to it',sign:'11 КИРПИЧЕЙ. ПРОРАБ ГОДА'},{scene:'Poses in a sash of referee whistles, his sign at his feet',sign:'-3 ФО. ЗАТО 6 ФОЛОВ'}]};
+const good={prompt:'A dusty construction site at golden hour, shot like a glossy home-improvement commercial: {P1} lays bricks into a crooked wall with a trowel, his sign nailed to it reading "11 КИРПИЧЕЙ. ПРОРАБ ГОДА"; {P2} poses in a sash of referee whistles, his sign at his feet reading "-3 ФО. ЗАТО 6 ФОЛОВ". Both in the colours of their fantasy teams, {LOGO1} and {LOGO2} on their chests. Wide 24mm, warm haze, square frame.',idea:'a construction site of bricks and whistles'};
 
-test('awards pictures: Claude\'s moments are checked: Russian signs, his own numbers only, nothing forbidden',()=>{
+test('awards pictures: Opus writes the whole picture; it is checked: his players in it, their own numbers only, nothing forbidden',()=>{
  const facts=factsOf();
  assert.equal(facts.players[0].gm,'Franky Murder','the GM as the league writes him');assert.equal(facts.players[0].fbl,-12);assert.equal(facts.players[0].game.fgMissed,11);
+ assert.equal(facts.players[0].kitColors,'black, red and gold');
  assert.deepEqual(momentProblems(good,facts),[]);
- const bad=(players,setting=good.setting)=>momentProblems({setting,players},facts);
- assert.match(bad([{...good.players[0],sign:'13 КИРПИЧЕЙ'},good.players[1]]).join(),/numbers not in his line \(13\)/);
- assert.match(bad([{...good.players[0],sign:'ТРИНАДЦАТЬ КИРПИЧЕЙ'},good.players[1]]).join(),/numbers not in his line \(13\)/,'numbers in words too');
- assert.match(bad([{...good.players[0],sign:'кирпичи'},good.players[1]]).join(),/capitals/);
- assert.match(bad([{...good.players[0],sign:'ОН СЕГОДНЯ ОПЯТЬ ПОЛОЖИЛ ОЧЕНЬ МНОГО КИРПИЧЕЙ'},good.players[1]]).join(),/at most 6 words/);
- assert.match(bad([{...good.players[0],scene:'Lays eleven bricks, then 11 more'},good.players[1]]).join(),/without numbers/);
- assert.match(bad([{...good.players[0],scene:'Кладёт кирпичи'},good.players[1]]).join(),/plain sentence/,'the scenes are English for the picture');
- assert.match(bad([{...good.players[0],sign:'КРОВЬ НА ПАРКЕТЕ'},good.players[1]]).join(),/forbidden/);
- assert.match(bad(good.players,'A courtroom with a judge').join(),/forbidden/,'the law stays out of the awards');
- assert.match(bad([good.players[0]]).join(),/1 players, not 2/);
+ const bad=prompt=>momentProblems({...good,prompt},facts).join();
+ assert.match(bad(good.prompt.replace('"11 КИРПИЧЕЙ','"13 КИРПИЧЕЙ')),/numbers in quotes not in the facts: 13/);
+ assert.match(bad(good.prompt.replace('"11 КИРПИЧЕЙ','"ТРИНАДЦАТЬ КИРПИЧЕЙ')),/numbers in words not in the lines: 13/,'numbers in words too');
+ assert.match(bad(good.prompt.replace('{P2} poses','A man poses')),/no \{P2\}/);
+ assert.deepEqual(momentProblems({...good,prompt:good.prompt+' {GM} despairs in the back.'},facts),[],'the centre player\'s GM has a photo');
+ assert.match(bad(good.prompt.replace('{LOGO2}','{LOGO3}')),/unknown placeholders \{LOGO3\}/,'two players, two logos');
+ assert.match(bad(good.prompt.replace('with a trowel','with a knife')),/off limits: knife/);
+ assert.match(bad(good.prompt.replace('construction site','courtroom')),/forbidden: courtroom/,'the law stays out of the awards');
+ assert.match(momentProblems({prompt:good.prompt},facts).join(),/no idea/);
  const m=momentMessages(facts,['old idea']);
- assert.match(m.system,/ПО-РУССКИ ЗАГЛАВНЫМИ/);assert.match(m.system,/жёсткий баскетбольный стёб/);assert.match(m.prompt,/- old idea/);
+ assert.match(m.system,/ПОЛНЫЙ промпт/);assert.match(m.system,/жёсткий баскетбольный стёб/);assert.match(m.system,/You set everything/);assert.match(m.prompt,/- old idea/);
 });
 
-test('awards pictures: Claude writes the moments, twice at most, then the code\'s; his moments go into the picture',async()=>{
+test('awards pictures: Opus writes the picture, twice at most, then the code\'s; his prompt goes as written, the code adding who is who',async()=>{
  const facts=factsOf();let calls=0;
- const twice=await writeMoments(facts,{claude:async()=>{calls++;return {data:calls===1?{...good,players:[{...good.players[0],sign:'99 ФО'},good.players[1]]}:good};}});
- assert.equal(calls,2,'a refused answer is written again');assert.equal(twice.players[0].sign,'11 КИРПИЧЕЙ. ПРОРАБ ГОДА');
- calls=0;assert.equal(await writeMoments(facts,{claude:async()=>{calls++;return {data:{setting:'x',players:[]}};}}),null);assert.equal(calls,2);
+ const twice=await writeMoments(facts,{claude:async()=>{calls++;return {data:calls===1?{...good,prompt:good.prompt.replace('"11 КИРПИЧЕЙ','"99 КИРПИЧЕЙ')}:good};}});
+ assert.equal(calls,2,'a refused answer is written again');assert.equal(twice.idea,good.idea);
+ calls=0;assert.equal(await writeMoments(facts,{claude:async()=>{calls++;return {data:{prompt:'x',idea:''}};}}),null);assert.equal(calls,2);
  const rows=[row('1',-12,[0],{fgm:3,fga:14,tov:6}),row('2',-3,[3],{pf:6})];
- const [p]=dayPictures({heroes:[],flops:rows},who,{written:{flop:good}});
- assert.match(p.prompt,/SCENE: A dusty construction site at golden hour\./);
- assert.match(p.prompt,/He lays bricks into a wall with a trowel, his sign nailed to it; the words on his sign read "11 КИРПИЧЕЙ\. ПРОРАБ ГОДА"\./);
- assert.deepEqual(p.ideas,[good.setting,...good.players.map(x=>`${x.scene} / ${x.sign}`)],'kept so that the next days do not repeat them');
+ const [p]=dayPictures({heroes:[],flops:rows},who,{written:{flop:twice}});
+ assert.match(p.prompt,/^REFERENCES: reference image 1 is the logo of the fantasy team of/);
+ assert.match(p.prompt,/the NBA player P1\. Name lays bricks into a crooked wall/);assert.doesNotMatch(p.prompt,/general manager/,'no {GM} in the prompt, no GM reference');assert.match(p.prompt,/reading "11 КИРПИЧЕЙ\. ПРОРАБ ГОДА"/);
+ assert.match(p.prompt,/shot like a glossy home-improvement commercial/,'the style is Opus\'s');assert.doesNotMatch(p.prompt,/STYLE:|SCENE:|\{[A-Z0-9_]+\}|ГЕРОИ ДНЯ|ПРОВАЛЫ ДНЯ/);
+ assert.deepEqual(p.ideas,[good.idea],'kept so that the next days do not repeat them');
  assert.deepEqual(dayPictures({heroes:[],flops:rows},who)[0].ideas,[],'the code\'s moments: nothing to keep');
 });
 

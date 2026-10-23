@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
 import {weekData,pickGuest,STORIES,REPEAT_WEEKS,longreadFacts,longreadMessages,longreadProblems,writeLongread,LONGREAD_SCHEMA,
- longreadPicture,SAFE_SCENE,sceneProblem,telegraphNodes,publishPage,longreadCaption,pageTitle,postTime} from '../awards-bot/inside-fbl.js';
+ longreadPicture,SAFE_SCENE,telegraphNodes,publishPage,longreadCaption,pageTitle,postTime} from '../awards-bot/inside-fbl.js';
 
 // A week of lines as the awards bot archives them: each scored by the league formula.
 const S=(pts,reb,ast,tov,fgm,fga)=>({pts,reb,ast,stl:1,blk:0,tov,fgm,fga,ftm:2,fta:2,pf:2});
@@ -55,18 +55,18 @@ const para='Майк входит в дом лидера и видит, как �
 const good={title:'Вершина пахнет лимоном',lead:'Майк в гостях у лидера таблицы.',prologue:[para,para],
  chapters:Array.from({length:6},(_,i)=>({heading:`Глава про ${['утро','рынок','кухню','зал','отрыв','вечер'][i]}`,story:[para,para],
   qa:[{q:'Ты первый. Надолго?',a:'Пока Эдвардс бросает.'},{q:'Ноль отставания — это скучно?',a:'Скучно тем, кто сзади.'},{q:'А если неделя провалится?',a:'Тогда я подарю тебе ещё лимон.'}],
-  remark:'Записано без улыбки.',scene:'Mike and the guest squeeze lemons into a huge jug in a sunny kitchen, Mike holding his microphone like a ladle.'})),
- epilogue:[para],quote:'Вершина — это не место, а привычка.',gift:'ковбойская шляпа с лимоном',opener:'Mike interviews the guest on a porch full of lemon trees.'};
+  remark:'Записано без улыбки.',picture:'A sunny farmhouse kitchen, late morning light through linen curtains: {MIKE} and {GUEST} squeeze lemons into a huge glass jug, {MIKE} holding his microphone like a ladle while {GUEST} lectures him. Warm documentary photo, 35mm, shallow depth of field, square frame. No text.'})),
+ epilogue:[para],quote:'Вершина — это не место, а привычка.',gift:'ковбойская шляпа с лимоном',opener:'Golden hour on a porch full of lemon trees: {MIKE} holds his microphone up to {GUEST}, who leans back in a rocking chair. Glossy magazine-cover photo, 50mm, square. A lower-third banner reads "INSIDE FBL".'};
 test('Inside FBL: what a piece may not carry: numbers of its own (in words too), old lines, bad scenes, too few words',()=>{
  assert.deepEqual(longreadProblems(good,facts),[]);
  const bad={...good,prologue:[para,'Он живёт на двадцать втором этаже и держит триста тридцать три собаки.']};
  assert.match(longreadProblems(bad,facts).join(),/числа не из данных: 22, 333/);
  assert.match(longreadProblems(bad,facts).join(),/вот где: «Он живёт на двадцать втором этаже и держит триста тридцать три собаки\.»/);
  assert.match(longreadProblems({...good,quote:'Роль важнее фамилии.'},facts).join(),/роль важнее фамилии/);
- assert.match(longreadProblems({...good,opener:'Mike holds a gun.'},facts).join(),/opener: forbidden words/);
- assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,scene:'Майк на кухне'})},facts).join(),/scene главы 1: not plain English/);
+ assert.match(longreadProblems({...good,opener:good.opener.replace('rocking chair','rocking chair and a gun')},facts).join(),/opener: off limits: gun/);
+ assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace('{GUEST} squeeze','the GM squeeze').replace('while {GUEST}','while he')})},facts).join(),/picture главы 1: no \{GUEST\}/);
+ assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace('No text.','A sign reads "333 ФО".')})},facts).join(),/numbers in quotes not in the facts: 333/);
  assert.match(longreadProblems({...good,prologue:['Коротко.'],chapters:good.chapters.map(c=>({...c,story:['Коротко.']})),epilogue:['Всё.']},facts).join(),/слишком коротко/);
- assert.equal(sceneProblem('Mike and the guest at 3 am'),'has numbers');
 });
 
 test('Inside FBL: a piece with problems goes back to be fixed, and is dropped when it stays wrong',async()=>{
@@ -78,15 +78,17 @@ test('Inside FBL: a piece with problems goes back to be fixed, and is dropped wh
  assert.equal(calls.length,3);assert.match(stuck.problems.join(),/999/);
 });
 
-test('Inside FBL: the pictures: Mike and the guest in the scene, faces from the photos, no team names, the opener with its banner',()=>{
+test('Inside FBL: the pictures: Opus writes the prompt, the code adds only the references and who is who',()=>{
  const img={bytes:Buffer.from('x'),name:'x.jpg',type:'image/jpeg'};
- const p=longreadPicture(good.chapters[0].scene,gm,{mikePhoto:img,guestPhoto:img});
- assert.equal(p.images.length,2);assert.match(p.prompt,/reference image 1 is Mike Roffon/);assert.match(p.prompt,/reference image 2 is the guest/);
- assert.match(p.prompt,/squeeze lemons/);assert.match(p.prompt,/white gloves/);assert.match(p.prompt,/No text, captions/);
- assert.doesNotMatch(p.prompt,/Texas|Citrus|Лемариус|gunslinger|School|Shooters|REFERENCES: REFERENCES/);
- const o=longreadPicture(good.opener,gm,{mikePhoto:img,guestPhoto:img,opener:true});assert.match(o.prompt,/INSIDE FBL/);assert.match(o.prompt,/microphone up to the guest/);
+ const p=longreadPicture(good.chapters[0].picture,gm,{mikePhoto:img,guestPhoto:img});
+ assert.equal(p.images.length,2);assert.match(p.prompt,/^REFERENCES: reference image 1 is Mike Roffon/);assert.match(p.prompt,/reference image 2 is the guest/);
+ assert.match(p.prompt,/MIKE ROFFON \(reference image 1\): .*white gloves and a vintage chrome microphone, always/);
+ assert.match(p.prompt,/THE GUEST \(reference image 2\): the guest; the face exactly as in the photo; never changes: thin rimless tinted glasses/);
+ assert.match(p.prompt,/Mike Roffon \(reference image 1\) and the guest \(reference image 2\) squeeze lemons/,'the placeholders filled');
+ assert.match(p.prompt,/Warm documentary photo, 35mm/,'the style is Opus\'s');assert.doesNotMatch(p.prompt,/STYLE:|SCENE:|\{MIKE\}|Texas|Citrus|Лемариус|gunslinger/);
  const pl=longreadPicture(SAFE_SCENE,{kind:'player',row:{a:'3',en:'T. Young',teams:[7]}},{mikePhoto:img,guestPhoto:null});
- assert.equal(pl.images.length,1);assert.match(pl.prompt,/the real NBA player T\. Young/);assert.match(pl.prompt,/black with gold and diamond-white trim, no logos/);assert.doesNotMatch(pl.prompt,/Shooters|Shugars/);
+ assert.equal(pl.images.length,1);assert.match(pl.prompt,/THE GUEST, THE NBA PLAYER T\. YOUNG: the real NBA player T\. Young, exactly as he really looks/);
+ assert.match(pl.prompt,/Mike Roffon \(reference image 1\) and the guest, the NBA player T\. Young sit at the table/);
 });
 
 test('Inside FBL: the Telegraph page: chapters numbered, a picture after each, the fiction marked; the post links it',async()=>{

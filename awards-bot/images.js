@@ -13,6 +13,7 @@ import {wordNumbers} from './mike-roffon.js';
 import {esc,badges} from './messages.js';
 import {MISSED_BRICKS} from './core.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
+import {fillPrompt,promptProblems,PROMPT_CRAFT} from '../scripts/picture-prompt.mjs';
 
 export const SIZE='1024x1024';
 // Each league team's kit, from the colours of its logo (scripts/assets/team-logos/<team number>), told apart in one scene.
@@ -86,7 +87,8 @@ export function momentFacts(kind,rows,{form=new Map()}={}){
  return {picture:kind==='hero'?'the heroes of the day':'the flops of the day',players:rows.slice(0,3).map((l,i)=>{const s=l.s||{},f=form.get(l.a);
   return {place:PLACE_NAMES[i],name:imageName(l),club:l.c||null,fbl:Math.round(l.p),minutes:Math.round(l.m||0),
    game:{pts:s.pts,reb:s.reb,ast:s.ast,stl:s.stl,blk:s.blk,tov:s.tov,fgm:s.fgm,fga:s.fga,fgMissed:s.fga-s.fgm,ftm:s.ftm,fta:s.fta,ftMissed:s.fta-s.ftm,pf:s.pf},
-   gm:gmName(pictureTeam(l)),form:f?{heroDaysLast7:f.hero,flopDaysLast7:f.flop,onFire:!!f.fire,frozen:!!f.ice}:null};})};
+   gm:gmName(pictureTeam(l)),kitColors:pictureTeam(l)!==null?LEAGUE_TEAMS[pictureTeam(l)]?.kit||null:null,gmPhoto:i===0&&pictureTeam(l)!==null&&Boolean(gmOf(pictureTeam(l))),
+   form:f?{heroDaysLast7:f.hero,flopDaysLast7:f.flop,onFire:!!f.fire,frozen:!!f.ice}:null};})};
 }
 const BANTER=`Ты — мем-редактор FBL (Fantasy Brothers League), фэнтези-баскетбольной лиги друзей. Каждый игровой день лига выкладывает две фотореалистичные мем-картинки: героев дня (их превозносят до небес) и провалы дня (их разносят в щепки). Ты придумываешь одну из них: где всё происходит и что делает каждый игрок. Картинку рисует ChatGPT по твоему описанию.
 Тон — жёсткий баскетбольный стёб, трэш-ток и мемы НБА: Shaqtin' a Fool, Inside the NBA, «кирпичный завод», «ледяные вены», «готовит», «отъехал», «MVP-чанты», «пенсионер», «строитель». Это должно быть по-настоящему смешно: неожиданный поворот, абсурд, гипербола, точное попадание в его статлайн. Разноси игру без жалости: промахи, потери, фолы, ноль в графе, «призрака» на площадке; героев возноси до абсурда.
@@ -95,62 +97,68 @@ const BANTER=`Ты — мем-редактор FBL (Fantasy Brothers League), ф
 - Стебём игру, а не человека: ничего про внешность, тело, расу, происхождение, семью, здоровье и личную жизнь.
 - Никакого оружия, стрельбы, насилия, крови, смерти, наркотиков и секса. Никаких судов, судей и юристов: закон лиги в награды не лезет.
 - На картинке только эти игроки и безликая массовка; GM фэнтези-команды можно упомянуть на табличке. GM центрального игрока картинка сама поставит на задний план — его не описывай. Никаких логотипов клубов и лиг НБА.
-- Форму не описывай: картинка сама оденет его в форму фэнтези-команды. Позы, реквизит и аксессуары приветствуются.
-Формат:
-- setting: одно предложение по-английски, место и настроение всей картинки (общий кадр для их разных историй), без цифр и без надписей.
-- scene: одно предложение по-английски, начинается с глагола: что игрок делает, поза, реквизит и где его табличка (в руках, на плакате, на футболке, на торте, на табло...). Без цифр.
-- sign: надпись таблички ПО-РУССКИ ЗАГЛАВНЫМИ, не больше 6 слов, коротко и смешно. Числа в ней — только его собственные из данных: ФО как «N ФО» (с минусом, если отрицательные) или счётчики бокс-скора вроде «7/21 С ИГРЫ» или «6 ПОТЕРЬ». Числа словами тоже считаются числами.
-- Игроки идут в порядке данных: центр (звезда картинки), слева, справа.
-Ответь только JSON: {"setting": "...", "players": [{"scene": "...", "sign": "..."}, ...]}`;
+- Каждый игрок — в форме своей фэнтези-команды (kitColors, логотип {LOGO1}…), не своего клуба НБА. Позы, реквизит и аксессуары приветствуются.
+Формат: ты пишешь ПОЛНЫЙ промпт картинки ПО-АНГЛИЙСКИ (prompt) — место, сюжет каждого, расстановку, кадр, свет, стиль; правила ниже. Игроки — {P1} (центр, звезда картинки), {P2}, {P3} по порядку данных; логотип фэнтези-команды каждого — {LOGO1}, {LOGO2}, {LOGO3}; {GM} — GM центрального игрока (только если у него gmPhoto: на заднем плане, радуется героям или в отчаянии от провала). У каждого игрока табличка с надписью ПО-РУССКИ ЗАГЛАВНЫМИ в кавычках, не больше 6 слов; числа в ней — только его собственные из данных (ФО как «N ФО» или счётчики бокс-скора вроде «7/21 С ИГРЫ»). 400–1400 знаков. idea — одна строка по-английски: в чём идея картинки (чтобы не повторяться).
+
+${PROMPT_CRAFT}
+Ответь только JSON: {"prompt": "...", "idea": "..."}`;
 const str={type:'string'};
-export const MOMENTS_SCHEMA={type:'object',additionalProperties:false,required:['setting','players'],properties:{setting:str,
- players:{type:'array',minItems:1,maxItems:3,items:{type:'object',additionalProperties:false,required:['scene','sign'],properties:{scene:str,sign:str}}}}};
+export const MOMENTS_SCHEMA={type:'object',additionalProperties:false,required:['prompt','idea'],properties:{prompt:str,idea:str}};
 export function momentMessages(facts,recent=[]){
  return {system:BANTER,prompt:`Картинка: ${facts.picture}.${recent.length?`\nНедавние идеи, не повторяй:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}`:''}\nДанные:\n${JSON.stringify(facts.players,null,1)}`};
 }
 const FORBIDDEN=/\b(guns?|rifles?|pistols?|weapons?|bullets?|knife|knives|blood\w*|kill\w*|corpses?|dead|death|suicide|drugs?|cocaine|naked|sex\w*|zak|onn|lawyer|courtroom|judge)\b|оружи|пистолет|автомат|стрельб|застрел|кров[ьи]|убий|убил|смерт|труп|наркот|суицид|зак онн|юрист|адвокат|суд[ья]/i;
 // Every number a player's sign may carry: his FBL points and his box score's counts.
 const numbersOf=p=>new Set([p.fbl,p.minutes,...Object.values(p.game)].filter(Number.isFinite).map(v=>String(Math.abs(v))));
-// What is wrong with Claude's moments for these facts ([]: they may go into the picture).
+// What is wrong with Opus's picture for these facts ([]: it may go to the image model): the players' placeholders all in it,
+// only the placeholders the picture has, the numbers in quotes the players' own, nothing forbidden.
 export function momentProblems(x,facts){
- const out=[],ascii=t=>/^[\x20-\x7e]*$/.test(t);
- if(!x||typeof x.setting!=='string'||!Array.isArray(x.players))return ['not moments'];
- if(x.players.length!==facts.players.length)out.push(`${x.players.length} players, not ${facts.players.length}`);
- if(!x.setting.trim()||x.setting.length>260||!ascii(x.setting)||/\d/.test(x.setting))out.push('setting: one plain sentence without numbers');
- x.players.slice(0,facts.players.length).forEach((m,i)=>{const p=facts.players[i],who=p.name;
-  if(typeof m?.scene!=='string'||typeof m?.sign!=='string'){out.push(`${who}: no scene or sign`);return;}
-  if(!m.scene.trim()||m.scene.length>320||!ascii(m.scene)||/\d/.test(m.scene))out.push(`${who}: scene, one plain sentence without numbers`);
-  if(!/^[А-ЯЁA-Z0-9 .,!?'"«»\/&:#+\-–—()]{2,48}$/.test(m.sign.trim())||m.sign.trim().split(/\s+/).length>6)out.push(`${who}: sign "${m.sign}", at most 6 words in capitals`);
-  const allowed=numbersOf(p),stray=[...(m.sign.match(/\d+/g)||[]),...wordNumbers(m.sign)].filter(n=>!allowed.has(n));
-  if(stray.length)out.push(`${who}: numbers not in his line (${stray.join(', ')})`);
- });
- const text=[x.setting,...x.players.flatMap(m=>[m?.scene,m?.sign])].join(' ');
- if(FORBIDDEN.test(text))out.push(`forbidden: ${text.match(FORBIDDEN)[0]}`);
+ if(!x||typeof x.prompt!=='string')return ['not a picture'];
+ const n=facts.players.length,ps=Array.from({length:n},(_,i)=>`P${i+1}`),logos=Array.from({length:n},(_,i)=>`LOGO${i+1}`);
+ const numbers=new Set(facts.players.flatMap(p=>[...numbersOf(p)]));
+ const out=promptProblems(x.prompt,{required:ps,allowed:[...ps,...logos,...facts.players[0]?.gmPhoto?['GM']:[]],numbers,max:1600});
+ const signs=(x.prompt.match(/"[^"\n]*"/g)||[]).join(' '),strayW=wordNumbers(signs).filter(v=>!numbers.has(v));
+ if(strayW.length)out.push(`numbers in words not in the lines: ${strayW.join(', ')}`);
+ if(FORBIDDEN.test(x.prompt))out.push(`forbidden: ${x.prompt.match(FORBIDDEN)[0]}`);
+ if(typeof x.idea!=='string'||!x.idea.trim())out.push('no idea');
  return out;
 }
-// Claude's moments for a block (two tries), or null: then the code's. recent: the ideas of the last days.
-export async function writeMoments(facts,{recent=[],claude=claudeJSON,model=CLAUDE_MODEL,timeoutMs=120e3}={}){
+// Opus's picture for a block (two tries), or null: then the code's moments. recent: the ideas of the last days.
+export async function writeMoments(facts,{recent=[],claude=claudeJSON,model=CLAUDE_MODEL,timeoutMs=180e3}={}){
  for(let i=0;i<2;i++){
   const {data}=await claude({...momentMessages(facts,recent),schema:MOMENTS_SCHEMA,model,timeoutMs});
   const problems=momentProblems(data,facts);
-  if(!problems.length)return {setting:data.setting.trim(),players:data.players.slice(0,facts.players.length).map(m=>({scene:m.scene.trim().replace(/\.$/,''),sign:m.sign.trim()}))};
-  console.warn(`Pictures: Claude's moments refused (${problems.join('; ')})${i?'; the code\'s go instead':', written again'}.`);
+  if(!problems.length)return {prompt:data.prompt.trim(),idea:data.idea.trim()};
+  console.warn(`Pictures: Opus's picture refused (${problems.join('; ')})${i?'; the code\'s goes instead':', written again'}.`);
  }
  return null;
 }
 // The ideas of a picture to keep, so that the next days do not repeat them.
-export const ideasOf=w=>w?[w.setting,...w.players.map(p=>`${p.scene} / ${p.sign}`)]:[];
+export const ideasOf=w=>w?[w.idea]:[];
 
 // The GM of the centre player's fantasy team in the background (league chat, 23.10.2026), when the league has his photo:
 // he celebrates the heroes and despairs at the flops. Never named in the picture: a name like Franky Murder can trip the
 // image model's safety system, as a team name once did.
 const GM_MOOD={hero:'celebrates wildly in the background, both arms up, as proud as if he had scored himself',
  flop:'stands in the background with both hands on his head, in comic despair at the player he picked'};
+// Opus's picture of a block: his prompt, the code's references and who is who (each player's face and name, each league
+// team's logo once, the centre player's GM). {LOGOi} of players of one team are one logo.
+function writtenBlock(kind,rows,{faces,root,written}){
+ const star=pictureTeam(rows[0]),gm=star!==null?gmOf(star):null;
+ const text=written.prompt.replace(/\{LOGO(\d)\}/g,(m,i)=>{const t=pictureTeam(rows[Number(i)-1]||{});return t===null?'the fantasy team logo':`{LOGO_T${t}}`;});
+ const teams=[...new Set(rows.map(pictureTeam).filter(t=>t!==null))];
+ const r=fillPrompt(text,[...rows.map((l,i)=>({key:`P${i+1}`,image:faces.get(String(l.a))||null,name:`the NBA player ${imageName(l)}`,what:`the face of ${imageName(l)}`,always:true,
+   identity:`the real NBA player ${imageName(l)}${l.c?` of the ${l.c}`:''}, exactly as he really looks`})),
+  ...teams.map(t=>({key:`LOGO_T${t}`,image:teamLogo(t,root),name:'the fantasy team logo',what:`the logo of the fantasy team of ${rows.filter(l=>pictureTeam(l)===t).map(imageName).join(' and ')}`})),
+  {key:'GM',image:gm?gmPhoto(star,root):null,name:'the general manager',what:`the general manager who picked ${imageName(rows[0])}`,identity:gm?looks({...gm,en:'the general manager'}):null}]);
+ return {images:r.images,prompt:r.prompt,size:SIZE,moments:rows.map(()=>'claude'),ideas:ideasOf(written)};
+}
 // One picture of a block: its references (each player's face when given, each league team's logo once) and its prompt.
 // faces: ESPN id → the headshot ({bytes, name, type}); root: the assets folder (team logos); written: Claude's moments
 // (writeMoments), else the code's.
 export function blockPicture(kind,rows,{faces=new Map(),form,root,written=null}={}){
  rows=rows.slice(0,3);
+ if(written)return writtenBlock(kind,rows,{faces,root,written});
  const teams=[...new Set(rows.map(pictureTeam).filter(t=>t!==null))],star=pictureTeam(rows[0]),gm=star!==null?gmOf(star):null;
  const refs=references([...rows.map(l=>({key:'face:'+l.a,image:faces.get(String(l.a))||null,what:`the face of ${imageName(l)}`})),
   ...teams.map(t=>({key:'logo:'+t,image:teamLogo(t,root),what:`the logo of the fantasy team of ${rows.filter(l=>pictureTeam(l)===t).map(imageName).join(' and ')}`})),

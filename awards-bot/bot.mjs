@@ -51,7 +51,7 @@ import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,r
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
 import {dayPictures,momentFacts,momentProblems,writeMoments} from './images.js';
-import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
+import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture,writtenPicture,writtenPictureProblems} from './mike-roffon.js';
 import {generate,cost,person,readImage,ASSETS} from '../scripts/image-pipeline.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadPicture,SAFE_SCENE,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
@@ -254,8 +254,13 @@ async function telegram(token,method,body){
 }
 // His picture with the hero in his FBL team's kit; when the image model refuses it (a team's name or logo), the kit's
 // colors alone. {picture: the PNG or null when both fail (or no OPENAI_API_KEY), spent}.
-async function mikePicture(facts,day,team){
+async function mikePicture(facts,day,team,written=null){
  let spent=0,picture=null;
+ // Opus's own prompt first (written with the interview); the code's scenes only when it breaks a rule or is refused.
+ if(OPENAI_KEY&&written){const w=writtenPicture(written,facts,{team});
+  if(!w)console.warn(`${day}: Mike Roffon's written picture refused (${writtenPictureProblems(written,facts).join('; ')}): the code's scene.`);
+  else try{const r=await generate(w,{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});return {picture:r.png,spent:cost(r.usage)};}
+  catch(e){console.warn(`${day}: Mike Roffon's written picture failed (${e.message}): the code's scene.`);}}
  for(const crest of Number.isInteger(team)?[true,false]:[true]){
   if(!OPENAI_KEY||picture)break;
   try{const r=await generate(interviewPicture(facts,day,{team,crest}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
@@ -286,7 +291,7 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  try{
   const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
-  let {picture,spent}=await mikePicture(facts,day,hero.h?.[0]);
+  let {picture,spent}=await mikePicture(facts,day,hero.h?.[0],interview.picture);
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
    fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.txt`),caption+'\n\n'+text+'\n');}
@@ -474,7 +479,7 @@ function insidePush(inside,message){
 // safe one (coffee at the guest's kitchen table); a picture that fails twice is left out. {bytes by key, spent}.
 async function longreadPictures(longread,guest){
  const mikePhoto=readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto=await guestReference(guest);
- const todo=[{key:'opener',scene:longread.opener,opener:true},...longread.chapters.map((c,i)=>({key:String(i+1),scene:c.scene}))],out={};let spent=0;
+ const todo=[{key:'opener',scene:longread.opener,opener:true},...longread.chapters.map((c,i)=>({key:String(i+1),scene:c.picture}))],out={};let spent=0;
  const one=async t=>{for(const scene of [t.scene,SAFE_SCENE]){
   try{const r=await generate({...longreadPicture(scene,guest,{mikePhoto,guestPhoto,opener:t.opener}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
    out[t.key]=r.png;spent+=cost(r.usage);return;}
@@ -509,7 +514,7 @@ async function insideFbl(){
  const archive=read('archive.json',{lines:[]}),inside=insideRead();
  const w=weekOf(opt('--inside-week')||addDays(usDay(now()),-1)),rec=inside.weeks[w.start];
  if(rec?.status==='sent'){console.log(`Inside FBL, week ${w.n}: already sent (${rec.url}).`);return;}
- // picture: one chapter's picture drawn anew from --scene (with --text: the letters it may show, like player cards), the
+ // picture: one chapter's picture drawn anew from --scene (a whole prompt, {MIKE} and {GUEST} for the two), the
  // Telegraph page edited to show it; the rest of the draft and its approval stay.
  if(action==='picture'){
   if(rec?.status!=='page'||!rec.opener)throw Error(`Inside FBL, week ${w.n}: no draft with pictures to change`);
@@ -518,10 +523,10 @@ async function insideFbl(){
   if(!longread.chapters[n-1])throw Error(`--chapter: the draft has ${longread.chapters.length} chapters`);
   const guest=facts.guest.kind==='GM'?{kind:'gm',team:LEAGUE_TEAMS.findIndex(t=>t.name===facts.guest.team)}:facts.guest.kind==='комиссар лиги'?{kind:'commissioner'}:null;
   if(!guest)throw Error('--action picture: a player guest is not supported yet');
-  const r=await generate({...longreadPicture(scene,guest,{mikePhoto:readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto:await guestReference(guest),text:opt('--text')}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
+  const r=await generate({...longreadPicture(scene,guest,{mikePhoto:readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto:await guestReference(guest)}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
   const file=`${prefix}${n}-${Date.now().toString(36)}.jpg`;fs.writeFileSync(path.join(INSIDE_DIR,file),r.png);
   const images=Object.assign(longread.chapters.map((_,i)=>rec.images?.[i]||`${RAW}${prefix}${i+1}.jpg`),{[n-1]:`${RAW}${file}`});
-  longread.chapters[n-1].scene=scene;fs.writeFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),JSON.stringify({facts,longread},null,1));
+  longread.chapters[n-1].picture=scene;fs.writeFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),JSON.stringify({facts,longread},null,1));
   insidePush(inside,`Inside FBL ${w.start}: picture ${n}`);
   await editPage(rec.url,longread,facts,{token:TELEGRAPH,opener:`${RAW}${rec.opener}`,images});
   inside.weeks[w.start]={...rec,images,caption:longreadCaption(longread,facts,rec.url),cost:Math.round(((rec.cost||0)+cost(r.usage))*1e4)/1e4};

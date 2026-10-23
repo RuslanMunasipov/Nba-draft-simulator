@@ -208,8 +208,10 @@ test('Claude writes each scene anew: the case in words, placeholders the code fi
  assert.match(sceneProblems(good.replace('Zak Onn','The lawyer'),f).join(),/no Zak Onn/);
  assert.match(sceneProblems('Zak Onn {GM} {PLAYER} ты',f).join(),/not plain English/);
  const p=zakPicture({kind:'approved',team:2,no:7,seed:'x',player:{name:'Anthony Edwards',image:null},written:good});
- const scene=p.prompt.split('\n\n').find(x=>x.startsWith('SCENE'));
- assert.match(scene,/to the newly signed real NBA player Anthony Edwards while Jack Pott \(the general manager, reference image 2\) orders pancakes and Adam Silverov \(the league commissioner, reference image 4\) reads the contract stamped "FBL CASE 7"\./);
+ // The whole prompt is Opus's: the code adds the references and who is who, no style of its own, no GM's name.
+ assert.match(p.prompt,/Zak Onn \(reference image 1\) slides a menu titled "TRANSFER CLEARED" to Anthony Edwards, the newly signed NBA player while the general manager \(reference image 2\) orders pancakes and Adam Silverov, the league commissioner \(reference image 3\) reads the contract stamped "FBL CASE 7"\./);
+ assert.match(p.prompt,/^REFERENCES: reference image 1 is Zak Onn, the league lawyer/);assert.match(p.prompt,/ZAK ONN \(reference image 1\): preserve his face precisely.*God Bless America/);
+ assert.doesNotMatch(p.prompt,/STYLE:|SCENE:|\{[A-Z]+\}/);assert.doesNotMatch(p.prompt.split("\n").pop(),/Jack Pott/,"the GM never named in the scene");
  assert.deepEqual(p.images.map(i=>i.name).slice(-1),['adam-silverov.jpg']);
  const calls=[],answers=[{scene:'Zak Onn alone.'},{scene:good}];
  assert.equal(await writeScene(f,{recent:['an old idea'],write:async a=>{calls.push(a);return {data:answers.shift()};},log:()=>{}}),good);

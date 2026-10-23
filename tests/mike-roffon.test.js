@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
-import {interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
+import {writtenPicture,writtenPictureProblems,interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
 
 const s={pts:45,reb:10,ast:3,stl:2,blk:1,tov:4,fgm:16,fga:29,ftm:4,fta:5,pf:1};
 const line={d:'2026-10-21',e:'g1',a:'4594268',n:'A. Edwards',c:'MIN',t:'2026-10-22T00:00Z',m:36.4,p:fblFormula(s),h:[5],b:[],s};
@@ -102,7 +102,7 @@ test('Mike Roffon: written by Claude (the subscription module, JSON by the schem
  const seen=[],reply=x=>async opts=>{seen.push(opts);return {data:x,text:JSON.stringify(x),usage:{output_tokens:500},costUsd:0.02};};
  const {interview}=await writeInterview(facts,{claude:reply(good)});assert.deepEqual(interview,good);
  assert.match(seen[0].system,/Майк Роффон/);assert.match(seen[0].prompt,/"fo": 39/);assert.equal(seen[0].schema,INTERVIEW_SCHEMA);
- assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','gm','afterword']);
+ assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','gm','afterword','picture']);
  let calls=0;const bad=async o=>{calls++;return reply({...good,prologue:'Средние 28 очков.'})(o);};
  const out=await interviewFor(facts,{claude:bad});assert.equal(out.interview,null);assert.equal(calls,2);
  let tries=0;const copyThenGood=async o=>(tries++?reply(good):reply({...good,afterword:'Роль важнее фамилии.'}))(o);
@@ -136,4 +136,17 @@ test('Mike Roffon: every other day he turns to the GM of the hero\'s team too, a
  assert.doesNotMatch(p.prompt,/Torres|Нью-Вин/,'the GM is never named in the picture');
  assert.doesNotMatch(interviewPicture({...f,gmQuestion:null},day,{team:4}).prompt,/GENERAL MANAGER|Torres/);
  assert.doesNotMatch(interviewPicture(f,day,{team:4,crest:false}).prompt,/fantasy team/,'the crest-less picture names no fantasy team');
+});
+
+test('Mike Roffon: his picture as Opus wrote it, the code adding only the references and who is who',()=>{
+ const text='Night outside the arena, wet asphalt shining under sodium lamps: {MIKE} in a long overcoat thrusts his microphone at {PLAYER}, who wears a hoodie in his fantasy team colours with {LOGO} on the chest. Gritty sports-documentary still, 28mm, square. A lower-third reads "INSIDE FBL".';
+ const p=writtenPicture(text,facts,{team:5});
+ assert.match(p.prompt,/^REFERENCES: reference image 1 is Mike Roffon/);assert.match(p.prompt,/white gloves and a vintage chrome microphone, always/);
+ assert.match(p.prompt,/THE NBA PLAYER A\. EDWARDS: the real NBA player A\. Edwards, exactly as he really looks/);
+ assert.match(p.prompt,/Mike Roffon \(reference image 1\) in a long overcoat thrusts his microphone at the NBA player A\. Edwards/);
+ assert.match(p.prompt,/with the fantasy team logo \(reference image \d\) on the chest/);assert.match(p.prompt,/Gritty sports-documentary still, 28mm/);
+ assert.doesNotMatch(p.prompt,/STYLE:|SCENE:|\{[A-Z]+\}/);
+ assert.equal(writtenPicture(text.replace('{PLAYER}','the hero'),facts,{team:5}),null,'no {PLAYER}: the code\'s scene');
+ assert.match(writtenPictureProblems(text.replace('"INSIDE FBL"','"77 ФО"'),facts).join(),/numbers in quotes not in the facts: 77/);
+ assert.match(writtenPictureProblems(text.replace('hoodie','helmet'),facts).join(),/off limits: helmet/);
 });
