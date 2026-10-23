@@ -519,7 +519,7 @@ async function insideFbl(){
  if(action==='picture'){
   if(rec?.status!=='page'||!rec.opener)throw Error(`Inside FBL, week ${w.n}: no draft with pictures to change`);
   const n=Number(opt('--chapter')),scene=opt('--scene');if(!(n>=0)||!scene)throw Error('--action picture: --chapter N (0: the opener) and --scene TEXT');
-  const prefix=rec.opener.replace(/opener\.jpg$/,''),{facts,longread}=JSON.parse(fs.readFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),'utf8'));
+  const prefix=rec.opener.replace(/opener(-[a-z0-9]+)?\.jpg$/,''),{facts,longread}=JSON.parse(fs.readFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),'utf8'));
   if(n>0&&!longread.chapters[n-1])throw Error(`--chapter: the draft has ${longread.chapters.length} chapters`);
   const guest=facts.guest.kind==='GM'?{kind:'gm',team:LEAGUE_TEAMS.findIndex(t=>t.name===facts.guest.team)}:facts.guest.kind==='комиссар лиги'?{kind:'commissioner'}:null;
   if(!guest)throw Error('--action picture: a player guest is not supported yet');
