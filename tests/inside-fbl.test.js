@@ -107,6 +107,8 @@ test('Inside FBL: the Telegraph page: chapters numbered, a picture after each, t
  assert.match(c,/В гостях у Майка Роффона: <b>Лемариус<\/b>, GM Texas 76 Citrus\./);assert.match(c,/👉 <a href="https:\/\/telegra\.ph\/Inside-FBL-11-02">Читать лонгрид<\/a>/);assert.ok(c.length<=1024);
  assert.match(longreadCaption({...good,title:'Лемариус: на вершине пахнет цитрусом'},facts,'u'),/<b>На вершине пахнет цитрусом<\/b>/,'the name is not said twice');
  assert.equal(pageTitle({title:'«Да»'}),'Inside FBL — Да');
+ assert.ok(JSON.stringify(telegraphNodes({...good,quote:'«Кто сторожит вершину, тому некогда на ней сидеть». — Лемариус'},facts)).includes('«Кто сторожит вершину, тому некогда на ней сидеть» — Лемариус"'),'signed once');
+ assert.ok(JSON.stringify(telegraphNodes(good,facts)).includes('«Вершина — это не место, а привычка» — Лемариус"'),'a dash inside the quote stays');
  assert.ok(JSON.stringify(telegraphNodes({...good,gift:'Говорящий апельсин.'},facts)).includes('На полку Майка: Говорящий апельсин."'),'one full stop');
 });
 
