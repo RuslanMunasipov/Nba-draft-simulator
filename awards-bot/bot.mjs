@@ -18,10 +18,11 @@
 //                                                   --pictures: the pictures drawn by OpenAI, ~$0.05, into --cards;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
 //                                                   OPENAI_API_KEY, drawn, ~$0.02)
-//   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--cards DIR]
+//   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--picture-only] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
 //                                                   mike-roffon.yml): written and drawn, posted into the league chat
-//                                                   by his bot with --send; the state is only read, never saved
+//                                                   by his bot with --send (--picture-only: only his picture, for
+//                                                   an interview that went without one); the state is only read
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
@@ -238,6 +239,31 @@ async function telegram(token,method,body){
  if(!r.ok||!out.ok)throw Error(`Telegram ${method}: ${r.status} ${out.description||''}`);
  return out.result;
 }
+// His picture with the hero in his FBL team's kit; when the image model refuses it (a team's name or logo), the kit's
+// colors alone. {picture: the PNG or null when both fail (or no OPENAI_API_KEY), spent}.
+async function mikePicture(facts,day,team){
+ let spent=0,picture=null;
+ for(const crest of Number.isInteger(team)?[true,false]:[true]){
+  if(!OPENAI_KEY||picture)break;
+  try{const r=await generate(interviewPicture(facts,day,{team,crest}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
+  catch(e){console.warn(`${day}: Mike Roffon's picture ${crest&&Number.isInteger(team)?'with the team logo':'without the team logo'} failed (${e.message})${crest&&Number.isInteger(team)?': drawn again in the team colors alone.':': the interview goes alone.'}`);}
+ }
+ return {picture,spent};
+}
+// Only his picture of a day whose interview went without one: drawn and, with send, posted with its caption.
+async function mikePictureOnly(day,lines,ctx,state,send){
+ const hero=dailyBlocks(lines.filter(l=>l.d===day)).heroes[0];
+ if(!hero)return null;
+ const facts=interviewFacts(day,hero,ctx.who,{form:form(lines,day)});
+ const {picture,spent}=await mikePicture(facts,day,hero.h?.[0]),caption=interviewCaption(facts,day);
+ if(!picture)return {status:'failed'};
+ if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);}
+ if(!send){console.log(`\n===== Mike Roffon's picture (preview, $${spent.toFixed(3)}) =====\n${caption}\n`);return {status:'preview',cost:spent};}
+ const body=new FormData();body.append('chat_id',String(CHAT));body.append('caption',caption);body.append('parse_mode','HTML');
+ body.append('photo',new Blob([picture],{type:'image/png'}),`mike-roffon-${day}.png`);await telegram(MIKE,'sendPhoto',body);
+ console.log(`${day}: Mike Roffon's picture sent, $${spent.toFixed(3)}.`);
+ return {status:'sent',cost:spent};
+}
 async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigured(env),write=flag('--mike')}={}){
  const hero=dailyBlocks(lines.filter(l=>l.d===day)).heroes[0];
  if(!hero)return null;
@@ -247,15 +273,7 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  try{
   const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
-  let spent=0,picture=null;
-  // His picture with the hero in his FBL team's kit; when the image model refuses it (a team's name or logo), the kit's
-  // colors alone; when that fails too, the interview goes alone.
-  const team=hero.h?.[0];
-  for(const crest of Number.isInteger(team)?[true,false]:[true]){
-   if(!OPENAI_KEY||picture)break;
-   try{const r=await generate(interviewPicture(facts,day,{team,crest}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
-   catch(e){console.warn(`${day}: Mike Roffon's picture ${crest&&Number.isInteger(team)?'with the team logo':'without the team logo'} failed (${e.message})${crest&&Number.isInteger(team)?': drawn again in the team colors alone.':': the interview goes alone.'}`);}
-  }
+  let {picture,spent}=await mikePicture(facts,day,hero.h?.[0]);
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
    fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.txt`),caption+'\n\n'+text+'\n');}
@@ -414,10 +432,10 @@ async function mikeByHand(day){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('--mike-day: a US game day, YYYY-MM-DD');
  const state=read('state.json',fresh()),archive=read('archive.json',{lines:[]});
  if(!archive.lines.some(l=>l.d===day))throw Error(`--mike-day: no archived games of ${day}`);
- const send=flag('--send');
- if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)]].filter(x=>!x[1]).map(x=>x[0]);
+ const send=flag('--send'),only=flag('--picture-only');
+ if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],...only?[['OPENAI_API_KEY',OPENAI_KEY]]:[['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)]]].filter(x=>!x[1]).map(x=>x[0]);
   if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
- const m=await mikeInterview(day,archive.lines,await loadLeague(),state,{send,write:true});
+ const ctx=await loadLeague(),m=only?await mikePictureOnly(day,archive.lines,ctx,state,send):await mikeInterview(day,archive.lines,ctx,state,{send,write:true});
  if(!m)throw Error(`${day}: no hero of the day`);
  if(m.status!==(send?'sent':'preview'))process.exitCode=1;
 }
