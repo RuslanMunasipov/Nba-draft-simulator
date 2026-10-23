@@ -101,7 +101,9 @@ test('Inside FBL: the Telegraph page: chapters numbered, a picture after each, t
  assert.match(seen[0][0],/createAccount$/);assert.equal(seen[1][1].access_token,'T');assert.equal(seen[1][1].title,'Inside FBL — Вершина пахнет лимоном');
  seen.length=0;await publishPage(good,facts,{fetchImpl,token:'K'});assert.equal(seen.length,1);assert.equal(seen[0][1].access_token,'K');
  const c=longreadCaption(good,facts,'https://telegra.ph/Inside-FBL-11-02');
- assert.match(c,/<b>Лемариус<\/b> \(GM Texas 76 Citrus\)/);assert.match(c,/<a href="https:\/\/telegra\.ph\/Inside-FBL-11-02">Читать лонгрид →<\/a>/);assert.ok(c.length<=1024);
+ assert.match(c,/^<b>🎙 Inside FBL • Большое интервью<\/b>\n\n<b>Вершина пахнет лимоном<\/b>\n<i>Майк в гостях у лидера таблицы\.<\/i>/);
+ assert.match(c,/В гостях у Майка Роффона: <b>Лемариус<\/b>, GM Texas 76 Citrus\./);assert.match(c,/👉 <a href="https:\/\/telegra\.ph\/Inside-FBL-11-02">Читать лонгрид<\/a>/);assert.ok(c.length<=1024);
+ assert.match(longreadCaption({...good,title:'Лемариус: на вершине пахнет цитрусом'},facts,'u'),/<b>На вершине пахнет цитрусом<\/b>/,'the name is not said twice');
  assert.equal(pageTitle({title:'«Да»'}),'Inside FBL — Да');
  assert.ok(JSON.stringify(telegraphNodes({...good,gift:'Говорящий апельсин.'},facts)).includes('На полку Майка: Говорящий апельсин."'),'one full stop');
 });

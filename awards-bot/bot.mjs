@@ -53,7 +53,8 @@ import {holidayOf,HOLIDAYS} from './holidays.js';
 import {dayPictures,momentFacts,momentProblems,writeMoments} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
 import {generate,cost,person,readImage,ASSETS} from '../scripts/image-pipeline.mjs';
-import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadPicture,SAFE_SCENE,publishPage,longreadCaption,postTime} from './inside-fbl.js';
+import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadPicture,SAFE_SCENE,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
+import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
@@ -504,10 +505,29 @@ async function insidePhoto(chat,file,caption){
 async function insideFbl(){
  if(!INSIDE_DIR)throw Error('--inside-fbl: --inside DIR (a clone of the branch data/inside-fbl, or an empty directory)');
  const action=opt('--action')||'draft';
- if(!['draft','redo','approve','post'].includes(action))throw Error(`--action: draft, redo, approve or post, not ${action}`);
+ if(!['draft','redo','approve','post','picture'].includes(action))throw Error(`--action: draft, redo, approve, post or picture, not ${action}`);
  const archive=read('archive.json',{lines:[]}),inside=insideRead();
  const w=weekOf(opt('--inside-week')||addDays(usDay(now()),-1)),rec=inside.weeks[w.start];
  if(rec?.status==='sent'){console.log(`Inside FBL, week ${w.n}: already sent (${rec.url}).`);return;}
+ // picture: one chapter's picture drawn anew from --scene (with --text: the letters it may show, like player cards), the
+ // Telegraph page edited to show it; the rest of the draft and its approval stay.
+ if(action==='picture'){
+  if(rec?.status!=='page'||!rec.opener)throw Error(`Inside FBL, week ${w.n}: no draft with pictures to change`);
+  const n=Number(opt('--chapter')),scene=opt('--scene');if(!(n>=1)||!scene)throw Error('--action picture: --chapter N and --scene TEXT');
+  const prefix=rec.opener.replace(/opener\.jpg$/,''),{facts,longread}=JSON.parse(fs.readFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),'utf8'));
+  if(!longread.chapters[n-1])throw Error(`--chapter: the draft has ${longread.chapters.length} chapters`);
+  const guest=facts.guest.kind==='GM'?{kind:'gm',team:LEAGUE_TEAMS.findIndex(t=>t.name===facts.guest.team)}:facts.guest.kind==='комиссар лиги'?{kind:'commissioner'}:null;
+  if(!guest)throw Error('--action picture: a player guest is not supported yet');
+  const r=await generate({...longreadPicture(scene,guest,{mikePhoto:readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto:await guestReference(guest),text:opt('--text')}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
+  const file=`${prefix}${n}-${Date.now().toString(36)}.jpg`;fs.writeFileSync(path.join(INSIDE_DIR,file),r.png);
+  const images=Object.assign(longread.chapters.map((_,i)=>rec.images?.[i]||`${RAW}${prefix}${i+1}.jpg`),{[n-1]:`${RAW}${file}`});
+  longread.chapters[n-1].scene=scene;fs.writeFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),JSON.stringify({facts,longread},null,1));
+  insidePush(inside,`Inside FBL ${w.start}: picture ${n}`);
+  await editPage(rec.url,longread,facts,{token:TELEGRAPH,opener:`${RAW}${rec.opener}`,images});
+  inside.weeks[w.start]={...rec,images,caption:longreadCaption(longread,facts,rec.url),cost:Math.round(((rec.cost||0)+cost(r.usage))*1e4)/1e4};
+  insidePush(inside,`Inside FBL ${w.start}: picture ${n} on the page`);
+  console.log(`Inside FBL, week ${w.n}: picture ${n} drawn anew (${RAW}${file}), the page edited.`);return;
+ }
  if(action==='approve'){
   if(rec?.status!=='page')throw Error(`Inside FBL, week ${w.n}: no page to approve (${rec?.status||'nothing yet'}); run draft first`);
   inside.weeks[w.start]={...rec,approved:true,approvedAt:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: approved`);
@@ -551,7 +571,7 @@ async function insideFbl(){
  insidePush(inside,`Inside FBL ${w.start}: pictures`);
  const url=k=>out[k]?`${RAW}images/${w.start}/${tag}-${k}.jpg`:null;
  const page=await publishPage(longread,facts,{token:TELEGRAPH,opener:url('opener'),images:longread.chapters.map((_,i)=>url(String(i+1)))});
- const entry={status:'page',url:page,title:longread.title,guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',approved:false,
+ const entry={status:'page',url:page,title:longread.title,images:longread.chapters.map((_,i)=>url(String(i+1))),guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',approved:false,
   caption:longreadCaption(longread,facts,page),opener:out.opener?`images/${w.start}/${tag}-opener.jpg`:null,pictures:Object.keys(out).length,
   cost:Math.round(((rec?.cost||0)+spent)*1e4)/1e4,at:new Date().toISOString(),drafts:[...(rec?.drafts||[]),...rec?.url?[rec.url]:[]]};
  inside.weeks[w.start]=entry;insidePush(inside,`Inside FBL ${w.start}: draft`);
