@@ -50,7 +50,8 @@ Comedy of a 90s action film: tough, ironic, never cruel. Handcuffs, files, stamp
 
 ${CRAFT}`;
 // Words a picture of his never holds (beyond the league's own, picture-prompt.mjs OFF_LIMITS).
-const OUT_OF_BOUNDS=/\b(children|child|kids?|school\w*|punch(es|ed|ing)?)\b/i;
+// An old-school barbershop is not a school.
+const OUT_OF_BOUNDS=/\b(children|child|kids?|(?<!old[- ])school\w*|punch(es|ed|ing)?)\b/i;
 const numbersIn=x=>new Set(JSON.stringify(x).match(/\d+/g)||[]);
 // A protocol's picture written by Claude: {images, prompt, idea}, or null. recent: the ideas of his last pictures.
 export async function writeProtocolPicture(story,{recent=[],root,write,timeoutMs=120e3,log}={}){

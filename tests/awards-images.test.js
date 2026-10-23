@@ -97,6 +97,7 @@ test('awards pictures: Claude\'s prompt is checked: his players\' faces in it, t
  assert.match(bad(good.replace('construction site','courtroom')),/forbidden: courtroom/,'the law stays out of the awards');
  assert.match(bad(good+' Zak Onn watches.'),/forbidden: zak/i,'Зак Онн never appears in the awards');
  assert.deepEqual(momentProblems(good+' No lawyers, judges or courtrooms.',facts,c),[],'a note of what is not there');
+ assert.deepEqual(momentProblems(good.replace('ПРОРАБ ГОДА','СПАСИБО GM STRAP ONN'),facts,c),[],'GM Strap Onn on a sign is not Зак Онн');
  assert.match(bad(good+' Franky Murder despairs.'),/names outside the quotes: Franky Murder/);
  const m=momentMessages(facts,['old idea']);
  assert.match(m,/^Картинка: the flops of the day\.\nНедавние идеи, не повторяй:\n- old idea\nДанные:/);

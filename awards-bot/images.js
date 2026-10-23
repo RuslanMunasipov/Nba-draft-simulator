@@ -60,7 +60,8 @@ ${CRAFT}`;
 export function momentMessages(facts,recent=[]){
  return `Картинка: ${facts.picture}.${recent.length?`\nНедавние идеи, не повторяй:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}`:''}\nДанные:\n${JSON.stringify(facts.players,null,1)}`;
 }
-const FORBIDDEN=/\b(guns?|rifles?|pistols?|weapons?|bullets?|knife|knives|blood\w*|kill\w*|corpses?|death|suicide|drugs?|cocaine|naked|sex\w*|zak|onn|lawyer|courtroom|judge)\b|оружи|пистолет|автомат|стрельб|застрел|кров[ьи]|убий|убил|смерт|труп|наркот|суицид|зак онн|юрист|адвокат|суд[ья]/i;
+// Зак Онн by his first name: GM Strap Onn shares his last one.
+const FORBIDDEN=/\b(guns?|rifles?|pistols?|weapons?|bullets?|knife|knives|blood\w*|kill\w*|corpses?|death|suicide|drugs?|cocaine|naked|sex\w*|zak|lawyer|courtroom|judge)\b|оружи|пистолет|автомат|стрельб|застрел|кров[ьи]|убий|убил|смерт|труп|наркот|суицид|зак онн|юрист|адвокат|суд[ья]/i;
 // Every number a player's sign may carry: his FBL points and his box score's counts.
 const numbersOf=p=>new Set([p.fbl,p.minutes,...Object.values(p.game)].filter(Number.isFinite).map(v=>String(Math.abs(v))));
 // What is wrong with Claude's prompt for these facts and references ([]: it may go to the image model): the players'

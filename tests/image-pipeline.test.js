@@ -164,6 +164,7 @@ test('a protocol\'s picture: the case in words, Zak, the GM, the logo, the new p
  const w2=claude([ZAK+' The kids laugh.',ZAK]);
  await writeProtocolPicture({kind:'violation',team:2,no:7,rules:['time']},{root,write:w2.write,log:()=>{}});
  assert.match(w2.calls[1].prompt,/off limits: kids/,'his own bounds: no children');
+ const w3=claude([ZAK+' An old-school barbershop.']);assert.ok(await writeProtocolPicture({kind:'violation',team:2,no:7,rules:['time']},{root,write:w3.write,log:()=>{}}),'an old-school barbershop is not a school');
 });
 
 test('a statement\'s picture: Claude writes it from the statement and the editor\'s idea, Zak and the commissioner',async()=>{
