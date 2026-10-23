@@ -118,14 +118,14 @@ test('the league\'s people: every photo exists, GMs by team, their looks go into
  for(const p of PEOPLE){assert.ok(fs.existsSync(new URL(`../scripts/assets/${p.photo}`,import.meta.url)),p.id);assert.ok(p.name&&p.en&&p.role,p.id);}
  assert.equal(gmOf(0).id,'franky-murder');assert.equal(gmOf(1).id,'coach-i');assert.equal(gmOf(4).id,'captain-torres-new-win');
  assert.deepEqual([2,3,5,6].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil']);assert.equal(gmOf(7),null,'Strap Onn: no avatar yet');
- assert.match(looks(person('captain-torres-new-win')),/never changes: always a pirate/);assert.match(looks(person('captain-torres-new-win')),/cartoon/);
+ assert.match(looks(person('captain-torres-new-win')),/never changes: always a pirate: a weathered brown leather tricorn hat.*dreadlocks/);assert.doesNotMatch(looks(person('captain-torres-new-win')),/cartoon/,'a real face now (23.10)');
  assert.match(looks(person('coach-i')),/always an emperor/);assert.match(looks(person('coach-i')),/oil painting/);
  assert.match(looks(person('franky-murder')),/the face exactly as in the photo.*usual look, which may change to fit the scene: dark aviator sunglasses/);
  assert.match(looks(person('mike-roffon')),/white gloves and a vintage chrome microphone, always/);
  assert.doesNotMatch(person('mike-roffon').keep,/helmet/,'the helmet is one of his outfits, not his signature');
  const p=zakPicture({kind:'violation',team:4,no:3,seed:'s',rules:['time']});
  assert.deepEqual(p.images.map(i=>i.name),['check.jpg','captain-torres-new-win.jpg','5.jpg'],'his photo, then the Volga Pirates logo');
- assert.match(p.prompt,/GENERAL MANAGER: the exact person from reference image 2.*cartoon/);
+ assert.match(p.prompt,/GENERAL MANAGER: the exact person from reference image 2.*always a pirate/);
  assert.match(p.prompt,/SCENE:.*Captain Torres New-Win \(the general manager, reference image 2\)/);
 });
 
