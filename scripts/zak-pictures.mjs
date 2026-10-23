@@ -30,6 +30,18 @@ const STYLE=`STYLE: photorealistic still from a 90s American action film about l
 
 // A scene: G is the GM (their reference, or an anonymous figure from behind), L the team's logo (null without one), C the
 // case number on the protocol, K the league's commissioner (null without his photo): a scene that names K brings him in.
+// P the newly signed player of an approved deal (league chat, 23.10.2026): Zak and the GM present him, every time a
+// different way.
+const SIGNING=[
+ ({G,L,K,P})=>`SCENE: a packed press conference, camera flashes everywhere. Zak Onn and ${G} unveil the new signing, ${P}: the three stand behind a table full of microphones${L?`, the backdrop behind them printed with ${L}`:''}; ${G} holds up a basketball jersey, beaming, while Zak, arms crossed, looks the player up and down like a suspect in a line-up${K?`; ${K} applauds from the front row`:''}.`,
+ ({G,P})=>`SCENE: an airport arrivals hall at night. ${G} waits behind the barrier holding a hand-written sign reading "WELCOME"; ${P} walks out pulling a suitcase, and Zak Onn, in dark sunglasses, stops him at the gate to check his passport with a magnifying glass before letting him through.`,
+ ({G,L,P})=>`SCENE: the back of a black stretch limousine at night, city lights streaking past the windows. ${P} signs a contract on a briefcase${L?` stamped with ${L}`:''}; ${G} pops a bottle of champagne; Zak Onn holds the signed page up to the light, checking the signature like evidence.`,
+ ({G,P})=>`SCENE: a 90s police precinct booking desk, but friendly. ${P} grins as he presses his fingers onto an ink pad for his background check; Zak Onn compares the prints with a magnifying glass; ${G} leans on the counter with a thumbs-up. A board behind them reads "CLEARED".`,
+ ({G,L,P})=>`SCENE: the team's locker room${L?`, ${L} on the wall`:''}. ${G} proudly hangs a fresh basketball jersey in an empty locker for ${P}, who laughs; Zak Onn sweeps the locker with a flashlight for contraband before giving a curt nod.`,
+ ({G,P})=>`SCENE: a skyscraper rooftop helipad at dusk, a helicopter landing behind, wind everywhere. ${P} steps off the helicopter; ${G} spreads their arms in welcome; Zak Onn stands between them with a clipboard titled "TRANSFER CLEARED", his tie blown over his shoulder.`,
+ ({G,L,P})=>`SCENE: a magazine-cover photo shoot in a studio with softboxes, styled like a 90s action-movie poster. ${P} poses in the centre spinning a basketball on one finger; ${G} on one side${L?` holding a flag with ${L}`:''}, Zak Onn on the other with his arms folded and an "APPROVED" stamp in hand.`,
+ ({G,L,K,P})=>`SCENE: night in the city, a motorcade of black SUVs at the arena entrance. Zak Onn, in sunglasses, opens the car door like a bodyguard for ${P}; ${G} walks ahead on a red carpet${L?` under a huge banner with ${L}`:''}${K?`, and ${K} waits at the door to shake the player's hand`:''}.`,
+];
 const SCENES={
  approved:[
   ({G,L})=>`SCENE: a detective's office at night, neon through the blinds. Zak Onn brings a big red "APPROVED" stamp down on a stack of transfer papers on his desk${L?`, the folder marked with ${L}`:''}, while ${G} grins across the desk. Zak's eyes stay narrow and suspicious: approved, not trusted.`,
@@ -106,20 +118,26 @@ export function sceneOf({kind,rules=[],standing=false,fixed=false,watched=false}
 }
 // The picture of a protocol: kind (approved, check, violation), the team's index (0 to 7), the protocol's number, a seed
 // (its first deal: a protocol always gets the same scene) and the case (sceneOf).
-export function zakPicture({kind,team,no,seed,root,...story}){
+// player: the newly signed player of an approved deal, {name (in Latin letters), image (his ESPN headshot, or null)}.
+export function zakPicture({kind,team,no,seed,root,player=null,...story}){
  const gm=gmOf(team),gmName=gm?.en||LEAGUE_TEAMS[team]?.gm;
+ // An approved deal with its new player is presented, one of the signing scenes; without him, the plain approval.
+ const key=sceneOf({kind,...story}),signing=key==='approved'&&Boolean(player?.name);
  const refs=references([{key:'zak',image:zakPhoto(ZAK_MOOD[kind]||'check',root),what:'Zak Onn, the league lawyer'},
   {key:'gm',image:gmPhoto(team,root),what:`the general manager of the fantasy team${gmName?` (${gmName})`:''}`},
-  {key:'logo',image:teamLogo(team,root),what:'the fantasy team logo'}]);
+  {key:'logo',image:teamLogo(team,root),what:'the fantasy team logo'},
+  {key:'player',image:signing?player.image||null:null,what:`${player?.name}, the newly signed NBA player`}]);
  const G=refs.has.gm?`${gm?.en||'the general manager'} (the general manager, ${refs.has.gm})`:'the team\'s general manager, seen only from behind';
  // Who the GM is and what never changes about them, in a block of its own (the scene names them only).
  const who=refs.has.gm?`GENERAL MANAGER: the exact person from ${refs.has.gm}, face preserved and recognizable${gm?`: ${looks(gm)}`:''}.`:'';
  const L=refs.has.logo?`the team logo from ${refs.has.logo}, reproduced exactly`:null;
- const key=sceneOf({kind,...story}),list=SCENES[key]||SCENES[kind]||SCENES.check,scene=list[hash(`${seed}:${key}`)%list.length];
+ const list=signing?SIGNING:SCENES[key]||SCENES[kind]||SCENES.check,scene=list[hash(`${seed}:${signing?'signing':key}`)%list.length];
+ const P=signing?(refs.has.player?`${player.name} (the newly signed real NBA player, ${refs.has.player})`:`the newly signed real NBA player ${player.name}`):null;
+ const newcomer=signing?`NEW PLAYER: the real NBA player ${player.name}${refs.has.player?`, his face exactly as in ${refs.has.player}`:''}, exactly as he really looks, in smart casual clothes unless the scene gives him a jersey.`:null;
  // The commissioner joins only the scenes written for him, and only with his photo.
- const C=`FBL CASE ${no}`,wantsK=scene({G,L,C,K:KEY}).includes(KEY),k=wantsK?commissioner(refs.images.length+1,root):null;
+ const C=`FBL CASE ${no}`,wantsK=scene({G,L,C,P,K:KEY}).includes(KEY),k=wantsK?commissioner(refs.images.length+1,root):null;
  const all=k?{...refs,images:[...refs.images,k.image],legend:`${refs.legend.replace(/\.$/,'')}; ${k.legend}.`}:refs;
- return {images:all.images,prompt:[all.legend,IDENTITY(refs.has.zak),who,k?.block,scene({G,L,C,K:k?.name||null}),STYLE].filter(Boolean).join('\n\n')};
+ return {images:all.images,prompt:[all.legend,IDENTITY(refs.has.zak),who,newcomer,k?.block,scene({G,L,C,P,K:k?.name||null}),STYLE].filter(Boolean).join('\n\n')};
 }
 
 // The picture of a statement of his (data/announcements/<name>.picture.txt holds its scene): Zak Onn alone, his photo of

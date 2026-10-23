@@ -19,6 +19,8 @@ import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow,fitsCaption} from './telegram-format.mjs';
 import {drawProtocol} from './zak-pictures.mjs';
+import {espnHeadshot} from './image-pipeline.mjs';
+import {espnIdOf} from '../src/headshot.js';
 const [livePath,statePath]=process.argv.slice(2);
 const SITE='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
 const RAW='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/';
@@ -255,9 +257,12 @@ for(const idx of groups.values()){
  const caption=message(...HEAD[v.kind](x.team,v,true),no,teamLine,'',conclusion,'','<i>Протокол — ответом на это сообщение.</i>');
  // His picture with the team's GM, drawn only for a protocol that goes to the chat; his usual photo when it cannot be.
  const draws=configured&&process.env.OPENAI_API_KEY&&(!preview||previewPictures-->0);
+ // An approved protocol presents its new player (the dearest one bought), with his ESPN face when ESPN has it.
+ const signed=v.kind==='approved'&&draws?byId.get([...news].sort((a,b)=>(b.inPrice||0)-(a.inPrice||0))[0]?.inId):null;
+ const player=signed?.name?{name:signed.name.normalize('NFD').replace(/[\u0300-\u036f]/g,''),image:espnIdOf(signed)?await espnHeadshot(espnIdOf(signed)):null}:null;
  const picture=draws
   ?await drawProtocol({kind:v.kind,team:x.team,no:preview?number:issued+1,seed:key(news[0]),rules:rulesOf(v,c),standing:v.standingOnly,fixed:fixed.length>0,
-   watched:Boolean(watched(x.team))},{key:process.env.OPENAI_API_KEY}):null;
+   watched:Boolean(watched(x.team)),player},{key:process.env.OPENAI_API_KEY}):null;
  if(await send(text,{photo:picture||photo(v.kind),caption})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);events.push(...dealEvents(m));}issued++;save();}
 }
 if(!groups.size)console.log('No new league transfers.');
