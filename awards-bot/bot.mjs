@@ -518,18 +518,20 @@ async function insideFbl(){
  // Telegraph page edited to show it; the rest of the draft and its approval stay.
  if(action==='picture'){
   if(rec?.status!=='page'||!rec.opener)throw Error(`Inside FBL, week ${w.n}: no draft with pictures to change`);
-  const n=Number(opt('--chapter')),scene=opt('--scene');if(!(n>=1)||!scene)throw Error('--action picture: --chapter N and --scene TEXT');
+  const n=Number(opt('--chapter')),scene=opt('--scene');if(!(n>=0)||!scene)throw Error('--action picture: --chapter N (0: the opener) and --scene TEXT');
   const prefix=rec.opener.replace(/opener\.jpg$/,''),{facts,longread}=JSON.parse(fs.readFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),'utf8'));
-  if(!longread.chapters[n-1])throw Error(`--chapter: the draft has ${longread.chapters.length} chapters`);
+  if(n>0&&!longread.chapters[n-1])throw Error(`--chapter: the draft has ${longread.chapters.length} chapters`);
   const guest=facts.guest.kind==='GM'?{kind:'gm',team:LEAGUE_TEAMS.findIndex(t=>t.name===facts.guest.team)}:facts.guest.kind==='комиссар лиги'?{kind:'commissioner'}:null;
   if(!guest)throw Error('--action picture: a player guest is not supported yet');
   const r=await generate({...longreadPicture(scene,guest,{mikePhoto:readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto:await guestReference(guest)}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
-  const file=`${prefix}${n}-${Date.now().toString(36)}.jpg`;fs.writeFileSync(path.join(INSIDE_DIR,file),r.png);
-  const images=Object.assign(longread.chapters.map((_,i)=>rec.images?.[i]||`${RAW}${prefix}${i+1}.jpg`),{[n-1]:`${RAW}${file}`});
-  longread.chapters[n-1].picture=scene;fs.writeFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),JSON.stringify({facts,longread},null,1));
-  insidePush(inside,`Inside FBL ${w.start}: picture ${n}`);
-  await editPage(rec.url,longread,facts,{token:TELEGRAPH,opener:`${RAW}${rec.opener}`,images});
-  inside.weeks[w.start]={...rec,images,caption:longreadCaption(longread,facts,rec.url),cost:Math.round(((rec.cost||0)+cost(r.usage))*1e4)/1e4};
+  const file=`${prefix}${n||'opener'}-${Date.now().toString(36)}.jpg`;fs.writeFileSync(path.join(INSIDE_DIR,file),r.png);
+  const images=longread.chapters.map((_,i)=>rec.images?.[i]||`${RAW}${prefix}${i+1}.jpg`);if(n>0)images[n-1]=`${RAW}${file}`;
+  const opener=n>0?rec.opener:file;
+  if(n>0)longread.chapters[n-1].picture=scene;else longread.opener=scene;
+  fs.writeFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),JSON.stringify({facts,longread},null,1));
+  insidePush(inside,`Inside FBL ${w.start}: picture ${n||'opener'}`);
+  await editPage(rec.url,longread,facts,{token:TELEGRAPH,opener:`${RAW}${opener}`,images});
+  inside.weeks[w.start]={...rec,images,opener,caption:longreadCaption(longread,facts,rec.url),cost:Math.round(((rec.cost||0)+cost(r.usage))*1e4)/1e4};
   insidePush(inside,`Inside FBL ${w.start}: picture ${n} on the page`);
   console.log(`Inside FBL, week ${w.n}: picture ${n} drawn anew (${RAW}${file}), the page edited.`);return;
  }

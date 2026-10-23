@@ -29,7 +29,7 @@ on:
         required: false
         default: ''
       chapter:
-        description: 'For picture: the chapter whose picture is drawn anew (1, 2, ...)'
+        description: 'For picture: the chapter whose picture is drawn anew (1, 2, ...; 0: the opener)'
         required: false
         default: ''
       scene:
