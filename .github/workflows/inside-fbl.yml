@@ -7,7 +7,8 @@ name: Inside FBL
 # the page, then waits for 18:00 and posts; the later ones see the week sent and stop. State and pictures live on the
 # branch data/inside-fbl (the pictures are the page's, by their raw URLs).
 # By hand: a week (any of its US days; empty: the one of yesterday), a guest (gm:<1-8>, player:<ESPN id> or
-# commissioner; empty: the week's story picks one) and "send" (unticked: only the page, its link in the run's summary).
+# commissioner; empty: the week's story picks one) and "send" (unticked: only the page, its link in the run's summary,
+# held for review: the scheduled runs leave it, a run by hand with "send" posts it; "again" writes it anew).
 on:
   schedule:
     - cron: '7 11,12,13,14 * * 5'
@@ -22,7 +23,11 @@ on:
         required: false
         default: ''
       send:
-        description: 'Post it into the league chat now (unticked: only the Telegraph page)'
+        description: 'Post it into the league chat now (unticked: only the Telegraph page, held for review)'
+        type: boolean
+        default: false
+      again:
+        description: 'Write and draw the week anew (a page not sent yet is replaced)'
         type: boolean
         default: false
 permissions:
@@ -62,6 +67,7 @@ jobs:
           GUEST: ${{ inputs.guest }}
           SEND: ${{ (github.event_name == 'schedule' || inputs.send) && '--send' || '' }}
           AT: ${{ github.event_name == 'schedule' && '--at' || '' }}
+          AGAIN: ${{ inputs.again && '--again' || '' }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -72,4 +78,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           node awards-bot/bot.mjs --inside-fbl --state "$RUNNER_TEMP/awards" --inside "$RUNNER_TEMP/inside"
-          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} $SEND $AT
+          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} $SEND $AT $AGAIN

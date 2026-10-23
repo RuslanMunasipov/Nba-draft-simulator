@@ -24,7 +24,9 @@
 //                                                   yesterday: on Friday, Monday to Thursday): written, drawn, its pictures pushed to the
 //                                                   branch data/inside-fbl (the --inside DIR, a clone of it), the
 //                                                   Telegraph page published; --send posts the opener and the link
-//                                                   (--at: not before Friday 18:00 Moscow). G: gm:<1-8>,
+//                                                   (--at: not before Friday 18:00 Moscow; a page made
+//                                                   without --send is held for review until a run with
+//                                                   --send and no --at; --again: written anew). G: gm:<1-8>,
 //                                                   player:<ESPN id> or commissioner
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--picture-only] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
@@ -487,7 +489,10 @@ async function insideFbl(){
  if(!archive.lines.some(l=>l.d>=w.start&&l.d<=w.end))throw Error(`Inside FBL: no archived games of the week ${w.start} – ${w.end}`);
  if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)],['OPENAI_API_KEY',OPENAI_KEY]].filter(x=>!x[1]).map(x=>x[0]);
   if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
- let entry=rec?.status==='page'&&rec.url?rec:null;
+ // A page made by hand without send waits for the owner's review: the scheduled runs (--at) leave it, a run by hand with
+ // send posts it; --again writes and draws the week anew.
+ if(send&&flag('--at')&&rec?.hold&&rec.status==='page'){console.log(`Inside FBL, week ${w.n}: held for review (${rec.url}); a run by hand with send posts it.`);return;}
+ let entry=rec?.status==='page'&&rec.url&&!flag('--again')?rec:null;
  if(!entry){
   const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers);
   const data=weekData(archive.lines,w.end,{table,who:ctx.who,rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
@@ -507,7 +512,7 @@ async function insideFbl(){
   const url=k=>out[k]?`${RAW}images/${w.start}/${k}.jpg`:null;
   const page=await publishPage(longread,facts,{token:TELEGRAPH,opener:url('opener'),images:longread.chapters.map((_,i)=>url(String(i+1)))});
   entry={status:'page',url:page,title:longread.title,guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',
-   caption:longreadCaption(longread,facts,page),opener:out.opener?`images/${w.start}/opener.jpg`:null,pictures:Object.keys(out).length,cost:Math.round(spent*1e4)/1e4,at:new Date().toISOString()};
+   caption:longreadCaption(longread,facts,page),opener:out.opener?`images/${w.start}/opener.jpg`:null,pictures:Object.keys(out).length,cost:Math.round(spent*1e4)/1e4,at:new Date().toISOString(),...send?{}:{hold:true}};
   inside.weeks[w.start]=entry;insidePush(inside,`Inside FBL ${w.start}: page`);
   console.log(`Inside FBL: ${page} (${entry.pictures} pictures, $${spent.toFixed(3)}).`);
   if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL, неделя ${w.n}
@@ -526,7 +531,7 @@ ${entry.caption}
  if(opener){const body=new FormData();body.append('chat_id',String(CHAT));body.append('caption',entry.caption);body.append('parse_mode','HTML');
   body.append('photo',new Blob([opener],{type:'image/jpeg'}),'inside-fbl.jpg');await telegram(MIKE,'sendPhoto',body);}
  else await telegram(MIKE,'sendMessage',{chat_id:CHAT,text:entry.caption,parse_mode:'HTML'});
- inside.weeks[w.start]={...entry,status:'sent',sentAt:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: sent`);
+ inside.weeks[w.start]={...entry,status:'sent',hold:false,sentAt:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: sent`);
  console.log(`Inside FBL, week ${w.n}: sent.`);
 }
 
