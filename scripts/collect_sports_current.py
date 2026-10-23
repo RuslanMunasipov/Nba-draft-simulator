@@ -802,13 +802,14 @@ def parse_team(page):
 
 
 def parse_journal(page):
-    """Transfer journal rows, oldest first: {date, buy:{name,price}, sell:{name,price}|None}."""
+    """Transfer journal rows, oldest first: {date, buy:{name,price}, sell:{name,price}|None}. A player whose card Sports.ru
+    emptied has no name in any row («куплен за 1400»): his side keeps its price with the name '' (name_blanks)."""
     m = re.search(r'<td>Покупки</td>.*?<tbody>(.*?)</tbody>', page, re.S)
     if not m:
         return []
     def side(c):
-        mm = re.search(r'(?:куплен|продан)\s+(.+?)\s+за\s+(\d+)', cell(c))
-        return {'name': mm.group(1), 'price': int(mm.group(2))} if mm else None
+        mm = re.search(r'(?:куплен|продан)\s+(?:(.+?)\s+)?за\s+(\d+)', cell(c))
+        return {'name': mm.group(1) or '', 'price': int(mm.group(2))} if mm else None
     rows = []
     for row in re.findall(r'<tr>(.*?)</tr>', m.group(1), re.S):
         cs = re.findall(r'<td[^>]*>(.*?)</td>', row, re.S)
@@ -818,6 +819,33 @@ def parse_journal(page):
         rows.append({'date': f'20{y}-{mth}-{d}', 'buy': side(cs[1]), 'sell': side(cs[2]) if len(cs) > 2 else None})
     # The page lists newest first.
     return rows[::-1]
+
+
+def name_blanks(old, rows):
+    """Names the blank sides of a journal (parse_journal). Sports.ru empties a player's name in every row when it empties
+    his card (Keaton Wagler, 23.10.2026: no name, club or price, gone from the team's roster JSON while the team's value
+    still counts him); a journal with such rows read as fewer events and was kept as a failed read, so the team's later
+    deals never came in. A blank sale or purchase takes the name of the previous journal's event of the same date, side
+    and price that the page no longer lists by name; a blank still left (a new deal with that player) takes the name the
+    others resolved to, when it is one. Without either it stays blank: the site reports such a row."""
+    events = lambda rs: Counter(journal_event(side, r) for r in rs or [] for side in ('sell', 'buy') if r.get(side) and r[side].get('name'))
+    missing = events(old) - events(rows)
+    out, found = [], set()
+    for row in rows:
+        row = dict(row)
+        for side in ('sell', 'buy'):
+            if row.get(side) and not row[side]['name']:
+                key = next((k for k in missing if missing[k] > 0 and json.loads(k)[:2] == [row['date'], side]
+                            and json.loads(k)[2]['price'] == row[side]['price']), None)
+                if key:
+                    missing[key] -= 1
+                    row[side] = {**row[side], 'name': json.loads(key)[2]['name']}
+                    found.add(row[side]['name'])
+        out.append(row)
+    if len(found) == 1:
+        name = found.pop()
+        out = [{**row, **{side: {**row[side], 'name': name} for side in ('sell', 'buy') if row.get(side) and not row[side]['name']}} for row in out]
+    return out
 
 
 def journal_event(side, row):
@@ -959,7 +987,7 @@ def collect_teams(previous=None, errors=None):
             profile, journal, roster = fetch(TEAM_URL.format(id=sid)), fetch(JOURNAL_URL.format(id=sid)), fetch(ROSTER_URL.format(id=sid))
             if profile is None or journal is None:
                 raise RuntimeError('page not found')
-            entry = {'sportsTeamId': sid, **parse_team(profile), 'journal': parse_journal(journal)}
+            entry = {'sportsTeamId': sid, **parse_team(profile), 'journal': name_blanks((old or {}).get('journal'), parse_journal(journal))}
             if roster:
                 entry['roster'] = parse_roster(roster)
         except Exception as e:  # noqa: BLE001

@@ -116,6 +116,25 @@ class SportsCurrentTest(unittest.TestCase):
         self.assertEqual(teams['0']['journal'], old['0']['journal'])
         self.assertNotEqual(teams['0']['journalReadAt'], 't0')
 
+    def test_a_player_whose_card_sports_ru_emptied_keeps_his_name_and_the_journal_its_events(self):
+        # Karagali Brothers, 23.10.2026: Wagler's name is gone from every row of the page («куплен за 1400»).
+        old = [{'date': '2026-10-18', 'buy': {'name': 'Уоглер', 'price': 1400}, 'sell': None},
+               {'date': '2026-10-20', 'buy': {'name': 'Уайт', 'price': 1800}, 'sell': {'name': 'Уоглер', 'price': 1400}, 'seenAt': 't1'},
+               {'date': '2026-10-20', 'buy': {'name': 'Уоглер', 'price': 1400}, 'sell': {'name': 'Уайт', 'price': 1800}, 'seenAt': 't2'}]
+        page = """<td>Покупки</td><tbody>
+<tr><td>23.10.26</td><td>куплен Джером за <span>1448</span></td><td>продан за <span>1400</span></td></tr>
+<tr><td>20.10.26</td><td>куплен за <span>1400</span></td><td>продан Уайт за <span>1800</span></td></tr>
+<tr><td>20.10.26</td><td>куплен Уайт за <span>1800</span></td><td>продан за <span>1400</span></td></tr>
+<tr><td>18.10.26</td><td>куплен за <span>1400</span></td><td></td></tr></tbody>"""
+        rows = collector.parse_journal(page)
+        self.assertEqual(rows[0]['buy'], {'name': '', 'price': 1400})
+        named = collector.name_blanks(old, rows)
+        self.assertEqual(collector.journal_events(named[:3]), collector.journal_events(old))
+        # A new deal with him takes the name the old rows resolved to.
+        self.assertEqual(named[3], {'date': '2026-10-23', 'buy': {'name': 'Джером', 'price': 1448}, 'sell': {'name': 'Уоглер', 'price': 1400}})
+        # Without a previous journal nothing names him.
+        self.assertEqual(collector.name_blanks(None, rows), rows)
+
     def test_games_only_current_season(self):
         games = collector.parse_games(GAMES)
         # This table has no box score: the played row keeps Sports.ru's 48 and its result (home first: 120 : 110 at home,
