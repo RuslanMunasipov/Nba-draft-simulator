@@ -8,8 +8,18 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {LEAGUE_TEAMS} from '../src/teams.js';
-import {references,zakPhoto,gmPhoto,gmOf,person,looks,teamLogo,generate,cost} from './image-pipeline.mjs';
+import {references,zakPhoto,gmPhoto,gmOf,person,looks,teamLogo,generate,cost,PEOPLE,readImage,ASSETS} from './image-pipeline.mjs';
 
+// The league's commissioner as the n-th reference of a picture: his photo, its legend, his block, his name in a scene;
+// null without his photo.
+const KEY='\u0000K';
+function commissioner(n,root){
+ const p=PEOPLE.find(x=>x.role==='commissioner'),image=p?readImage(path.join(root||ASSETS,p.photo)):null;
+ if(!image)return null;
+ const ref=`reference image ${n}`;
+ return {image,legend:`${ref} is Adam Silverov, the league commissioner`,name:`${p.en} (the league commissioner, ${ref})`,
+  block:`COMMISSIONER: the exact person from ${ref}, face preserved and recognizable: ${looks(p)}.`};
+}
 const hash=seed=>{let h=0;for(const ch of String(seed))h=(h*31+ch.codePointAt(0))>>>0;return h;};
 // His photo of each verdict: the red-cap ones (violation.jpg has a navy cap, the prompt keeps him in the red one).
 export const ZAK_MOOD={approved:'approved',check:'check',violation:'check'};
@@ -19,11 +29,11 @@ const IDENTITY=zak=>`ZAK ONN (highest priority): the man from ${zak}. Preserve h
 const STYLE=`STYLE: photorealistic still from a 90s American action film about law and order, cinematic contrast, 35mm lens, shallow depth of field. Square composition. The league is a basketball league: any sports props (balls, jerseys, trophies, helmets) are basketball only. The only text in the picture: the cap embroidery and the exact words given in quotes, spelled exactly. No other captions or watermarks.`;
 
 // A scene: G is the GM (their reference, or an anonymous figure from behind), L the team's logo (null without one), C the
-// case number on the protocol.
+// case number on the protocol, K the league's commissioner (null without his photo): a scene that names K brings him in.
 const SCENES={
  approved:[
   ({G,L})=>`SCENE: a detective's office at night, neon through the blinds. Zak Onn brings a big red "APPROVED" stamp down on a stack of transfer papers on his desk${L?`, the folder marked with ${L}`:''}, while ${G} grins across the desk. Zak's eyes stay narrow and suspicious: approved, not trusted.`,
-  ({G,L})=>`SCENE: a press-photo handshake in front of a backdrop${L?` covered with ${L}`:''}. Zak Onn shakes hands with ${G}, smiling for the cameras through clenched teeth, his other hand resting on the handcuffs at his belt, just in case.`,
+  ({G,L,K})=>`SCENE: a press-photo handshake in front of a backdrop${L?` covered with ${L}`:''}. Zak Onn shakes hands with ${G}, smiling for the cameras through clenched teeth, his other hand resting on the handcuffs at his belt, just in case${K?`; ${K} stands between them, applauding politely for the cameras`:''}.`,
   ({G,L})=>`SCENE: a police checkpoint on a highway at night, red and blue lights. Zak Onn shines a flashlight into a convertible${L?` with ${L} on its door`:''} and waves it through with two fingers; ${G} at the wheel salutes nervously.`,
  ],
  check:[
@@ -81,7 +91,7 @@ const SCENES={
  violation:[
   ({G,L})=>`SCENE: the team's headquarters, camera flashes exploding. Zak Onn snaps handcuffs on ${G} right in front of a giant banner${L?` with ${L}`:''}, staring down the lens with total contempt.`,
   ({G,L,C})=>`SCENE: the team's office door${L?` with ${L} on the glass`:''}, sealed with yellow tape reading "FBL CRIME SCENE - DO NOT CROSS". Zak Onn sips coffee in front of the tape holding a file labelled "${C}"; behind the tape, ${G} pleads with both hands. Zak does not care.`,
-  ({G,L,C})=>`SCENE: a wood-panelled courtroom. ${G} sits in the defendant's chair; Zak Onn, the prosecutor, points at them with full force, an evidence board behind him showing "${C}"${L?` and ${L}`:''}. Expression: righteous fury.`,
+  ({G,L,C,K})=>`SCENE: a wood-panelled courtroom. ${G} sits in the defendant's chair; Zak Onn, the prosecutor, points at them with full force, an evidence board behind him showing "${C}"${L?` and ${L}`:''}${K?`; ${K} presides from the judge's bench, gavel raised`:''}. Expression: righteous fury.`,
  ],
 };
 
@@ -106,14 +116,22 @@ export function zakPicture({kind,team,no,seed,root,...story}){
  const who=refs.has.gm?`GENERAL MANAGER: the exact person from ${refs.has.gm}, face preserved and recognizable${gm?`: ${looks(gm)}`:''}.`:'';
  const L=refs.has.logo?`the team logo from ${refs.has.logo}, reproduced exactly`:null;
  const key=sceneOf({kind,...story}),list=SCENES[key]||SCENES[kind]||SCENES.check,scene=list[hash(`${seed}:${key}`)%list.length];
- return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),who,scene({G,L,C:`FBL CASE ${no}`}),STYLE].filter(Boolean).join('\n\n')};
+ // The commissioner joins only the scenes written for him, and only with his photo.
+ const C=`FBL CASE ${no}`,wantsK=scene({G,L,C,K:KEY}).includes(KEY),k=wantsK?commissioner(refs.images.length+1,root):null;
+ const all=k?{...refs,images:[...refs.images,k.image],legend:`${refs.legend.replace(/\.$/,'')}; ${k.legend}.`}:refs;
+ return {images:all.images,prompt:[all.legend,IDENTITY(refs.has.zak),who,k?.block,scene({G,L,C,K:k?.name||null}),STYLE].filter(Boolean).join('\n\n')};
 }
 
 // The picture of a statement of his (data/announcements/<name>.picture.txt holds its scene): Zak Onn alone, his photo of
 // the given mood the only reference.
+// {commissioner} in the scene brings in the league's commissioner, Adam Silverov, with his photo (without it, the words
+// "the league commissioner").
 export function zakStatement({scene,mood='check',root}){
  const refs=references([{key:'zak',image:zakPhoto(mood,root),what:'Zak Onn, the league lawyer'}]);
- return {images:refs.images,prompt:[refs.legend,IDENTITY(refs.has.zak),`SCENE: ${scene.trim()}`,STYLE].filter(Boolean).join('\n\n')};
+ const k=scene.includes('{commissioner}')?commissioner(refs.images.length+1,root):null;
+ const legend=k?`${refs.legend.replace(/\.$/,'')}; ${k.legend}.`:refs.legend;
+ const text=scene.trim().replaceAll('{commissioner}',k?.name||'the league commissioner');
+ return {images:k?[...refs.images,k.image]:refs.images,prompt:[legend,IDENTITY(refs.has.zak),k?.block,`SCENE: ${text}`,STYLE].filter(Boolean).join('\n\n')};
 }
 // Draws a statement's picture into a temporary PNG; null when it could not be drawn (his photo goes instead).
 export async function drawStatement(args,{key,root,timeoutMs=120e3,attempts=2}={}){
