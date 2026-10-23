@@ -155,7 +155,7 @@ async function voice(v,c,moves,team,money,t,fixed){
  const deal={left:t.left,used:t.used,bank:money,moves:moves.length,maxPrice:Math.max(...moves.map(m=>m.inPrice||0))};
  if(Date.now()<claudeUntil){
   try{
-   const z=await writeVoice(voiceFacts({kind:v.kind,rules,watched:w,standing:v.standingOnly,fixed,team,circumstance:circumstance(deal),joke:tellsJoke(seed)}),{timeoutMs:45e3});
+   const z=await writeVoice(voiceFacts({kind:v.kind,rules,watched:w,standing:v.standingOnly,fixed,team,circumstance:circumstance(deal),joke:tellsJoke(seed)}),{timeoutMs:90e3});
    if(z)return {lines:z.lines.map(l=>typeof l==='string'?esc(l):`<i>${esc(l.extra)}</i>`),signature:esc(z.signature)};
   }catch(e){claudeUntil=0;console.warn(`Зак Онн (Claude) unavailable (${e.message}): his lines from the bank.`);}
  }
