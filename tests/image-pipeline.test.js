@@ -236,3 +236,14 @@ test('a statement without a scene of its own: Claude writes one from the stateme
  assert.match(zakStatement({scene}).prompt,/Adam Silverov \(the league commissioner, reference image 2\) holds a ledger/);
  assert.equal(await writeStatementScene(statement,{write:async()=>({data:{scene:'no'}}),log:()=>{}}),null);
 });
+
+test('basketball and photography words are not violence: a scene or prompt with shooting, a shot or dead silence passes',async()=>{
+ const {sceneProblems,sceneFacts}=await import('../scripts/zak-pictures.mjs');
+ const {promptProblems}=await import('../scripts/picture-prompt.mjs');
+ const f=sceneFacts({kind:'violation',team:2,no:9,rules:['time']});
+ const s='A wide shot of an empty gym in dead silence at night. Zak Onn catches {GM} shooting free throws after the 22:00 curfew.';
+ assert.deepEqual(sceneProblems(s,f),[]);
+ assert.deepEqual(promptProblems(`${s.replace('{GM}','{MIKE}')} A jump shot, a dead-eye shooter, 35mm.`,{required:['MIKE'],allowed:['MIKE']}),[]);
+ assert.match(sceneProblems(s+' He pulls a gun.',f).join(),/out of bounds: gun/);
+ assert.match(promptProblems(`${s.replace('{GM}','{MIKE}')} A rifle on the wall.`,{required:['MIKE'],allowed:['MIKE']}).join(),/off limits: rifle/);
+});
