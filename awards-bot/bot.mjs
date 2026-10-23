@@ -491,7 +491,7 @@ async function insideFbl(){
   if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
  // A page made by hand without send waits for the owner's review: the scheduled runs (--at) leave it, a run by hand with
  // send posts it; --again writes and draws the week anew.
- if(send&&flag('--at')&&rec?.hold&&rec.status==='page'){console.log(`Inside FBL, week ${w.n}: held for review (${rec.url}); a run by hand with send posts it.`);return;}
+ if(send&&flag('--at')&&rec?.hold){console.log(`Inside FBL, week ${w.n}: held for review (${rec.url}); a run by hand with send posts it.`);return;}
  let entry=rec?.status==='page'&&rec.url&&!flag('--again')?rec:null;
  if(!entry){
   const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers);
@@ -502,7 +502,8 @@ async function insideFbl(){
   console.log(`Inside FBL, week ${w.n} (${w.start} – ${w.end}): ${facts.guest.name}, ${guest.story.id}.`);
   const {longread,problems,tries}=await writeLongread(facts);
   if(problems.length){console.warn(`Inside FBL: still wrong after ${tries} tries (${problems.join('; ')}): not published.`);
-   inside.weeks[w.start]={status:'dropped',guest:{key:guest.key,name:facts.guest.name},problems,at:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: dropped`);
+   const dir=path.join(INSIDE_DIR,'images',w.start);fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'dropped.json'),JSON.stringify({facts,longread,problems},null,1));
+   inside.weeks[w.start]={status:'dropped',guest:{key:guest.key,name:facts.guest.name},problems,at:new Date().toISOString(),...send?{}:{hold:true}};insidePush(inside,`Inside FBL ${w.start}: dropped`);
    process.exitCode=1;return;}
   const {out,spent}=OPENAI_KEY?await longreadPictures(longread,guest):{out:{},spent:0};
   const dir=path.join(INSIDE_DIR,'images',w.start);fs.mkdirSync(dir,{recursive:true});
