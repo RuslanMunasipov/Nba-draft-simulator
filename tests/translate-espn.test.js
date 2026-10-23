@@ -10,6 +10,9 @@ test('a translation keeps the numbers of its original, in any order and with a d
  assert.ok(!sameNumbers('four rebounds','4 подбора'),'a word turned into a digit');
  assert.ok(!sameNumbers('out 2-4 weeks','не сыграет 2-3 недели'),'a changed number');
  assert.deepEqual(numbersOf('7-13, 9.5'),['13','7','9.5']);
+ // The 3 of a three-pointer is a word.
+ assert.ok(sameNumbers('12 points (5-16 FG, 1-2 3Pt, 1-2 FT) and a 3-pointer','12 очков (5/16 с игры, 1/2 трёхочковых, 1/2 штрафных) и трёхочковый'));
+ assert.ok(sameNumbers('1-4 3PT','1/4 3-очковых'));assert.ok(!sameNumbers('3 steals','перехваты'),'a real 3 still counts');
 });
 
 test('a batch keeps only the translations whose numbers match and that are there',async()=>{
