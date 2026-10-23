@@ -78,9 +78,9 @@ test('a season-ending report reads "до конца сезона", not ESPN\'s p
  const furphy={id:2,name:'Johnny Furphy',sportsId:'2',espnId:'2',sportsClub:'B',positions:['SG'],price:1500,forecast:{meanPerGame:12,games:0}};
  const report={status:'Out',fantasyStatus:'OUT',returnDate:'2027-01-02',comment:'Furphy was diagnosed with a torn right ACL on Monday and will miss the remainder of the season.'};
  const flags=explainSwap(swapCtx([seller,furphy],[['2',report]]),1,2,'season').flags;
- assert.ok(flags.includes('Johnny Furphy: Out до конца сезона — проверь новости перед покупкой.'),flags.join('\n'));
+ assert.ok(flags.includes('Johnny Furphy: не играет до конца сезона — проверь новости перед покупкой.'),flags.join('\n'));
  const dated=explainSwap(swapCtx([seller,furphy],[['2',{...report,comment:'Furphy (knee) is out until January.'}]]),1,2,'season').flags;
- assert.ok(dated.includes('Johnny Furphy: Out до 02.01 — проверь новости перед покупкой.'));
+ assert.ok(dated.includes('Johnny Furphy: не играет до 02.01 — проверь новости перед покупкой.'));
 });
 
 // ---------- A shadowed holding is worth nothing to the later buyer's advice ----------

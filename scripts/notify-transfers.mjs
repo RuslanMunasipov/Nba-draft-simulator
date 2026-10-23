@@ -9,7 +9,9 @@ import path from 'node:path';
 import {seasonRosters,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents,transfersThisWeek,moscowToday,marketAlerts,bestPackage,parseInjuries,current,allTransfers,transferVerdict,perGame,acquisition,injuredTargets,gameWeeks,withMarket,withBoxScores,explainSwap,CONFIDENT,DOUBTFUL,WEEKLY_TRANSFERS} from '../src/season.js';
 import {packageVerdict,dealGroups,takenIds,contestedBy,transferWindow,confidencePercent,confidenceLevel} from '../src/season.js';
 import {transferPlan,planValue} from '../src/transfer-plan.js';
-import {count} from '../src/format.js';
+import {count,injuryStatus} from '../src/format.js';
+// ESPN's status of a report in Russian («Не играет», «Под вопросом»).
+const statusRu=i=>injuryStatus(i?.status).label.toLowerCase();
 import {signed} from './telegram-format.mjs';
 import {playerInsights} from '../src/insights.js';
 import {teamLabel} from '../src/teams.js';
@@ -61,7 +63,7 @@ const hours=transferWindow(),when=hours.open?'':` · сделать с ${hours.f
 // left this week cannot buy him first.
 const rivalsFor=id=>contestedBy(ctx,{team,playerId:id,bankOf,sort}).filter(t=>leftOf(t)>0);
 const hurt=ctx.rosters[team].map(id=>byId.get(id)).filter(p=>p&&ctx.injuries.get(String(p.espnId)))
- .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${i.status}${outUntil(i)}`};});
+ .map(p=>{const i=ctx.injuries.get(String(p.espnId));return {key:`${p.id}:${i.status}:${i.returnDate}`,text:`${p.name} — ${statusRu(i)}${outUntil(i)}`};});
 const keys=[...budget.map(w=>'budget:'+w.message),...alerts.map(a=>`${a.outId}>${a.player.id}`),...(pack?[pack.pairs.map(x=>`${x.out.id}>${x.in.id}`).sort().join('+')]:[])];
 // Injuries of my roster are news only from a fresh report: an old or missing one neither adds nor clears them.
 const fresh=keys.filter(k=>!previous.sent?.includes(k)),freshHurt=injuryState.fresh?hurt.filter(h=>!previous.injuries?.includes(h.key)):[];
@@ -90,7 +92,7 @@ const dealLines=d=>d.pack?[gains(d.pack.gains.season,d.pack.gains.month),...edge
 async function brief(p){
  if(!p)return [];
  const {pros,cons}=playerInsights(p,players),injury=ctx.injuries.get(String(p.espnId)),n=await headline(p);
- return [`<b>${esc(p.name)}</b> · ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${esc(injury.status)}`:''}`,
+ return [`<b>${esc(p.name)}</b> · ${perGame(p,live.players?.[p.sportsId]).value.toFixed(1)} ФО/матч${injury?` · 🩹 ${esc(statusRu(injury))}`:''}`,
   ...pros.slice(0,1).map(x=>'✅ '+esc(x)),...cons.slice(0,1).map(x=>'⚠️ '+esc(x)),...(n?[n]:[])];
 }
 
@@ -226,7 +228,7 @@ const back=!left||!feedOk?[]:(previous.watch||[]).map(id=>byId.get(id)).filter(p
 for(const x of back){const why=dealWhy(x,x.player.id),head=returnHead(why.confidence,{sure:CONFIDENT,maybe:DOUBTFUL,now:true,when});if(!head)continue;
  await report(message(`✅ <b>${esc(x.player.name)} вернулся в строй</b> · ${x.player.price}`,'',head,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>{});}
 for(const x of soon){const why=dealWhy(x,x.player.id),head=returnHead(why.confidence,{sure:CONFIDENT,maybe:DOUBTFUL,when});if(!head)continue;
- await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(x.injury.status)}${outUntil(x.injury)}`,'',
+ await report(message(`🔜 <b>${esc(x.player.name)} скоро вернётся</b> · ${esc(statusRu(x.injury))}${outUntil(x.injury)}`,'',
  `${head} · ${sureness(why).toLowerCase()}`,dealLines(x),details([...whyLines(why),...(await brief(x.player)).slice(1)])),()=>state.returns.push(returnKey(x.player.id)));}
 // Remember what was already reported so the same advice is not sent again. Until Telegram is configured nothing
 // counts as reported: the first messages arrive once the secrets are set. Transfers already in the journal count as seen.

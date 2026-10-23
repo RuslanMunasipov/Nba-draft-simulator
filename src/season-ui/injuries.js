@@ -3,11 +3,14 @@ import {writeStored} from '../storage.js';
 import {teamName} from '../teams.js';
 import {horizons,playerOutlook,seasonEnding} from '../season.js';
 import {dec,ddmm,stampMsk} from '../format.js';
-import {$,bodyPart,button,clubOf,el,errorBlock,injuries,injuryInfo,injuryScope,league,live,loading,loadingBlock,openRows,owners,players,renderSeason,setInjuryScope,setReplacing,setTeam,setView,src,team} from './state.js';
+import {textRu,injuryDetail} from '../translate.js';
+import {$,bodyPart,button,clubOf,el,errorBlock,injuries,injuryInfo,injuryScope,league,live,loading,loadingBlock,loadTranslations,openRows,owners,players,renderSeason,setInjuryScope,setReplacing,setTeam,setView,src,team,translations} from './state.js';
 
 // ---------- Injuries ----------
 export function injuriesView(ctx){
  if(src.injuries==='idle'||(loading&&!injuries.size))return [loadingBlock(null)];
+ // The comments in Russian: drawn again once the translations arrive.
+ if(!translations)loadTranslations().then(t=>{if(t)renderSeason();});
  if(src.injuries==='error')return [errorBlock('Нет данных о травмах','ESPN не ответил. Список травм появится после обновления.')];
  const own=owners(ctx),byEspn=new Map(players.filter(p=>p.espnId).map(p=>[String(p.espnId),p]));
  const all=[...injuries.entries()].map(([id,i])=>({i,p:byEspn.get(id)}));
@@ -24,11 +27,13 @@ export function injuriesView(ctx){
   if(g!==last&&injuryScope==='league'){const h=el('h3',teamName(g));if(g===0)h.append(' ',el('span','ты','chip chip--accent'));list.append(h);last=g;}
   const info=injuryInfo(r.p),item=el('div',null,'sp-injury-item'+(info.level==='out'?' out':'')),head=el('div',null,'head');
   head.append(el('strong',r.p.name),el('span',info.text,'chip '+(info.level==='out'?'chip--danger':'chip--warn')));
-  item.append(head,el('small',[r.p.team,bodyPart(r.i.type),r.i.date?'отчёт '+ddmm(String(r.i.date).slice(0,10)):''].filter(Boolean).join(' · ')));
+  item.append(head,el('small',[r.p.team,bodyPart(r.i.type),injuryDetail(r.i.detail),r.i.date?'отчёт '+ddmm(String(r.i.date).slice(0,10)):''].filter(Boolean).join(' · ')));
   if(g===0){const o=playerOutlook(r.p,{...ctx,running:new Map()});const missed=Math.max(0,(live?.clubs?.[clubOf(r.p)]||[]).filter(x=>x.date>=ctx.today&&x.date<=horizons(ctx).week.to&&!x.score&&!x.gone).length-o.week.games);
    if(missed>=.5)item.append(el('p',`Пропустит ~${dec(missed)} матча до конца недели.`));
    item.append(button('Найти замену',()=>{setTeam(0);writeStored('fbl-season-team','0');setReplacing(r.p.id);openRows.add(r.p.id);setView('teams');},'btn-ghost btn-sm'));}
-  if(r.i.comment){const c=el('details',null,'inline');c.append(el('summary','Комментарий ESPN'),el('p',r.i.comment));c.lang='en';item.append(c);}
+  if(r.i.comment){const ru=textRu(translations,r.i.comment),c=el('details',null,'inline');c.append(el('summary','Комментарий ESPN'),el('p',ru.text));
+   if(ru.translated){const o=el('details',null,'inline');o.append(el('summary','Оригинал'),el('p',r.i.comment));o.lang='en';c.append(o);}else c.lang='en';
+   item.append(c);}
   list.append(item);}
  if(!rows.length)list.append(el('p',injuryScope==='league'?'В составах FBL травмированных нет.':'Среди свободных игроков травмированных нет.','muted'));
  return [el('p',`Отчёт ESPN${src.injuriesAt?' от '+stampMsk(src.injuriesAt):''}. Даты возвращения — оценка ESPN.`,'muted'),scope,list];

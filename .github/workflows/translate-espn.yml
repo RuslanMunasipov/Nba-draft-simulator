@@ -1,0 +1,65 @@
+name: ESPN in Russian
+# ESPN's news of every Sports.ru player (the three the player card shows) and the injury report's comments, translated
+# into Russian by Claude through the owner's subscription (scripts/translate-espn.mjs; no API key, nothing billed per
+# call). Only new texts; at most 300 a run, newest first, so a backlog clears over a few runs. The result is
+# translations.json on the branch data/translations, which the site reads; without a translation it shows the original.
+on:
+  schedule:
+    - cron: '41 */2 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: translate-espn
+  cancel-in-progress: false
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Install Claude Code
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
+      - name: Read the players and the translations so far
+        run: |
+          mkdir -p "$RUNNER_TEMP/tr"
+          for i in 1 2 3; do git fetch -q origin data/season-live:refs/remotes/origin/data/season-live && break; sleep $((i * 10)); done
+          git show origin/data/season-live:sports-current.json > "$RUNNER_TEMP/tr/sports-current.json"
+          # The translations so far: a run that cannot read them must not start from nothing (it would translate
+          # everything again). Only a missing branch is a first run.
+          for i in 1 2 3 4 5; do
+            git fetch -q origin data/translations:refs/remotes/origin/data/translations && break
+            if [ "$i" = 5 ]; then
+              code=0; git ls-remote --exit-code origin data/translations >/dev/null || code=$?
+              [ "$code" = 2 ] && { echo "First run: no translations yet"; exit 0; }
+              echo "Cannot fetch data/translations"; exit 1
+            fi
+            sleep $((i * 10))
+          done
+          git show origin/data/translations:translations.json > "$RUNNER_TEMP/tr/translations.json"
+      - name: Translate
+        env:
+          # The subscription token of Claude Code (`claude setup-token`); no API key.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: node scripts/translate-espn.mjs "$RUNNER_TEMP/tr/sports-current.json" "$RUNNER_TEMP/tr/translations.json" --max 300
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pub" && cd "$RUNNER_TEMP/pub"
+          [ -f "$RUNNER_TEMP/tr/translations.json" ] || exit 0
+          cp "$RUNNER_TEMP/tr/translations.json" .
+          git init -q -b data/translations
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add translations.json
+          git commit -q -m "ESPN in Russian $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do
+            git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data/translations && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
