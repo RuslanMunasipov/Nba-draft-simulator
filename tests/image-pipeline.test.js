@@ -147,3 +147,19 @@ test('a statement of Zak Onn: his photo the only reference, his identity, the sc
  const file=new URL('../data/announcements/2026-10-23-school-shooters-warning.picture.txt',import.meta.url);
  assert.match(fs.readFileSync(file,'utf8'),/No weapons of any kind.*no children, no school/);
 });
+
+test('the commissioner joins the scenes written for him (the courtroom, the press photo) and a statement that calls him',async()=>{
+ const {zakStatement}=await import('../scripts/zak-pictures.mjs');
+ const seeds=Array.from({length:40},(_,i)=>'s'+i);
+ const court=seeds.map(seed=>zakPicture({kind:'violation',team:2,no:5,seed})).find(p=>/courtroom/.test(p.prompt));
+ assert.deepEqual(court.images.map(i=>i.name).slice(-1),['adam-silverov.jpg']);
+ assert.match(court.prompt,/reference image 4 is Adam Silverov, the league commissioner/);
+ assert.match(court.prompt,/COMMISSIONER: the exact person from reference image 4.*bald head, thin metal-rimmed glasses/);
+ assert.match(court.prompt,/Adam Silverov \(the league commissioner, reference image 4\) presides from the judge's bench/);
+ const other=seeds.map(seed=>zakPicture({kind:'violation',team:2,no:5,seed})).find(p=>!/courtroom/.test(p.prompt));
+ assert.doesNotMatch(other.prompt,/Silverov|COMMISSIONER/);assert.ok(!other.images.some(i=>i.name==='adam-silverov.jpg'));
+ const st=zakStatement({scene:'Zak Onn and {commissioner} sign the rules.'});
+ assert.deepEqual(st.images.map(i=>i.name),['check.jpg','adam-silverov.jpg']);
+ assert.match(st.prompt,/SCENE: Zak Onn and Adam Silverov \(the league commissioner, reference image 2\) sign the rules\./);
+ assert.doesNotMatch(zakStatement({scene:'Zak alone.'}).prompt,/Silverov/);
+});
