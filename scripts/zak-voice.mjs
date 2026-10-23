@@ -244,7 +244,7 @@ export function voiceLines(x,facts){
 // writeVoice(facts) → {lines, signature}: his remark (and second line), then the extra lines ({extra}: the circumstance,
 // a joke) the protocol may drop to fit under his photo, and his signature. An answer that breaks a rule is written once
 // more, then null (the bank speaks). A ClaudeError (no CLI, the token, the limit, no answer in time) is thrown.
-export async function writeVoice(facts,{write=claudeJSON,attempts=2,timeoutMs=60e3,log=console.warn}={}){
+export async function writeVoice(facts,{write=claudeJSON,attempts=2,timeoutMs=90e3,log=console.warn}={}){
  for(let i=0;i<attempts;i++){
   const {data}=await write({...voicePrompt(facts),schema:VOICE_SCHEMA,timeoutMs});
   const out=voiceLines(data,facts);

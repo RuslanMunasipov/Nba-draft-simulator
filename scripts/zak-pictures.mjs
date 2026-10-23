@@ -173,7 +173,7 @@ export function sceneProblems(text,facts){
 }
 // Claude's scene (two tries), or null: then the fixed scenes. A ClaudeError (no CLI, the token, the limit, no answer in
 // time) is the caller's.
-export async function writeScene(facts,{recent=[],write=claudeJSON,timeoutMs=45e3,log=console.warn}={}){
+export async function writeScene(facts,{recent=[],write=claudeJSON,timeoutMs=90e3,log=console.warn}={}){
  for(let i=0;i<2;i++){
   const {data}=await write({...sceneMessages(facts,recent),schema:SCENE_SCHEMA,timeoutMs});
   const problems=sceneProblems(data?.scene,facts);
