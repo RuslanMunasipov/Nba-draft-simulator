@@ -27,7 +27,7 @@ export function gmCorner(day,line){
 export function interviewFacts(day,line,who,{form,opponent,holiday}={}){
  const s=line.s,f=form?.get(line.a),corner=gmCorner(day,line);
  const t=Number.isInteger(line.h?.[0])?line.h[0]:null;
- return {date:`${dayLabel(day)} ${day.slice(0,4)}`,holiday:holiday?.name||null,gmQuestion:corner?{gm:corner.name,team:corner.team}:null,
+ return {date:`${dayLabel(day)} ${day.slice(0,4)}`,holiday:holiday?.name||null,gmQuestion:corner?{gm:corner.name,team:corner.team,lore:(t!==null&&gmOf(t)?.lore)||null}:null,
   pictureFacts:{kitColors:t!==null?LEAGUE_TEAMS[t]?.kit||null:null,fantasyTeamLogo:t!==null},
   player:{name:who(line.a,line.n),en:line.n,club:line.c,opponent:opponent||null},
   fblTeams:(line.h||[]).map(t=>({team:LEAGUE_TEAMS[t]?.name,gm:LEAGUE_TEAMS[t]?.gm||null})),
