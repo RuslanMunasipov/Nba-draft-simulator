@@ -226,7 +226,8 @@ export function telegraphNodes(x,facts,{opener,images=[]}={}){
   if(images[i])nodes.push(figure(images[i]));
  });
  nodes.push({tag:'h3',children:['Послесловие Майка']},...x.epilogue.map(t=>p(t)));
- if(x.quote)nodes.push({tag:'blockquote',children:[`«${String(x.quote).replace(/^[«"„“]+|[»"“”]+$/g,'')}» — ${name}`]});
+ // The quote without its author when Opus signed it himself («...». — Name), then signed once.
+ if(x.quote)nodes.push({tag:'blockquote',children:[`«${String(x.quote).trim().replace(/^(.*[»"”])\s*\.?\s*[—–-]\s*[^«»"”]{1,40}$/,'$1').replace(/^[«"„“]+|[»"“”.]+$/g,'')}» — ${name}`]});
  if(x.gift)nodes.push(p({tag:'i',children:[`На полку Майка: ${String(x.gift).trim().replace(/[.!…\s]+$/,'')}.`]}));
  nodes.push(p('— Майк Роффон, специально для Inside FBL'),p({tag:'i',children:['Интервью вымышленное: цифры настоящие, слова — нет.']}));
  return nodes;
