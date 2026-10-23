@@ -3,29 +3,31 @@
  "weeks": {
   "2026-10-19": {
    "status": "page",
-   "url": "https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23",
-   "title": "Лемариус: на вершине пахнет цитрусом и тревогой",
+   "url": "https://telegra.ph/Inside-FBL--Limony-vo-slavu-Imperatora-Lemarius-ohranyaet-vershinu-FBL-10-23",
+   "title": "Лимоны во славу Императора: Лемариус охраняет вершину FBL",
+   "images": [
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/mvl3h2wl-1.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/mvl3h2wl-2.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/mvl3h2wl-3.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/mvl3h2wl-4.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/mvl3h2wl-5.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/mvl3h2wl-6.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/mvl3h2wl-7.jpg"
+   ],
    "guest": {
     "key": "gm:5",
     "name": "Лемариус"
    },
-   "gift": "Говорящий апельсин на подставке, который объявляет, что первое место — скоропортящийся продукт.",
-   "caption": "<b>🎙 Inside FBL • Большое интервью</b>\n\n<b>На вершине пахнет цитрусом и тревогой</b>\n<i>Лидер таблицы Texas 76 Citrus угощает Майка свежим соком и объясняет, почему трон из ящиков не качается.</i>\n\nВ гостях у Майка Роффона: <b>Лемариус</b>, GM Texas 76 Citrus.\n\n👉 <a href=\"https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23\">Читать лонгрид</a>\n\n#inside_fbl #лонгрид #неделя_1",
-   "opener": "images/2026-10-19/opener.jpg",
-   "pictures": 7,
-   "cost": 0.1699,
-   "at": "2026-10-23T14:06:56.383Z",
-   "hold": true,
-   "images": [
-    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/1.jpg",
-    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/2.jpg",
-    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/3-mvl28sb5.jpg",
-    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/4.jpg",
-    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/5.jpg",
-    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/6.jpg"
-   ],
-   "approved": true,
-   "approvedAt": "2026-10-23T14:25:38.085Z"
+   "gift": "Отборный лимон из рощи, запечатанный красным сургучом, с лентой «Проверено. Ересь не обнаружена»",
+   "approved": false,
+   "caption": "<b>🎙 Inside FBL • Большое интервью</b>\n\n<b>Лимоны во славу Императора: Лемариус охраняет вершину FBL</b>\n<i>Лидер первой недели пустил Майка Роффона в свою готическую оранжерею, проверил ростер на ересь и объяснил, почему с вершины не спускаются, а несут на ней вахту.</i>\n\nВ гостях у Майка Роффона: <b>Лемариус</b>, GM Texas 76 Citrus.\n\n👉 <a href=\"https://telegra.ph/Inside-FBL--Limony-vo-slavu-Imperatora-Lemarius-ohranyaet-vershinu-FBL-10-23\">Читать лонгрид</a>\n\n#inside_fbl #лонгрид #неделя_1",
+   "opener": "images/2026-10-19/mvl3h2wl-opener.jpg",
+   "pictures": 8,
+   "cost": 0.3407,
+   "at": "2026-10-23T14:58:10.402Z",
+   "drafts": [
+    "https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23"
+   ]
   }
  }
 }
