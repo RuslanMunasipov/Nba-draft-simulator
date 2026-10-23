@@ -10,12 +10,20 @@
     "name": "Лемариус"
    },
    "gift": "Говорящий апельсин на подставке, который объявляет, что первое место — скоропортящийся продукт.",
-   "caption": "<b>🎙 Inside FBL • Большое интервью</b>\n<b>Лемариус</b> (GM Texas 76 Citrus) — <i>Лемариус: на вершине пахнет цитрусом и тревогой</i>\n\nЛидер таблицы Texas 76 Citrus угощает Майка свежим соком и объясняет, почему трон из ящиков не качается.\n\n<a href=\"https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23\">Читать лонгрид →</a>\n\n#inside_fbl #лонгрид #неделя_1",
+   "caption": "<b>🎙 Inside FBL • Большое интервью</b>\n\n<b>На вершине пахнет цитрусом и тревогой</b>\n<i>Лидер таблицы Texas 76 Citrus угощает Майка свежим соком и объясняет, почему трон из ящиков не качается.</i>\n\nВ гостях у Майка Роффона: <b>Лемариус</b>, GM Texas 76 Citrus.\n\n👉 <a href=\"https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23\">Читать лонгрид</a>\n\n#inside_fbl #лонгрид #неделя_1",
    "opener": "images/2026-10-19/opener.jpg",
    "pictures": 7,
-   "cost": 0.1481,
+   "cost": 0.1699,
    "at": "2026-10-23T14:06:56.383Z",
-   "hold": true
+   "hold": true,
+   "images": [
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/1.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/2.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/3-mvl28sb5.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/4.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/5.jpg",
+    "https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/inside-fbl/images/2026-10-19/6.jpg"
+   ]
   }
  }
 }
