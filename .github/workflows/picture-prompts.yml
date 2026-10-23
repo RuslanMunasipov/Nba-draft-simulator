@@ -1,0 +1,35 @@
+name: Picture prompts
+# Manual only, free: the prompts of every picture of the league's bots, written by Claude through the owner's
+# subscription and printed in the log, never drawn (no OpenAI key here): the awards bot's heroes and flops of a game day
+# and Mike Roffon's interview (bot.mjs --preview DAY --prompts --mike), Zak Onn's protocols of each kind of case and a
+# statement (scripts/picture-prompts.mjs). Nothing is sent or saved.
+on:
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 'US game day for the awards pictures and Mike Roffon, YYYY-MM-DD'
+        required: true
+permissions:
+  contents: read
+jobs:
+  prompts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Install Claude Code
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
+      - name: Zak Onn's pictures
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: node scripts/picture-prompts.mjs
+      - name: The awards bot's pictures and Mike Roffon
+        if: success() || failure()
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: node awards-bot/bot.mjs --preview "${{ inputs.day }}" --prompts --mike

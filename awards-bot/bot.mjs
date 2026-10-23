@@ -296,7 +296,11 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
    fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.txt`),caption+'\n\n'+text+'\n');}
-  if(!send){console.log(`\n===== Mike Roffon (preview, $${spent.toFixed(3)}) =====\n${caption}\n\n${text}\n`);return {status:'preview',cost:spent};}
+  if(!send){console.log(`\n===== Mike Roffon (preview, $${spent.toFixed(3)}) =====\n${caption}\n\n${text}\n`);
+   // The picture's prompt as it goes to the image model: Opus's own, else the code's scene (free to print).
+   const w=interview.picture?writtenPicture(interview.picture,facts,{team:hero.h?.[0]}):null,p=w||interviewPicture(facts,day,{team:hero.h?.[0]});
+   console.log(`\n===== Mike Roffon's picture (${w?'written by Opus':`the code's scene${interview.picture?`: Opus's refused (${writtenPictureProblems(interview.picture,facts).join('; ')})`:''}`}, ${p.images.length} references) =====\n${p.prompt}\n`);
+   return {status:'preview',cost:spent};}
   let shown=null;
   if(picture){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',caption);form.append('parse_mode','HTML');
    form.append('photo',new Blob([picture],{type:'image/png'}),`mike-roffon-${day}.png`);shown=await telegram(MIKE,'sendPhoto',form);}
