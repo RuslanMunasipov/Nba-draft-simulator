@@ -144,7 +144,10 @@ async function sendAlbum(pngs,caption){
   if(one){data.append('photo',new Blob([pngs[0]],{type:'image/png'}),'card-1.png');data.append('caption',caption);data.append('parse_mode','HTML');}
   else{data.append('media',JSON.stringify(pngs.map((_,i)=>({type:'photo',media:`attach://c${i}`,...i===0?{caption,parse_mode:'HTML'}:{}}))));
    pngs.forEach((png,i)=>data.append(`c${i}`,new Blob([png],{type:'image/png'}),`card-${i+1}.png`));}
-  const r=await fetch(`https://api.telegram.org/bot${TOKEN}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:data});
+  // A dropped connection (fetch throws, no answer at all: 23.10.2026) is tried again like a server error.
+  let r;
+  try{r=await fetch(`https://api.telegram.org/bot${TOKEN}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:data,signal:AbortSignal.timeout(120e3)});}
+  catch(e){if(attempt>=3)throw Error(`Telegram album: ${e.message}`);await sleep(5000*(attempt+1));continue;}
   const body=await r.json().catch(()=>({}));
   if(r.ok&&body.ok)return;
   if(attempt>=3||(r.status!==429&&r.status<500))throw Error(`Telegram album: ${r.status} ${body.description||''}`);

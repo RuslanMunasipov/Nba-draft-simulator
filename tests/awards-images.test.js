@@ -125,3 +125,9 @@ test('awards pictures: Claude writes the moments, twice at most, then the code\'
  assert.deepEqual(p.ideas,[good.setting,...good.players.map(x=>`${x.scene} / ${x.sign}`)],'kept so that the next days do not repeat them');
  assert.deepEqual(dayPictures({heroes:[],flops:rows},who)[0].ideas,[],'the code\'s moments: nothing to keep');
 });
+
+test('awards pictures: no league team\'s name in a prompt (OpenAI\'s safety system reads School Shooters as violence)',()=>{
+ const rows=[0,1,2,3,4,5,6,7].map(t=>row(String(t+1),40-t,[t]));
+ for(const kind of ['hero','flop'])for(let i=0;i<8;i+=3)
+  assert.doesNotMatch(blockPicture(kind,rows.slice(i,i+3)).prompt,/Murderers|Shooters|Imperial|Black Jacks|Pirates|Citrus|Karagali|Алачаняна/);
+});
