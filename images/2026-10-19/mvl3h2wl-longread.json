@@ -1,0 +1,480 @@
+{
+ "facts": {
+  "week": {
+   "n": 1,
+   "label": "неделя 1, игры 19 октября – 22 октября"
+  },
+  "story": "лидер таблицы лиги: как живётся на вершине и сколько ещё продержится",
+  "table": [
+   {
+    "place": 1,
+    "team": "Texas 76 Citrus",
+    "gm": "Лемариус",
+    "points": 241,
+    "weekPoints": 241
+   },
+   {
+    "place": 2,
+    "team": "Saint P Imperial",
+    "gm": "Коуч I",
+    "points": 164,
+    "weekPoints": 164
+   },
+   {
+    "place": 3,
+    "team": "Volga Pirates",
+    "gm": "Капитан Торрес Нью-Вин",
+    "points": 159,
+    "weekPoints": 159
+   },
+   {
+    "place": 3,
+    "team": "Shugars Team",
+    "gm": "Strap Onn",
+    "points": 159,
+    "weekPoints": 159
+   },
+   {
+    "place": 5,
+    "team": "Команда им. Алачаняна А.М.",
+    "gm": "Роберт Хачатурян",
+    "points": 151,
+    "weekPoints": 151
+   },
+   {
+    "place": 5,
+    "team": "Karagali Brothers",
+    "gm": "Фы Жил",
+    "points": 151,
+    "weekPoints": 170
+   },
+   {
+    "place": 7,
+    "team": "The Balkan Murderers",
+    "gm": "Franky Murder",
+    "points": 137,
+    "weekPoints": 137
+   },
+   {
+    "place": 8,
+    "team": "Black Jacks",
+    "gm": "Jack Pott",
+    "points": 131,
+    "weekPoints": 131
+   }
+  ],
+  "weekHeroes": [
+   {
+    "name": "Макси",
+    "club": "PHI",
+    "fo": 49,
+    "games": 2,
+    "fblTeams": [
+     "Texas 76 Citrus"
+    ]
+   },
+   {
+    "name": "Холмгрен",
+    "club": "OKC",
+    "fo": 44,
+    "games": 2,
+    "fblTeams": [
+     "Texas 76 Citrus"
+    ]
+   },
+   {
+    "name": "Эдвардс",
+    "club": "MIN",
+    "fo": 39,
+    "games": 1,
+    "fblTeams": [
+     "Texas 76 Citrus"
+    ]
+   }
+  ],
+  "weekFlops": [
+   {
+    "name": "Джейлен Уильямс",
+    "club": "OKC",
+    "fo": 24,
+    "games": 2,
+    "fblTeams": [
+     "The Balkan Murderers"
+    ]
+   },
+   {
+    "name": "Джеймс",
+    "club": "PHI",
+    "fo": 31,
+    "games": 2,
+    "fblTeams": [
+     "Shugars Team"
+    ]
+   },
+   {
+    "name": "Эмбиид",
+    "club": "PHI",
+    "fo": 31,
+    "games": 2,
+    "fblTeams": [
+     "Shugars Team"
+    ]
+   }
+  ],
+  "races": {
+   "mvp": [
+    {
+     "place": 1,
+     "name": "Макси",
+     "club": "PHI",
+     "fo": 49,
+     "games": 2,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 2,
+     "name": "Джером",
+     "club": "MEM",
+     "fo": 45,
+     "games": 1,
+     "fblTeams": [
+      "Karagali Brothers"
+     ]
+    },
+    {
+     "place": 3,
+     "name": "Холмгрен",
+     "club": "OKC",
+     "fo": 44,
+     "games": 2,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 4,
+     "name": "Эдвардс",
+     "club": "MIN",
+     "fo": 39,
+     "games": 1,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 5,
+     "name": "Гилджес-Александер",
+     "club": "OKC",
+     "fo": 39,
+     "games": 2,
+     "fblTeams": [
+      "Команда им. Алачаняна А.М."
+     ]
+    }
+   ],
+   "rookies": [
+    {
+     "place": 1,
+     "name": "Беррис",
+     "club": "MIL",
+     "fo": 9,
+     "games": 1,
+     "fblTeams": [
+      "Volga Pirates"
+     ]
+    },
+    {
+     "place": 2,
+     "name": "Питерсон",
+     "club": "UTAH",
+     "fo": 8,
+     "games": 1,
+     "fblTeams": [
+      "Saint P Imperial"
+     ]
+    },
+    {
+     "place": 3,
+     "name": "Бузер",
+     "club": "MEM",
+     "fo": 7,
+     "games": 1,
+     "fblTeams": [
+      "Shugars Team"
+     ]
+    }
+   ],
+   "sixthMan": [
+    {
+     "place": 1,
+     "name": "Макси",
+     "club": "PHI",
+     "fo": 49,
+     "games": 2,
+     "fblTeams": [
+      "Texas 76 Citrus"
+     ]
+    },
+    {
+     "place": 2,
+     "name": "Банкеро",
+     "club": "ORL",
+     "fo": 34,
+     "games": 1,
+     "fblTeams": [
+      "Команда им. Алачаняна А.М."
+     ]
+    },
+    {
+     "place": 3,
+     "name": "Сабонис",
+     "club": "SAC",
+     "fo": 33,
+     "games": 1,
+     "fblTeams": [
+      "The Balkan Murderers"
+     ]
+    }
+   ]
+  },
+  "mikesShelf": [],
+  "lastGuests": [],
+  "guest": {
+   "kind": "GM",
+   "name": "Лемариус",
+   "team": "Texas 76 Citrus",
+   "kitColors": "navy blue, lemon yellow and cream",
+   "looks": "thin rimless tinted glasses, a full brown beard",
+   "place": 1,
+   "points": 241,
+   "weekPoints": 241,
+   "gapToLeader": 0,
+   "weekBest": [
+    {
+     "name": "Макси",
+     "fo": 49,
+     "games": 2
+    },
+    {
+     "name": "Холмгрен",
+     "fo": 44,
+     "games": 2
+    },
+    {
+     "name": "Эдвардс",
+     "fo": 39,
+     "games": 1
+    }
+   ],
+   "weekWorst": [
+    {
+     "name": "Лендеборг",
+     "fo": 7,
+     "games": 1
+    },
+    {
+     "name": "Харпер",
+     "fo": 12,
+     "games": 1
+    }
+   ]
+  }
+ },
+ "longread": {
+  "title": "Лимоны во славу Императора: Лемариус охраняет вершину FBL",
+  "lead": "Лидер первой недели пустил Майка Роффона в свою готическую оранжерею, проверил ростер на ересь и объяснил, почему с вершины не спускаются, а несут на ней вахту.",
+  "prologue": [
+   "Неделя 1 закончилась, и в таблице FBL на первой строке стоит Texas 76 Citrus: 241 ФО. Ниже идёт Saint P Imperial со 164 — так далеко, что лидеру уже не слышно, что там кричат. Я поехал посмотреть, как живёт человек, который так рано забрался на самый верх. Говорят, первые недели — это прогноз погоды на месяц вперёд: цифры красивые, но верить им опасно.",
+   "Лемариус ждал меня не в офисе и не в спортбаре, а в оранжерее. Правда, оранжереей это назвал только он. Я увидел собор: стрельчатые своды, витражи, свечи в кованых подсвечниках, а под всем этим ровные ряды лимонных деревьев. У входа меня встретил хозяин в широкополой кожаной шляпе с золотым крылатым знаком и длинном плаще. В руке у него был пергамент с сургучной печатью.",
+   "«Инквизитор Лемариус, — сказал он вместо приветствия. — Добро пожаловать в Цитрусовый Приорат. Перчатки у вас белые, это хорошо. Ересь пятна не любит». Я поправил микрофон. Мне за мою карьеру открывали двери раздевалок, кабинетов и яхт. Собор мне открыли впервые."
+  ],
+  "chapters": [
+   {
+    "heading": "Врата Цитрусового Приората",
+    "story": [
+     "Внутри пахло воском, землёй и цедрой. Между кадками медленно ехал сервитор-садовник, наполовину лейка, наполовину канцелярия. Он поливал деревья, стрекотал и на каждом листе ставил крошечную печать. Лемариус сказал, что это главный работник Приората: в отпуск не просится и в ростер не лезет.",
+     "Над главным алтарём висела грифельная доска с таблицей лиги. Наверху золотом было выведено Texas 76 Citrus, остальные команды написаны простым мелом. Я спросил, кто это нарисовал. Лемариус ответил, что таблицу открыло ему откровение, а сервитор просто расписался."
+    ],
+    "qa": [
+     {
+      "q": "Первое место после первой же недели. Это вершина или вы просто раньше всех встали?",
+      "a": "Это результат подготовки. Драфт я собирал как литургию: каждое имя на своём месте, каждый пик освящён. Будильник тут ни при чём."
+     },
+     {
+      "q": "Литургия. Значит, если неделя не задастся, вы скажете, что пели не в ту ноту?",
+      "a": "Если неделя не задастся, я скажу, что так было угодно Императору, и проведу ротацию. Вера и ротация друг другу не мешают."
+     },
+     {
+      "q": "Обычно на вершине сидят. Вы там стоите. Почему?",
+      "a": "Потому что на вершине несут вахту. Кто сел, тот уже начал спускаться."
+     }
+    ],
+    "remark": "Записано: на вершину забрался — и сразу заступил в караул.",
+    "picture": "Cinematic photorealistic image in the style of a candlelit baroque gothic painting, Caravaggio chiaroscuro. Interior of a vast gothic cathedral turned into a lemon greenhouse: pointed stone arches, tall stained-glass windows glowing in navy blue, lemon yellow and cream, rows of potted lemon trees in brass tubs. {GUEST} stands at the entrance in a wide-brimmed leather inquisitor hat with a golden winged emblem and a long dark coat, holding a wax-sealed parchment and greeting {MIKE}, who wears a charcoal travel trench coat and a scarf and clutches his microphone with a sceptical look. Behind them a whimsical servitor-gardener robot, half brass watering can, half filing cabinet, waters a lemon tree. Wide shot, 24mm lens, warm candlelight mixed with coloured light from the windows, drifting incense haze, rich and solemn mood with a comic edge."
+   },
+   {
+    "heading": "Лимоны во славу Императора",
+    "story": [
+     "Мы дошли до центрального нефа. Там на постаменте под стеклянным колпаком росло одно лимонное дерево, крупнее остальных. Табличка гласила: «Макси». Лемариус снял шляпу и поклонился дереву, я на всякий случай поклонился микрофону. Макси принёс ему 49 ФО за две игры и возглавил MVP-гонку недели. Ещё он лидирует в гонке лучших запасных, и Лемариус находит это очень смешным.",
+     "Рядом стояли деревья пониже, с табличками «Холмгрен» и «Эдвардс». Сервитор протирал на них листья бархоткой и что-то бормотал на высоком готике. Мне перевели: «Да будет урожай»."
+    ],
+    "qa": [
+     {
+      "q": "Ваш лучший игрок лидирует в гонке MVP и одновременно в гонке запасных. Вы его держите на скамейке?",
+      "a": "Я держу его там, где он приносит больше всего. Запасной он для статистики. Для меня он первый, и у этой гонки нет финиша."
+     },
+     {
+      "q": "А если завтра у него будет одна кислая игра?",
+      "a": "Лимон кислый по определению. Он у меня и не для сладости, а для результата."
+     },
+     {
+      "q": "Получается, вся ваша вершина держится на одном дереве под колпаком?",
+      "a": "Вершина держится на роще. Одно дерево выше других, но плодоносит роща. Холмгрен и Эдвардс — это тоже не декорации."
+     },
+     {
+      "q": "Рощу хорошо видно, пока светит солнце. Что будет, когда пойдут спады?",
+      "a": "У меня есть свечи. Солнце ушло — молимся при свечах. График лиги, кстати, тоже освещается."
+     }
+    ],
+    "remark": "Пометка в протоколе: лимон кислый — так и задумано.",
+    "picture": "Cinematic photorealistic scene, candlelit gothic chiaroscuro. In the central nave of a cathedral greenhouse a single magnificent lemon tree grows under a tall glass bell jar on a carved stone pedestal, with a small brass plaque reading \"Maxey\". {GUEST}, in a wide-brimmed leather inquisitor hat with a golden winged emblem and a long coat, bows reverently with the hat held to his chest. Beside him {MIKE}, in a tweed waistcoat and rolled shirtsleeves, bows awkwardly toward his own microphone as if copying the ritual. A small servitor robot polishes lemon leaves with a velvet cloth. Stained glass in navy blue, lemon yellow and cream throws coloured light across the floor. Medium shot, 35mm lens, shallow depth of field, golden dust in the air, solemn yet absurd mood."
+   },
+   {
+    "heading": "Инквизиция проверяет ростер",
+    "story": [
+     "Дальше была ризница: длинный стол, гусиные перья, сургуч и стопка пергаментов. На каждом листе — игрок ростера и его отчёт за неделю. Лемариус проводит здесь, как он выражается, ежедневный досмотр на ересь. Он медленно надел очки для чтения и раскрыл первый свиток.",
+     "Сверху лежало дело Лендеборга: 7 ФО за игру. Под ним — Харпер, 12 ФО за игру. Лемариус молча прижал к обоим листам печать с красным сургучом. Сервитор от неловкости отвернулся и сделал вид, что поливает подсвечник."
+    ],
+    "qa": [
+     {
+      "q": "Лендеборг, 7 ФО. Это ересь или пока только сомнение?",
+      "a": "Это испытание веры. Ересью это станет, если повторится. Пока я наблюдаю и записываю."
+     },
+     {
+      "q": "А Харпер со своими 12?",
+      "a": "Харпер — новообращённый. Новообращённым даётся время. Не бесконечное, конечно."
+     },
+     {
+      "q": "Наблюдаете и записываете. Звучит так, будто вы уже ищете им замену на рынке свободных агентов.",
+      "a": "Инквизиция ничего не ищет. Инквизиция знает. Рынок свободных агентов — просто часть архива."
+     },
+     {
+      "q": "Команда лидирует. Зачем вообще проверять её на ересь?",
+      "a": "Затем, что ересь заводится как раз у лидеров. Внизу на неё нет времени: там выживают."
+     }
+    ],
+    "remark": "Протокол: печать стоит, дело не закрыто.",
+    "picture": "Cinematic photorealistic image, moody candlelit sacristy in a gothic cathedral greenhouse. A long dark oak table covered in parchment scrolls, quill pens, red sealing wax and a brass wax seal. {GUEST}, wearing a wide-brimmed leather inquisitor hat with a golden winged emblem and a long coat, presses a wax seal onto a scroll with grave concentration. Across the table {MIKE}, in a dark velvet blazer, leans in with his microphone, eyebrow raised. In the background a small servitor robot awkwardly waters a tall iron candlestick, pretending not to look. Lemon branches drape over the arched window, stained glass glowing navy blue, lemon yellow and cream. Close-medium shot, 50mm lens, deep shadows, warm amber candlelight, rich textures, darkly comic mood."
+   },
+   {
+    "heading": "Вечерняя покраска при свечах",
+    "story": [
+     "Стемнело, и Лемариус повёл меня в мастерскую под колокольней. На верстаке стояли крошечные фигурки в плащах, банки с краской, лупа на штативе и россыпь кисточек тоньше ресницы. Каждый вечер он красит миниатюры, и за неделю их цвета сами собой стали лимонно-жёлто-тёмно-синими.",
+     "Мне выдали кисточку и фигурку с подписью «Холмгрен». Задача — покрасить плащ, не залезая на подставку. Я залез на подставку, на стол и немного на перчатку. Лемариус посмотрел на это так, будто я подписал ему отказ от драфт-пика."
+    ],
+    "qa": [
+     {
+      "q": "Холмгрен — 44 ФО за две игры. Вы его тоже так тщательно раскрашиваете?",
+      "a": "Холмгрена не нужно раскрашивать. Он уже готов: длинный, точный, блоки как готические шпили. Я просто ставлю его на полку повыше."
+     },
+     {
+      "q": "А Эдвардс? У него 39 ФО за одну игру. Тот же счёт, что у других за две.",
+      "a": "Эдвардс — это когда сервитор пришёл подменить на час и за час собрал урожай. Без лишнего шума: зашёл, сделал, ушёл."
+     },
+     {
+      "q": "Одна игра — это ещё не урожай. Это может быть случайность.",
+      "a": "В Империуме случайностей не бывает. Бывает недостаточно изученная воля."
+     }
+    ],
+    "remark": "Записано: моя перчатка теперь в цветах лидера.",
+    "picture": "Cinematic photorealistic image, intimate candlelit workshop under a gothic bell tower. A wooden workbench with tiny painted miniature figures in navy blue, lemon yellow and cream cloaks, paint pots, ultra-fine brushes, and a magnifying lamp. {GUEST}, in a wide-brimmed leather inquisitor hat with a golden winged emblem and a long coat, delicately paints a miniature under the magnifier. Next to him {MIKE}, in a knitted cardigan, holds a brush and a miniature with paint smeared all over the base and onto his white glove, looking guilty. Lemon branches peek through a small rose window. Macro-ish medium shot, 85mm lens, shallow depth of field, warm flickering candle glow, cosy gothic atmosphere with gentle humour."
+   },
+   {
+    "heading": "Еретики с невских берегов",
+    "story": [
+     "Под конец вечера Лемариус развернул на кафедре карту. На ней была таблица лиги в виде крепостей. Сверху лимонный бастион Texas 76 Citrus, под ним Saint P Imperial со 164. Ещё ниже, ровно по 159, стоят Volga Pirates и Shugars Team. Лемариус постучал пером по слову Imperial и нахмурился.",
+     "«Кто-то в этой лиге пользуется словом, значение которого не понимает», — сказал он. Сервитор на всякий случай записал это на пергамент и поставил печать."
+    ],
+    "qa": [
+     {
+      "q": "Saint P Imperial идёт вторым. Коуч I носит ваше слово на гербе. Вас это не тревожит?",
+      "a": "Меня тревожит самозванство. Империум не выбирают при регистрации команды. Им служат."
+     },
+     {
+      "q": "Служат. А вы уверены, что Коуч I не служит лучше вас и просто стартовал медленнее?",
+      "a": "Пусть служит. Я буду рад видеть его в соборе. Как прихожанина."
+     },
+     {
+      "q": "Shugars Team на третьем месте, и их Джеймс с Эмбиидом попали в антигерои недели. Это вам на руку?",
+      "a": "Чужая слабость — не мой урожай. Я не собираю с чужих деревьев. Хотя мимо пройти могу медленно."
+     },
+     {
+      "q": "А Volga Pirates? Пираты прямо возле вашего бастиона.",
+      "a": "Пиратам нужно море. А у меня оранжерея. Пусть сначала догребут."
+     }
+    ],
+    "remark": "Пометка: о самозванцах — подробно, о погоне — коротко.",
+    "picture": "Cinematic photorealistic image, gothic cathedral pulpit lit by candles. On the lectern lies a large illuminated parchment map showing fantasy fortresses on a hill: a lemon-yellow and navy bastion at the top with a banner reading \"Texas 76 Citrus\", and below it a smaller fortress with a banner reading \"Saint P Imperial\". {GUEST}, in a wide-brimmed leather inquisitor hat with a golden winged emblem and a long coat, taps the lower banner with a quill pen, frowning theatrically. {MIKE}, in a navy turtleneck and reading glasses pushed up on his forehead, leans over the map holding his microphone. A small servitor robot scribbles notes behind them. Stained-glass light in navy blue, lemon yellow and cream, 35mm lens, dramatic chiaroscuro, ironic epic mood."
+   },
+   {
+    "heading": "Крестовый поход за ФО",
+    "story": [
+     "На стене трапезной вместо гобелена висела формула лиги: очки, подборы, передачи, перехваты, блоки, минус промахи с игры, минус промахи штрафных, минус 2×потери, минус фолы, плюс 1 за матч. Всё это написано золотом, а «2×потери» ещё и обведено красным. Лемариус называет это Догматом и каждое утро читает его вслух.",
+     "Мы ужинали лимонным пирогом. Ели молча, потому что Лемариус говорит, что крестовый поход за ФО начинается с дисциплины за столом. Я уронил крошку, сервитор тут же её убрал и поставил на этом месте печать."
+    ],
+    "qa": [
+     {
+      "q": "Почему «2×потери» обведено красным?",
+      "a": "Потому что это главный грех. Промах — это ошибка. Потеря — это измена, причём двойная."
+     },
+     {
+      "q": "Красиво. Только лидеры первых недель обычно и падают первыми. Сколько вы ещё продержитесь?",
+      "a": "Вопрос «сколько» задают те, кто считает дни. Я считаю ФО. Пока их больше, чем у остальных, я наверху."
+     },
+     {
+      "q": "А когда их станет меньше?",
+      "a": "Тогда крестовый поход сменит направление. Отступление — это поход в другую сторону, но тоже поход."
+     },
+     {
+      "q": "То есть на случай падения у вас уже готова формулировка?",
+      "a": "У меня готовы все формулировки. Я Инквизиция, а не оптимист."
+     }
+    ],
+    "remark": "В протокол: на падение заготовлена проповедь.",
+    "picture": "Cinematic photorealistic image, gothic refectory with a long candlelit table. On the stone wall hangs a huge golden tapestry-like scroll with ornate lettering reading \"2× TURNOVERS\" circled in red. {GUEST}, in a wide-brimmed leather inquisitor hat with a golden winged emblem and a long coat, sits at the head of the table solemnly cutting a lemon tart. {MIKE}, in a crisp white dinner shirt and dark bow tie, sits opposite with his microphone beside his plate, frozen mid-bite as a small servitor robot stamps a wax seal on the exact spot where his crumb fell. Lemon trees in tubs line the arches, stained glass in navy blue, lemon yellow and cream. Symmetrical wide shot, 28mm lens, warm candlelight, solemn absurd comedy."
+   },
+   {
+    "heading": "Печать чистоты на прощание",
+    "story": [
+     "Утром Лемариус проводил меня к воротам Приората. Сервитор ехал следом и держал на подносе подарок: отборный лимон из рощи, обвязанный пергаментной лентой и запечатанный красным сургучом. На ленте было выведено: «Проверено. Ересь не обнаружена».",
+     "«Поставьте на полку, — сказал Лемариус. — Если начнёт портиться, значит, в вашей редакции завелась ересь». У меня на полке пока ничего нет. Значит, первым там будет лимон с печатью. Есть в этом что-то символичное: и у него, и у меня всё начинается с самого верха."
+    ],
+    "qa": [
+     {
+      "q": "Подарок прекрасный. Но лимон не вечен. Как и ваше первое место?",
+      "a": "Лимон отдаст сок, вкус и аромат. Первое место отдаст опыт. Всё полезное остаётся."
+     },
+     {
+      "q": "Что скажете тем, кто внизу таблицы? Black Jacks, например.",
+      "a": "Таблица — это не приговор, а расписание проповедей. До каждого дойдёт очередь."
+     },
+     {
+      "q": "Последний вопрос. Вершина — это одиноко?",
+      "a": "На вершине тихо. Тишина не одиночество. Это время для того, чтобы покрасить ещё одну фигурку."
+     }
+    ],
+    "remark": "Протокол закрыт. Лимон с печатью передан на хранение.",
+    "picture": "Cinematic photorealistic image, early morning at the great arched gates of a gothic cathedral greenhouse, golden sunrise light streaming through stained glass in navy blue, lemon yellow and cream. A small servitor robot holds a silver tray with a single perfect lemon wrapped in a parchment ribbon and sealed with red wax. {GUEST}, in a wide-brimmed leather inquisitor hat with a golden winged emblem and a long coat, ceremoniously presents it. {MIKE}, in a camel overcoat and fedora, accepts it with his white-gloved hand, holding his microphone in the other, with a dry half-smile. Lemon trees and candles behind them, soft morning mist. Medium-wide shot, 35mm lens, warm backlight, elegant farewell mood with gentle irony."
+   }
+  ],
+  "epilogue": [
+   "Я уезжал из Цитрусового Приората с лимоном в кармане и запахом воска на пиджаке. Лемариус — редкий случай: лидер, который не празднует. Он досматривает, ставит печати и красит. Неделя 1 сделала его первым: 241 ФО, Макси, Холмгрен и Эдвардс в списке героев. Но у веры есть неудобное свойство: проверяют её не на вершине, а на спуске.",
+   "Лендеборг и Харпер уже получили по печати. Saint P Imperial уже носит чужое слово на гербе. Где-то под оранжереей гребут Volga Pirates. Посмотрим, кто первым дотянется до лимонного дерева. А пока сервитор поливает рощу, свечи горят, а на моей пустой полке появился первый жилец, проверенный на ересь."
+  ],
+  "quote": "«Кто сторожит вершину, тому некогда на ней сидеть». — Лемариус",
+  "gift": "Отборный лимон из рощи, запечатанный красным сургучом, с лентой «Проверено. Ересь не обнаружена»",
+  "opener": "Cinematic photorealistic magazine cover, candlelit baroque gothic chiaroscuro. Inside a towering gothic cathedral converted into a lemon greenhouse, with pointed arches, rows of glowing lemon trees and huge stained-glass windows in navy blue, lemon yellow and cream. {GUEST} stands center in a wide-brimmed leather inquisitor hat with a golden winged emblem and a long dark coat, holding {MIKE}'s vintage microphone and speaking into it with solemn authority, a wax-sealed parchment tucked under his arm. {MIKE}, in an elegant charcoal three-piece suit, leans in attentively, offering the microphone with a white-gloved hand, with an ironic expression. A small servitor-gardener robot waters a lemon tree in the background, incense haze and candle flames everywhere. Bold title lettering at the top reading \"INSIDE FBL\". Vertical composition, 35mm lens, rich warm light, majestic and witty mood."
+ }
+}
