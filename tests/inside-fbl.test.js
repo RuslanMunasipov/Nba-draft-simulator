@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
 import {weekData,pickGuest,STORIES,REPEAT_WEEKS,longreadFacts,longreadMessages,longreadProblems,writeLongread,LONGREAD_SCHEMA,
- longreadPicture,SAFE_SCENE,telegraphNodes,publishPage,longreadCaption,pageTitle,postTime} from '../awards-bot/inside-fbl.js';
+ longreadCast,writeChapterPicture,telegraphNodes,publishPage,longreadCaption,pageTitle,postTime} from '../awards-bot/inside-fbl.js';
 
 // A week of lines as the awards bot archives them: each scored by the league formula.
 const S=(pts,reb,ast,tov,fgm,fga)=>({pts,reb,ast,stl:1,blk:0,tov,fgm,fga,ftm:2,fta:2,pf:2});
@@ -40,14 +40,17 @@ test('Inside FBL: the guest of the week by the stories in turn, never one of the
 
 const gm=pickGuest({...data,week:{...data.week,n:1}},[]);
 const facts=longreadFacts(data,gm,{who:ctx.who,gifts:['банка лимонада'],guests:['Фы Жил']});
+const img={bytes:Buffer.from('x'),name:'x.jpg',type:'image/jpeg'},c=longreadCast(gm,{guestPhoto:img});
 test('Inside FBL: the facts of a GM guest: his place, the gap, his week, the league around him',()=>{
  assert.equal(facts.guest.name,'Лемариус');assert.equal(facts.guest.team,'Texas 76 Citrus');assert.equal(facts.guest.place,1);
  assert.equal(facts.guest.gapToLeader,0);assert.equal(facts.guest.weekBest[0].name,'Эдвардс');assert.doesNotMatch(JSON.stringify(facts),/gunslinger|undefined/);
  assert.equal(facts.table.length,8);assert.deepEqual(facts.mikesShelf,['банка лимонада']);
- const {system,prompt}=longreadMessages(facts);
+ const {system,prompt}=longreadMessages(facts,c);
  assert.match(system,/едешь в гости/);assert.match(system,/подарить/);assert.match(system,/Числа — только из данных/);assert.match(system,/и в обыгрывании названий команд и имён тоже/);
  assert.match(prompt,/"story": "лидер таблицы/);
- assert.match(longreadMessages(facts,'больше про подарок').prompt,/Пожелания редакции к этому выпуску \(учти их, правила выше важнее\): больше про подарок$/);assert.doesNotMatch(prompt,/Пожелания/);assert.ok(LONGREAD_SCHEMA.required.includes('opener'));
+ assert.match(prompt,/pictureReferences — референсы картинок/);assert.match(prompt,/"ref": "reference image 2",\n  "is": "the photo of the guest, the general manager \(GM\) of a fantasy team"/);
+ assert.match(system,/How you write the picture's prompt/);assert.doesNotMatch(system,/\{MIKE\}|\{GUEST\}|the code adds his/);
+ assert.match(longreadMessages(facts,c,'больше про подарок').prompt,/Пожелания редакции к этому выпуску \(учти их, правила выше важнее\): больше про подарок$/);assert.doesNotMatch(prompt,/Пожелания/);assert.ok(LONGREAD_SCHEMA.required.includes('opener'));
 });
 
 // A piece as Claude answers it: 6 chapters, only the facts' numbers.
@@ -55,40 +58,42 @@ const para='Майк входит в дом лидера и видит, как �
 const good={title:'Вершина пахнет лимоном',lead:'Майк в гостях у лидера таблицы.',prologue:[para,para],
  chapters:Array.from({length:6},(_,i)=>({heading:`Глава про ${['утро','рынок','кухню','зал','отрыв','вечер'][i]}`,story:[para,para],
   qa:[{q:'Ты первый. Надолго?',a:'Пока Эдвардс бросает.'},{q:'Ноль отставания — это скучно?',a:'Скучно тем, кто сзади.'},{q:'А если неделя провалится?',a:'Тогда я подарю тебе ещё лимон.'}],
-  remark:'Записано без улыбки.',picture:'A sunny farmhouse kitchen, late morning light through linen curtains: {MIKE} and {GUEST} squeeze lemons into a huge glass jug, {MIKE} holding his microphone like a ladle while {GUEST} lectures him. Warm documentary photo, 35mm, shallow depth of field, square frame. No text.'})),
- epilogue:[para],quote:'Вершина — это не место, а привычка.',gift:'ковбойская шляпа с лимоном',opener:'Golden hour on a porch full of lemon trees: {MIKE} holds his microphone up to {GUEST}, who leans back in a rocking chair. Glossy magazine-cover photo, 50mm, square. A lower-third banner reads "INSIDE FBL".'};
+  remark:'Записано без улыбки.',picture:'A sunny farmhouse kitchen, late morning light through linen curtains: Mike Roffon, the man from reference image 1, face preserved precisely, in white gloves, and the guest from reference image 2, face exactly as in the photo, thin rimless tinted glasses and a full brown beard, squeeze lemons into a huge glass jug, Mike holding his vintage chrome microphone like a ladle while the guest lectures him. Warm documentary photo, 35mm, shallow depth of field, square frame. No text.'})),
+ epilogue:[para],quote:'Вершина — это не место, а привычка.',gift:'ковбойская шляпа с лимоном',opener:'Golden hour on a porch full of lemon trees: Mike Roffon from reference image 1, his face preserved precisely, in white gloves, holds his vintage chrome microphone up to the guest from reference image 2, face exactly as in the photo, who leans back in a rocking chair. Glossy magazine-cover photo, 50mm, square. A lower-third banner reads "INSIDE FBL"; no other text.'};
 test('Inside FBL: what a piece may not carry: numbers of its own (in words too), old lines, bad scenes, too few words',()=>{
- assert.deepEqual(longreadProblems(good,facts),[]);
+ assert.deepEqual(longreadProblems(good,facts,c),[]);
  const bad={...good,prologue:[para,'Он живёт на двадцать втором этаже и держит триста тридцать три собаки.']};
- assert.match(longreadProblems(bad,facts).join(),/числа не из данных: 22, 333/);
- assert.match(longreadProblems(bad,facts).join(),/вот где: «Он живёт на двадцать втором этаже и держит триста тридцать три собаки\.»/);
- assert.match(longreadProblems({...good,quote:'Роль важнее фамилии.'},facts).join(),/роль важнее фамилии/);
- assert.match(longreadProblems({...good,opener:good.opener.replace('rocking chair','rocking chair and a gun')},facts).join(),/opener: off limits: gun/);
- assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace('{GUEST} squeeze','the GM squeeze').replace('while {GUEST}','while he')})},facts).join(),/picture главы 1: no \{GUEST\}/);
- assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace('No text.','A sign reads "333 ФО".')})},facts).join(),/numbers in quotes not in the facts: 333/);
- assert.match(longreadProblems({...good,prologue:['Коротко.'],chapters:good.chapters.map(c=>({...c,story:['Коротко.']})),epilogue:['Всё.']},facts).join(),/слишком коротко/);
+ assert.match(longreadProblems(bad,facts,c).join(),/числа не из данных: 22, 333/);
+ assert.match(longreadProblems(bad,facts,c).join(),/вот где: «Он живёт на двадцать втором этаже и держит триста тридцать три собаки\.»/);
+ assert.match(longreadProblems({...good,quote:'Роль важнее фамилии.'},facts,c).join(),/роль важнее фамилии/);
+ assert.match(longreadProblems({...good,opener:good.opener.replace('rocking chair','rocking chair and a gun')},facts,c).join(),/opener: off limits: gun/);
+ assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace(/the guest from reference image 2/,'the GM')})},facts,c).join(),/picture главы 1: reference image 2 \(the photo of the guest.*\) not used/);
+ assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace('No text.','A sign reads "333 ФО".')})},facts,c).join(),/numbers in quotes not in the facts: 333/);
+ assert.match(longreadProblems({...good,prologue:['Коротко.'],chapters:good.chapters.map(c=>({...c,story:['Коротко.']})),epilogue:['Всё.']},facts,c).join(),/слишком коротко/);
 });
 
 test('Inside FBL: a piece with problems goes back to be fixed, and is dropped when it stays wrong',async()=>{
  const calls=[];const claude=answers=>async o=>{calls.push(o);return {data:answers[Math.min(calls.length-1,answers.length-1)]};};
  const bad={...good,epilogue:['Девятьсот девяносто девять раз подряд он ошибся.']};
- const fixed=await writeLongread(facts,{claude:claude([bad,good])});
+ const fixed=await writeLongread(facts,c,{claude:claude([bad,good])});
  assert.deepEqual(fixed.problems,[]);assert.equal(fixed.tries,2);assert.match(calls[1].prompt,/Исправь только эти места/);assert.match(calls[1].prompt,/числа не из данных: 999/);
- calls.length=0;const stuck=await writeLongread(facts,{claude:claude([bad])});
+ calls.length=0;const stuck=await writeLongread(facts,c,{claude:claude([bad])});
  assert.equal(calls.length,3);assert.match(stuck.problems.join(),/999/);
 });
 
-test('Inside FBL: the pictures: Opus writes the prompt, the code adds only the references and who is who',()=>{
- const img={bytes:Buffer.from('x'),name:'x.jpg',type:'image/jpeg'};
- const p=longreadPicture(good.chapters[0].picture,gm,{mikePhoto:img,guestPhoto:img});
- assert.equal(p.images.length,2);assert.match(p.prompt,/^REFERENCES: reference image 1 is Mike Roffon/);assert.match(p.prompt,/reference image 2 is the guest/);
- assert.match(p.prompt,/MIKE ROFFON \(reference image 1\): .*white gloves and a vintage chrome microphone, always/);
- assert.match(p.prompt,/THE GUEST \(reference image 2\): the guest; the face exactly as in the photo; never changes: thin rimless tinted glasses/);
- assert.match(p.prompt,/Mike Roffon \(reference image 1\) and the guest \(reference image 2\) squeeze lemons/,'the placeholders filled');
- assert.match(p.prompt,/Warm documentary photo, 35mm/,'the style is Opus\'s');assert.doesNotMatch(p.prompt,/STYLE:|SCENE:|\{MIKE\}|Texas|Citrus|Лемариус|gunslinger/);
- const pl=longreadPicture(SAFE_SCENE,{kind:'player',row:{a:'3',en:'T. Young',teams:[7]}},{mikePhoto:img,guestPhoto:null});
- assert.equal(pl.images.length,1);assert.match(pl.prompt,/THE GUEST, THE NBA PLAYER T\. YOUNG: the real NBA player T\. Young, exactly as he really looks/);
- assert.match(pl.prompt,/Mike Roffon \(reference image 1\) and the guest, the NBA player T\. Young sit at the table/);
+test('Inside FBL: the pictures: Claude writes each prompt whole, the code gives Mike\'s face and the guest\'s; a redraw is Claude\'s too',async()=>{
+ const pp=await import('../awards-bot/inside-fbl.js');
+ assert.equal(pp.SAFE_SCENE,undefined,'no fallback scene of the code\'s');assert.equal(pp.longreadPicture,undefined);
+ assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','x.jpg']);
+ assert.match(c.list[0].is,/only his face/);assert.match(c.list[1].neverChanges,/thin rimless tinted glasses/);assert.equal(c.list[1].name,undefined,'the GM never named');
+ assert.match(longreadCast({kind:'commissioner'},{guestPhoto:img}).list[1].is,/Adam Silverov/);
+ const pl=longreadCast({kind:'player',row:{a:'3',en:'T. Young',teams:[7]}});
+ assert.equal(pl.images.length,1,'no face: Mike alone');
+ const calls=[],answers=[{prompt:'x',idea:''},{prompt:good.opener,idea:'a porch'}];
+ const w=await writeChapterPicture(good,0,facts,c,'больше лимонов',{claude:async a=>{calls.push(a);return {data:answers.shift()};}});
+ assert.equal(w.prompt,good.opener);assert.deepEqual(w.images.map(i=>i.name),['mike-roffon.jpg','x.jpg']);
+ assert.match(calls[0].prompt,/Пожелание редакции: больше лимонов/);assert.match(calls[0].prompt,/Прежний промпт этой картинки:\nGolden hour/);
+ assert.match(calls[1].prompt,/Fix only this/);
 });
 
 test('Inside FBL: the Telegraph page: chapters numbered, a picture after each, the fiction marked; the post links it',async()=>{

@@ -1,6 +1,7 @@
-// The league's picture pipeline, shared by its two bots: the awards bot (awards-bot/images.js: the heroes and the flops of
-// the day) and Зак Онн, the league's lawyer (scripts/zak-pictures.mjs: his transfer protocols). A picture is OpenAI's
-// Images API in edit mode: a prompt and up to a few reference images (Зак Онн's photo, a GM's photo, a team's logo).
+// The league's picture pipeline, shared by its bots: the awards bot (awards-bot/images.js: the heroes and the flops of the
+// day; Mike Roffon, Inside FBL) and Зак Онн, the league's lawyer (scripts/zak-pictures.mjs: his protocols and
+// statements). A picture is OpenAI's Images API in edit mode: Claude's prompt (scripts/picture-prompt.mjs) and up to a
+// few reference images (Зак Онн's photo, a GM's photo, a team's logo, a player's face).
 // The references live in scripts/assets/ (see its README): zak-onn/<mood>.jpg, gm/<team number>.<ext>,
 // team-logos/<team number>.<ext>, the team number being its place in the draft order (1 to 8, src/teams.js). A missing
 // GM photo or logo is simply left out of the picture.
@@ -29,16 +30,14 @@ export function readImage(file){
 const find=(dir,base)=>{for(const ext of Object.keys(TYPES)){const f=path.join(dir,base+ext);if(fs.existsSync(f))return f;}return null;};
 // team: the league team's index (0 to 7), as everywhere in the code; the files are numbered from 1.
 export const zakPhoto=(mood,root=ASSETS)=>readImage(find(path.join(root,'zak-onn'),mood));
-// The league's people (assets/people.json): name, role, photo, and what a picture keeps of them (keep, style).
+// The league's people (assets/people.json): name, role, photo, and what a picture keeps of them (keep, style, outfit):
+// facts Claude writes a prompt from (scripts/picture-prompt.mjs about).
 export const PEOPLE=JSON.parse(fs.readFileSync(path.join(ASSETS,'people.json'),'utf8')).people;
 export const person=id=>PEOPLE.find(p=>p.id===id)||null;
 export const gmOf=team=>PEOPLE.find(p=>p.role==='gm'&&p.team===team)||null;
 // A GM's photo: gm/<team number> when the league put one there, else their photo in the people.
 export const gmPhoto=(team,root=ASSETS)=>!Number.isInteger(team)?null:
  readImage(find(path.join(root,'gm'),String(team+1)))||(gmOf(team)?readImage(path.join(root,gmOf(team).photo)):null);
-// How a prompt describes a person of the people next to their reference: name, what never changes, how they are drawn.
-// The face is always theirs; the clothes follow the scene unless keep fixes them.
-export const looks=p=>p?`${p.en}; the face exactly as in the photo${p.keep?`; never changes: ${p.keep}`:''}${p.style?`; ${p.style}`:''}${p.outfit?`; usual look, which may change to fit the scene: ${p.outfit}`:''}`:'';
 export const teamLogo=(team,root=ASSETS)=>Number.isInteger(team)?readImage(find(path.join(root,'team-logos'),String(team+1))):null;
 
 // A player's ESPN headshot as a reference ({bytes, name, type}): the small one by ESPN's own resizer when it answers
@@ -49,15 +48,6 @@ export async function espnHeadshot(a,{fetchImpl=fetch}={}){
  const full=`https://a.espncdn.com/i/headshots/nba/players/full/${a}.png`;
  const bytes=await get(`https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/${a}.png&w=384&h=279&scale=crop`)||await get(full);
  return bytes?{bytes,name:`${a}.png`,type:'image/png'}:null;
-}
-
-// The references of a picture in order, with the words a prompt uses for each ("reference image 2"): only the ones that
-// exist. refs: [{key, image, what}] → {images, legend, has: key → its words}.
-export function references(refs){
- const present=refs.filter(r=>r.image),has={};
- present.forEach((r,i)=>{has[r.key]=`reference image ${i+1}`;});
- const legend=present.length?'REFERENCES: '+present.map((r,i)=>`reference image ${i+1} is ${r.what}`).join('; ')+'.':'';
- return {images:present.map(r=>r.image),legend,has};
 }
 
 // What a picture cost, in USD, from the usage the API answers with.

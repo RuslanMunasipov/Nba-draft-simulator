@@ -1,44 +1,112 @@
-// The league's pictures (owner, 23.10.2026): Opus writes the whole prompt (the scene, the composition, the light, the
-// style, the words on signs); the code gives only the references and who is who: each person's face and what never
-// changes about them (people.json keep/style). Opus names the people and things of the references by placeholders
-// ({MIKE}, {GUEST}, {GM}, {P1}, {LOGO}...), which the code replaces by their names and reference images, and the code
-// checks what Opus wrote before it goes to the image model. The code's own scenes are only the fallback.
-import {references} from './image-pipeline.mjs';
+// The league's pictures (owner, 23.10.2026): the code writes no prompt and no part of one. Claude writes every prompt
+// whole, thinking over the context: the story, the people and how to keep each of them, the composition, the light, the
+// style, the words drawn. The code gives only the references (each participant's face, a team's logo) and who is on each
+// (the people base, people.json: what never changes about them, their usual look), checks what Claude wrote and sends it
+// to the image model as it is. A prompt the checks refuse goes back to Claude with what is wrong; when he still cannot,
+// no picture is drawn: there is no scene, style or template of the code's own to fall back on.
+import path from 'node:path';
+import {claudeJSON,CLAUDE_MODEL} from './claude-text.mjs';
+import {LEAGUE_TEAMS} from '../src/teams.js';
+import {PEOPLE,person,zakPhoto,gmPhoto,gmOf,teamLogo,readImage,ASSETS} from './image-pipeline.mjs';
 
-const TOKEN=/\{([A-Z][A-Z0-9_]*)\}/g;
-// refs: [{key ('MIKE'), image (or null), name ('Mike Roffon'), what (the legend's words), identity (who they are: face,
-// what never changes; null for a thing like a logo)}] → {images, prompt}: the legend, the identities, the written prompt
-// with its placeholders filled ("Mike Roffon (reference image 1)"; a person without a photo by name only). Only the
-// references the prompt names go to the image model.
-export function fillPrompt(written,refs){
- refs=refs.filter(x=>String(written).includes(`{${x.key}}`));
- const r=references(refs.map(x=>({key:x.key,image:x.image,what:x.what})));
- const named=x=>r.has[x.key]?`${x.name} (${r.has[x.key]})`:x.name;
- const prompt=String(written).replace(TOKEN,(m,k)=>{const x=refs.find(y=>y.key===k);return x?named(x):m;});
- const who=refs.filter(x=>x.identity&&(r.has[x.key]||x.always)).map(x=>`${x.name.toUpperCase()}${r.has[x.key]?` (${r.has[x.key]})`:''}: ${x.identity}`);
- return {images:r.images,prompt:[r.legend,...who,prompt.trim()].filter(Boolean).join('\n')};
+// A person of the people base as Claude sees them. named false: without the name (a GM's name never goes into a prompt).
+export function about(p,{named=true}={}){
+ if(!p)return {};
+ return {...named?{name:p.en}:{},...p.keep?{neverChanges:p.keep}:{},...p.style?{alwaysDrawn:p.style}:{},...p.outfit?{usualLook:p.outfit}:{}};
 }
-// Words no picture of the league shows, in any prompt Opus writes. Basketball and photography words are not among them:
-// shooting, a jump shot, a wide shot, dead silence (the picture-prompts check of 23.10 lost six scenes of seven to them).
+
+// The references of a picture: [{image ({bytes, name, type}, or null: then it is left out), is (what it is, for Claude),
+// facts (what Claude should know about it), need (the prompt must use it), say (words the prompt must hold, as the people
+// base requires: his red cap's "God Bless America")}] → {images, refs, list: what Claude sees, numbered as they go}.
+export function cast(refs){
+ const present=refs.filter(r=>r&&r.image);
+ return {images:present.map(r=>r.image),refs:present,
+  list:present.map((r,i)=>({ref:`reference image ${i+1}`,is:r.is,...r.facts||{},...r.need?{mustUse:true}:{}}))};
+}
+// Who is who: the references the league's pictures take their people and things from.
+// Zak Onn: his photo of the mood (its face), the red cap the people base keeps him in always.
+export const zakRef=(mood='check',root)=>({image:zakPhoto(mood,root),is:'the photo of Zak Onn, the league lawyer',facts:about(person('zak-onn')),need:true,say:['God Bless America']});
+export function commissionerRef(root,{need=false}={}){
+ const p=PEOPLE.find(x=>x.role==='commissioner');
+ return {image:p?readImage(path.join(root||ASSETS,p.photo)):null,is:'the photo of Adam Silverov, the league commissioner',facts:about(p),need};
+}
+// A GM: their photo, never their name.
+export const gmRef=(team,root,{is='the photo of the general manager (GM) of the fantasy team',need=true}={})=>
+ ({image:gmPhoto(team,root),is,facts:about(gmOf(team),{named:false}),need});
+export const logoRef=(team,root,{is='the logo of the fantasy team',need=false}={})=>
+ ({image:teamLogo(team,root),is,facts:{teamColors:LEAGUE_TEAMS[team]?.kit||null},need});
+// Mike Roffon: only the face of his photo (its camouflage helmet and PRESS vest belong to a war zone), always his white
+// gloves and his microphone.
+export function mikeRef(root){
+ const p=person('mike-roffon');
+ return {image:readImage(path.join(root||ASSETS,p.photo)),is:'the photo of Mike Roffon, the reporter: take only his face from it, never its clothes',facts:about(p),need:true,say:['white gloves','microphone']};
+}
+// An NBA player: his ESPN headshot ({bytes, name, type}, or null).
+export const playerRef=(face,name,{need=true,...facts}={})=>({image:face,is:`the ESPN headshot of the real NBA player ${name}`,facts,need});
+
+const REF=/\breference image (\d+)/gi;
+const used=text=>[...new Set([...String(text).matchAll(REF)].map(m=>Number(m[1])))];
+// Claude's prompt as it goes to the image model: only the references it names, numbered anew in their order when one is
+// left out (the words of the prompt stay his).
+export function picture(prompt,c){
+ const keep=used(prompt).filter(n=>n>=1&&n<=c.images.length).sort((a,b)=>a-b),to=new Map(keep.map((n,i)=>[n,i+1]));
+ return {images:keep.map(n=>c.images[n-1]),prompt:String(prompt).replace(REF,(m,n)=>to.has(Number(n))?m.replace(/\d+$/,String(to.get(Number(n)))):m).trim()};
+}
+
+// Words no picture of the league shows. Basketball and photography words are not among them: shooting, a jump shot, a wide
+// shot, dead silence (the picture-prompts check of 23.10 lost six scenes of seven to them).
 export const OFF_LIMITS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|bullets?|ammo|knife|knives|swords?|blood\w*|kill\w*|murder\w*|death|corpses?|suicide|drugs?|cocaine|sex\w*|naked|nude|torture\w*|explod\w*|bombs?|bolters?|chainswords?|lasguns?|nfl|american football|super bowl|touchdown|quarterback|helmets?)\b/i;
-// What is wrong with a written prompt ([]: it may go to the image model). required: placeholders it must use; allowed:
-// every placeholder it may use; numbers: a Set of the numbers the words in its quotes may carry (they are drawn);
-// max: its length.
-export function promptProblems(text,{required=[],allowed=[],numbers=new Set(),max=1500}={}){
+// The names a prompt never holds outside its quotes: the league's GMs and teams (a name like Franky Murder trips the image
+// model's safety system, as a team name once did). Zak Onn, Mike Roffon and Adam Silverov may be named.
+const latin=s=>/^[\x20-\x7e]+$/.test(s);
+export const UNSAID=[...new Set([...PEOPLE.filter(p=>p.role==='gm').map(p=>p.en),...LEAGUE_TEAMS.flatMap(t=>[t.gm,t.name])].filter(s=>s&&latin(s)))];
+const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+// What is wrong with Claude's prompt ([]: it may go to the image model). c: its cast; numbers: a Set of the numbers its
+// quotes may carry (they are drawn); forbidden: more words it must not hold (outside its quotes).
+export function promptProblems(text,c,{numbers=new Set(),min=200,max=3500,forbidden=null}={}){
  if(typeof text!=='string'||!text.trim())return ['no prompt'];
- const t=text.trim(),out=[];
- if(t.length<80||t.length>max)out.push(`length ${t.length} (80-${max})`);
- if(!/^[\x20-\x7e\n]+$/.test(t.replace(/"[^"\n]*"/g,'""')))out.push('not plain English outside the quotes');
- for(const k of required)if(!t.includes(`{${k}}`))out.push(`no {${k}}`);
- const stray=[...new Set((t.match(TOKEN)||[]).filter(x=>!allowed.includes(x.slice(1,-1))))];if(stray.length)out.push(`unknown placeholders ${stray.join(', ')}`);
+ const t=text.trim(),out=[],bare=t.replace(/"[^"\n]*"/g,'""'),lower=t.toLowerCase();
+ if(t.length<min||t.length>max)out.push(`length ${t.length} (${min}-${max})`);
+ if(!/^[\x20-\x7e\n]+$/.test(bare))out.push('not plain English outside the quotes');
+ if(/\{[^}]*\}/.test(t))out.push('placeholders in curly braces: name each person or thing by its reference image');
+ const named=used(t);
+ c.refs.forEach((r,i)=>{if(r.need&&!named.includes(i+1))out.push(`reference image ${i+1} (${r.is}) not used`);});
+ const stray=named.filter(n=>n<1||n>c.images.length);if(stray.length)out.push(`no reference image ${stray.join(', ')}: there are ${c.images.length}`);
+ c.refs.forEach((r,i)=>{if(named.includes(i+1)||r.need)for(const w of r.say||[])if(!lower.includes(w.toLowerCase()))out.push(`no "${w}" (reference image ${i+1}: ${r.is})`);});
  const quotes=t.match(/"[^"\n]*"/g)||[],strayN=(quotes.join(' ').match(/\d+/g)||[]).filter(n=>!numbers.has(n));
  if(strayN.length)out.push(`numbers in quotes not in the facts: ${[...new Set(strayN)].join(', ')}`);
- const bad=t.replace(/"[^"\n]*"/g,'').match(OFF_LIMITS);if(bad)out.push(`off limits: ${bad[0]}`);
+ for(const re of [OFF_LIMITS,forbidden].filter(Boolean)){const bad=bare.match(re);if(bad)out.push(`off limits: ${bad[0]}`);}
+ const names=UNSAID.filter(n=>new RegExp(`(^|[^A-Za-z])${esc(n)}([^A-Za-z]|$)`,'i').test(bare));
+ if(names.length)out.push(`names outside the quotes: ${names.join(', ')} (call them by their reference image)`);
  return out;
 }
-// How every prompt-writing instruction tells Opus to write a picture's prompt (the rest is each picture's own).
-export const PROMPT_CRAFT=`How to write a picture's prompt (in English, for a photorealistic image model):
-- You set everything: the place, the action and the gag, the composition and framing, the camera and lens, the light, the mood, the visual style, the colours, the wardrobe of the scene.
-- Name the people and things of the references only by their placeholders, never describe their faces: the code adds who they are and what never changes about them.
-- Any words drawn in the picture go in double quotes, spelled exactly; nothing else written in it. Numbers in quotes only from the facts.
-- Basketball is the only sport (NBA), never American football or any other. No weapons, shooting, blood, violence, death, drugs, nudity; no helmets.`;
+
+// How every picture's prompt is written: the part of Claude's instructions all the league's pictures share.
+export const CRAFT=`How you write the picture's prompt. Your prompt is the WHOLE prompt the image model gets (gpt-image, editing the reference images listed in the task): the code adds nothing to it. Think the context over first, then write it in English:
+- everything is yours: the place, the story and the gag, who stands where and does what, the composition and framing, the camera and lens, the light, the mood, the colours, the visual style, the wardrobe;
+- name each person or thing of the references by its reference image ("the man from reference image 2") and say what to take from it: a face exactly, preserved and instantly recognizable; a logo reproduced exactly. Write in yourself what never changes about each person (neverChanges, alwaysDrawn), and dress them for the scene (usualLook is only their usual look). Use every reference marked mustUse; a reference you do not name is not sent;
+- the league's GMs and teams are never named outside quotes (a name can trip the image model's safety system): call them by their reference image or their role. Zak Onn, Mike Roffon and Adam Silverov may be named;
+- any words drawn in the picture go in double quotes, spelled exactly, and the prompt says that no other text, captions or watermarks appear. Numbers in quotes only from the facts;
+- basketball is the only sport (NBA), never American football or any other; no weapons, shooting at people, blood, violence, death, drugs, nudity; no helmets;
+- plain English outside the quotes, no placeholders in curly braces.`;
+const ANSWER='Answer only JSON: {"prompt": "the whole prompt", "idea": "the picture\'s idea in one line, so that later pictures do not repeat it"}';
+const str={type:'string'};
+export const PICTURE_SCHEMA={type:'object',additionalProperties:false,required:['prompt','idea'],properties:{prompt:str,idea:str}};
+// The task Claude gets: the brief (the facts of the picture), then its references.
+export const pictureTask=(brief,c)=>`${brief}\n\nThe references, the images that go to the image model with your prompt:\n${c.list.length?JSON.stringify(c.list,null,1):'none: the picture is drawn from your prompt alone'}`;
+// One picture written by Claude: system (who he writes it for, the rules of this picture, then CRAFT; the answer's shape
+// is added), brief (its facts),
+// c (its cast), check (its problems; promptProblems by default). A refused prompt goes back to him with its problems (fixes
+// times). Answers {images, prompt, idea}, ready for the image model, or null. A ClaudeError is the caller's.
+export async function writePicture({system,brief,c,check=t=>promptProblems(t,c),write=claudeJSON,model=CLAUDE_MODEL,timeoutMs=180e3,fixes=1,label='Picture',log=console.warn}){
+ const task=pictureTask(brief,c);
+ let ask=task;
+ for(let i=0;i<=fixes;i++){
+  const {data}=await write({system:`${system}\n${ANSWER}`,prompt:ask,schema:PICTURE_SCHEMA,model,timeoutMs});
+  const problems=check(data?.prompt);
+  if(!problems.length)return {...picture(data.prompt,c),idea:String(data.idea||'').trim()};
+  log(`${label}: Claude's prompt refused (${problems.join('; ')})${i<fixes?', sent back to fix':': no picture'}.`);
+  ask=`${task}\n\nYour prompt:\n${data?.prompt??''}\n\nFix only this and write the whole prompt again:\n${problems.map(p=>`- ${p}`).join('\n')}`;
+ }
+ return null;
+}

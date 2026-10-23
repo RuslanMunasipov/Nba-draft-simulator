@@ -2,8 +2,8 @@
 // with a guest of the week (the league week so far, Monday to Thursday's games, and the table and races as they stand), a GM, a player or the commissioner, picked by what the week did to them: the league table,
 // the award races, the antitop. Mike goes to see them where they live and work, watches what they do, and they may give
 // him something. The piece is written by Claude through the owner's subscription (scripts/claude-text.mjs) in his voice
-// (mike-roffon.js), one funny picture per chapter and an opener with Mike interviewing the guest are drawn by OpenAI
-// (scripts/image-pipeline.mjs), the whole is published on Telegraph, and Mike's bot posts the opener with the link.
+// (mike-roffon.js) with the prompts of its pictures (one funny picture per chapter and an opener with Mike interviewing the
+// guest), which OpenAI draws (scripts/image-pipeline.mjs), the whole is published on Telegraph, and Mike's bot posts the opener with the link.
 // Every number in it is a number of the facts: FBL points come from the archive's lines (core.js, fblFormula on ESPN's
 // box score) and the league table from season.js teamPoints (the same formula); a piece that brings a number of its own,
 // or a line of his old pieces word for word, is sent back to be fixed, and dropped when it still does.
@@ -11,8 +11,8 @@ import {LEAGUE_TEAMS} from '../src/teams.js';
 import {perPlayer,weeklyBlocks,races,addDays,weekOf} from './core.js';
 import {allowedNumbers,strayNumbersIn,copiedIn} from './mike-roffon.js';
 import {imageName} from './images.js';
-import {fillPrompt,promptProblems,PROMPT_CRAFT} from '../scripts/picture-prompt.mjs';
-import {person,gmOf,gmPhoto,looks,readImage,espnHeadshot,ASSETS} from '../scripts/image-pipeline.mjs';
+import {cast,about,mikeRef,promptProblems,writePicture,CRAFT} from '../scripts/picture-prompt.mjs';
+import {person,gmOf,gmPhoto,readImage,espnHeadshot,ASSETS} from '../scripts/image-pipeline.mjs';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 import {esc} from './messages.js';
 
@@ -128,13 +128,11 @@ const RULES=`Правила:
 - Границы: стебём игру, решения и роль, а не человека — ничего о внешности, теле, расе, происхождении, семье, здоровье и личной жизни. Для реальных игроков НБА — только баскетбол и выдуманные хобби, никаких реальных личных подробностей. Никакого оружия, стрельбы, насилия, крови, смерти, наркотиков и секса — и в обыгрывании названий команд и имён тоже.
 - Объём: пролог (2–3 абзаца), 6–8 глав, эпилог (2–3 абзаца). В каждой главе: заголовок, 2–3 абзаца того, что Майк видит и делает в гостях, и 3–5 вопросов с ответами; реплика Майка — по желанию. Всего 9000–16000 знаков.
 - Заголовки глав — без номеров (их проставит вёрстка) и без чисел.
-- Для каждой главы — picture: полный промпт смешной картинки этой главы ПО-АНГЛИЙСКИ (правила ниже). Картинки одного выпуска — одна серия в одном визуальном стиле, который выбираешь ты. Майка обозначай {MIKE}, героя {GUEST}.
-- opener: полный промпт обложки по-английски: {MIKE} берёт интервью у {GUEST} у него в гостях, микрофон у героя; обложка выпуска Inside FBL (надпись «INSIDE FBL» — по желанию, в кавычках).
-- Факты для картинок: guest.kitColors — цвета его команды (если есть).
+- Для каждой главы — picture: весь промпт смешной картинки этой главы ПО-АНГЛИЙСКИ (правила ниже), по референсам из задания (pictureReferences): Майк и герой — по их референсам. Картинки одного выпуска — одна серия в одном визуальном стиле, который выбираешь ты.
+- opener: весь промпт обложки по-английски: Майк берёт интервью у героя у него в гостях, микрофон у героя; обложка выпуска Inside FBL (надпись «INSIDE FBL» — по желанию, в кавычках).
+- Майк Роффон на картинках — ветеран-репортёр в гостях у героя, всегда в белых перчатках и с винтажным хромированным микрофоном; одет под сцену. Герой — в цветах своей команды (guest.kitColors), если они есть.
 
-${PROMPT_CRAFT}
-- Mike Roffon is a veteran sports reporter visiting the guest: the code adds his face, his white gloves and his vintage chrome microphone; you dress him for the scene.
-- A prompt is 300-1200 characters.
+${CRAFT}
 - gift: что герой подарил Майку (коротко, по-русски) или пустая строка.
 - title — заголовок до 80 знаков; lead — одна фраза-подзаголовок; quote — цитата-афоризм героя для финала.
 Ответь только JSON по схеме.`;
@@ -146,8 +144,9 @@ export const LONGREAD_SCHEMA={type:'object',additionalProperties:false,required:
   remark:str,picture:str}}},
  epilogue:{type:'array',minItems:1,maxItems:4,items:str},quote:str,gift:str,opener:str}};
 // notes: the owner's wishes for this issue (a redo), given to the writer as the editor's.
-export function longreadMessages(facts,notes=''){
- return {system:`${VOICE}\n\n${RULES}`,prompt:`Большое интервью недели. Данные:\n${JSON.stringify(facts,null,1)}${notes?`\n\nПожелания редакции к этому выпуску (учти их, правила выше важнее): ${notes}`:''}`};
+// c: the references of its pictures (longreadCast).
+export function longreadMessages(facts,c,notes=''){
+ return {system:`${VOICE}\n\n${RULES}`,prompt:`Большое интервью недели. Данные:\n${JSON.stringify(facts,null,1)}\n\npictureReferences — референсы картинок, они уходят в ChatGPT с каждым промптом:\n${JSON.stringify(c.list,null,1)}${notes?`\n\nПожелания редакции к этому выпуску (учти их, правила выше важнее): ${notes}`:''}`};
 }
 
 // --- The checks: the shape, the numbers, the old lines and the pictures' scenes.
@@ -158,57 +157,59 @@ export function validLongread(x){
   x.chapters.every(c=>typeof c.heading==='string'&&Array.isArray(c.story)&&Array.isArray(c.qa)&&c.qa.every(q=>typeof q.q==='string'&&typeof q.a==='string')&&typeof c.picture==='string')&&
   Array.isArray(x.epilogue)&&typeof x.opener==='string');
 }
-// A picture's prompt as Opus wrote it: {MIKE} and {GUEST} in it, the numbers in its quotes the facts' own.
-export const pictureProblems=(text,facts)=>promptProblems(text,{required:['MIKE','GUEST'],allowed:['MIKE','GUEST'],numbers:allowedNumbers(facts),max:1400});
-// What is wrong with a piece for these facts ([]: it may go out).
-export function longreadProblems(x,facts){
+// A picture's prompt as Claude wrote it: Mike and the guest by their references, the numbers in its quotes the facts' own.
+export const pictureProblems=(text,facts,c)=>promptProblems(text,c,{numbers:allowedNumbers(facts)});
+// What is wrong with a piece for these facts and the references of its pictures ([]: it may go out).
+export function longreadProblems(x,facts,c){
  if(!validLongread(x))return ['not a long read in the schema'];
  const out=[],text=longreadWords(x),stray=strayNumbersIn(text,allowedNumbers(facts)),copied=copiedIn(text);
  if(stray.length){const allowed=allowedNumbers(facts),where=text.split(/(?<=[.!?…])\s+|\n+/).filter(t=>strayNumbersIn(t,allowed).length).slice(0,4).map(t=>`«${t.trim().slice(0,200)}»`);
   out.push(`числа не из данных: ${stray.join(', ')} (цифрами или словами, в том числе порядковыми вроде «шестой») — вот где: ${where.join('; ')}; перепиши эти фразы без чисел`);}
  if(copied.length)out.push(`дословные фразы из прошлых выпусков: ${copied.join(' | ')} — перепиши`);
  if(text.length<6000)out.push(`слишком коротко (${text.length} знаков), нужно 9000–16000`);
- x.chapters.forEach((c,i)=>{const p=pictureProblems(c.picture,facts);if(p.length)out.push(`picture главы ${i+1}: ${p.join(', ')}`);});
- const p=pictureProblems(x.opener,facts);if(p.length)out.push(`opener: ${p.join(', ')}`);
+ x.chapters.forEach((ch,i)=>{const p=pictureProblems(ch.picture,facts,c);if(p.length)out.push(`picture главы ${i+1}: ${p.join(', ')}`);});
+ const p=pictureProblems(x.opener,facts,c);if(p.length)out.push(`opener: ${p.join(', ')}`);
  return out;
 }
 // Written, then sent back with its problems to be fixed (up to `fixes` times). {longread, problems, tries}: problems []
-// when it may go out. claude: scripts/claude-text.mjs claudeJSON (a stand-in in the tests).
-export async function writeLongread(facts,{claude=claudeJSON,model=LONGREAD_MODEL,timeoutMs=600e3,fixes=2,notes=''}={}){
- const base=longreadMessages(facts,notes);
- let {data}=await claude({...base,schema:LONGREAD_SCHEMA,model,timeoutMs}),problems=longreadProblems(data,facts),tries=1;
+// when it may go out. c: the references of its pictures (longreadCast). claude: scripts/claude-text.mjs claudeJSON (a
+// stand-in in the tests).
+export async function writeLongread(facts,c,{claude=claudeJSON,model=LONGREAD_MODEL,timeoutMs=600e3,fixes=2,notes=''}={}){
+ const base=longreadMessages(facts,c,notes);
+ let {data}=await claude({...base,schema:LONGREAD_SCHEMA,model,timeoutMs}),problems=longreadProblems(data,facts,c),tries=1;
  while(problems.length&&tries<=fixes){
   console.warn(`Inside FBL: fixing (${problems.join('; ')}).`);
   ({data}=await claude({system:base.system,schema:LONGREAD_SCHEMA,model,timeoutMs,
    prompt:`${base.prompt}\n\nТвой черновик:\n${JSON.stringify(data)}\n\nИсправь только эти места, остальное оставь как есть, и верни весь JSON заново:\n${problems.map(p=>`- ${p}`).join('\n')}`}));
-  problems=longreadProblems(data,facts);tries++;
+  problems=longreadProblems(data,facts,c);tries++;
  }
  return {longread:data,problems,tries};
 }
 
-// --- The pictures: Opus writes each prompt whole (the scene, the composition, the light, the style); the code gives the
-// references and who is who: Mike's face, his white gloves and microphone; the guest's face from their photo (a GM's or the
-// commissioner's from the league's people, a player's ESPN headshot) and what never changes about them. No names of GMs or
-// teams go to the image model (a name can trip its safety system): the guest is "the guest".
+// --- The pictures: Claude writes each prompt whole with the piece (the scene, the composition, the light, the style); the
+// code gives the references: Mike's face, the guest's (a GM's or the commissioner's from the league's people, a player's
+// ESPN headshot) and what never changes about them.
 export async function guestReference(guest,{root=ASSETS,fetchImpl=fetch}={}){
  if(guest.kind==='gm')return gmPhoto(guest.team,root);
  if(guest.kind==='commissioner'){const p=person('adam-silverov');return p?readImage(`${root}/${p.photo}`):null;}
  return espnHeadshot(guest.row.a,{fetchImpl});
 }
-function guestIdentity(guest){
- if(guest.kind==='gm'){const p=gmOf(guest.team);return {name:'the guest',identity:p?`${looks({...p,outfit:null,en:'the guest'})}; the face preserved precisely`:null};}
- if(guest.kind==='commissioner'){const p=person('adam-silverov');return {name:'the guest',identity:p?`${looks({...p,en:'the guest'})}; the face preserved precisely`:null};}
- return {name:`the guest, the NBA player ${guest.row.en}`,identity:`the real NBA player ${guest.row.en}, exactly as he really looks (face, build, hair)`,always:true};
+// The references of a piece's pictures: Mike, then the guest (guestPhoto: guestReference's).
+export function longreadCast(guest,{guestPhoto=null,root=ASSETS}={}){
+ const g=guest.kind==='gm'?{is:'the photo of the guest, the general manager (GM) of a fantasy team',facts:about(gmOf(guest.team),{named:false})}
+  :guest.kind==='commissioner'?{is:'the photo of the guest, Adam Silverov, the league commissioner',facts:about(person('adam-silverov'))}
+  :{is:`the ESPN headshot of the guest, the real NBA player ${guest.row.en}`,facts:{}};
+ return cast([mikeRef(root),{image:guestPhoto,...g,need:true}]);
 }
-// The fallback picture when a written one is refused: coffee at the guest's kitchen table.
-export const SAFE_SCENE='A warm candid photo in the guest\'s kitchen: {MIKE} and {GUEST} sit at the table over coffee, both laughing at something on a tablet, the vintage microphone lying between the cups. Soft window light, 35mm lens, shallow depth of field, square frame. No text.';
-// prompt: the picture's prompt as Opus wrote it (or one written by hand), with its placeholders.
-export function longreadPicture(prompt,guest,{mikePhoto,guestPhoto}){
- const mike=person('mike-roffon');
- return fillPrompt(prompt,[
-  {key:'MIKE',image:mikePhoto,name:'Mike Roffon',what:'Mike Roffon, the reporter (take only his face from it, not his clothes)',always:true,
-   identity:`${looks({...mike,outfit:null})}; his face preserved precisely, instantly recognizable`},
-  {key:'GUEST',image:guestPhoto,what:'the guest',...guestIdentity(guest)}]);
+// One picture of a piece written anew by Claude (a draft's picture changed by the owner's wish): {images, prompt, idea},
+// or null. n: the chapter (0: the opener).
+const REDRAW=`Ты — бильд-редактор Inside FBL, рубрики фэнтези-баскетбольной лиги друзей FBL: Майк Роффон, легендарный репортёр, в гостях у героя недели. Ты пишешь заново картинку одной главы лонгрида (или обложку: Майк берёт интервью у героя у него в гостях, микрофон у героя) — смешную, из этой главы, в стиле остальных картинок выпуска. Майк всегда в белых перчатках и с винтажным хромированным микрофоном, одет под сцену.
+
+${CRAFT}`;
+export async function writeChapterPicture(longread,n,facts,c,wish,{claude=claudeJSON,model=LONGREAD_MODEL,timeoutMs=300e3}={}){
+ const chapter=n>0?longread.chapters[n-1]:null;
+ const brief=`${chapter?`Глава «${chapter.heading}»:\n${JSON.stringify(chapter,null,1)}`:`Обложка выпуска «${longread.title}»: ${longread.lead}`}\n\nПрежний промпт этой картинки:\n${chapter?chapter.picture:longread.opener}\n\nДругие картинки выпуска (их стиль):\n${longread.chapters.filter(x=>x!==chapter).slice(0,3).map(x=>`- ${x.picture}`).join('\n')}\n\nПожелание редакции: ${wish}\n\nГерой: ${JSON.stringify(facts.guest)}`;
+ return writePicture({system:REDRAW,brief,c,check:t=>pictureProblems(t,facts,c),write:claude,model,timeoutMs,label:`Inside FBL, picture ${n||'opener'}`});
 }
 
 // --- Telegraph: the page as its nodes (telegra.ph/api#Node), the images by their URLs.

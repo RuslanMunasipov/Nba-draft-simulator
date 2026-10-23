@@ -33,7 +33,7 @@ on:
         required: false
         default: ''
       scene:
-        description: 'For picture: the whole new prompt in English, {MIKE} and {GUEST} for the two'
+        description: 'For picture: what to change in it (Claude writes the new prompt)'
         required: false
         default: ''
       week:
