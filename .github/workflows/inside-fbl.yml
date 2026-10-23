@@ -1,0 +1,74 @@
+name: Inside FBL
+# Mike Roffon's weekly long read (awards-bot/inside-fbl.js): every Monday at 18:00 Moscow a big interview with the guest
+# of the week, written by Claude through the owner's subscription, a picture per chapter and an opener drawn by OpenAI
+# (about $0.15), published on Telegraph, and posted into the league chat by Mike's bot: the opener and the link.
+# The runs start hours early (GitHub's schedule is best-effort, often late): the first one writes, draws and publishes
+# the page, then waits for 18:00 and posts; the later ones see the week sent and stop. State and pictures live on the
+# branch data/inside-fbl (the pictures are the page's, by their raw URLs).
+# By hand: a week (any of its US days; empty: the one that ended yesterday), a guest (gm:<1-8>, player:<ESPN id> or
+# commissioner; empty: the week's story picks one) and "send" (unticked: only the page, its link in the run's summary).
+on:
+  schedule:
+    - cron: '7 11,12,13,14 * * 1'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'A US day of the week, YYYY-MM-DD (empty: the week that ended yesterday)'
+        required: false
+        default: ''
+      guest:
+        description: 'Guest: gm:<1-8>, player:<ESPN id> or commissioner (empty: by the week''s story)'
+        required: false
+        default: ''
+      send:
+        description: 'Post it into the league chat now (unticked: only the Telegraph page)'
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: inside-fbl
+  cancel-in-progress: false
+jobs:
+  longread:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Install Claude Code
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
+      - name: Read the awards bot's archive and the long reads' branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/awards"
+          for i in 1 2 3; do git fetch -q origin data/awards-bot:refs/remotes/origin/data/awards-bot && break; sleep $((i * 10)); done
+          git show origin/data/awards-bot:state.json > "$RUNNER_TEMP/awards/state.json"
+          git show origin/data/awards-bot:archive.json > "$RUNNER_TEMP/awards/archive.json"
+          # The branch keeps every week's pictures: a clone that fails while the branch exists must not start it anew.
+          if ! git clone -q --depth 1 --branch data/inside-fbl "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/inside"; then
+            code=0; git ls-remote --exit-code origin data/inside-fbl >/dev/null || code=$?
+            [ "$code" = 2 ] || { echo "Cannot clone data/inside-fbl"; exit 1; }
+            mkdir -p "$RUNNER_TEMP/inside"
+          fi
+      - name: Write, draw, publish and post
+        env:
+          WEEK: ${{ inputs.week }}
+          GUEST: ${{ inputs.guest }}
+          SEND: ${{ (github.event_name == 'schedule' || inputs.send) && '--send' || '' }}
+          AT: ${{ github.event_name == 'schedule' && '--at' || '' }}
+          AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The league's Telegraph account (createAccount once), so the pages can be edited; without it each page gets
+          # an account of its own.
+          TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node awards-bot/bot.mjs --inside-fbl --state "$RUNNER_TEMP/awards" --inside "$RUNNER_TEMP/inside"
+          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} $SEND $AT

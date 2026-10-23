@@ -36,6 +36,7 @@ test('Mike Roffon: his voice is described, his old pieces are never quoted, and 
 test('Mike Roffon: numbers in words are numbers too, and only the facts may hold them',()=>{
  assert.deepEqual(wordNumbers('Сорок пять очков, тридцатью девятью ФО, двести тридцать один, тринадцатый промах'),['45','39','231','13']);
  assert.deepEqual(wordNumbers('пять сорок'),['5','40'],'a row adds up only from bigger places to smaller');
+ assert.deepEqual(wordNumbers('девятьсот девяносто девять, две тысячи триста сорок, тысяча, семьсот'),['999','2340','1000','700'],'hundreds to 900 and thousands');
  assert.deepEqual(wordNumbers('Семья, пятно, вторник, сторона и пятерка — не числа'),[]);
  assert.deepEqual(wordNumbers('первый раз, на пятом месте, шестнадцать зашло'),['1','5','16']);
  assert.equal(facts.game.fgMissed,13);assert.equal(facts.game.ftMissed,1);

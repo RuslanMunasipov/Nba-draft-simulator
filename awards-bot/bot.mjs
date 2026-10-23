@@ -18,6 +18,14 @@
 //                                                   --pictures: the pictures drawn by OpenAI, ~$0.05, into --cards;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
 //                                                   OPENAI_API_KEY, drawn, ~$0.02)
+//   node awards-bot/bot.mjs --inside-fbl --state DIR --inside DIR [--inside-week DAY] [--guest G] [--send] [--at]
+//                                                   Mike Roffon's weekly long read (inside-fbl.js, workflow
+//                                                   inside-fbl.yml) of the week of DAY (by default the one that
+//                                                   ended yesterday): written, drawn, its pictures pushed to the
+//                                                   branch data/inside-fbl (the --inside DIR, a clone of it), the
+//                                                   Telegraph page published; --send posts the opener and the link
+//                                                   (--at: not before Monday 18:00 Moscow). G: gm:<1-8>,
+//                                                   player:<ESPN id> or commissioner
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--picture-only] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
 //                                                   mike-roffon.yml): written and drawn, posted into the league chat
@@ -33,7 +41,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {withMarket,allTransfers,stints,seasonRosters} from '../src/season.js';
+import {withMarket,allTransfers,stints,seasonRosters,teamPoints} from '../src/season.js';
 import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextStep,addDays,daysBetween,moscowDay,usDay,weekOf,form,
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie,siteSummary} from './core.js';
@@ -42,7 +50,8 @@ import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
 import {dayPictures,momentFacts,momentProblems,writeMoments} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture} from './mike-roffon.js';
-import {generate,cost} from '../scripts/image-pipeline.mjs';
+import {generate,cost,person,readImage,ASSETS} from '../scripts/image-pipeline.mjs';
+import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadPicture,SAFE_SCENE,publishPage,longreadCaption,postTime} from './inside-fbl.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
@@ -75,7 +84,7 @@ async function loadLeague(){
  for(const r of local('data/sports-prices-2026-10-17.json').players)if(r.price>=MEF_PRICE.min&&r.price<=MEF_PRICE.max){
   const e=league.espnOf(bySid.get(String(r.sportsId)));if(e)mef.set(e,r.price);}
  const rosters=seasonRosters(transfers).map(r=>r.map(id=>byId.get(id)));
- return {live,league,who,rookies,mef,rosters};
+ return {live,league,who,rookies,mef,rosters,players,transfers};
 }
 
 // --- ESPN.
@@ -441,8 +450,89 @@ async function mikeByHand(day){
  if(m.status!==(send?'sent':'preview'))process.exitCode=1;
 }
 
+// --- Inside FBL (inside-fbl.js): Mike Roffon's weekly long read. The awards bot's state is only read; the long reads keep
+// their own state and pictures on the branch data/inside-fbl (--inside DIR, a clone of it): the pictures must be there
+// before the Telegraph page shows them (by their raw.githubusercontent.com URLs, as Telegraph takes no uploads now).
+const INSIDE_DIR=opt('--inside'),TELEGRAPH=env.TELEGRAPH_ACCESS_TOKEN;
+const RAW=`https://raw.githubusercontent.com/${env.GITHUB_REPOSITORY||'RuslanMunasipov/Nba-draft-simulator'}/data/inside-fbl/`;
+const insideRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(INSIDE_DIR,'state.json'),'utf8'));}catch{return {version:1,weeks:{}};}};
+function insidePush(inside,message){
+ fs.mkdirSync(INSIDE_DIR,{recursive:true});fs.writeFileSync(path.join(INSIDE_DIR,'state.json'),JSON.stringify(inside,null,1));
+ const token=env.GH_TOKEN,repo=env.GITHUB_REPOSITORY;if(!token||!repo)return;
+ const git=(...a)=>execFileSync('git',['-C',INSIDE_DIR,...a],{stdio:'pipe'});
+ try{
+  if(!fs.existsSync(path.join(INSIDE_DIR,'.git')))git('init','-q','-b','data/inside-fbl');
+  git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com');
+  git('add','-A');git('commit','-q','--allow-empty','-m',message);
+  git('push','-q',`https://x-access-token:${token}@github.com/${repo}.git`,'HEAD:data/inside-fbl');
+ }catch(e){console.warn(`Inside FBL: push to data/inside-fbl failed (${String(e.stderr||e.message).trim().slice(-300)}).`);}
+}
+// The pictures of a piece, three at a time: the opener and one per chapter. A refused scene is drawn once more as a
+// safe one (coffee at the guest's kitchen table); a picture that fails twice is left out. {bytes by key, spent}.
+async function longreadPictures(longread,guest){
+ const mikePhoto=readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto=await guestReference(guest);
+ const todo=[{key:'opener',scene:longread.opener,opener:true},...longread.chapters.map((c,i)=>({key:String(i+1),scene:c.scene}))],out={};let spent=0;
+ const one=async t=>{for(const scene of [t.scene,SAFE_SCENE]){
+  try{const r=await generate({...longreadPicture(scene,guest,{mikePhoto,guestPhoto,opener:t.opener}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
+   out[t.key]=r.png;spent+=cost(r.usage);return;}
+  catch(e){console.warn(`Inside FBL: picture ${t.key}${scene===SAFE_SCENE?' (safe scene)':''} failed (${e.message}).`);}}};
+ for(let i=0;i<todo.length;i+=3)await Promise.all(todo.slice(i,i+3).map(one));
+ return {out,spent};
+}
+async function insideFbl(){
+ if(!INSIDE_DIR)throw Error('--inside-fbl: --inside DIR (a clone of the branch data/inside-fbl, or an empty directory)');
+ const archive=read('archive.json',{lines:[]}),inside=insideRead(),send=flag('--send');
+ const w=weekOf(opt('--inside-week')||addDays(usDay(now()),-1)),rec=inside.weeks[w.start];
+ if(rec?.status==='sent'){console.log(`Inside FBL, week ${w.n}: already sent (${rec.url}).`);return;}
+ if(!archive.lines.some(l=>l.d>=w.start&&l.d<=w.end))throw Error(`Inside FBL: no archived games of the week ${w.start} – ${w.end}`);
+ if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)],['OPENAI_API_KEY',OPENAI_KEY]].filter(x=>!x[1]).map(x=>x[0]);
+  if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
+ let entry=rec?.status==='page'&&rec.url?rec:null;
+ if(!entry){
+  const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers);
+  const data=weekData(archive.lines,w.end,{table,who:ctx.who,rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
+  const past=Object.entries(inside.weeks).filter(([k,x])=>k<w.start&&x.status==='sent').sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x);
+  const guest=pickGuest(data,past.map(x=>x.guest),{force:opt('--guest')});
+  const facts=longreadFacts(data,guest,{who:ctx.who,gifts:past.map(x=>x.gift).filter(Boolean),guests:past.map(x=>x.guest.name)});
+  console.log(`Inside FBL, week ${w.n} (${w.start} – ${w.end}): ${facts.guest.name}, ${guest.story.id}.`);
+  const {longread,problems,tries}=await writeLongread(facts);
+  if(problems.length){console.warn(`Inside FBL: still wrong after ${tries} tries (${problems.join('; ')}): not published.`);
+   inside.weeks[w.start]={status:'dropped',guest:{key:guest.key,name:facts.guest.name},problems,at:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: dropped`);
+   process.exitCode=1;return;}
+  const {out,spent}=OPENAI_KEY?await longreadPictures(longread,guest):{out:{},spent:0};
+  const dir=path.join(INSIDE_DIR,'images',w.start);fs.mkdirSync(dir,{recursive:true});
+  for(const [k,bytes] of Object.entries(out))fs.writeFileSync(path.join(dir,`${k}.jpg`),bytes);
+  fs.writeFileSync(path.join(INSIDE_DIR,'images',w.start,'longread.json'),JSON.stringify({facts,longread},null,1));
+  insidePush(inside,`Inside FBL ${w.start}: pictures`);
+  const url=k=>out[k]?`${RAW}images/${w.start}/${k}.jpg`:null;
+  const page=await publishPage(longread,facts,{token:TELEGRAPH,opener:url('opener'),images:longread.chapters.map((_,i)=>url(String(i+1)))});
+  entry={status:'page',url:page,title:longread.title,guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',
+   caption:longreadCaption(longread,facts,page),opener:out.opener?`images/${w.start}/opener.jpg`:null,pictures:Object.keys(out).length,cost:Math.round(spent*1e4)/1e4,at:new Date().toISOString()};
+  inside.weeks[w.start]=entry;insidePush(inside,`Inside FBL ${w.start}: page`);
+  console.log(`Inside FBL: ${page} (${entry.pictures} pictures, $${spent.toFixed(3)}).`);
+  if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL, неделя ${w.n}
+
+${facts.guest.name}: [${longread.title}](${page})
+
+`);
+ }
+ if(!send){console.log(`
+===== Inside FBL (not sent) =====
+${entry.caption}
+`);return;}
+ const at=postTime(w.start);
+ if(flag('--at')&&now()<at){console.log(`Inside FBL: waiting for ${new Date(at).toISOString()}.`);await sleep(at-now());}
+ const opener=entry.opener&&fs.existsSync(path.join(INSIDE_DIR,entry.opener))?fs.readFileSync(path.join(INSIDE_DIR,entry.opener)):null;
+ if(opener){const body=new FormData();body.append('chat_id',String(CHAT));body.append('caption',entry.caption);body.append('parse_mode','HTML');
+  body.append('photo',new Blob([opener],{type:'image/jpeg'}),'inside-fbl.jpg');await telegram(MIKE,'sendPhoto',body);}
+ else await telegram(MIKE,'sendMessage',{chat_id:CHAT,text:entry.caption,parse_mode:'HTML'});
+ inside.weeks[w.start]={...entry,status:'sent',sentAt:new Date().toISOString()};insidePush(inside,`Inside FBL ${w.start}: sent`);
+ console.log(`Inside FBL, week ${w.n}: sent.`);
+}
+
 const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day');
-if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
+if(flag('--inside-fbl')&&STATE_DIR)await insideFbl();
+else if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
 else if(day)await preview(day);
 else if(STATE_DIR&&again)await resend(again);
 else if(STATE_DIR)await scheduled();

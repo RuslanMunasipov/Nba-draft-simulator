@@ -69,8 +69,9 @@ export function cost(usage){
 // One picture: the references edited by the prompt (without references, drawn from the prompt alone). Answers the PNG and
 // the usage. key: the OpenAI API key (without it the request goes out bare, for a proxy that adds it). A refused prompt,
 // a bad key or an empty balance is not tried again. size, quality and background (transparent) override the defaults: a
-// holiday frame of the cards is a transparent portrait in medium quality, drawn once for years.
-export async function generate({prompt,images=[],size=SIZE,quality=QUALITY,background},{key,fetchImpl=fetch,timeoutMs=180e3,attempts=3}={}){
+// holiday frame of the cards is a transparent portrait in medium quality, drawn once for years. format: jpeg or webp
+// (85% quality) for a picture hosted as a file, about a tenth of the PNG's size; the answer's png then holds those bytes.
+export async function generate({prompt,images=[],size=SIZE,quality=QUALITY,background,format},{key,fetchImpl=fetch,timeoutMs=180e3,attempts=3}={}){
  const auth=key?{authorization:`Bearer ${key}`}:{},edit=images.length>0;
  let last;
  for(let attempt=0;attempt<attempts;attempt++){
@@ -79,8 +80,9 @@ export async function generate({prompt,images=[],size=SIZE,quality=QUALITY,backg
    body=new FormData();
    body.append('model',MODEL);body.append('prompt',prompt);body.append('size',size);body.append('quality',quality);body.append('n','1');
    if(background)body.append('background',background);
+   if(format){body.append('output_format',format);if(format!=='png')body.append('output_compression','85');}
    for(const im of images)body.append('image[]',new Blob([im.bytes],{type:im.type||'image/jpeg'}),im.name);
-  }else body=JSON.stringify({model:MODEL,prompt,size,quality,n:1,...background?{background,output_format:'png'}:{}});
+  }else body=JSON.stringify({model:MODEL,prompt,size,quality,n:1,...background?{background,output_format:'png'}:{},...format?{output_format:format,...format!=='png'?{output_compression:85}:{}}:{}});
   try{
    const r=await fetchImpl(`https://api.openai.com/v1/images/${edit?'edits':'generations'}`,{method:'POST',body,
     headers:edit?auth:{...auth,'content-type':'application/json'},signal:AbortSignal.timeout(timeoutMs)});
