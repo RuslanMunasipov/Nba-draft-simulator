@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -53,6 +54,16 @@ class SportsCurrentTest(unittest.TestCase):
         self.assertEqual(collector.parse_roster(raw), [
             {'sportsId': '1796991', 'name': 'Ленард', 'club': 'Торонто', 'position': 'SF', 'price': 2400, 'locked': False},
             {'sportsId': '9', 'name': 'Икс', 'club': 'Юта', 'position': 'C', 'price': 1000, 'locked': True}])
+
+    def test_a_card_sports_ru_replaced_is_read_under_its_new_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / 'map.json'
+            path.write_text(json.dumps({'players': [{'sportsId': '2208816', 'previousSportsIds': ['2208842'], 'espnId': '5254165'}]}))
+            pool = [{'sportsId': '2208842', 'name': 'Уоглер', 'clubId': '4186'}, {'sportsId': '1796991', 'name': 'Ленард'}]
+            self.assertEqual(collector.current_cards(pool, path), [{'sportsId': '2208816', 'name': 'Уоглер', 'clubId': '4186'}, {'sportsId': '1796991', 'name': 'Ленард'}])
+            self.assertEqual(collector.sports_to_espn(path), {'2208816': '5254165'})
+        real = collector.current_cards([{'sportsId': '2208842'}])
+        self.assertEqual(real, [{'sportsId': '2208816'}])
 
     def test_layout_change_is_caught_by_quality(self):
         pool = [{'sportsId': str(i)} for i in range(10)]

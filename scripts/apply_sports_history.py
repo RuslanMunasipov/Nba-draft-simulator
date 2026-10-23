@@ -45,7 +45,9 @@ def attach(database, history, bonuses=None):
     players = history.get('players', {})
     checked = flagged = attached = unchecked = 0
     for player in database['players']:
-        record = players.get(str(player.get('sportsId') or ''))
+        # A card Sports.ru replaced (apply_sports_prices previousSportsIds) has its seasons under the old id.
+        record = next((players[s] for s in [str(player.get('sportsId') or ''), *player.get('previousSportsIds', [])]
+                       if (players.get(s) or {}).get('seasons')), None)
         if not record or not record.get('seasons'):
             continue
         # Sports.ru's printed average is the reference: some 0-point rows are real regular-season games it counts,

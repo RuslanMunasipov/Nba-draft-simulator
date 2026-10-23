@@ -14,14 +14,27 @@ class Prices(unittest.TestCase):
   self.assertEqual((data['cap'],data['priceMode']),(20000,'ON'))
  def test_snapshot_crosswalk_has_unique_ids_and_known_prices(self):
   prices=json.loads(Path('data/sports-prices-2026-10-17.json').read_text());mapping=json.loads(Path('data/sports-player-map.json').read_text())['players']
-  self.assertEqual(len(mapping),len({p['sportsId'] for p in mapping}))
+  cards=[s for p in mapping for s in [p['sportsId'],*p.get('previousSportsIds',[])]]
+  self.assertEqual(len(cards),len(set(cards)))
   self.assertEqual(len(mapping),len({p['espnId'] or p['nbaId'] for p in mapping}))
   additions=json.loads(Path('data/sports-market-additions.json').read_text())['players']
   by={p['sportsId']:p['price'] for p in prices['players']+additions}
-  named={p['name']:by[p['sportsId']] for p in mapping}
+  named={p['name']:next(by[s] for s in [p['sportsId'],*p.get('previousSportsIds',[])] if s in by) for p in mapping}
   self.assertEqual(named['Nikola Jokic'],3500);self.assertEqual(named['Cameron Boozer'],1800)
   self.assertEqual(named['Jalen Williams'],2000);self.assertEqual(named['Jaylin Williams'],1300)
   self.assertEqual(named['Kawhi Leonard'],2400)
+  # Sports.ru replaced Keaton Wagler's card on 23.10.2026: the catalog's 2208842 was emptied, 2208816 is his card now.
+  wagler=next(p for p in mapping if p['name']=='Keaton Wagler')
+  self.assertEqual((wagler['sportsId'],wagler['previousSportsIds'],named['Keaton Wagler']),('2208816',['2208842'],1400))
+ def test_a_replaced_card_is_priced_from_the_catalog_and_keyed_by_its_new_id(self):
+  data={'players':[{'id':1,'name':'Keaton Wagler','espnId':'11','positions':['SG']}]}
+  catalog={'source':'snapshot','capturedAt':'d1','count':1,'players':[{'sportsId':'old','name':'Уоглер','club':'Клипперс','price':1400,'sportsPosition':'2'}]}
+  crosswalk={'players':[{'sportsId':'new','previousSportsIds':['old'],'espnId':'11','name':'Keaton Wagler','sportsName':'Уоглер','sportsClub':'Клипперс'}]}
+  report=apply(data,catalog,crosswalk)
+  p=data['players'][0];self.assertEqual((p['sportsId'],p['previousSportsIds'],p['price'],p['positions'],p['priceCheckedAt']),('new',['old'],1400,['SG'],'d1'))
+  self.assertEqual((report['matchedPlayers'],report['unmatchedSportsPlayers']),(1,[]))
+  with self.assertRaisesRegex(ValueError,'Duplicate Sports.ru crosswalk ID'):
+   apply(data,catalog,{'players':[*crosswalk['players'],{'sportsId':'old','espnId':'22','name':'Other','sportsName':'Другой','sportsClub':'Клипперс'}]})
  def test_identity_mismatch_fails_instead_of_attaching_a_price(self):
   data={'players':[{'id':1,'name':'Jalen Williams','espnId':'11','nbaId':1,'positions':['PF']}]}
   catalog={'source':'Sports.ru','capturedAt':'date','count':1,'players':[{'sportsId':'a','name':'Джейлин Уильямс','club':'OKC','price':1300,'sportsPosition':'4'}]}

@@ -988,7 +988,10 @@
       "sportsClub": "Кливленд"
     },
     {
-      "sportsId": "2208842",
+      "sportsId": "2208816",
+      "previousSportsIds": [
+        "2208842"
+      ],
       "espnId": "5254165",
       "nbaId": null,
       "name": "Keaton Wagler",
