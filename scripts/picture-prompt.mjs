@@ -19,7 +19,7 @@ export function fillPrompt(written,refs){
  return {images:r.images,prompt:[r.legend,...who,prompt.trim()].filter(Boolean).join('\n')};
 }
 // Words no picture of the league shows, in any prompt Opus writes.
-export const OFF_LIMITS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|shoot\w*|bullets?|ammo|knife|knives|swords?|blood\w*|kill\w*|murder\w*|dead|death|dies?|corpses?|suicide|drugs?|cocaine|sex\w*|naked|nude|torture\w*|explod\w*|bombs?|nfl|american football|super bowl|touchdown|quarterback|helmets?)\b/i;
+export const OFF_LIMITS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|shoot\w*|bullets?|ammo|knife|knives|swords?|blood\w*|kill\w*|murder\w*|dead|death|dies?|corpses?|suicide|drugs?|cocaine|sex\w*|naked|nude|torture\w*|explod\w*|bombs?|bolters?|chainswords?|lasguns?|nfl|american football|super bowl|touchdown|quarterback|helmets?)\b/i;
 // What is wrong with a written prompt ([]: it may go to the image model). required: placeholders it must use; allowed:
 // every placeholder it may use; numbers: a Set of the numbers the words in its quotes may carry (they are drawn);
 // max: its length.

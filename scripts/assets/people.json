@@ -71,7 +71,8 @@
    "team": 5,
    "photo": "people/lemarius.jpg",
    "keep": "thin rimless tinted glasses, a full brown beard",
-   "outfit": "a grimdark inquisitor-gunslinger: wide-brimmed leather hat with a golden winged badge, battered armour under a long coat, red bandana, a cigar"
+   "outfit": "a grimdark inquisitor-gunslinger: wide-brimmed leather hat with a golden winged badge, battered armour under a long coat, red bandana, a cigar",
+   "lore": "Фанат Warhammer: его образ отсылает к инквизитору Империума (широкополая шляпа с золотым крылатым знаком, плащ, мрачная готика). Уместные отсылки в текстах и картинках: Император, Инквизиция, ересь, готика, свечи и витражи, пергаменты с печатями, сервиторы, покраска миниатюр, крестовые походы. Без оружия и сражений."
   },
   {
    "id": "fy-zhil",

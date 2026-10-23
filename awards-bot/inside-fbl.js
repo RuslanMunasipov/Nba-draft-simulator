@@ -101,7 +101,7 @@ export function longreadFacts(data,guest,{who,gifts=[],guests=[]}={}){
   mikesShelf:gifts.slice(-8),lastGuests:guests.slice(-REPEAT_WEEKS)};
  if(guest.kind==='gm'){const t=guest.team,rows=data.mine.filter(l=>l.h?.includes(t)),per=perPlayer(rows).sort((a,b)=>b.p-a.p);
   const p=gmOf(t);
-  facts.guest={kind:'GM',name:LEAGUE_TEAMS[t].gm,team:LEAGUE_TEAMS[t].name,kitColors:LEAGUE_TEAMS[t].kit||null,looks:p?[p.keep,p.style].filter(Boolean).join('; '):null,
+  facts.guest={kind:'GM',name:LEAGUE_TEAMS[t].gm,team:LEAGUE_TEAMS[t].name,kitColors:LEAGUE_TEAMS[t].kit||null,looks:p?[p.keep,p.style].filter(Boolean).join('; '):null,lore:p?.lore||null,
    place:data.rank(t),points:data.table[t],weekPoints:data.weekPoints[t],gapToLeader:data.order[0].points-data.table[t],
    weekBest:per.slice(0,3).map(r=>({name:who(r.a,r.n),fo:round(r.p),games:r.games})),
    weekWorst:per.slice(-2).reverse().filter(r=>!per.slice(0,3).includes(r)).map(r=>({name:who(r.a,r.n),fo:round(r.p),games:r.games}))};
