@@ -423,11 +423,16 @@ function ownOutlook(p,ctx,team){
  const o=playerOutlook(p,ctx);if(firstOf(ctx,team,p.id)===null)return o;
  const z={};for(const [k,v] of Object.entries(o))z[k]={...v,points:0,games:0};return z;
 }
+// A player Sports.ru cannot sell: it emptied his card (Keaton Wagler, 23.10.2026: no name, club or price, gone from the
+// team's roster JSON). He stays on the team and his price stays frozen in its value (league owner, 23.10), so no advice
+// sells him or spends his money.
+const emptied=x=>Boolean(x)&&!Number.isFinite(x.price)&&!x.club&&!x.position;
+export const frozen=(p,ctx)=>Boolean(p?.sportsId)&&emptied(ctx.live?.players?.[p.sportsId]);
 // Every legal one-for-one replacement of a roster player: same Sports.ru slot structure, price within the bank, a rookie kept.
 // Gains are expected official points of the newcomer minus those the player sold brings the team, over each horizon.
 function selling(ctx,team,outId,bankMoney,byId){
  const roster=ctx.rosters[team].map(id=>current(byId.get(id),ctx)),leaving=roster.find(p=>p.id===outId);
- if(!leaving)return null;
+ if(!leaving||frozen(leaving,ctx))return null;
  const rest=roster.filter(p=>p.id!==outId);
  const white=whiteOf(ctx);
  return {leaving,rest,money:bankMoney+leaving.price,needRookie:!rest.some(p=>p.isRookie===true),
@@ -582,7 +587,9 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  if(must)pool.push({p:must,v:value(must)});
  const unique=[...new Map(pool.map(x=>[x.p.id,x])).values()];
  const white=whiteOf(ctx),counts=p=>Boolean(white?.has(String(p.id)));
- const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1},...(white?{white:{min:1}}:{}),...(must?{must:{min:1}}:{})},variables:{},ints:{}};
+ // A frozen player (Sports.ru cannot sell him) is always kept.
+ const stuck=roster.filter(p=>frozen(p,ctx)).length;
+ const model={optimize:'value',opType:'max',constraints:{count:{equal:10},kept:{min:10-k},money:{max:wealth},rookie:{min:1},...(white?{white:{min:1}}:{}),...(must?{must:{min:1}}:{}),...(stuck?{frozen:{min:stuck}}:{})},variables:{},ints:{}};
  const subsets=Array.from({length:31},(_,m)=>POSITIONS.filter((_,i)=>(m+1)>>i&1));
  subsets.forEach((T,i)=>{model.constraints['pos'+i]={max:2*T.length};});
  const items=[...roster.map(p=>({p,v:value(p),own:true})),...unique.map(x=>({...x,own:false}))];
@@ -590,7 +597,7 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  clubs.forEach((c,i)=>{model.constraints['club'+i]={max:Math.max(CLUB_LIMIT,roster.filter(p=>p.club===c).length)};});
  const seasonOf=new Map(items.map(x=>[x.p.id,outlook(x.p).season.points]));
  if(protectSeason&&(weights||sort!=='season'))model.constraints.season={min:roster.reduce((s,p)=>s+seasonOf.get(p.id),0)-1e-6};
- items.forEach((x,i)=>{const v={value:x.v+(x.own?movePrice:0),count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.p.isRookie===true)v.rookie=1;if(counts(x.p))v.white=1;if(x.p.id===must?.id)v.must=1;if(x.p.club)v['club'+clubs.indexOf(x.p.club)]=1;
+ items.forEach((x,i)=>{const v={value:x.v+(x.own?movePrice:0),count:1,money:x.p.price,season:seasonOf.get(x.p.id),['one'+i]:1};if(x.own)v.kept=1;if(x.own&&frozen(x.p,ctx))v.frozen=1;if(x.p.isRookie===true)v.rookie=1;if(counts(x.p))v.white=1;if(x.p.id===must?.id)v.must=1;if(x.p.club)v['club'+clubs.indexOf(x.p.club)]=1;
   subsets.forEach((T,j)=>{if(x.p.positions.every(q=>T.includes(q)))v['pos'+j]=1;});
   model.constraints['one'+i]={max:1};model.variables['x'+i]=v;model.ints['x'+i]=1;});
  const result=solver.Solve(model);if(!result.feasible)return null;
@@ -1052,7 +1059,7 @@ export function allTransfers(players,live,league={transfers:[]},picks=DRAFT_PICK
  // missing from its roster JSON though the team still holds him.
  let now=null;try{now=seasonRosters(fromSports.transfers,picks);}catch{}
  for(const [key,team] of Object.entries(live?.teams||{})){if(!team.roster?.length||!now)continue;
-  const held=new Set(team.roster.map(r=>r.sportsId)),gone=p=>p?.sportsId&&live.players?.[p.sportsId]&&live.players[p.sportsId].price==null;
+  const held=new Set(team.roster.map(r=>r.sportsId)),gone=p=>frozen(p,{live});
   const missing=now[Number(key)].map(id=>byId.get(id)).filter(p=>!held.has(p?.sportsId)),odd=missing.filter(p=>!gone(p)),empty=missing.filter(gone);
   if(odd.length)warnings.push({team:Number(key),message:`Состав по журналу расходится с составом Sports.ru: ${odd.map(p=>p?.name).join(', ')} — проверь трансферы.`});
   if(empty.length)warnings.push({team:Number(key),message:`Sports.ru опустошил карточку: ${empty.map(p=>p?.name).join(', ')} — в составе по журналу, в составе Sports.ru не показан.`});}

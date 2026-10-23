@@ -195,6 +195,21 @@ test('a deal the league approved off Sports.ru counts at once and is not doubled
  const later=allTransfers(named,at([...mirror,{date:'2026-10-25',sell:{name:'N17',price:1500},buy:{name:'N82',price:1500}}]),{transfers:yahoo},picks);
  assert.deepEqual(later.transfers.filter(x=>x.source==='sports.ru').map(x=>[x.outId,x.inId]),[[17,82]]);
 });
+test('a player whose card Sports.ru emptied is never sold: his money stays frozen',async()=>{
+ const {frozen}=await import('../src/season.js');
+ // Karagali Brothers, 23.10.2026: Wagler's card has no price; the league keeps him on the team, his 1400 frozen.
+ // Here: team 0's #1 is great to sell for free agent 100 by the forecast, but his card is empty.
+ const list=players.map(p=>p.id===1?{...p,forecast:{meanPerGame:1,games:82}}:p);
+ const c={...ctx({players:list}),live:{...live,players:{1001:{name:'N1',clubId:'1'},1002:{name:'N2',club:'C1'}}}};
+ // A card with its club but no price (a test's or an old snapshot's) is no emptied card.
+ assert.ok(frozen(list[0],c)&&!frozen(list[1],c));
+ assert.deepEqual(transferOptions(c,{team:0,outId:1,bankMoney:5000}),[]);
+ assert.ok(!bestTransfers(c,{team:0,bankMoney:5000}).some(b=>b.outId===1));
+ const pack=bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'season'});
+ assert.ok(!pack?.pairs.some(x=>x.out.id===1));
+ // Without the emptied card he is the first one sold.
+ assert.ok(bestPackage({...c,live},{team:0,bankMoney:5000,k:3,sort:'season'}).pairs.some(x=>x.out.id===1));
+});
 test('a journal whose player Sports.ru left unnamed still gives his deals, reported only once',async()=>{
  const {unreported,dealEvents}=await import('../src/season.js');
  // Karagali Brothers, 23.10.2026: Wagler's card was emptied, his name gone from every row («куплен за 1400»).
