@@ -196,7 +196,8 @@ function guestLooks(guest){
  return `the real NBA player ${guest.row.en}, exactly as he really looks (face, build, hair)${kit?`; when he wears team clothes they are ${kit}, no logos`:''}`;
 }
 export const SAFE_SCENE='Mike and the guest sit at the guest\'s kitchen table over coffee, both laughing at something on a tablet, Mike\'s vintage microphone on the table between the cups.';
-export function longreadPicture(scene,guest,{mikePhoto,guestPhoto,opener=false}){
+// text: the scene names what it shows in letters (player cards), the only text allowed in a chapter's picture.
+export function longreadPicture(scene,guest,{mikePhoto,guestPhoto,opener=false,text=null}){
  const refs=references([{key:'mike',image:mikePhoto,what:'Mike Roffon, the reporter (take only his face from it, not his clothes)'},
   {key:'guest',image:guestPhoto,what:'the guest'}]);
  const mike=person('mike-roffon');
@@ -204,7 +205,7 @@ export function longreadPicture(scene,guest,{mikePhoto,guestPhoto,opener=false})
 MIKE ROFFON${refs.has.mike?` (${refs.has.mike})`:''}: ${looks({...mike,outfit:null})}. Preserve his face precisely, instantly recognizable. He is dressed for the scene, a sports reporter visiting someone (a jacket or a suit, or what the scene calls for), always his white gloves. No helmet, no military uniform, no camouflage.
 THE GUEST${refs.has.guest?` (${refs.has.guest})`:''}: ${guestLooks(guest)}. Preserve the guest's face precisely.${guest.kind!=='player'?' Dressed for the scene, at home.':''}
 SCENE: ${scene}${opener?' Mike holds his vintage chrome microphone up to the guest, interviewing, with a sharp, sceptical look.':''}
-STYLE: a funny candid photorealistic photo, like a still from a documentary about the guest's life, natural light, 35mm lens. Square composition. ${opener?'At the bottom a TV lower-third banner reads "INSIDE FBL", spelled exactly; no other text.':'No text, captions, signs, logos or watermarks.'}`};
+STYLE: a funny candid photorealistic photo, like a still from a documentary about the guest's life, natural light, 35mm lens. Square composition. ${opener?'At the bottom a TV lower-third banner reads "INSIDE FBL", spelled exactly; no other text.':text?`The only text: ${text}, spelled exactly; no other captions, numbers or watermarks.`:'No text, captions, signs, logos or watermarks.'}`};
 }
 
 // --- Telegraph: the page as its nodes (telegra.ph/api#Node), the images by their URLs.
@@ -242,10 +243,18 @@ export async function publishPage(x,facts,{token,opener,images,fetchImpl=fetch}=
   content:telegraphNodes(x,facts,{opener,images}),return_content:false},fetchImpl);
  return page.url;
 }
+// The page edited in place (the same URL): its content anew, a picture changed. Needs the account that published it.
+export async function editPage(url,x,facts,{token,opener,images,fetchImpl=fetch}={}){
+ if(!token)throw Error('Telegraph editPage: TELEGRAPH_ACCESS_TOKEN');
+ const page=await telegraph(`editPage/${new URL(url).pathname.slice(1)}`,{access_token:token,title:pageTitle(x),author_name:'Майк Роффон · Inside FBL',
+  content:telegraphNodes(x,facts,{opener,images}),return_content:false},fetchImpl);
+ return page.url;
+}
 // The post in the league chat: the opener and the link.
 export function longreadCaption(x,facts,url){
- const kind=facts.guest.kind==='GM'?`GM ${facts.guest.team}`:facts.guest.kind==='игрок'?facts.guest.club||'игрок':'комиссар лиги';
- return `<b>🎙 Inside FBL • Большое интервью</b>\n<b>${esc(facts.guest.name)}</b> (${esc(kind)}) — <i>${esc(String(x.title).replace(/^[«"„“]+|[»"“”]+$/g,''))}</i>\n\n${esc(x.lead)}\n\n<a href="${esc(url)}">Читать лонгрид →</a>\n\n#inside_fbl #лонгрид #неделя_${facts.week.n}`.slice(0,1024);
+ const who=facts.guest.kind==='GM'?`GM ${facts.guest.team}`:facts.guest.kind==='игрок'?(facts.guest.club?`игрок ${facts.guest.club}`:'игрок'):'комиссар лиги';
+ const title=String(x.title).replace(/^[«"„“]+|[»"“”]+$/g,'').replace(new RegExp(`^${facts.guest.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\s*[:—–-]\\s*`),'').replace(/^\p{Ll}/u,c=>c.toUpperCase());
+ return `<b>🎙 Inside FBL • Большое интервью</b>\n\n<b>${esc(title)}</b>\n<i>${esc(x.lead)}</i>\n\nВ гостях у Майка Роффона: <b>${esc(facts.guest.name)}</b>, ${esc(who)}.\n\n👉 <a href="${esc(url)}">Читать лонгрид</a>\n\n#inside_fbl #лонгрид #неделя_${facts.week.n}`.slice(0,1024);
 }
 // When the piece of a week goes out: that week's Friday at 18:00 Moscow.
 export const postTime=weekStart=>Date.parse(`${addDays(weekStart,POST_AT.weekday-1)}T${String(POST_AT.hour-3).padStart(2,'0')}:00:00Z`);

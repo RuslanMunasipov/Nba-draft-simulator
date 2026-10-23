@@ -18,7 +18,7 @@ on:
       action:
         description: 'draft: the week''s page for review; approve: it goes out on Friday at 18:00; redo: written anew; post: wait for 18:00 and post if approved'
         type: choice
-        options: [draft, approve, redo, post]
+        options: [draft, approve, redo, post, picture]
         default: draft
       notes:
         description: 'For redo: what to change (the writer gets it as the editor''s wishes)'
@@ -26,6 +26,18 @@ on:
         default: ''
       guest:
         description: 'For draft/redo: gm:<1-8>, player:<ESPN id> or commissioner (empty: by the week''s story; redo keeps the guest)'
+        required: false
+        default: ''
+      chapter:
+        description: 'For picture: the chapter whose picture is drawn anew (1, 2, ...)'
+        required: false
+        default: ''
+      scene:
+        description: 'For picture: the new scene, in English'
+        required: false
+        default: ''
+      text:
+        description: 'For picture: the only letters it may show (like the player names on cards)'
         required: false
         default: ''
       week:
@@ -71,6 +83,9 @@ jobs:
           WEEK: ${{ inputs.week }}
           GUEST: ${{ inputs.guest }}
           NOTES: ${{ inputs.notes }}
+          CHAPTER: ${{ inputs.chapter }}
+          SCENE: ${{ inputs.scene }}
+          TEXT: ${{ inputs.text }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -83,4 +98,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           node awards-bot/bot.mjs --inside-fbl --state "$RUNNER_TEMP/awards" --inside "$RUNNER_TEMP/inside" --action "$ACTION"
-          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} ${NOTES:+--notes "$NOTES"} $AFTER
+          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} ${NOTES:+--notes "$NOTES"} ${CHAPTER:+--chapter "$CHAPTER"} ${SCENE:+--scene "$SCENE"} ${TEXT:+--text "$TEXT"} $AFTER

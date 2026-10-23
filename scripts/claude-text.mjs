@@ -12,7 +12,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 // An alias of the CLI (sonnet, opus, haiku) or a full model name.
-export const CLAUDE_MODEL=process.env.CLAUDE_TEXT_MODEL||'sonnet';
+// Opus for every text of the bots (owner, 23.10.2026: a Max subscription, the limits are not to be spared).
+export const CLAUDE_MODEL=process.env.CLAUDE_TEXT_MODEL||'opus';
 // The subscription token as pasted into the secret: spaces, line breaks and quotes around it are not part of it.
 export const subscriptionToken=(env=process.env)=>String(env.CLAUDE_CODE_OAUTH_TOKEN||'').trim().replace(/^["']+|["']+$/g,'').trim();
 // Whether a run can write at all: the subscription token is set (CI). Without it the bots write nothing.
