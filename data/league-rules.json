@@ -73,7 +73,13 @@
       "note": "Sports.ru journals give only the date; the time is bounded by the watcher: after its last read of the journal without the transfer (seenAfter) and by its first read with it (seenAt)."
     },
     "countFrom": "2026-10-20T21:30:00+03:00",
-    "preseason": "League owner, 2026-10-20: pre-season transfers are unlimited and free. Sports.ru's own deadline of the first round (20.10, 21:30 Moscow time, the team page's «Дедлайн») ends the pre-season: a transfer counts against the FBL week when the watcher saw it at or after countFrom (or, never timed, when dated after that day)."
+    "preseason": "League owner, 2026-10-20: pre-season transfers are unlimited and free. Sports.ru's own deadline of the first round (20.10, 21:30 Moscow time, the team page's «Дедлайн») ends the pre-season: a transfer counts against the FBL week when the watcher saw it at or after countFrom (or, never timed, when dated after that day).",
+    "priority": {
+      "source": "League vote, approved by the commissioner, 2026-10-23 (regulation 2026-27, clause 3.3 as amended after the dispute of 23.10; data/announcements/2026-10-23-regulation.html).",
+      "rule": "Two GMs after one player: priority goes to the GM who can make the transfer on Sports.ru here and now; if both GMs' outgoing players are locked on Sports.ru, to the GM who filed the request with the league first. When Sports.ru is down, a transfer approved by the commissioner, with its budget counted, is made on Yahoo first.",
+      "platform": "Sports.ru confirmation decides this season (transferPlatform); a request in the league chat reserves no player (clause 3.7: no 24-hour reservation).",
+      "watcher": "The bot sees only Sports.ru: the first holder there owns the player (sharedPlayers, firstHolder in src/rules.js). A request order or a Yahoo-first transfer while Sports.ru is down is for the lawyer to check by hand."
+    }
   },
   "whiteRule": {
     "min": 1,
