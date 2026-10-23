@@ -128,6 +128,7 @@ const hash=seed=>{let h=0;for(const ch of String(seed))h=(h*31+ch.codePointAt(0)
 // Each scene its own clothes: always a sports reporter, dressed for where he is; one look per interview. Only his face comes
 // from his photo: its camouflage helmet and PRESS vest belong to a war zone, never to an arena or a press conference.
 // The player wears his FBL team's kit (KIT, WARMUP): its colors and its logo; his NBA club's when he has no FBL team.
+// crest false: the team's colors alone (LEAGUE_TEAMS kit), no logo and no name, for when the image model refuses them.
 const SCENES=[
  {where:'outside the arena after the game, at night, by the lit arena entrance, the player in a hoodie over KIT, his bag on his shoulder',
   wear:['a long dark overcoat over a suit, a scarf and a press badge on a lanyard','a navy rain jacket over a shirt and tie, a press badge on a lanyard']},
@@ -139,18 +140,22 @@ const SCENES=[
   wear:['a dark suit, a polka-dot tie and a press accreditation badge','a charcoal three-piece suit, a knit tie and a press accreditation badge']},
 ];
 // team: the index (0-7) of the hero's FBL team (line.h[0]); its logo from scripts/assets/team-logos.
-export function interviewPicture(facts,day,{root=ASSETS,team=null}={}){
+export function interviewPicture(facts,day,{root=ASSETS,team=null,crest=true}={}){
  const mike=person('mike-roffon'),logo=readImage(fileURLToPath(new URL('./assets/fbl-logo.png',import.meta.url)));
- const club=Number.isInteger(team)?LEAGUE_TEAMS[team]:null,crest=club?teamLogo(team,root):null;
+ const club=Number.isInteger(team)?LEAGUE_TEAMS[team]:null,badge=club&&crest?teamLogo(team,root):null;
  const refs=[{image:readImage(`${root}/${mike.photo}`),what:'Mike Roffon, the reporter (take only his face from it, not his clothes)'},
-  {image:logo,what:'the logo of the league, FBL'},{image:crest,what:`the logo of ${club?.name}, the player's fantasy team`}].filter(r=>r.image);
- const n=image=>image?refs.findIndex(r=>r.image===image)+1:0,leagueRef=n(logo),crestRef=n(crest);
+  {image:logo,what:'the logo of the league, FBL'},{image:badge,what:`the logo of ${club?.name}, the player's fantasy team`}].filter(r=>r.image);
+ const n=image=>image?refs.findIndex(r=>r.image===image)+1:0,leagueRef=n(logo),crestRef=n(badge),plain=!crestRef&&club?.kit;
  const kit=crestRef?`the game jersey of his fantasy team ${club.name}: a basketball uniform in the colors of the logo in reference image ${crestRef}, that logo on the chest`
-  :'his game jersey',warmup=crestRef?`the warm-up shirt of his fantasy team ${club.name}, in the colors of the logo in reference image ${crestRef}, that logo on the chest`:'his team warm-up shirt';
+  :plain?`a basketball game jersey in ${club.kit}, with no logo and no lettering`:'his game jersey';
+ const warmup=crestRef?`the warm-up shirt of his fantasy team ${club.name}, in the colors of the logo in reference image ${crestRef}, that logo on the chest`
+  :plain?`a warm-up shirt in ${club.kit}, with no logo and no lettering`:'his team warm-up shirt';
+ const wears=crestRef?`dressed not in his NBA club's uniform but in the kit of his fantasy team ${club.name}: its colors and its logo exactly as in reference image ${crestRef}, no NBA club logos`
+  :plain?`dressed not in his NBA club's uniform but in a plain kit in ${club.kit}, no logos and no lettering on it`:`in the uniform of the ${facts.player.club}`;
  const scene=SCENES[hash(day+facts.player.en)%SCENES.length],outfit=scene.wear[hash(facts.player.en+day+'look')%scene.wear.length];
  return {images:refs.map(r=>r.image),prompt:`REFERENCES: ${refs.map((r,i)=>`reference image ${i+1} is ${r.what}`).join('; ')}.
 MIKE ROFFON: ${looks({...mike,outfit:null})}. Preserve his face precisely, instantly recognizable. Today he is dressed as a sports reporter for this scene: ${outfit}, and his white gloves. No helmet, no military uniform, no camouflage, no PRESS or tactical vest.
-PLAYER: the real NBA player ${facts.player.en}, exactly as he really looks (face, build, hair), ${crestRef?`dressed not in his NBA club's uniform but in the kit of his fantasy team ${club.name}: its colors and its logo exactly as in reference image ${crestRef}, no NBA club logos`:`in the uniform of the ${facts.player.club}`}.
+PLAYER: the real NBA player ${facts.player.en}, exactly as he really looks (face, build, hair), ${wears}.
 SCENE: a flash interview, ${scene.where.replace('KIT',kit).replace('WARMUP',warmup)}. Mike, in white gloves, holds his vintage chrome microphone up to the player, asking a hard question with a sharp, sceptical look; the player answers, confident.${leagueRef?` Behind them a press wall printed with the league logo from reference image ${leagueRef}, repeated.`:''} At the bottom a TV lower-third banner reads "INSIDE FBL".
 STYLE: photorealistic sports-broadcast still, cinematic light, 35mm lens, shallow depth of field. Square composition. The only text: "INSIDE FBL" on the banner and on the press wall, spelled exactly${crestRef?`, and the lettering inside the team logo, exactly as in reference image ${crestRef}`:''}. No other captions, numbers, jersey numbers or watermarks.`};
 }

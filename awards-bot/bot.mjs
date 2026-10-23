@@ -245,8 +245,14 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
   const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
   let spent=0,picture=null;
-  if(OPENAI_KEY)try{const r=await generate(interviewPicture(facts,day,{team:hero.h?.[0]}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
-  catch(e){console.warn(`${day}: Mike Roffon's picture failed (${e.message}): the interview goes alone.`);}
+  // His picture with the hero in his FBL team's kit; when the image model refuses it (a team's name or logo), the kit's
+  // colors alone; when that fails too, the interview goes alone.
+  const team=hero.h?.[0];
+  for(const crest of Number.isInteger(team)?[true,false]:[true]){
+   if(!OPENAI_KEY||picture)break;
+   try{const r=await generate(interviewPicture(facts,day,{team,crest}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
+   catch(e){console.warn(`${day}: Mike Roffon's picture ${crest&&Number.isInteger(team)?'with the team logo':'without the team logo'} failed (${e.message})${crest&&Number.isInteger(team)?': drawn again in the team colors alone.':': the interview goes alone.'}`);}
+  }
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
    fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.txt`),caption+'\n\n'+text+'\n');}

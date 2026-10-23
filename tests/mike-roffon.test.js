@@ -86,6 +86,17 @@ test('Mike Roffon: the hero wears his FBL team: its colors and its logo, the log
  assert.equal(none.images.length,2);assert.match(none.prompt,/in the uniform of the MIN/);assert.doesNotMatch(none.prompt,/fantasy team|reference image 3/);
 });
 
+test('Mike Roffon: refused with the team logo, the hero is drawn again in the team colors alone, no name, no logo',async()=>{
+ const {LEAGUE_TEAMS}=await import('../src/teams.js');
+ assert.ok(LEAGUE_TEAMS.every(t=>/^[a-z ,]+ and [a-z ]+$/.test(t.kit)),'every team has its colors');
+ for(let d=1;d<=12;d++){
+  const p=interviewPicture(facts,`2026-11-${String(d).padStart(2,'0')}`,{team:7,crest:false});
+  assert.equal(p.images.length,2,'Mike and the league logo only');
+  assert.match(p.prompt,/navy blue, red and white/);assert.match(p.prompt,/no logos and no lettering/);
+  assert.doesNotMatch(p.prompt,/School|Shooters|fantasy team|reference image 3|KIT|WARMUP|of the MIN/);
+ }
+});
+
 test('Mike Roffon: written by Claude (the subscription module, JSON by the schema), again on its own numbers or old lines, then dropped',async()=>{
  const seen=[],reply=x=>async opts=>{seen.push(opts);return {data:x,text:JSON.stringify(x),usage:{output_tokens:500},costUsd:0.02};};
  const {interview}=await writeInterview(facts,{claude:reply(good)});assert.deepEqual(interview,good);
