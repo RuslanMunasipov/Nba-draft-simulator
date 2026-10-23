@@ -115,7 +115,7 @@ test('Зак Онн pictures: the scene follows the case, the rule broken first'
 
 test('the league\'s people: every photo exists, GMs by team, their looks go into the GM block of a picture',async()=>{
  const {PEOPLE,person,gmOf,looks}=await import('../scripts/image-pipeline.mjs');
- for(const p of PEOPLE){assert.ok(fs.existsSync(new URL(`../scripts/assets/${p.photo}`,import.meta.url)),p.id);assert.ok(p.name&&p.en&&p.role,p.id);}
+ for(const p of PEOPLE){assert.ok(fs.existsSync(new URL(`../scripts/assets/${p.photo}`,import.meta.url)),p.id);assert.ok(p.name&&p.en&&p.role&&p.org&&p.job,p.id);}
  assert.equal(gmOf(0).id,'franky-murder');assert.equal(gmOf(1).id,'coach-i');assert.equal(gmOf(4).id,'captain-torres-new-win');
  assert.deepEqual([2,3,5,6,7].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil','strap-onn']);
  assert.match(looks(person('captain-torres-new-win')),/never changes: always a pirate: a weathered brown leather tricorn hat.*dreadlocks/);assert.doesNotMatch(looks(person('captain-torres-new-win')),/cartoon/,'a real face now (23.10)');

@@ -1,11 +1,14 @@
 {
- "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. role: lawyer, commissioner, gm, reporter, reserve, member (a league person without a club), hologram. team: the league team's index (0-7, src/teams.js) of a GM.",
+ "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. role: lawyer, commissioner, gm, reporter, expert, analyst, insider, bot-maker. org and job: the club or organisation and what the person does, in the league owner's own words (23.10.2026). team: the league team's index (0-7, src/teams.js) of a GM.",
+ "league": "FBL — Fantasy Brothers League",
  "people": [
   {
    "id": "zak-onn",
    "name": "Зак Онн",
    "en": "Zak Onn",
    "role": "lawyer",
+   "org": "FBL",
+   "job": "Главный юрист лиги, ИИ-персонаж",
    "photo": "zak-onn/check.jpg",
    "keep": "always the league's Lawyer with a capital L, and always the bright red baseball cap with white embroidered text \"God Bless America\", spelled exactly",
    "outfit": "tailored charcoal-grey suit, white shirt, plain black tie"
@@ -15,6 +18,8 @@
    "name": "Адам Сильверов",
    "en": "Adam Silverov",
    "role": "commissioner",
+   "org": "FBL — Fantasy Brothers League",
+   "job": "Комиссионер лиги",
    "photo": "people/adam-silverov.jpg",
    "keep": "long curly grey-brown mullet hair, thin round metal-rimmed glasses, grey stubble",
    "outfit": "a black satin suit with rhinestone-trimmed lapels, an open black satin shirt, a thin silver chain"
@@ -25,6 +30,8 @@
    "en": "Franky Murder",
    "role": "gm",
    "team": 0,
+   "org": "The Balkanian Murderers",
+   "job": "Генеральный менеджер",
    "photo": "people/franky-murder.jpg",
    "keep": "curly dark hair and a full beard",
    "outfit": "dark aviator sunglasses, black leather jacket, red tartan scarf, gold rings and a cigar"
@@ -35,6 +42,8 @@
    "en": "Jack Pott",
    "role": "gm",
    "team": 2,
+   "org": "Black Jacks",
+   "job": "Генеральный менеджер",
    "photo": "people/jack-pott.jpg",
    "keep": "dark rectangular sunglasses (his eyes are never shown), a short beard and moustache, diamond stud earrings",
    "outfit": "black cap embroidered \"Jack Pott\", black velvet jacket, gold chain, gold watch and a gold ring"
@@ -42,9 +51,15 @@
   {
    "id": "robert-khachaturyan",
    "name": "Роберт Хачатурян",
+   "aliases": [
+    "Хачатурян Роберт Саркисович",
+    "Роберт Саркисович"
+   ],
    "en": "Robert Khachaturyan",
    "role": "gm",
    "team": 3,
+   "org": "Б.К. им. Алачаняна А.М.",
+   "job": "Генеральный менеджер",
    "photo": "people/robert-khachaturyan.jpg",
    "keep": "round dark-rimmed glasses, a full dark beard, short dark hair",
    "outfit": "dark suit jacket over an open-collar white shirt, the club's pin on the lapel"
@@ -55,6 +70,8 @@
    "en": "Captain Torres New-Win",
    "role": "gm",
    "team": 4,
+   "org": "Volga Pirates",
+   "job": "Генеральный менеджер",
    "photo": "people/captain-torres-new-win.jpg",
    "keep": "always a pirate: a weathered brown leather tricorn hat over a faded red bandana, long dark dreadlocks hung with beads and trinkets, a reddish-brown beard and moustache",
    "outfit": "a worn brown pirate coat with silver buttons, a loose cream linen shirt, a dark patterned waistcoat, a leather baldric with an ornate silver buckle"
@@ -65,6 +82,8 @@
    "en": "Lemarius",
    "role": "gm",
    "team": 5,
+   "org": "Texas 76 Citrus",
+   "job": "Генеральный менеджер",
    "photo": "people/lemarius.jpg",
    "keep": "thin rimless tinted glasses, a full brown beard",
    "outfit": "a grimdark inquisitor-gunslinger: wide-brimmed leather hat with a golden winged badge, battered armour under a long coat, red bandana, a cigar",
@@ -76,6 +95,8 @@
    "en": "Fy Zhil",
    "role": "gm",
    "team": 6,
+   "org": "Karagali Brothers",
+   "job": "Генеральный менеджер",
    "photo": "people/fy-zhil.jpg",
    "keep": "long dark braids with bronze beads, a short dark beard, black sunglasses (his eyes are never shown)",
    "outfit": "a black nomad's robe with orange-patterned leather straps and bronze buckles, a long orange scarf"
@@ -86,6 +107,8 @@
    "en": "Strap Onn",
    "role": "gm",
    "team": 7,
+   "org": "School Shugars",
+   "job": "Генеральный менеджер",
    "photo": "people/strap-onn.jpg",
    "keep": "slicked-back dark hair greying at the temples, a deep tan, a weathered face with a confident smirk",
    "outfit": "a dark suit over an open white silk shirt, a gold chain with a medallion, a gold watch, gold rings and a cigar"
@@ -100,6 +123,8 @@
    "en": "Coach I",
    "role": "gm",
    "team": 1,
+   "org": "Saint P Imperial",
+   "job": "Генеральный менеджер",
    "photo": "people/coach-i.jpg",
    "style": "always rendered as a classical oil painting, exactly as in his photo, even inside a photographic scene",
    "keep": "always an emperor: imperial dark-green velvet uniform with gold embroidery, a blue sash and an ermine mantle; curly dark hair, short beard"
@@ -111,7 +136,9 @@
     "Franky Skynet"
    ],
    "en": "Franky Skynet",
-   "role": "hologram",
+   "role": "bot-maker",
+   "org": "FBL",
+   "job": "Создатель ботов, голографическая версия Фрэнки Мердера",
    "photo": "people/franky-skynet.jpg",
    "style": "always a glowing blue translucent hologram made of light and scan lines, exactly as in his photo, even inside a photographic scene",
    "keep": "curly hair and a full beard, dark sunglasses (his eyes are never shown); a holographic double of Franky Murder, not the man himself",
@@ -121,7 +148,9 @@
    "id": "steven-ex-pert",
    "name": "Стивен Экс Перт",
    "en": "Steven Ex Pert",
-   "role": "member",
+   "role": "expert",
+   "org": "FBL / Inside FBL",
+   "job": "Эксперт лиги",
    "photo": "people/steven-ex-pert.jpg",
    "keep": "short black hair, a thin moustache, a broad confident smile",
    "outfit": "a dark suit, a white shirt and a blue striped tie, papers and a pen in hand"
@@ -130,7 +159,9 @@
    "id": "christopher-dildo",
    "name": "Кристофер Дилдо",
    "en": "Christopher Dildo",
-   "role": "member",
+   "role": "analyst",
+   "org": "FBL / Inside FBL",
+   "job": "Аналитик",
    "photo": "people/christopher-dildo.jpg",
    "keep": "short brown hair, rectangular glasses, a young face",
    "outfit": "a checked short-sleeve shirt, a notebook and a pen"
@@ -139,7 +170,9 @@
    "id": "jonathan-zhopa",
    "name": "Джонатан Жопа",
    "en": "Jonathan Zhopa",
-   "role": "reserve",
+   "role": "insider",
+   "org": "FBL / Inside FBL",
+   "job": "Гений цифр и инсайдер",
    "photo": "people/jonathan-zhopa.jpg",
    "keep": "curly brown hair, large metal-frame glasses",
    "outfit": "a red velour pullover with stripes"
@@ -149,6 +182,8 @@
    "name": "Майк Роффон",
    "en": "Mike Roffon",
    "role": "reporter",
+   "org": "FBL / Inside FBL",
+   "job": "Корреспондент",
    "photo": "people/mike-roffon.jpg",
    "keep": "white gloves and a vintage chrome microphone, always",
    "outfit": "dressed as a sports reporter, his clothes fit the scene (a blazer or a suit with a press badge, a coat outside); the camouflage helmet and the PRESS vest of his photo are worn only in a war-correspondent scene, never at an arena or a press conference"
