@@ -133,7 +133,8 @@ export function playersView(base){
  const search=el('label',null,'mk-search'),input=el('input');input.type='search';input.enterKeyHint='search';input.autocomplete='off';
  input.placeholder='Игрок или клуб NBA';input.value=marketQuery;input.setAttribute('aria-label','Поиск игрока: имя по-русски или по-английски, клуб');search.append(input);
  const streaks=el('label',null,'check mk-check'),cb=el('input');cb.type='checkbox';cb.checked=market.streaks;cb.onchange=()=>set('streaks',cb.checked);streaks.append(cb,'Только стрики');
- const rookies=el('label',null,'check mk-check'),rb=el('input');rb.type='checkbox';rb.checked=market.rookies;rb.onchange=()=>set('rookies',rb.checked);rookies.append(rb,'Только новички');
+ const rookies=el('label',null,'check mk-check'),rb=el('input');rb.type='checkbox';rb.checked=market.rookies;// Most rookies have not played yet: the rookie filter starts with any number of games, or it would hide them.
+ rb.onchange=()=>{if(rb.checked)market.minGames=0;set('rookies',rb.checked);};rookies.append(rb,'Только новички');
  const filters=el('div',null,'mk-filters');
  filters.append(seg('Кто',[['free','Свободные'],['all','Все']],'scope'),seg('Позиция',[['all','Все'],...POSITIONS.map(x=>[x,x])],'pos','mk-pos-seg'),
   pick('Матчей',[[0,'любое'],[1,'от 1'],[3,'от 3'],[5,'от 5'],[10,'от 10']],'minGames'),
@@ -145,6 +146,9 @@ export function playersView(base){
  const rookieNote=market.rookies?el('p',mine.length?`${mine.length>1?'Новички':'Новичок'} в составе «${teamName(team)}»: `+mine.map(p=>{const f=seasonForm(p,live?.players?.[p.sportsId]);
    return `${p.name} — ${f.average!=null?dec(f.average)+' ФО/матч, '+count(f.games,'матч','матча','матчей'):'ещё не играл'}`;}).join('; ')+'. Продать единственного новичка можно только за другого новичка.'
   :`В составе «${teamName(team)}» нет новичка — правило обязательного новичка нарушено.`,mine.length?'sp-note':'warning'):null;
+ // Rookies of the database Sports.ru's market does not list (its catalog of 17.10 plus the FBL rosters) cannot be shown.
+ const unlisted=market.rookies?basePlayers.filter(p=>p.isRookie===true&&!live?.players?.[p.sportsId]).length:0;
+ if(rookieNote&&unlisted)rookieNote.append(` Новичков из базы, которых нет в каталоге рынка Sports.ru, — ${int(unlisted)}: их здесь не видно.`);
  const games=Math.max(0,...all.map(r=>r.form.games)),early=games<5?el('p',`Сезон только начался: средние по ${games<=1?'одному матчу':'1–'+games+' матчам'} пока шумные. Стрик — от ${count(STREAK.min,'матча','матчей','матчей')} подряд заметно выше (🔥) или ниже (🧊) прогноза.`,'warning'):null;
  const list=el('div',null,'mk-list'),header=el('div',null,'mk-header');
  for(const [t,c] of [['#','mk-rank'],['Игрок','mk-who'],['Клуб','mk-club'],['Поз.','mk-pos'],['ФО/матч','mk-avg'],['Анализатор · '+PERIOD[horizon].toLowerCase(),'mk-ana'],['Цена','mk-price']])header.append(el('span',t,c));
