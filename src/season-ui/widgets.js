@@ -9,9 +9,10 @@ import {combineNote,absenceShort,sportsSeasonsLine,espnNumbers,injuryUntil} from
 import {moscowDate,LIVE_MS} from '../live.js';
 import {int,dec,signed,count,ddmm,timeMsk,injuryStatus} from '../format.js';
 import {statLine} from '../stat-line.js';
+import {newsRu,newsText,injuryDetail} from '../translate.js';
 import {openPlayerSheet} from '../sheet.js';
 import {withFace} from '../headshot.js';
-import {$,PERIOD,PERIOD_LONG,REPO,TEAM_URL,addDaysIso,bodyPart,button,byId,card,clockMin,confidenceBadge,el,fetchJson,forGains,games,horizon,injuryText,league,link,live,onlyMine,owners,pending,players,query,renderSeason,same,setHorizon,setPending,setQuery,setReplacing,setTeam,setView,sportsTeam,src,tab,team,teamBank,teamOption,transfers,transfersLeft} from './state.js';
+import {$,PERIOD,PERIOD_LONG,REPO,TEAM_URL,addDaysIso,bodyPart,button,byId,card,clockMin,confidenceBadge,el,fetchJson,forGains,games,horizon,injuryText,league,link,live,loadTranslations,onlyMine,owners,pending,players,query,renderSeason,same,setHorizon,setPending,setQuery,setReplacing,setTeam,setView,sportsTeam,src,tab,team,teamBank,teamOption,transfers,transfersLeft} from './state.js';
 
 // ---------- The player's season so far (player cards) ----------
 // His 2026/27 games with their FBL points (ESPN's box score of each game: the collector's, the last two days' from ESPN live) and
@@ -152,7 +153,7 @@ export function whyBox(why,ctx){
   const p=why.parts,part=(v,t)=>`${signed(v)} ${t}`;
   box.append(el('p',`Разница ${PERIOD_LONG[horizon]}: ${signed(why.gain)} ФО = ${part(p.perGame,'за счёт ФО за матч')}, ${part(p.availability,'за счёт доли сыгранных матчей')}, ${part(p.schedule,'за счёт календаря клубов')}.`));
   box.append(el('p',`Уверенность ${Math.floor(why.confidence*100)}%: столько шансов, что обмен действительно даст плюс ${PERIOD_LONG[horizon]}. Это доля таких обменов, давших плюс, когда советы прогнали заново на сезонах 2023/24–2025/26, в среднем за три сезона: в отдельном сезоне она бывает заметно выше или ниже. Делать стоит от ${Math.round(CONFIDENT*100)}%, ниже ${Math.round(DOUBTFUL*100)}% трансфер лучше сберечь.`,'muted'));
-  const flags=why.flags.filter(f=>!f.startsWith(EARLY)).map(f=>f.replace(/: (Out|Day-To-Day|Questionable|Doubtful|Suspension)\b/,(_,s)=>': '+injuryStatus(s).label.toLowerCase()));
+  const flags=why.flags.filter(f=>!f.startsWith(EARLY));
   if(flags.length){const ul=el('ul',null,'sp-flags');for(const f of flags)ul.append(el('li','⚠ '+f));box.append(ul);}
   for(const side of why.sides){const pair=el('div',null,'sp-pair');pair.append(sideBlock('Отдаёшь',side.out),sideBlock('Получаешь',side.in));box.append(pair);}
  });
@@ -197,8 +198,15 @@ export function newsBlock(p){
    const hurt=newsInjuries(feed);
    if(hurt.length)box.append(el('p',`Травмы в новостях за последние месяцы: ${hurt.map(x=>`${bodyPart(x.part)} (${ddmm(x.first)}${x.last!==x.first?'–'+ddmm(x.last):''})`).join('; ')}.`,'muted'));
    const archive=await injuryArchive().catch(()=>null),episodes=archive?.players?.[String(p.espnId)]?.episodes||[];
-   if(episodes.length)box.append(el('p',`Архив отчётов ESPN: ${episodes.map(e=>`${bodyPart(e.type)||'травма'}${e.detail?' · '+e.detail:''} ${ddmm(e.firstSeen)}${e.lastSeen!==e.firstSeen?'–'+ddmm(e.lastSeen):''}`).join('; ')}.`,'muted'));
-   for(const n of feed.slice(0,3)){const item=el('div',null,'sp-news-item');item.append(el('small',new Date(n.published||n.lastModified).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})),el('strong',n.headline||''));if(n.story||n.description)item.append(el('p',String(n.story||n.description).replace(/<[^>]+>/g,'').slice(0,420)));box.append(item);}
+   if(episodes.length)box.append(el('p',`Архив отчётов ESPN: ${episodes.map(e=>`${bodyPart(e.type)||'травма'}${e.detail?' · '+injuryDetail(e.detail):''} ${ddmm(e.firstSeen)}${e.lastSeen!==e.firstSeen?'–'+ddmm(e.lastSeen):''}`).join('; ')}.`,'muted'));
+   // In Russian when translated (scripts/translate-espn.mjs), the original one click away; else the original.
+   const tr=await loadTranslations();
+   for(const n of feed.slice(0,3)){const item=el('div',null,'sp-news-item'),ru=newsRu(tr,n),en=newsText(n);
+    item.append(el('small',new Date(n.published||n.lastModified).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})),el('strong',ru.headline));
+    if(ru.story)item.append(el('p',ru.story.slice(0,420)));
+    if(ru.translated){const o=el('details',null,'inline');o.append(el('summary','Оригинал ESPN'),el('p',[en.headline,en.story.slice(0,420)].filter(Boolean).join(' — ')));o.lang='en';item.append(o);}
+    else item.lang='en';
+    box.append(item);}
   }catch{newsCache.delete(p.espnId);delete box.dataset.filled;wait.replaceChildren('Новости ESPN не загрузились. ',button('Повторить',()=>{wait.remove();fill();},'btn-ghost btn-sm'),' ',link('Открыть на ESPN ↗',`https://www.espn.com/nba/player/_/id/${p.espnId}`));}};
  box.addEventListener('toggle',fill);
  return box;

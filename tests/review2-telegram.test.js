@@ -98,7 +98,7 @@ test('a season-ending report reads «до конца сезона», never ESPN\
  const injuries=report([row('5000',{returnDate:'2027-01-02',comment:'D0 will miss the remainder of the season.'}),row('5008',{returnDate:'2026-10-30',comment:'D8 is out.'}),
   row('5016',{fantasy:'OFS',returnDate:'2027-07-01'})],'2026-10-21T09:30:00Z');
  const out=plain(notify(l,{now,injuries}).out);
- assert.match(out,/🩹 Травмы\nD0 — Out до конца сезона\nD8 — Out до 30\.10\nD16 — Out до конца сезона\n/);
+ assert.match(out,/🩹 Травмы\nD0 — не играет до конца сезона\nD8 — не играет до 30\.10\nD16 — не играет до конца сезона\n/);
  assert.doesNotMatch(out,/до 02\.01|до 01\.07/);
 });
 test('the injury helpers: a report needs a row; until when a report keeps a player out',()=>{

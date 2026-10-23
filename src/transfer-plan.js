@@ -9,7 +9,7 @@ import POLICY from '../data/transfer-policy.json' with {type:'json'};
 import {bestPackage,explainSwap,contestedBy,transferWindow,transferOptions,playerOutlook,perGame,absenceRun,current,seasonEnding} from './season.js';
 import {HORIZONS} from './confidence.js';
 import {fblWeek,FBL_TRANSFERS} from './rules.js';
-import {count,int,signed} from './format.js';
+import {count,int,signed,injuryStatus} from './format.js';
 
 export const PLAN=POLICY.params;
 // The price of a transfer now. A transfer not used by the end of the FBL week (Monday to Sunday, Moscow dates) is lost, so
@@ -30,7 +30,7 @@ const byIdOf=ctx=>new Map(ctx.players.map(p=>[p.id,p]));
 // buy (the first buyer gets him), a confidence under the bar, then the model's own caveats.
 function risks(ctx,plan,why,rivals){
  const out=[];
- for(const x of plan.pairs){const i=ctx.injuries?.get(String(x.in.espnId));if(i)out.push(`${x.in.name}: ${i.status}${seasonEnding(i)?' до конца сезона':i.returnDate?' до '+String(i.returnDate).slice(8,10)+'.'+String(i.returnDate).slice(5,7):''}.`);}
+ for(const x of plan.pairs){const i=ctx.injuries?.get(String(x.in.espnId));if(i)out.push(`${x.in.name}: ${injuryStatus(i.status).label.toLowerCase()}${seasonEnding(i)?' до конца сезона':i.returnDate?' до '+String(i.returnDate).slice(8,10)+'.'+String(i.returnDate).slice(5,7):''}.`);}
  for(const [id,teams] of rivals)if(teams.length){const p=plan.pairs.find(x=>x.in.id===id)?.in;out.push(`${p.name} по модели нужен ещё ${count(teams.length,'команде','командам','командам')} лиги: в FBL игрок может быть только в одной команде, кто купит позже — нарушит правило.`);}
  const c=why.season.confidence;if(c<.7)out.push(`Уверенность за сезон ${Math.floor(c*100)}%: из похожих обменов в прогоне на трёх прошлых сезонах в плюс вышли (в среднем) ${Math.floor(c*100)}%.`);
  for(const f of why.season.flags)if(!/^Сезон только начался/.test(f))out.push(f);

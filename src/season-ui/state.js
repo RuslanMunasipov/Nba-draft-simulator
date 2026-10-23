@@ -69,6 +69,11 @@ export const liveAgeHours=()=>live?(Date.now()-Date.parse(live.collectedAt))/36e
 
 // ---------- Data ----------
 export async function fetchJson(url,opts){const r=await fetch(url,opts);if(!r.ok)throw Error(String(r.status));return r.json();}
+// ESPN's news and injury comments in Russian (scripts/translate-espn.mjs, the branch data/translations): loaded once,
+// when a view first needs them; without them the originals are shown.
+export const TRANSLATIONS_URL=`https://raw.githubusercontent.com/${REPO}/data/translations/translations.json`;
+export let translations=null;let translationsLoad=null;
+export function loadTranslations(){return translationsLoad??=fetchJson(TRANSLATIONS_URL,{cache:'no-cache'}).then(t=>translations=t).catch(()=>{translationsLoad=null;return null;});}
 export async function fetchLive(){for(const url of LIVE_URLS){try{const d=await fetchJson(url,{cache:'no-cache'});if(d?.players&&d?.clubs)return d;}catch{}}return null;}
 export const hasInjuryRows=feed=>Boolean(feed?.injuries?.some?.(t=>t?.injuries?.length));
 export async function refreshSeason(){
@@ -120,7 +125,7 @@ export function addMarket(){if(!basePlayers.length)return;players=withMarket(bas
 export function currentWeek(today){const w=weekOf(today,gameWeeks(live));return w?.n?w:null;}
 // ESPN's English injury words, in Russian. A return date is shown only for players who are out, never for day-to-day,
 // and never for a season-ending injury, whose date is ESPN's placeholder (forecast-text.js injuryUntil).
-export const BODY={hamstring:'бицепс бедра',knee:'колено',ankle:'голеностоп',foot:'стопа',back:'спина',groin:'пах',shoulder:'плечо',hip:'бедро',calf:'икроножная',achilles:'ахиллово сухожилие',wrist:'запястье',hand:'кисть',finger:'палец',thumb:'большой палец',toe:'палец стопы',elbow:'локоть',illness:'болезнь',concussion:'сотрясение',personal:'личные причины',rest:'отдых',neck:'шея',quadriceps:'квадрицепс',abdomen:'пресс',oblique:'косые мышцы',shin:'голень',leg:'нога',chest:'грудь',rib:'ребро',head:'голова',eye:'глаз',face:'лицо',lower_leg:'голень',heel:'пятка',undisclosed:'не раскрыто','not injury related':'не травма'};
+export const BODY={'lower leg':'голень',mouth:'рот',forearm:'предплечье',thigh:'бедро',quadricep:'квадрицепс',jaw:'челюсть',nose:'нос',hamstring:'бицепс бедра',knee:'колено',ankle:'голеностоп',foot:'стопа',back:'спина',groin:'пах',shoulder:'плечо',hip:'бедро',calf:'икроножная',achilles:'ахиллово сухожилие',wrist:'запястье',hand:'кисть',finger:'палец',thumb:'большой палец',toe:'палец стопы',elbow:'локоть',illness:'болезнь',concussion:'сотрясение',personal:'личные причины',rest:'отдых',neck:'шея',quadriceps:'квадрицепс',abdomen:'пресс',oblique:'косые мышцы',shin:'голень',leg:'нога',chest:'грудь',rib:'ребро',head:'голова',eye:'глаз',face:'лицо',lower_leg:'голень',heel:'пятка',undisclosed:'не раскрыто','not injury related':'не травма'};
 export const bodyPart=t=>t?BODY[String(t).toLowerCase()]||t:'';
 export function injuryInfo(p){
  const i=injuries.get(String(p.espnId));if(!i)return null;const s=injuryStatus(i.status);

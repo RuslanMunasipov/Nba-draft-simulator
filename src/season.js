@@ -8,7 +8,7 @@ import RULES from '../data/league-rules.json' with {type:'json'};
 import CONFIDENCE from '../data/confidence-calibration.json' with {type:'json'};
 import {calibrated,normalCdf} from './confidence.js';
 import {GAME_PLAYED,fblFormula} from './fbl-scoring.js';
-import {plural} from './format.js';
+import {plural,injuryStatus} from './format.js';
 import {teamName} from './teams.js';
 
 export const CAP=DEFAULT_CAP,WEEKLY_TRANSFERS=3,CLUB_LIMIT=RULE_CLUB_LIMIT;
@@ -547,7 +547,7 @@ export function parseInjuries(feed){
  const map=new Map();
  for(const team of feed?.injuries||[])for(const i of team.injuries||[]){
   const id=String(i.athlete?.links?.[0]?.href||'').match(/\/id\/(\d+)/)?.[1];if(!id)continue;
-  map.set(id,{name:i.athlete?.displayName||'',status:i.status,fantasyStatus:i.details?.fantasyStatus?.abbreviation||'',returnDate:i.details?.returnDate||null,comment:i.shortComment||'',date:i.date,type:i.details?.type||''});
+  map.set(id,{name:i.athlete?.displayName||'',status:i.status,fantasyStatus:i.details?.fantasyStatus?.abbreviation||'',returnDate:i.details?.returnDate||null,comment:i.shortComment||'',date:i.date,type:i.details?.type||'',detail:i.details?.detail||''});
  }
  return map;
 }
@@ -827,9 +827,9 @@ export function explainSwap(ctx,outId,inId,key='month',pairs=null,team=null){
   parts.perGame+=split[0]*scale;parts.availability+=split[1]*scale;parts.schedule+=split[2]*scale;
   const f=b.player.forecast||{},fo=a.player.forecast||{};
   // A season-ending report shows ESPN's placeholder date: the season is over for him, as injuryFactor reads it.
-  if(b.injury)flags.push(`${b.player.name}: ${b.injury.status}${seasonEnding(b.injury)?' до конца сезона':b.injury.returnDate?' до '+b.injury.returnDate.slice(8,10)+'.'+b.injury.returnDate.slice(5,7):''} — проверь новости перед покупкой.`);
+  if(b.injury)flags.push(`${b.player.name}: ${injuryStatus(b.injury.status).label.toLowerCase()}${seasonEnding(b.injury)?' до конца сезона':b.injury.returnDate?' до '+b.injury.returnDate.slice(8,10)+'.'+b.injury.returnDate.slice(5,7):''} — проверь новости перед покупкой.`);
   for(const [x,first] of [[a,firstOut],[b,firstIn]])if(first!==null)flags.push(`${x.player.name}: его очки получает ${teamName(first)} — она взяла его раньше, тебе он не приносит ничего.`);
-  if(a.injury&&firstOut===null)flags.push(`${a.player.name}: ${a.injury.status} — это часть причины продажи.`);
+  if(a.injury&&firstOut===null)flags.push(`${a.player.name}: ${injuryStatus(a.injury.status).label.toLowerCase()} — это часть причины продажи.`);
   if(['DRAFT_PRIOR','GROUP_PRIOR','LIMITED_PERSONAL'].includes(f.coverageTier)||f.origin==='SPORTS_PRICE_PRIOR')flags.push(`${b.player.name}: прогноз почти без личной истории в NBA — высокая неопределённость.`);
   for(const x of [firstOut===null?gamesFlag(a.player.name,fo):null,firstIn===null?gamesFlag(b.player.name,f):null])if(x)flags.push(x);
   if(b.player.depth?.rank>=3)flags.push(`${b.player.name}: по составу ESPN №${b.player.depth.rank} на ${b.player.depth.position} — роль и минуты не гарантированы.`);
