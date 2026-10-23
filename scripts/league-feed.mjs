@@ -18,7 +18,7 @@ import {claudeConfigured} from './claude-text.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow,fitsCaption} from './telegram-format.mjs';
-import {drawProtocol} from './zak-pictures.mjs';
+import {drawProtocol,sceneFacts,writeScene} from './zak-pictures.mjs';
 import {espnHeadshot} from './image-pipeline.mjs';
 import {espnIdOf} from '../src/headshot.js';
 const [livePath,statePath]=process.argv.slice(2);
@@ -260,9 +260,17 @@ for(const idx of groups.values()){
  // An approved protocol presents its new player (the dearest one bought), with his ESPN face when ESPN has it.
  const signed=v.kind==='approved'&&draws?byId.get([...news].sort((a,b)=>(b.inPrice||0)-(a.inPrice||0))[0]?.inId):null;
  const player=signed?.name?{name:signed.name.normalize('NFD').replace(/[\u0300-\u036f]/g,''),image:espnIdOf(signed)?await espnHeadshot(espnIdOf(signed)):null}:null;
- const picture=draws
-  ?await drawProtocol({kind:v.kind,team:x.team,no:preview?number:issued+1,seed:key(news[0]),rules:rulesOf(v,c),standing:v.standingOnly,fixed:fixed.length>0,
-   watched:Boolean(watched(x.team)),player},{key:process.env.OPENAI_API_KEY}):null;
+ const story={kind:v.kind,team:x.team,no:preview?number:issued+1,seed:key(news[0]),rules:rulesOf(v,c),standing:v.standingOnly,fixed:fixed.length>0,
+  watched:Boolean(watched(x.team)),player};
+ // Its scene, a new story by Claude every time (the last scenes kept in the state, not to be repeated); the fixed scenes
+ // when Claude cannot write it.
+ let written=null;
+ if(draws&&Date.now()<claudeUntil){
+  try{written=await writeScene(sceneFacts(story),{recent:state.sceneIdeas||[]});
+   if(written)state.sceneIdeas=[...(state.sceneIdeas||[]),written.slice(0,200)].slice(-30);}
+  catch(e){claudeUntil=0;console.warn(`Zak Onn's scene (Claude) unavailable (${e.message}): a fixed scene.`);}
+ }
+ const picture=draws?await drawProtocol({...story,written},{key:process.env.OPENAI_API_KEY}):null;
  if(await send(text,{photo:picture||photo(v.kind),caption})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);events.push(...dealEvents(m));}issued++;save();}
 }
 if(!groups.size)console.log('No new league transfers.');
