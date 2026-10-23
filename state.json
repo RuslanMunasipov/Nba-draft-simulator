@@ -19,7 +19,7 @@
     "name": "Лемариус"
    },
    "gift": "Банка лимонного варенья с этикеткой «Сварено на вершине»",
-   "approved": false,
+   "approved": true,
    "caption": "<b>🎙 Inside FBL • Большое интервью</b>\n\n<b>Лимоны на вершине: Лемариус и его теплица с отрывом</b>\n<i>Майк Роффон провёл день в оранжерее у лидера FBL: поливал Макси, подпирал Холмгрена и пытался понять, сколько живёт лимон на самом солнцепёке.</i>\n\nВ гостях у Майка Роффона: <b>Лемариус</b>, GM Texas 76 Citrus.\n\n👉 <a href=\"https://telegra.ph/Inside-FBL--Limony-na-vershine-Lemarius-i-ego-teplica-s-otryvom-10-23\">Читать лонгрид</a>\n\n#inside_fbl #лонгрид #неделя_1",
    "opener": "images/2026-10-19/mvl3quwe-opener-mvl3veu9.jpg",
    "pictures": 8,
@@ -28,7 +28,8 @@
    "drafts": [
     "https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23",
     "https://telegra.ph/Inside-FBL--Limony-vo-slavu-Imperatora-Lemarius-ohranyaet-vershinu-FBL-10-23"
-   ]
+   ],
+   "approvedAt": "2026-10-23T15:15:10.359Z"
   }
  }
 }
