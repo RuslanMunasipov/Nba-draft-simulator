@@ -28,6 +28,12 @@ try{
  await page.getByRole('button',{name:'Анализатор'}).first().click();await page.waitForTimeout(1500);
  assert.ok(await page.locator('.mk-row').count()>=10,'sorted by the analyser');
  await page.getByRole('button',{name:'ФО/матч'}).first().click();await page.waitForTimeout(500);
+ // Only rookies: every row is one, and the team's own rookies are named to compare with.
+ await page.getByLabel('Только новички').check();await page.waitForTimeout(800);
+ const rookieRows=await page.locator('.mk-row').count();assert.ok(rookieRows>=3,'free rookies listed: '+rookieRows);
+ assert.equal(await page.locator('.mk-row').filter({hasNot:page.locator('.mk-tags .chip',{hasText:/^rookie$/})}).count(),0,'only rookies');
+ assert.match(await page.locator('#season-body').innerText(),/(Новичок|Новички) в составе|нет новичка/);
+ await page.getByLabel('Только новички').uncheck();await page.waitForTimeout(500);
  // The awards page: the day's top ten of the NBA from the awards bot's summary (site.json), and the season races.
  await page.getByRole('button',{name:'Награды'}).first().click();await page.waitForSelector('.aw-list .aw-row',{timeout:30000});
  assert.ok(await page.locator('.aw-list .aw-row').count()>=3,'the day\'s top from the awards archive');
