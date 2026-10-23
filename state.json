@@ -2,15 +2,20 @@
  "version": 1,
  "weeks": {
   "2026-10-19": {
-   "status": "dropped",
+   "status": "page",
+   "url": "https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23",
+   "title": "Лемариус: на вершине пахнет цитрусом и тревогой",
    "guest": {
     "key": "gm:5",
     "name": "Лемариус"
    },
-   "problems": [
-    "числа не из данных: 6 — убери их или замени словами без чисел"
-   ],
-   "at": "2026-10-23T14:00:05.263Z"
+   "gift": "Говорящий апельсин на подставке, который объявляет, что первое место — скоропортящийся продукт.",
+   "caption": "<b>🎙 Inside FBL • Большое интервью</b>\n<b>Лемариус</b> (GM Texas 76 Citrus) — <i>Лемариус: на вершине пахнет цитрусом и тревогой</i>\n\nЛидер таблицы Texas 76 Citrus угощает Майка свежим соком и объясняет, почему трон из ящиков не качается.\n\n<a href=\"https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23\">Читать лонгрид →</a>\n\n#inside_fbl #лонгрид #неделя_1",
+   "opener": "images/2026-10-19/opener.jpg",
+   "pictures": 7,
+   "cost": 0.1481,
+   "at": "2026-10-23T14:06:56.383Z",
+   "hold": true
   }
  }
 }
