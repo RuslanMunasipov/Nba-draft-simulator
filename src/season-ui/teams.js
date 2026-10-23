@@ -8,6 +8,9 @@ import {int,dec,ddmm} from '../format.js';
 import {openPlayerSheet} from '../sheet.js';
 import {$,PERIOD,SPORTS_URL,TEAM_URL,button,byId,card,el,horizon,injuryInfo,league,link,live,livePoints,needsLive,openRows,readJson,renderSeason,replacing,same,setQuery,setReplacing,sportsTeam,src,team,teamBank,transfers,transfersLeft} from './state.js';
 import {CHANCE_NOTE,controls,courtWord,race,replacementPanel} from './widgets.js';
+import {withFace} from '../headshot.js';
+import {teamLogo} from '../team-logo.js';
+import {LEAGUE_TEAMS} from '../teams.js';
 
 // ---------- Teams ----------
 // Fact and forecast windows (the current tour, 4 weeks = the transfer gains' 28 days, the season) and the facts in them,
@@ -33,7 +36,7 @@ function playerRow(p,ctx,running,shadow,credit){
  form.append(el('strong',dec(g.average??g.prior)),el('small',now?`в игре ${int(now.points)}${courtWord(now)}`:g.average!=null&&last.length?last.join(' · '):'прогноз'));
  const w=windows(ctx)[horizon],fact=playerFact(p,team,ctx,w),rest=ahead(p,ctx,w,running,shadow,credit),first=shadow.get(`${team}:${p.id}`),next=el('span',null,'sp-next'),left=el('small',`ещё ${dec(rest.games)} м.`);
  left.title='Ожидаемых матчей до конца периода';next.append(factForecast(fact,fact+rest.points),left);
- row.append(name,price,form,next);
+ row.append(withFace(p,name,'md'),price,form,next);
  if(inj){const line=el('span',null,'sp-injury'+(inj.level==='out'?' out':''));line.append(`🩹 ${inj.text}`);row.append(line);}
  if(first!=null)row.append(el('span',`⚖️ Его очки получает ${teamName(first)}: она взяла его раньше. Здесь он приносит 0, пока нарушение не исправлено`,'sp-injury'));
  sum.append(row);box.append(sum);
@@ -74,7 +77,11 @@ export function teams(ctx){
  const wait=needsLive('Состав');if(wait)return [controls(ctx),...wait];
  const roster=ctx.rosters[team].map(id=>byId.get(id)).filter(Boolean),running=livePoints(),st=sportsTeam(team),shadow=shadowedHoldings(ctx),credit=runningCredit(ctx,running);
  const out=[controls(ctx),teamKpis(ctx,roster,running,shadow,credit)];
- if(st){const info=el('div',null,'sp-team-info');info.append(link('Команда на Sports.ru ↗',TEAM_URL(st.sportsTeamId)));out.push(info);}
+ // The team's own header: its logo, name and GM, and its page on Sports.ru when the team is connected.
+ const head=el('div',null,'sp-team-head'),who=el('div',null,'sp-team-who'),x=LEAGUE_TEAMS[team];
+ who.append(el('strong',x?.name||teamName(team)));if(x?.gm)who.append(el('small','GM '+x.gm));head.append(teamLogo(team,'lg'),who);
+ if(st)head.append(link('Sports.ru ↗',TEAM_URL(st.sportsTeamId)));
+ out.splice(1,0,head);
  const list=el('div',null,'sp-roster'),header=el('div',null,'sp-header');
  for(const t of ['Игрок','Цена','За матч','Факт / прогноз'])header.append(el('span',t));
  list.append(header,...roster.map(p=>playerRow(p,ctx,running,shadow,credit)));out.push(list);

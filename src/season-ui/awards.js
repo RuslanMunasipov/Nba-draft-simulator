@@ -5,6 +5,8 @@ import {stints} from '../season.js';
 import sportsMap from '../../data/sports-player-map.json' with {type:'json'};
 import {LEAGUE_TEAMS} from '../teams.js';
 import {int,dec,count,stampMsk} from '../format.js';
+import {withFace} from '../headshot.js';
+import {teamLogo} from '../team-logo.js';
 import {REPO,button,context,el,errorBlock,fetchJson,live,loadingBlock,needsLive,players,refreshHooks,renderSeason,tab,view} from './state.js';
 
 // ---------- Awards: the day's top and antitop of the whole NBA and the season races ----------
@@ -53,7 +55,7 @@ function awardWho(row){
 function teamMarks(teams,free=true){
  const box=el('span',null,'aw-teams');
  if(!teams?.length){if(free){const f=el('span','свободен','chip');f.title='Ни в одной команде FBL на начало матча';box.append(f);}return box;}
- for(const t of teams){const s=el('span',LEAGUE_TEAMS[t]?.symbol||String(t+1),'aw-team'+(t===0?' mine':''));s.title=teamName(t);s.setAttribute('aria-label',teamName(t));box.append(s);}
+ for(const t of teams){const s=teamLogo(t,'sm');s.classList.add('aw-team');if(t===0)s.classList.add('mine');s.removeAttribute('aria-hidden');s.setAttribute('role','img');s.title=teamName(t);s.setAttribute('aria-label',teamName(t));box.append(s);}
  return box;
 }
 const STAT_WORDS=[['pts','очк'],['reb','подб'],['ast','пер'],['stl','перехв'],['blk','блок'],['tov','пот']];
@@ -66,7 +68,7 @@ function awardLine(l,i,flop){
  head.append(awardWho(l),el('span',l.c||'—','aw-club'),teamMarks(l.h));
  main.append(head,el('small',`${statWords(l.s)} · ${dec(l.m)} мин`,'aw-stats'));
  const pts=el('span',null,'aw-pts');pts.append(el('strong',int(l.p)),el('small','ФО'));
- li.append(main,pts);return li;
+ li.append(withFace({espnId:l.a,name:playerOf(l)?.name||l.n},main,'md'),pts);return li;
 }
 function dayBlock(flop){
  const all=awards.site?.days||{},days=Object.keys(all).sort().reverse();

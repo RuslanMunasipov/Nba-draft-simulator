@@ -6,6 +6,8 @@ import {placeLabel,chanceText,fblGame} from '../standings.js';
 import {int,dec,signed,count,ddmm} from '../format.js';
 import {$,button,byId,confidenceBadge,currentWeek,el,forGains,games,injuries,injuryText,live,livePoints,needsLive,openRows,owners,players,setReplacing,setTeam,setView,tab,team,teamBank,transfers} from './state.js';
 import {CHANCE_NOTE,gamesToday,race} from './widgets.js';
+import {withFace} from '../headshot.js';
+import {teamTag} from '../team-logo.js';
 
 function standingsTable(ctx,running){
  const h=horizons(ctx),{started,rows:all}=race(ctx,running);
@@ -15,7 +17,7 @@ function standingsTable(ctx,running){
  const tips={'Очки':'Сыгранные матчи по формуле лиги (Yahoo)','В игре':'Матчи, которые идут сейчас: очки по протоколу ESPN, предварительно','1-е':'Шанс занять 1-е место — оценка модели','Топ-3':'Шанс попасть в первую тройку — оценка модели'};
  for(const [x,c] of cols){const th=el('th',x,c);th.scope='col';if(tips[x])th.title=tips[x];head.append(th);}table.append(head);
  rows.forEach(r=>{const tr=el('tr',null,'clickable'+(r.t===0?' mine':''));
-  const name=el('td',null,'team');name.append(teamName(r.t));if(r.t===0)name.append(' ',el('span','ты','chip chip--accent'));
+  const name=el('td',null,'team');name.append(teamTag(r.t));if(r.t===0)name.append(' ',el('span','ты','chip chip--accent'));
   // Equal points share a place, as on the Teams tab.
   tr.append(el('td',placeLabel(r)),name);
   if(started)tr.append(el('td',int(r.official),'num'));
@@ -34,12 +36,12 @@ function topPlayers(ctx){
  const own=owners(ctx),rows=[];
  for(const p of players){const g=(live?.players?.[p.sportsId]?.games||[]).filter(fblGame);if(g.length)rows.push({p,total:g.reduce((s,x)=>s+x.points,0),games:g.length});}
  const box=el('div',null,'sp-block sp-top');
- const list=(items,line,value)=>{const ol=el('ol');for(const r of items){const li=el('li'),who=el('div');who.append(el('strong',r.p.name),el('small',line(r)));li.append(who,el('span',value(r),'val'));ol.append(li);}return ol;};
+ const list=(items,line,value)=>{const ol=el('ol');for(const r of items){const li=el('li'),who=el('div');const sub=el('small');sub.append(...[line(r)].flat());who.append(el('strong',r.p.name),sub);li.append(withFace(r.p,who),el('span',value(r),'val'));ol.append(li);}return ol;};
  const free=(p)=>!own.has(p.id);
  if(rows.length){
   const fa=rows.filter(r=>free(r.p)&&r.games>=2).sort((a,b)=>b.total/b.games-a.total/a.games).slice(0,5);
   if(fa.length)box.append(el('h3','Лучшие свободные'),list(fa,r=>`${current(r.p,ctx).positions.join('/')} · ${int(current(r.p,ctx).price)} · ${count(r.games,'матч','матча','матчей')}`,r=>dec(r.total/r.games)+' за матч'));
-  box.append(el('h3','Лучшие в сезоне'),list(rows.sort((a,b)=>b.total-a.total).slice(0,5),r=>`${own.has(r.p.id)?teamName(own.get(r.p.id)):'свободен'} · ${dec(r.total/r.games)} за матч`,r=>int(r.total)+' ФО'));
+  box.append(el('h3','Лучшие в сезоне'),list(rows.sort((a,b)=>b.total-a.total).slice(0,5),r=>[own.has(r.p.id)?teamTag(own.get(r.p.id),'xs'):'свободен',` · ${dec(r.total/r.games)} за матч`],r=>int(r.total)+' ФО'));
  }else{
   const start=seasonStart(),fa=[...players].filter(p=>p.sportsId&&free(p)&&live?.players?.[p.sportsId]).map(p=>({p,v:perGame(p).value})).sort((a,b)=>b.v-a.v).slice(0,5);
   box.append(el('h3','Лучшие свободные по прогнозу'));

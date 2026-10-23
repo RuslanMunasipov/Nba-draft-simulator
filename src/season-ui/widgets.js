@@ -11,6 +11,7 @@ import {int,dec,signed,count,ddmm,timeMsk,injuryStatus} from '../format.js';
 import {statLine} from '../stat-line.js';
 import {newsRu,newsText,injuryDetail} from '../translate.js';
 import {openPlayerSheet} from '../sheet.js';
+import {withFace} from '../headshot.js';
 import {$,PERIOD,PERIOD_LONG,REPO,TEAM_URL,addDaysIso,bodyPart,button,byId,card,clockMin,confidenceBadge,el,fetchJson,forGains,games,horizon,injuryText,league,link,live,loadTranslations,onlyMine,owners,pending,players,query,renderSeason,same,setHorizon,setPending,setQuery,setReplacing,setTeam,setView,sportsTeam,src,tab,team,teamBank,teamOption,transfers,transfersLeft} from './state.js';
 
 // ---------- The player's season so far (player cards) ----------
@@ -142,7 +143,7 @@ export function takeAction(moves,ctx,label){
 export function optionRow(o,outId,ctx,title,withAction=!sportsTeam(team)){
  const li=el('li',null,'sp-option'),inj=injuryText(o.player),why=explainSwap(ctx,outId,o.player.id,horizon,null,team);
  const name=el('span',null,'sp-name');name.append(el('strong',title||o.player.name),el('small',`${o.player.positions.join('/')} · ${o.player.team||'—'} · ${int(o.player.price)} · банк после ${int(o.bankAfter)}${inj?' · '+inj:''}`),confidenceBadge(why));
- li.append(name,gainCells(o.gain));if(withAction)li.append(takeAction([{outId,player:o.player}],ctx,'Записать'));li.append(whyBox(why,ctx));return li;
+ li.append(withFace(o.player,name,'md'),gainCells(o.gain));if(withAction)li.append(takeAction([{outId,player:o.player}],ctx,'Записать'));li.append(whyBox(why,ctx));return li;
 }
 // ---------- Why a move, and the players behind it ----------
 export const EARLY='Сезон только начался';

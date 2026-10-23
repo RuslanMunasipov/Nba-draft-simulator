@@ -11,6 +11,8 @@ import {$,readJson,PERIOD,PERIOD_LONG,PERIOD_SHORT,SPORTS_URL,basePlayers,button
 import {controls,courtWord,whyBox} from './widgets.js';
 import {POSITIONS} from '../engine.js';
 import {planValue} from '../transfer-plan.js';
+import {withFace} from '../headshot.js';
+import {teamTag} from '../team-logo.js';
 
 // ---------- Players: the Sports.ru market by this season's FBL points ----------
 // Free players (or every player) ranked by their average FBL points in this season's games, with a streak mark
@@ -85,14 +87,14 @@ function analyzerCell(r,ctx,analyse){
 function marketRow(r,i,ctx,analyse,running){
  const {p,c,row,form}=r,inj=injuryInfo(p),now=running.get(p.id);
  const box=el('details',null,'mk-row'+(form.streak?' is-'+form.streak.kind:''));box.dataset.key='mk:'+p.id;
- const sum=el('summary',null,'mk-sum'),who=el('span',null,'mk-who');
+ const sum=el('summary',null,'mk-sum'),who=el('span',null,'mk-text');
  who.append(el('strong',p.name));if(row.fullName)who.append(el('small',row.fullName,'mk-ru'));
  const tags=[];
  if(form.streak)tags.push(streakChip(form.streak,form.norm));
  if(now)tags.push(el('span',`в игре ${int(now.points)}${courtWord(now)}`,'chip chip--live'));
  if(inj)tags.push(el('span',inj.text,'chip '+(inj.level==='out'?'chip--danger':'chip--warn')));
  if(p.isRookie)tags.push(el('span','rookie','chip'));
- if(r.owner!==null)tags.push(el('span',r.owner===team?'твой':r.owner>=0?teamName(r.owner):'в FBL','chip chip--info'));
+ if(r.owner!==null){const c=el('span',r.owner===team?'твой':r.owner>=0?null:'в FBL','chip chip--info');if(r.owner!==team&&r.owner>=0)c.append(teamTag(r.owner,'xs'));tags.push(c);}
  if(tags.length){const t=el('span',null,'mk-tags');t.append(...tags);who.append(t);}
  who.append(el('small',`${p.team||'—'} · ${c.positions.join('/')} · ${int(c.price)}`,'mk-meta'));
  const avg=el('span',null,'mk-avg'),fig=el('span',null,'mk-fig');
@@ -100,7 +102,7 @@ function marketRow(r,i,ctx,analyse,running){
  avg.append(fig);if(form.last.length)avg.append(sparkBars(form));
  const price=el('span',null,'mk-price'),delta=Number.isFinite(row.price)&&Number.isFinite(row.initialPrice)?row.price-row.initialPrice:0;
  price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
- sum.append(el('span',String(i+1),'mk-rank'),who,el('span',p.team||'—','mk-club'),el('span',c.positions.join('/'),'mk-pos'),avg,analyzerCell(r,ctx,analyse),price);
+ sum.append(el('span',String(i+1),'mk-rank'),withFace(p,who,'md','mk-who'),el('span',p.team||'—','mk-club'),el('span',c.positions.join('/'),'mk-pos'),avg,analyzerCell(r,ctx,analyse),price);
  box.append(sum);
  box.addEventListener('toggle',()=>{if(!box.open||box.dataset.filled)return;box.dataset.filled='1';box.append(marketDetails(r,ctx,analyse));});
  return box;

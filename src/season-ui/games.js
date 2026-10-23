@@ -1,5 +1,6 @@
 // Season → Матчи: today's games and the 7-day schedule of a team's players.
 import {teamName} from '../teams.js';
+import {teamTag} from '../team-logo.js';
 import {horizons,playerOutlook} from '../season.js';
 import {dec,ddmm,weekday} from '../format.js';
 import {$,addDaysIso,byId,clubOf,currentWeek,el,games,injuryText,live,needsLive,onlyMine,owners,players,renderSeason,setOnlyMine,team} from './state.js';
@@ -21,7 +22,7 @@ export function gamesView(ctx){
  const block=el('div',null,'sp-block');block.append(el('h3',`Игры составов до ${ddmm(end)}`),el('p','Сколько матчей сыграют 10 игроков каждой команды по календарю Sports.ru и с учётом травм.','muted'));
  const counts=el('table',null,'standings-table'),hr=el('tr');for(const [x,c] of [['Команда',''],['Матчей','num'],['С травмами','num']]){const th=el('th',x,c);th.scope='col';hr.append(th);}counts.append(hr);
  const rows=ctx.rosters.map((ids,t)=>{let w=0,e=0;for(const id of ids){const p=byId.get(id);if(!p)continue;for(const g of live?.clubs?.[clubOf(p)]||[])if(g.date>=ctx.today&&g.date<=end&&!g.score&&!g.gone)w++;e+=playerOutlook(p,{...ctx,running:new Map()}).week.games;}return {t,w,e};}).sort((a,b)=>b.e-a.e);
- for(const r of rows){const tr=el('tr');if(r.t===team)tr.className='mine';tr.append(el('td',teamName(r.t),'team'),el('td',String(r.w),'num'),el('td',dec(r.e),'num total'));counts.append(tr);}
+ for(const r of rows){const tr=el('tr');if(r.t===team)tr.className='mine';const name=el('td',null,'team');name.append(teamTag(r.t));tr.append(name,el('td',String(r.w),'num'),el('td',dec(r.e),'num total'));counts.append(tr);}
  const wrap=el('div',null,'table-scroll');wrap.append(counts);block.append(wrap);
  const sched=el('div',null,'sp-block');sched.append(el('h3','Расписание на 7 дней'));
  let any=false;
