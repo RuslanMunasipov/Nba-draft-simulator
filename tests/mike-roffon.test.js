@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
-import {writtenPicture,writtenPictureProblems,interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,interviewPicture,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
+import * as mike from '../awards-bot/mike-roffon.js';
+import {mikeCast,writeMikePicture,interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
 
 const s={pts:45,reb:10,ast:3,stl:2,blk:1,tov:4,fgm:16,fga:29,ftm:4,fta:5,pf:1};
 const line={d:'2026-10-21',e:'g1',a:'4594268',n:'A. Edwards',c:'MIN',t:'2026-10-22T00:00Z',m:36.4,p:fblFormula(s),h:[5],b:[],s};
@@ -54,55 +55,35 @@ test('Mike Roffon: the interview as Telegram HTML, marked as fiction, with the h
  assert.match(interviewCaption(facts,'2026-10-21'),/<b>39<\/b> ФО · герой дня 21 октября 2026\n\n#inside_fbl #интервью #дата_21_10_2026/);
 });
 
-test('Mike Roffon: his picture keeps his gloves and microphone, the real player and the league logo',()=>{
- const p=interviewPicture(facts,'2026-10-21');
- assert.equal(p.images.length,2);assert.match(p.prompt,/white gloves and a vintage chrome microphone, always/);
- assert.match(p.prompt,/the real NBA player A\. Edwards, exactly as he really looks/);assert.match(p.prompt,/in the uniform of the MIN/);assert.match(p.prompt,/INSIDE FBL/);assert.doesNotMatch(p.prompt,/undefined/);
+const face={bytes:Buffer.from('face'),name:'4594268.png',type:'image/png'};
+const PIC='Night outside the arena, wet asphalt under sodium lamps. Mike Roffon, the man from reference image 1, his face preserved precisely, in a long overcoat, his white gloves on, thrusts his vintage chrome microphone at the real NBA player from reference image 2, face exactly as in the photo, who wears a hoodie in black, gold and diamond white with the logo from reference image 3 on the chest. Gritty sports-documentary still, 28mm, square. A lower-third reads "INSIDE FBL"; no other text or watermarks.';
+
+test('Mike Roffon: his picture\'s references: his face, the hero\'s, the GM on the days he is asked, the logos; no picture of the code\'s own',()=>{
+ for(const name of ['interviewPicture','writtenPicture','writtenPictureProblems'])assert.equal(mike[name],undefined,name);
+ const c=mikeCast({...facts,gmQuestion:null},{team:5,face});
+ assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','4594268.png','6.jpg','fbl-logo.png']);
+ assert.match(c.list[0].is,/only his face/);assert.match(c.list[0].neverChanges,/white gloves and a vintage chrome microphone/);
+ assert.deepEqual(c.refs[0].say,['white gloves','microphone']);assert.equal(c.list[1].mustUse,true);assert.equal(c.list[2].teamColors,'navy blue, lemon yellow and cream');
+ assert.deepEqual(mikeCast(facts).images.map(i=>i.name),['mike-roffon.jpg','fbl-logo.png'],'no face, no fantasy team');
 });
 
-test('Mike Roffon: at the arena, under the stands and at the press conference he is a sports reporter, never in a helmet',()=>{
- const seen=new Set();
- for(let d=1;d<=40;d++){
-  const day=`2026-11-${String(d%30+1).padStart(2,'0')}`,p=interviewPicture({...facts,player:{...facts.player,en:`Player ${d}`}},day);
-  const scene=p.prompt.match(/SCENE: a flash interview, ([^,:]+)/)[1];seen.add(scene);
-  assert.match(p.prompt,/dressed as a sports reporter for this scene: [^.]*(suit|blazer|jacket|overcoat)/);
-  assert.match(p.prompt,/his white gloves/);assert.match(p.prompt,/vintage chrome microphone/);
-  assert.match(p.prompt,/No helmet, no military uniform, no camouflage, no PRESS or tactical vest\./);
-  assert.doesNotMatch(p.prompt.replace(/No helmet, no military uniform, no camouflage, no PRESS or tactical vest\./,''),/helmet|camouflage|military|\bwar\b|BORN TO ASK|PRESS vest/i);
- }
- assert.ok([...seen].some(s=>/outside the arena/.test(s))&&[...seen].some(s=>/tunnel under the stands/.test(s))&&[...seen].some(s=>/press conference/.test(s)),[...seen].join(' / '));
-});
-
-test('Mike Roffon: the hero wears his FBL team: its colors and its logo, the logo as the third reference',()=>{
- for(let d=1;d<=12;d++){
-  const day=`2026-11-${String(d).padStart(2,'0')}`,p=interviewPicture({...facts,gmQuestion:null},day,{team:5});
-  assert.equal(p.images.length,3,'Mike, the league logo, the team logo');
-  assert.match(p.prompt,/reference image 3 is the logo of Texas 76 Citrus, the player's fantasy team/);
-  assert.match(p.prompt,/dressed not in his NBA club's uniform but in the kit of his fantasy team Texas 76 Citrus: its colors and its logo exactly as in reference image 3, no NBA club logos/);
-  assert.match(p.prompt,/fantasy team Texas 76 Citrus[^.]*in the colors of the logo in reference image 3, that logo on the chest/);
-  assert.match(p.prompt,/the lettering inside the team logo, exactly as in reference image 3/);
-  assert.doesNotMatch(p.prompt,/KIT|WARMUP|of the MIN/);
- }
- const none=interviewPicture(facts,'2026-11-01');
- assert.equal(none.images.length,2);assert.match(none.prompt,/in the uniform of the MIN/);assert.doesNotMatch(none.prompt,/fantasy team|reference image 3/);
-});
-
-test('Mike Roffon: refused with the team logo, the hero is drawn again in the team colors alone, no name, no logo',async()=>{
- const {LEAGUE_TEAMS}=await import('../src/teams.js');
- assert.ok(LEAGUE_TEAMS.every(t=>/^[a-z ,]+ and [a-z ]+$/.test(t.kit)),'every team has its colors');
- for(let d=1;d<=12;d++){
-  const p=interviewPicture({...facts,gmQuestion:null},`2026-11-${String(d).padStart(2,'0')}`,{team:7,crest:false});
-  assert.equal(p.images.length,2,'Mike and the league logo only');
-  assert.match(p.prompt,/black, gold and diamond white/);assert.match(p.prompt,/no logos and no lettering/);
-  assert.doesNotMatch(p.prompt,/School|Shooters|fantasy team|reference image 3|KIT|WARMUP|of the MIN/);
- }
+test('Mike Roffon: Claude writes his picture from the interview; refused, it goes back to him; then the interview goes alone',async()=>{
+ const c=mikeCast({...facts,gmQuestion:null},{team:7,face}),calls=[],answers=[{prompt:PIC.replace('white gloves','gloves'),idea:'x'},{prompt:PIC,idea:'outside the arena'}];
+ const p=await writeMikePicture(facts,good,c,{claude:async a=>{calls.push(a);return {data:answers.shift()};}});
+ assert.equal(p.prompt,PIC);assert.deepEqual(p.images.map(i=>i.name),['mike-roffon.jpg','4594268.png','8.jpg'],'the league logo he did not use is not sent');
+ assert.match(calls[0].prompt,/^Интервью:\n\{/);assert.match(calls[0].prompt,/Налог за агрессию/);assert.match(calls[0].prompt,/"fo": 39/);
+ assert.match(calls[0].system,/никогда не в каске, военной форме, камуфляже или жилете PRESS/);assert.match(calls[1].prompt,/no "white gloves"/);
+ assert.match((await writeMikePicture(facts,null,c,{claude:async a=>{calls.push(a);return {data:{prompt:PIC,idea:''}};}})).prompt,/INSIDE FBL/);
+ assert.match(calls.at(-1).prompt,/^Данные:/,'a picture drawn alone: from the game');
+ assert.equal(await writeMikePicture(facts,good,c,{claude:async()=>({data:{prompt:PIC.replace('"INSIDE FBL"','"77 ФО"'),idea:''}})}),null,'numbers of its own: no picture');
+ assert.equal(await writeMikePicture(facts,good,c,{claude:async()=>({data:{prompt:PIC.replace('hoodie','helmet'),idea:''}})}),null);
 });
 
 test('Mike Roffon: written by Claude (the subscription module, JSON by the schema), again on its own numbers or old lines, then dropped',async()=>{
  const seen=[],reply=x=>async opts=>{seen.push(opts);return {data:x,text:JSON.stringify(x),usage:{output_tokens:500},costUsd:0.02};};
  const {interview}=await writeInterview(facts,{claude:reply(good)});assert.deepEqual(interview,good);
  assert.match(seen[0].system,/Майк Роффон/);assert.match(seen[0].prompt,/"fo": 39/);assert.equal(seen[0].schema,INTERVIEW_SCHEMA);
- assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','gm','afterword','picture']);
+ assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','gm','afterword'],'the picture is written apart, from the interview');
  let calls=0;const bad=async o=>{calls++;return reply({...good,prologue:'Средние 28 очков.'})(o);};
  const out=await interviewFor(facts,{claude:bad});assert.equal(out.interview,null);assert.equal(calls,2);
  let tries=0;const copyThenGood=async o=>(tries++?reply(good):reply({...good,afterword:'Роль важнее фамилии.'}))(o);
@@ -130,23 +111,8 @@ test('Mike Roffon: every other day he turns to the GM of the hero\'s team too, a
  assert.match(t,/<b>Майк Роффон\.<\/b> Зачем он вам\?\n<b>GM Капитан Торрес Нью-Вин \(Volga Pirates\)\.<\/b> Пиратам нужен штурман\./);
  assert.doesNotMatch(interviewText(withGm,{...f,gmQuestion:null}),/Пиратам/,'no GM block on a day he is not asked');
  assert.deepEqual(strayNumbers({...withGm,gm:{q:'Сколько стоил?',a:'2000, и ни монетой больше.'}},f),['2000'],'his answer is checked too');
- const p=interviewPicture(f,day,{team:4});
- assert.deepEqual(p.images.map(i=>i.name).slice(-1),['captain-torres-new-win.jpg']);
- assert.match(p.prompt,/GENERAL MANAGER: the exact person from reference image 4.*always a pirate/);assert.match(p.prompt,/Beside the player stands the general manager who picked him \(reference image 4\)/);
- assert.doesNotMatch(p.prompt,/Torres|Нью-Вин/,'the GM is never named in the picture');
- assert.doesNotMatch(interviewPicture({...f,gmQuestion:null},day,{team:4}).prompt,/GENERAL MANAGER|Torres/);
- assert.doesNotMatch(interviewPicture(f,day,{team:4,crest:false}).prompt,/fantasy team/,'the crest-less picture names no fantasy team');
-});
-
-test('Mike Roffon: his picture as Opus wrote it, the code adding only the references and who is who',()=>{
- const text='Night outside the arena, wet asphalt shining under sodium lamps: {MIKE} in a long overcoat thrusts his microphone at {PLAYER}, who wears a hoodie in his fantasy team colours with {LOGO} on the chest. Gritty sports-documentary still, 28mm, square. A lower-third reads "INSIDE FBL".';
- const p=writtenPicture(text,facts,{team:5});
- assert.match(p.prompt,/^REFERENCES: reference image 1 is Mike Roffon/);assert.match(p.prompt,/white gloves and a vintage chrome microphone, always/);
- assert.match(p.prompt,/THE NBA PLAYER A\. EDWARDS: the real NBA player A\. Edwards, exactly as he really looks/);
- assert.match(p.prompt,/Mike Roffon \(reference image 1\) in a long overcoat thrusts his microphone at the NBA player A\. Edwards/);
- assert.match(p.prompt,/with the fantasy team logo \(reference image \d\) on the chest/);assert.match(p.prompt,/Gritty sports-documentary still, 28mm/);
- assert.doesNotMatch(p.prompt,/STYLE:|SCENE:|\{[A-Z]+\}/);
- assert.equal(writtenPicture(text.replace('{PLAYER}','the hero'),facts,{team:5}),null,'no {PLAYER}: the code\'s scene');
- assert.match(writtenPictureProblems(text.replace('"INSIDE FBL"','"77 ФО"'),facts).join(),/numbers in quotes not in the facts: 77/);
- assert.match(writtenPictureProblems(text.replace('hoodie','helmet'),facts).join(),/off limits: helmet/);
+ const c=mikeCast(f,{team:4});
+ assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','captain-torres-new-win.jpg','5.jpg','fbl-logo.png']);
+ assert.match(c.list[1].is,/general manager \(GM\) who picked the player/);assert.match(c.list[1].neverChanges,/always a pirate/);assert.equal(c.list[1].name,undefined,'never named');
+ assert.equal(mikeCast({...f,gmQuestion:null},{team:4}).images.length,3,'no GM on a day he is not asked');
 });

@@ -11,7 +11,7 @@ on:
         description: 'Photo of Зак Онн: check (frowning), approved (thumbs up) or violation (thumbs down)'
         default: 'check'
       picture:
-        description: "Draw the statement's picture: <file>.picture.txt, else a scene Claude writes from the statement (OpenAI, paid: about $0.03)"
+        description: "Draw the statement's picture, its prompt written by Claude from the statement and <file>.picture.txt (OpenAI, paid: about $0.03)"
         type: boolean
         default: true
 permissions:

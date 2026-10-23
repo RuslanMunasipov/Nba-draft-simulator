@@ -50,10 +50,11 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey,esc} from './messages.js';
 import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
-import {dayPictures,momentFacts,momentProblems,writeMoments} from './images.js';
-import {interviewFacts,interviewFor,interviewText,interviewCaption,interviewPicture,writtenPicture,writtenPictureProblems} from './mike-roffon.js';
-import {generate,cost,person,readImage,ASSETS} from '../scripts/image-pipeline.mjs';
-import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadPicture,SAFE_SCENE,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
+import {dayPictures,momentFacts,blockCast,givenMoments,writeMoments} from './images.js';
+import {interviewFacts,interviewFor,interviewText,interviewCaption,mikeCast,writeMikePicture} from './mike-roffon.js';
+import {generate,cost} from '../scripts/image-pipeline.mjs';
+import {picture} from '../scripts/picture-prompt.mjs';
+import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 
@@ -253,28 +254,25 @@ async function telegram(token,method,body){
  if(!r.ok||!out.ok)throw Error(`Telegram ${method}: ${r.status} ${out.description||''}`);
  return out.result;
 }
-// His picture with the hero in his FBL team's kit; when the image model refuses it (a team's name or logo), the kit's
-// colors alone. {picture: the PNG or null when both fail (or no OPENAI_API_KEY), spent}.
-async function mikePicture(facts,day,team,written=null,hero=null){
- let spent=0,picture=null;
- // Opus's own prompt first (written with the interview), with the hero's ESPN face; the code's scenes only when it breaks a rule or is refused.
- if(OPENAI_KEY&&written){const face=hero?await (await import('./render.mjs')).headshot(hero):null,w=writtenPicture(written,facts,{team,face});
-  if(!w)console.warn(`${day}: Mike Roffon's written picture refused (${writtenPictureProblems(written,facts).join('; ')}): the code's scene.`);
-  else try{const r=await generate(w,{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});return {picture:r.png,spent:cost(r.usage)};}
-  catch(e){console.warn(`${day}: Mike Roffon's written picture failed (${e.message}): the code's scene.`);}}
- for(const crest of Number.isInteger(team)?[true,false]:[true]){
-  if(!OPENAI_KEY||picture)break;
-  try{const r=await generate(interviewPicture(facts,day,{team,crest}),{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});picture=r.png;spent+=cost(r.usage);}
-  catch(e){console.warn(`${day}: Mike Roffon's picture ${crest&&Number.isInteger(team)?'with the team logo':'without the team logo'} failed (${e.message})${crest&&Number.isInteger(team)?': drawn again in the team colors alone.':': the interview goes alone.'}`);}
- }
- return {picture,spent};
+// His picture, its prompt written by Claude from the interview (interview null: from the game alone) with the hero's ESPN
+// face (hero: his ESPN id). {picture: the PNG or null (no subscription, no prompt Claude could write, no OPENAI_API_KEY,
+// a refusal of the image model: the interview goes alone), written: Claude's prompt, spent}.
+async function mikePicture(facts,day,team,interview=null,hero=null){
+ if(!claudeConfigured(env)){console.warn(`${day}: no Claude subscription, no picture of Mike Roffon.`);return {picture:null,written:null,spent:0};}
+ const face=hero?await (await import('./render.mjs')).headshot(hero):null;
+ let written=null;
+ try{written=await writeMikePicture(facts,interview,mikeCast(facts,{team,face}));}
+ catch(e){console.warn(`${day}: Claude did not write Mike Roffon's picture (${e.message}).`);}
+ if(!written||!OPENAI_KEY)return {picture:null,written,spent:0};
+ try{const r=await generate(written,{key:OPENAI_KEY,timeoutMs:120e3,attempts:2});return {picture:r.png,written,spent:cost(r.usage)};}
+ catch(e){console.warn(`${day}: Mike Roffon's picture failed (${e.message}): the interview goes alone.`);return {picture:null,written,spent:0};}
 }
 // Only his picture of a day whose interview went without one: drawn and, with send, posted with its caption.
 async function mikePictureOnly(day,lines,ctx,state,send){
  const hero=dailyBlocks(lines.filter(l=>l.d===day)).heroes[0];
  if(!hero)return null;
  const facts=interviewFacts(day,hero,ctx.who,{form:form(lines,day)});
- const {picture,spent}=await mikePicture(facts,day,hero.h?.[0]),caption=interviewCaption(facts,day);
+ const {picture,spent}=await mikePicture(facts,day,hero.h?.[0],null,String(hero.a)),caption=interviewCaption(facts,day);
  if(!picture)return {status:'failed'};
  if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);}
  if(!send){console.log(`\n===== Mike Roffon's picture (preview, $${spent.toFixed(3)}) =====\n${caption}\n`);return {status:'preview',cost:spent};}
@@ -292,15 +290,13 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  try{
   const {interview}=await interviewFor(facts);
   if(!interview){console.warn(`${day}: Mike Roffon's interview kept numbers of its own or lines of his old pieces: not posted.`);return {status:'dropped'};}
-  let {picture,spent}=await mikePicture(facts,day,hero.h?.[0],interview.picture,String(hero.a));
+  const {picture,written,spent}=await mikePicture(facts,day,hero.h?.[0],interview,String(hero.a));
   const text=interviewText(interview,facts),caption=interviewCaption(facts,day);
   if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});if(picture)fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.png`),picture);
    fs.writeFileSync(path.join(CARDS_DIR,`mike-${day}.txt`),caption+'\n\n'+text+'\n');}
   if(!send){console.log(`\n===== Mike Roffon (preview, $${spent.toFixed(3)}) =====\n${caption}\n\n${text}\n`);
-   // The picture's prompt as it goes to the image model: Opus's own, else the code's scene (free to print).
-   const face=interview.picture?await (await import('./render.mjs')).headshot(String(hero.a)):null;
-   const w=interview.picture?writtenPicture(interview.picture,facts,{team:hero.h?.[0],face}):null,p=w||interviewPicture(facts,day,{team:hero.h?.[0]});
-   console.log(`\n===== Mike Roffon's picture (${w?'written by Opus':`the code's scene${interview.picture?`: Opus's refused (${writtenPictureProblems(interview.picture,facts).join('; ')})`:''}`}, ${p.images.length} references) =====\n${p.prompt}\n`);
+   // The picture's prompt as it goes to the image model, Claude's own.
+   console.log(written?`\n===== Mike Roffon's picture (written by Claude, ${written.images.length} references: ${written.images.map(i=>i.name).join(', ')}) =====\n${written.prompt}\n`:'\n===== Mike Roffon: no picture =====\n');
    return {status:'preview',cost:spent};}
   let shown=null;
   if(picture){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',caption);form.append('parse_mode','HTML');
@@ -312,27 +308,32 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  }catch(e){console.warn(`${day}: Mike Roffon failed (${e.message}).`);return {status:'failed'};}
 }
 
-// --- The day's pictures (images.js): the heroes in one picture and the flops in another, their moments written by Claude
-// through the owner's subscription (free; the code's own without it), drawn by OpenAI (about $0.03 each) and sent by
-// the awards bot after the day's album, before Mike Roffon. recent: the ideas of the last days, not to repeat. Only with DAY_PICTURES=1 and
-// OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and draws them with --pictures (paid; without the
-// key the request goes out bare, for a proxy that adds it). Never holds the awards: a failure is logged.
+// --- The day's pictures (images.js): the heroes in one picture and the flops in another, their prompts written by Claude
+// through the owner's subscription (free; without it, or when he cannot write one, no picture), drawn by OpenAI (about
+// $0.03 each) and sent by the awards bot after the day's album, before Mike Roffon. recent: the ideas of the last days,
+// not to repeat. Only with DAY_PICTURES=1 and OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and
+// draws them with --pictures (paid; without the key the request goes out bare, for a proxy that adds it). Never holds the
+// awards: a failure is logged.
 const PICTURES=env.DAY_PICTURES==='1'&&!!OPENAI_KEY;
 async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true,recent=[]}={}){
  const blocks=dailyBlocks(lines.filter(l=>l.d===day)),f=form(lines,day),written={};
- // --moments FILE (a preview): the moments as JSON {hero, flop} in Claude's shape, checked like his.
- const given=opt('--moments')?JSON.parse(fs.readFileSync(opt('--moments'),'utf8')):null;
- if(given)for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]]){const facts=momentFacts(kind,rows,{form:f}),x=given[kind];
-  const problems=x?momentProblems(x,facts):['none given'];if(problems.length)console.warn(`--moments ${kind}: ${problems.join('; ')}`);else written[kind]=x;}
- else if(claudeConfigured(env))for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]])if(rows.length)
-  try{written[kind]=await writeMoments(momentFacts(kind,rows,{form:f}),{recent});}
-  catch(e){console.warn(`${day}: Claude did not write the ${kind} moments (${e.message}); the code's go instead.`);}
+ const kinds=[['hero',blocks.heroes],['flop',blocks.flops]].filter(([,rows])=>rows.length);
+ // The players' faces first: Claude writes the prompt for the references there are.
  const ids=[...new Set([...blocks.heroes.slice(0,3),...blocks.flops.slice(0,3)].map(l=>String(l.a)))];
  const {headshot}=await import('./render.mjs');
  const faces=new Map((await Promise.all(ids.map(async a=>[a,await headshot(a)]))).filter(([,f])=>f));
- const pictures=dayPictures(blocks,ctx.who,{faces,form:f,written}),ideas=pictures.flatMap(p=>p.ideas);
- if(!draw){for(const [kind,rows] of [['hero',blocks.heroes],['flop',blocks.flops]])if(rows.length)console.log(`\n===== ${day} ${kind} facts =====\n${JSON.stringify(momentFacts(kind,rows,{form:f}).players)}`);
-  for(const p of pictures)console.log(`\n===== ${day} ${p.kind} picture (${p.ideas.length?'Claude\'s moments':'the code\'s moments'}, ${p.images.length} references) =====\n${p.prompt}\n\n${p.caption}\n`);return {status:'prompts',ideas};}
+ // --moments FILE (a preview): the prompts as JSON {hero: {prompt, idea}, flop: ...}, checked like Claude's.
+ const given=opt('--moments')?JSON.parse(fs.readFileSync(opt('--moments'),'utf8')):null;
+ for(const [kind,rows] of kinds){
+  const facts=momentFacts(kind,rows,{form:f}),c=blockCast(kind,rows,{faces});
+  if(!draw)console.log(`\n===== ${day} ${kind} facts =====\n${JSON.stringify(facts.players)}`);
+  if(given){written[kind]=givenMoments(given[kind],facts,c);continue;}
+  if(!claudeConfigured(env)){console.warn(`${day}: no Claude subscription, no ${kind} picture.`);continue;}
+  try{written[kind]=await writeMoments(facts,c,{recent});}
+  catch(e){console.warn(`${day}: Claude did not write the ${kind} picture (${e.message}): none.`);}
+ }
+ const pictures=dayPictures(blocks,ctx.who,{written}),ideas=pictures.flatMap(p=>p.ideas);
+ if(!draw){for(const p of pictures)console.log(`\n===== ${day} ${p.kind} picture (written by Claude, ${p.images.length} references: ${p.images.map(i=>i.name).join(', ')}) =====\n${p.prompt}\n\n${p.caption}\n`);return {status:'prompts',ideas};}
  let spent=0,sent=0,drawn=0;
  for(const p of pictures){
   try{
@@ -481,15 +482,13 @@ function insidePush(inside,message){
   git('push','-q',`https://x-access-token:${token}@github.com/${repo}.git`,'HEAD:data/inside-fbl');
  }catch(e){console.warn(`Inside FBL: push to data/inside-fbl failed (${String(e.stderr||e.message).trim().slice(-300)}).`);}
 }
-// The pictures of a piece, three at a time: the opener and one per chapter. A refused scene is drawn once more as a
-// safe one (coffee at the guest's kitchen table); a picture that fails twice is left out. {bytes by key, spent}.
-async function longreadPictures(longread,guest){
- const mikePhoto=readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto=await guestReference(guest);
- const todo=[{key:'opener',scene:longread.opener,opener:true},...longread.chapters.map((c,i)=>({key:String(i+1),scene:c.picture}))],out={};let spent=0;
- const one=async t=>{for(const scene of [t.scene,SAFE_SCENE]){
-  try{const r=await generate({...longreadPicture(scene,guest,{mikePhoto,guestPhoto,opener:t.opener}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
-   out[t.key]=r.png;spent+=cost(r.usage);return;}
-  catch(e){console.warn(`Inside FBL: picture ${t.key}${scene===SAFE_SCENE?' (safe scene)':''} failed (${e.message}).`);}}};
+// The pictures of a piece, three at a time: the opener and one per chapter, as Claude wrote their prompts (c: their
+// references, longreadCast). A picture that fails twice is left out. {bytes by key, spent}.
+async function longreadPictures(longread,c){
+ const todo=[{key:'opener',prompt:longread.opener},...longread.chapters.map((ch,i)=>({key:String(i+1),prompt:ch.picture}))],out={};let spent=0;
+ const one=async t=>{
+  try{const r=await generate({...picture(t.prompt,c),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});out[t.key]=r.png;spent+=cost(r.usage);}
+  catch(e){console.warn(`Inside FBL: picture ${t.key} failed (${e.message}): left out.`);}};
  for(let i=0;i<todo.length;i+=3)await Promise.all(todo.slice(i,i+3).map(one));
  return {out,spent};
 }
@@ -520,16 +519,18 @@ async function insideFbl(){
  const archive=read('archive.json',{lines:[]}),inside=insideRead();
  const w=weekOf(opt('--inside-week')||addDays(usDay(now()),-1)),rec=inside.weeks[w.start];
  if(rec?.status==='sent'){console.log(`Inside FBL, week ${w.n}: already sent (${rec.url}).`);return;}
- // picture: one chapter's picture drawn anew from --scene (a whole prompt, {MIKE} and {GUEST} for the two), the
- // Telegraph page edited to show it; the rest of the draft and its approval stay.
+ // picture: one chapter's picture drawn anew, its prompt written again by Claude from --scene (the owner's wish for it),
+ // the Telegraph page edited to show it; the rest of the draft and its approval stay.
  if(action==='picture'){
   if(rec?.status!=='page'||!rec.opener)throw Error(`Inside FBL, week ${w.n}: no draft with pictures to change`);
-  const n=Number(opt('--chapter')),scene=opt('--scene');if(!(n>=0)||!scene)throw Error('--action picture: --chapter N (0: the opener) and --scene TEXT');
+  const n=Number(opt('--chapter')),wish=opt('--scene');if(!(n>=0)||!wish)throw Error('--action picture: --chapter N (0: the opener) and --scene TEXT (the wish)');
   const prefix=rec.opener.replace(/opener(-[a-z0-9]+)?\.jpg$/,''),{facts,longread}=JSON.parse(fs.readFileSync(path.join(INSIDE_DIR,`${prefix}longread.json`),'utf8'));
   if(n>0&&!longread.chapters[n-1])throw Error(`--chapter: the draft has ${longread.chapters.length} chapters`);
   const guest=facts.guest.kind==='GM'?{kind:'gm',team:LEAGUE_TEAMS.findIndex(t=>t.name===facts.guest.team)}:facts.guest.kind==='комиссар лиги'?{kind:'commissioner'}:null;
   if(!guest)throw Error('--action picture: a player guest is not supported yet');
-  const r=await generate({...longreadPicture(scene,guest,{mikePhoto:readImage(path.join(ASSETS,person('mike-roffon').photo)),guestPhoto:await guestReference(guest)}),format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
+  const c=longreadCast(guest,{guestPhoto:await guestReference(guest)}),written=await writeChapterPicture(longread,n,facts,c,wish);
+  if(!written)throw Error(`Inside FBL: Claude could not write picture ${n||'opener'} anew`);
+  const scene=written.prompt,r=await generate({...written,format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
   const file=`${prefix}${n||'opener'}-${Date.now().toString(36)}.jpg`;fs.writeFileSync(path.join(INSIDE_DIR,file),r.png);
   const images=longread.chapters.map((_,i)=>rec.images?.[i]||`${RAW}${prefix}${i+1}.jpg`);if(n>0)images[n-1]=`${RAW}${file}`;
   const opener=n>0?rec.opener:file;
@@ -570,13 +571,15 @@ async function insideFbl(){
  const guest=pickGuest(data,past.map(x=>x.guest),{force:opt('--guest'),keep:action==='redo'?rec?.guest?.key:null});
  const facts=longreadFacts(data,guest,{who:ctx.who,gifts:past.map(x=>x.gift).filter(Boolean),guests:past.map(x=>x.guest.name)});
  console.log(`Inside FBL, week ${w.n} (${w.start} – ${w.end}): ${facts.guest.name}, ${guest.story.id}${action==='redo'?', anew':''}.`);
- const {longread,problems,tries}=await writeLongread(facts,{notes:opt('--notes')||''});
+ // The references of its pictures first: Claude writes their prompts with the piece.
+ const c=longreadCast(guest,{guestPhoto:await guestReference(guest)});
+ const {longread,problems,tries}=await writeLongread(facts,c,{notes:opt('--notes')||''});
  const dir=path.join(INSIDE_DIR,'images',w.start);fs.mkdirSync(dir,{recursive:true});
  if(problems.length){console.warn(`Inside FBL: still wrong after ${tries} tries (${problems.join('; ')}): no draft.`);
   fs.writeFileSync(path.join(dir,'dropped.json'),JSON.stringify({facts,longread,problems},null,1));
   if(rec?.status!=='page')inside.weeks[w.start]={status:'dropped',guest:{key:guest.key,name:facts.guest.name},problems,at:new Date().toISOString()};
   insidePush(inside,`Inside FBL ${w.start}: dropped`);process.exitCode=1;return;}
- const {out,spent}=OPENAI_KEY?await longreadPictures(longread,guest):{out:{},spent:0};
+ const {out,spent}=OPENAI_KEY?await longreadPictures(longread,c):{out:{},spent:0};
  // Each draft its own files, so a page under review keeps its pictures while a new one is made.
  const tag=Date.now().toString(36);
  for(const [k,bytes] of Object.entries(out))fs.writeFileSync(path.join(dir,`${tag}-${k}.jpg`),bytes);

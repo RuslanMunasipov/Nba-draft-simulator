@@ -6,9 +6,10 @@
 // Usage: league-feed.mjs <sports-current.json> <league-state.json>
 // Env: LEAGUE_TELEGRAM_CHAT_ID and LEAGUE_TELEGRAM_BOT_TOKEN, the league's own bot (never the personal one: the league
 // chat must not share a bot or a chat with the personal advice). Without them nothing is
-// marked as posted, so the feed starts complete once the chat is set. OPENAI_API_KEY: each protocol gets a picture of
-// Зак Онн with the team's GM and logo (scripts/zak-pictures.mjs) instead of his usual photo. CLAUDE_CODE_OAUTH_TOKEN: his
-// lines are written by Claude through the owner's subscription (scripts/claude-text.mjs), else they come from his bank.
+// marked as posted, so the feed starts complete once the chat is set. CLAUDE_CODE_OAUTH_TOKEN: his lines are written by
+// Claude through the owner's subscription (scripts/claude-text.mjs), else they come from his bank; with OPENAI_API_KEY
+// too, each protocol gets a picture of Зак Онн with the team's GM whose prompt Claude writes (scripts/zak-pictures.mjs)
+// instead of his usual photo.
 import fs from 'node:fs';
 import {seasonRosters,allTransfers,withMarket,bank,unreported,dealEvents,reportedEvents,journalEvents,capEvents} from '../src/season.js';
 import {fileURLToPath} from 'node:url';
@@ -18,7 +19,7 @@ import {claudeConfigured} from './claude-text.mjs';
 import {loadHandles,at} from './handles.mjs';
 import {teamLabel} from '../src/teams.js';
 import {esc,message,sender,moscow,fitsCaption} from './telegram-format.mjs';
-import {drawProtocol,sceneFacts,writeScene} from './zak-pictures.mjs';
+import {drawPicture,writeProtocolPicture} from './zak-pictures.mjs';
 import {espnHeadshot} from './image-pipeline.mjs';
 import {espnIdOf} from '../src/headshot.js';
 const [livePath,statePath]=process.argv.slice(2);
@@ -262,15 +263,15 @@ for(const idx of groups.values()){
  const player=signed?.name?{name:signed.name.normalize('NFD').replace(/[\u0300-\u036f]/g,''),image:espnIdOf(signed)?await espnHeadshot(espnIdOf(signed)):null}:null;
  const story={kind:v.kind,team:x.team,no:preview?number:issued+1,seed:key(news[0]),rules:rulesOf(v,c),standing:v.standingOnly,fixed:fixed.length>0,
   watched:Boolean(watched(x.team)),player};
- // Its scene, a new story by Claude every time (the last scenes kept in the state, not to be repeated); the fixed scenes
- // when Claude cannot write it.
+ // Its picture, a new story by Claude every time (the ideas of his last pictures kept in the state, not to be repeated);
+ // none when Claude cannot write it.
  let written=null;
  if(draws&&Date.now()<claudeUntil){
-  try{written=await writeScene(sceneFacts(story),{recent:state.sceneIdeas||[]});
-   if(written)state.sceneIdeas=[...(state.sceneIdeas||[]),written.slice(0,200)].slice(-30);}
-  catch(e){claudeUntil=0;console.warn(`Zak Onn's scene (Claude) unavailable (${e.message}): a fixed scene.`);}
+  try{written=await writeProtocolPicture(story,{recent:state.sceneIdeas||[]});
+   if(written?.idea)state.sceneIdeas=[...(state.sceneIdeas||[]),written.idea.slice(0,200)].slice(-30);}
+  catch(e){claudeUntil=0;console.warn(`Zak Onn's picture (Claude) unavailable (${e.message}): his photo.`);}
  }
- const picture=draws?await drawProtocol({...story,written},{key:process.env.OPENAI_API_KEY}):null;
+ const picture=draws?await drawPicture(written,`protocol ${story.no}`,{key:process.env.OPENAI_API_KEY,timeoutMs:90e3}):null;
  if(await send(text,{photo:picture||photo(v.kind),caption})&&!preview){for(const m of news){done.add(key(m));pending.delete(m);events.push(...dealEvents(m));}issued++;save();}
 }
 if(!groups.size)console.log('No new league transfers.');
