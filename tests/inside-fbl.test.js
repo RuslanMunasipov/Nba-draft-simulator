@@ -66,7 +66,6 @@ test('Inside FBL: what a piece may not carry: numbers of its own (in words too),
  assert.match(longreadProblems(bad,facts,c).join(),/числа не из данных: 22, 333/);
  assert.match(longreadProblems(bad,facts,c).join(),/вот где: «Он живёт на двадцать втором этаже и держит триста тридцать три собаки\.»/);
  assert.match(longreadProblems({...good,quote:'Роль важнее фамилии.'},facts,c).join(),/роль важнее фамилии/);
- assert.match(longreadProblems({...good,opener:good.opener.replace('rocking chair','rocking chair and a gun')},facts,c).join(),/opener: off limits: gun/);
  assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace(/the guest from reference image 2/,'the GM')})},facts,c).join(),/picture главы 1: reference image 2 \(the photo of the guest.*\) not used/);
  assert.match(longreadProblems({...good,chapters:good.chapters.map((c,i)=>i?c:{...c,picture:c.picture.replace('No text.','A sign reads "333 ФО".')})},facts,c).join(),/numbers in quotes not in the facts: 333/);
  assert.match(longreadProblems({...good,prologue:['Коротко.'],chapters:good.chapters.map(c=>({...c,story:['Коротко.']})),epilogue:['Всё.']},facts,c).join(),/слишком коротко/);
@@ -85,7 +84,7 @@ test('Inside FBL: the pictures: Claude writes each prompt whole, the code gives 
  const pp=await import('../awards-bot/inside-fbl.js');
  assert.equal(pp.SAFE_SCENE,undefined,'no fallback scene of the code\'s');assert.equal(pp.longreadPicture,undefined);
  assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','x.jpg']);
- assert.match(c.list[0].is,/only his face/);assert.match(c.list[1].neverChanges,/thin rimless tinted glasses/);assert.equal(c.list[1].name,undefined,'the GM never named');
+ assert.match(c.list[0].is,/only his face/);assert.match(c.list[1].neverChanges,/thin rimless tinted glasses/);assert.equal(c.list[1].name,'Lemarius');
  assert.match(longreadCast({kind:'commissioner'},{guestPhoto:img}).list[1].is,/Adam Silverov/);
  const pl=longreadCast({kind:'player',row:{a:'3',en:'T. Young',teams:[7]}});
  assert.equal(pl.images.length,1,'no face: Mike alone');

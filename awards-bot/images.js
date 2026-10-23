@@ -12,7 +12,7 @@ import {LEAGUE_TEAMS} from '../src/teams.js';
 import {wordNumbers} from './mike-roffon.js';
 import {esc,badges} from './messages.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
-import {cast,playerRef,logoRef,gmRef,promptProblems,writePicture,picture,affirmed,CRAFT} from '../scripts/picture-prompt.mjs';
+import {cast,playerRef,logoRef,gmRef,promptProblems,writePicture,picture,CRAFT} from '../scripts/picture-prompt.mjs';
 
 export const SIZE='1024x1024';
 // The name as the picture spells it: ESPN's short name in Latin letters ("N. Jokic"), which the model writes reliably.
@@ -53,26 +53,23 @@ const BANTER=`Ты — мем-редактор FBL (Fantasy Brothers League), ф
 - GM, который выбрал звезду, — если его фото есть в референсах: на заднем плане, меньше игроков, радуется героям или в отчаянии от провала. Его имя можно написать только на табличке.
 Границы:
 - Стебём игру, а не человека: ничего про внешность, тело, расу, происхождение, семью, здоровье и личную жизнь.
-- Никакого оружия, стрельбы в людей, насилия, крови, смерти, наркотиков и секса. Никаких судов, судей и юристов: закон лиги в награды не лезет.
+- Никаких судов, судей и юристов: закон лиги в награды не лезет.
 - На картинке только эти игроки, GM звезды и безликая массовка.
 
 ${CRAFT}`;
 export function momentMessages(facts,recent=[]){
  return `Картинка: ${facts.picture}.${recent.length?`\nНедавние идеи, не повторяй:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}`:''}\nДанные:\n${JSON.stringify(facts.players,null,1)}`;
 }
-// Зак Онн by his first name: GM Strap Onn shares his last one.
-const FORBIDDEN=/\b(guns?|rifles?|pistols?|weapons?|bullets?|knife|knives|blood\w*|kill\w*|corpses?|death|suicide|drugs?|cocaine|naked|sex\w*|zak|lawyer|courtroom|judge)\b|оружи|пистолет|автомат|стрельб|застрел|кров[ьи]|убий|убил|смерт|труп|наркот|суицид|зак онн|юрист|адвокат|суд[ья]/i;
 // Every number a player's sign may carry: his FBL points and his box score's counts.
 const numbersOf=p=>new Set([p.fbl,p.minutes,...Object.values(p.game)].filter(Number.isFinite).map(v=>String(Math.abs(v))));
 // What is wrong with Claude's prompt for these facts and references ([]: it may go to the image model): the players'
-// faces all in it, the numbers in quotes the players' own (in digits or in words), nothing forbidden.
+// faces all in it, the numbers in quotes the players' own (in digits or in words).
 export function momentProblems(text,facts,c){
  const numbers=new Set(facts.players.flatMap(p=>[...numbersOf(p)]));
  const out=promptProblems(text,c,{numbers});
  if(typeof text!=='string')return out;
  const signs=(text.match(/"[^"\n]*"/g)||[]).join(' '),strayW=wordNumbers(signs).filter(v=>!numbers.has(v));
  if(strayW.length)out.push(`numbers in words not in the lines: ${strayW.join(', ')}`);
- const bad=affirmed(text).match(FORBIDDEN);if(bad)out.push(`forbidden: ${bad[0]}`);
  return out;
 }
 // Claude's picture of a block ({images, prompt, idea}), or null: then none is drawn. recent: the ideas of the last days.

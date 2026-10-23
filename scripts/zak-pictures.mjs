@@ -46,18 +46,15 @@ const PROTOCOL_SYSTEM=`You write the picture of one transfer protocol of Zak Onn
 Write a brand-new story every time: a new place, a new situation, new props, a new gag. Never reuse an idea of the recent pictures. Think of anything: a car chase, a stakeout, a diner at 3 a.m., a car wash, a casino, a train, a rooftop, a bowling alley, a talk show, a hospital, a ferry, a bank vault, a fashion show, a wedding, a TV studio, a construction site, a museum — invent your own.
 The story fits the case: an approval celebrates but Zak stays suspicious; a doubt is an investigation; a fresh breach is a bust; a repeat offence is harsher; a closed case is a release; a watched team is a stakeout. With a new player, Zak and the GM present the new signing. The commissioner may join when it fits.
 Zak Onn is always the Lawyer, always in the bright red cap embroidered "God Bless America"; he may wear what the scene needs. The case label (caseLabel) may be on a file or a tag. At most two short signs or labels besides the cap, in English capitals, at most 4 words each.
-Comedy of a 90s action film: tough, ironic, never cruel. Handcuffs, files, stamps, flashlights, binoculars and magnifying glasses are fine; no hitting, no children or schools.
+Comedy of a 90s action film: tough, ironic, never cruel. Handcuffs, files, stamps, flashlights, binoculars and magnifying glasses are his tools.
 
 ${CRAFT}`;
-// Words a picture of his never holds (beyond the league's own, picture-prompt.mjs OFF_LIMITS).
-// An old-school barbershop is not a school.
-const OUT_OF_BOUNDS=/\b(children|child|kids?|(?<!old[- ])school\w*|punch(es|ed|ing)?)\b/i;
 const numbersIn=x=>new Set(JSON.stringify(x).match(/\d+/g)||[]);
 // A protocol's picture written by Claude: {images, prompt, idea}, or null. recent: the ideas of his last pictures.
 export async function writeProtocolPicture(story,{recent=[],root,write,timeoutMs=120e3,log}={}){
  const facts=sceneFacts({...story,root}),c=protocolCast({...story,root});
  const brief=`${recent.length?`Recent pictures, do not repeat their ideas:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}\n\n`:''}The case:\n${JSON.stringify(facts,null,1)}`;
- return writePicture({system:PROTOCOL_SYSTEM,brief,c,check:t=>promptProblems(t,c,{numbers:numbersIn(facts),forbidden:OUT_OF_BOUNDS}),
+ return writePicture({system:PROTOCOL_SYSTEM,brief,c,check:t=>promptProblems(t,c,{numbers:numbersIn(facts)}),
   ...write?{write}:{},timeoutMs,label:`Zak Onn, protocol ${story.no}`,...log?{log}:{}});
 }
 
@@ -67,14 +64,14 @@ const STATEMENT_SYSTEM=`You write the picture of one statement of Zak Onn, the l
 Read the statement and show its point, as the statement rules it, in one strong, inventive image: a place, an action, props, a gag that fits it. The picture agrees with the statement: whoever the statement rules for wins in the picture too, and no sign or prop says the opposite of the ruling. Zak Onn knows nothing about computers: never screens, code, servers or databases; show it as a case — suspects, documents, an investigation, a verdict. Never a plain portrait, never Zak just smiling at the camera.
 The commissioner joins when the statement concerns him or the league's decisions. Other figures are anonymous or seen from behind; no other real people.
 Zak Onn is always the Lawyer, always in the bright red cap embroidered "God Bless America"; he may wear what the scene needs. At most two short signs or labels besides the cap, in English capitals, at most 4 words each; numbers in them only from the statement.
-Tough, ironic 90s action-film tone, never cruel; no hitting, no children or schools.
+Tough, ironic 90s action-film tone, never cruel.
 
 ${CRAFT}`;
 export const statementCast=({mood='check',root}={})=>cast([zakRef(mood,root),commissionerRef(root)]);
 export async function writeStatementPicture(statement,{idea=null,mood='check',root,write,timeoutMs=180e3,log}={}){
  const text=String(statement).replace(/<[^>]+>/g,'').replace(/\{@[^}]*\}/g,'').trim(),c=statementCast({mood,root});
  const brief=`The statement:\n${text}${idea?`\n\nThe editor's idea of the picture (use it or make it better; the statement decides):\n${idea.trim()}`:''}`;
- return writePicture({system:STATEMENT_SYSTEM,brief,c,check:t=>promptProblems(t,c,{numbers:numbersIn(text),forbidden:OUT_OF_BOUNDS}),
+ return writePicture({system:STATEMENT_SYSTEM,brief,c,check:t=>promptProblems(t,c,{numbers:numbersIn(text)}),
   ...write?{write}:{},timeoutMs,label:'Zak Onn, statement',...log?{log}:{}});
 }
 

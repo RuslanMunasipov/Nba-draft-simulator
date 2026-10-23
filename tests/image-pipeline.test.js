@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {readImage,gmPhoto,teamLogo,zakPhoto,cost,generate,MODEL,QUALITY,SIZE} from '../scripts/image-pipeline.mjs';
-import {cast,picture,promptProblems,writePicture,zakRef,gmRef,logoRef,commissionerRef,mikeRef,playerRef,about,UNSAID} from '../scripts/picture-prompt.mjs';
+import {cast,picture,promptProblems,writePicture,zakRef,gmRef,logoRef,commissionerRef,mikeRef,playerRef,about} from '../scripts/picture-prompt.mjs';
 import {sceneOf,sceneFacts,protocolCast,writeProtocolPicture,writeStatementPicture,statementCast,ZAK_MOOD} from '../scripts/zak-pictures.mjs';
 
 function assets(){
@@ -86,14 +86,12 @@ test('the references Claude writes from: numbered as they go, who is on each, th
  assert.deepEqual(c.images.map(i=>i.name),['check.jpg','3.webp','3.png'],'the missing ones left out');
  assert.deepEqual(c.list.map(x=>x.ref),['reference image 1','reference image 2','reference image 3']);
  assert.equal(c.list[0].name,'Zak Onn');assert.match(c.list[0].neverChanges,/God Bless America/);assert.equal(c.list[0].mustUse,true);
- assert.equal(c.list[1].name,undefined,'a GM is never named');assert.match(c.list[1].neverChanges,/sunglasses/);assert.match(c.list[1].usualLook,/velvet/);
+ assert.equal(c.list[1].name,'Jack Pott');assert.match(c.list[1].neverChanges,/sunglasses/);assert.match(c.list[1].usualLook,/velvet/);
  assert.equal(c.list[2].teamColors,'black, red and cream');assert.equal(c.list[2].mustUse,undefined);
  assert.deepEqual(about(null),{});assert.deepEqual(cast([]),{images:[],refs:[],list:[]});
  const real=cast([zakRef(),commissionerRef(),mikeRef(),playerRef(null,'X')]);
  assert.deepEqual(real.images.map(i=>i.name),['check.jpg','adam-silverov.jpg','mike-roffon.jpg']);
  assert.match(real.list[2].is,/only his face/);
- assert.ok(UNSAID.includes('Franky Murder')&&UNSAID.includes('The Balkan Murderers')&&UNSAID.includes('Strap Onn'));
- assert.ok(!UNSAID.some(n=>/Zak Onn|Mike Roffon|Adam Silverov/.test(n)));
 });
 
 test('Claude\'s prompt goes as he wrote it: only the references he names, numbered anew when one is left out',()=>{
@@ -111,16 +109,11 @@ test('the checks of a prompt: the references it must use, the words the people b
  assert.match(promptProblems(ZAK.replace('God Bless America','USA'),c,{numbers:nums}).join(),/no "God Bless America"/);
  assert.match(promptProblems(ZAK+' And reference image 5.',c,{numbers:nums}).join(),/no reference image 5: there are 3/);
  assert.match(promptProblems(ZAK.replace('FBL CASE 7','CASE 99'),c,{numbers:nums}).join(),/numbers in quotes not in the facts: 99/);
- assert.match(promptProblems(ZAK+' A gun on the table.',c,{numbers:nums}).join(),/off limits: gun/);
  assert.match(promptProblems(ZAK+' {GM} waits.',c,{numbers:nums}).join(),/placeholders in curly braces/);
- assert.match(promptProblems(ZAK+' Jack Pott smiles.',c,{numbers:nums}).join(),/names outside the quotes: Jack Pott/);
  assert.deepEqual(promptProblems(ZAK+' A sign reads "JACK POTT".',c,{numbers:nums}),[],'a name on a sign is drawn, not read as a name');
  assert.match(promptProblems(ZAK+' Суд.',c,{numbers:nums}).join(),/not plain English/);
  assert.match(promptProblems('Short.',c).join(),/length 6/);assert.match(promptProblems(ZAK.repeat(12),c,{numbers:nums}).join(),/length \d+ \(200-4500\)/);
- assert.deepEqual(promptProblems(ZAK+' A wide shot, a jump shot, dead silence, a sharp shooter.',c,{numbers:nums}),[],'basketball and photography words are not violence');
- assert.deepEqual(promptProblems(ZAK+' No weapons, helmets, knives or blood anywhere. Without a gun; never a rifle.',c,{numbers:nums}),[],'his own safety notes are not the picture');
- assert.match(promptProblems(ZAK+' No one sees the gun under the table.',c,{numbers:nums}).join(),/off limits: gun/,'"no one" says nothing is missing');
- assert.match(promptProblems(ZAK+' No hats. He holds a knife.',c,{numbers:nums}).join(),/off limits: knife/,'a negation ends with its sentence');
+  assert.deepEqual(promptProblems(ZAK+' Jack Pott smiles. A gun, a knife, a corpse in the trunk, dead silence, kids at the window, a helmet.',c,{numbers:nums}),[],'no list of forbidden words (owner, 23.10.2026): the story is Claude\'s');
 });
 
 test('writePicture: Claude writes it, a refused prompt goes back to him with its problems, then none',async()=>{
@@ -161,10 +154,6 @@ test('a protocol\'s picture: the case in words, Zak, the GM, the logo, the new p
  assert.equal(p.prompt,good.replace('reference image 4','reference image 3'),'his words, the references numbered anew');assert.deepEqual(p.images.map(i=>i.name),['approved.jpg','3.webp','4594268.png'],'the logo he did not use is not sent');
  assert.match(calls[0].system,/Zak Onn deals in person with the general manager/);assert.match(calls[0].system,/How you write the picture's prompt/);
  assert.match(calls[0].prompt,/Recent pictures, do not repeat their ideas:\n- a car wash/);assert.match(calls[0].prompt,/"caseLabel": "FBL CASE 7"/);
- const w2=claude([ZAK+' The kids laugh.',ZAK]);
- await writeProtocolPicture({kind:'violation',team:2,no:7,rules:['time']},{root,write:w2.write,log:()=>{}});
- assert.match(w2.calls[1].prompt,/off limits: kids/,'his own bounds: no children');
- const w3=claude([ZAK+' An old-school barbershop.']);assert.ok(await writeProtocolPicture({kind:'violation',team:2,no:7,rules:['time']},{root,write:w3.write,log:()=>{}}),'an old-school barbershop is not a school');
 });
 
 test('a statement\'s picture: Claude writes it from the statement and the editor\'s idea, Zak and the commissioner',async()=>{
