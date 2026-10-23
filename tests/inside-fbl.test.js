@@ -100,6 +100,7 @@ test('Inside FBL: the Telegraph page: chapters numbered, a picture after each, t
  const c=longreadCaption(good,facts,'https://telegra.ph/Inside-FBL-11-02');
  assert.match(c,/<b>Лемариус<\/b> \(GM Texas 76 Citrus\)/);assert.match(c,/<a href="https:\/\/telegra\.ph\/Inside-FBL-11-02">Читать лонгрид →<\/a>/);assert.ok(c.length<=1024);
  assert.equal(pageTitle({title:'«Да»'}),'Inside FBL — Да');
+ assert.ok(JSON.stringify(telegraphNodes({...good,gift:'Говорящий апельсин.'},facts)).includes('На полку Майка: Говорящий апельсин."'),'one full stop');
 });
 
 test('Inside FBL: a week\'s piece goes out on its Friday at 18:00 Moscow, the games Monday to Thursday',()=>{
