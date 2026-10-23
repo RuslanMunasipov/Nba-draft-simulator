@@ -154,7 +154,7 @@ test('the commissioner joins the scenes written for him (the courtroom, the pres
  const court=seeds.map(seed=>zakPicture({kind:'violation',team:2,no:5,seed})).find(p=>/courtroom/.test(p.prompt));
  assert.deepEqual(court.images.map(i=>i.name).slice(-1),['adam-silverov.jpg']);
  assert.match(court.prompt,/reference image 4 is Adam Silverov, the league commissioner/);
- assert.match(court.prompt,/COMMISSIONER: the exact person from reference image 4.*bald head, thin metal-rimmed glasses/);
+ assert.match(court.prompt,/COMMISSIONER: the exact person from reference image 4.*long curly grey-brown mullet hair, thin round metal-rimmed glasses/);
  assert.match(court.prompt,/Adam Silverov \(the league commissioner, reference image 4\) presides from the judge's bench/);
  const other=seeds.map(seed=>zakPicture({kind:'violation',team:2,no:5,seed})).find(p=>!/courtroom/.test(p.prompt));
  assert.doesNotMatch(other.prompt,/Silverov|COMMISSIONER/);assert.ok(!other.images.some(i=>i.name==='adam-silverov.jpg'));
