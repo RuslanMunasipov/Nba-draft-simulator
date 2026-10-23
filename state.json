@@ -2,7 +2,7 @@
  "version": 1,
  "weeks": {
   "2026-10-19": {
-   "status": "page",
+   "status": "sent",
    "url": "https://telegra.ph/Inside-FBL--Limony-na-vershine-Lemarius-i-ego-teplica-s-otryvom-10-23",
    "title": "Лимоны на вершине: Лемариус и его теплица с отрывом",
    "images": [
@@ -29,7 +29,8 @@
     "https://telegra.ph/Inside-FBL--Lemarius-na-vershine-pahnet-citrusom-i-trevogoj-10-23",
     "https://telegra.ph/Inside-FBL--Limony-vo-slavu-Imperatora-Lemarius-ohranyaet-vershinu-FBL-10-23"
    ],
-   "approvedAt": "2026-10-23T15:15:10.359Z"
+   "approvedAt": "2026-10-23T15:15:10.359Z",
+   "sentAt": "2026-10-23T15:15:18.975Z"
   }
  }
 }
