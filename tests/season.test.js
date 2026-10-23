@@ -195,6 +195,16 @@ test('a deal the league approved off Sports.ru counts at once and is not doubled
  const later=allTransfers(named,at([...mirror,{date:'2026-10-25',sell:{name:'N17',price:1500},buy:{name:'N82',price:1500}}]),{transfers:yahoo},picks);
  assert.deepEqual(later.transfers.filter(x=>x.source==='sports.ru').map(x=>[x.outId,x.inId]),[[17,82]]);
 });
+test('a held Sports.ru card the reviewed map does not know, or one Sports.ru renamed, is reported for review',()=>{
+ // 23.10.2026: Sports.ru opened a new card for Keaton Wagler (here 7777, read as a stranger with no history) and renamed
+ // Tobi Lawal's from «Lawal» to «Лавал» (here #9's). A card the map knows by its name is fine.
+ const named=players.map(p=>({...p,sportsName:'N'+p.id}));
+ const roster=[{sportsId:'1001',name:'N1',club:'C0'},{sportsId:'1009',name:'Лавал',club:'C0'},{sportsId:'7777',name:'Уоглер',club:'Клипперс'}];
+ const shown={...live,players:{7777:{position:'SG',price:1422,club:'Клипперс',name:'Уоглер'}},teams:{0:{roster}}};
+ const w=allTransfers(withMarket(named,shown),shown,{transfers:[]},picks).warnings.filter(x=>x.card);
+ assert.deepEqual(w,[{team:0,card:{sportsId:'1009',name:'Лавал'},message:'Sports.ru переименовал карточку 1009: N9 → Лавал — проверь data/sports-player-map.json.'},
+  {team:0,card:{sportsId:'7777',name:'Уоглер'},message:'Карточка Sports.ru 7777 (Уоглер, Клипперс) не сверена с базой — проверь data/sports-player-map.json.'}]);
+});
 test('a player whose card Sports.ru emptied is never sold: his money stays frozen',async()=>{
  const {frozen}=await import('../src/season.js');
  // Karagali Brothers, 23.10.2026: Wagler's card has no price; the league keeps him on the team, his 1400 frozen.

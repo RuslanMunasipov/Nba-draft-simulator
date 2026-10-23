@@ -26,6 +26,19 @@ class Prices(unittest.TestCase):
   # Sports.ru replaced Keaton Wagler's card on 23.10.2026: the catalog's 2208842 was emptied, 2208816 is his card now.
   wagler=next(p for p in mapping if p['name']=='Keaton Wagler')
   self.assertEqual((wagler['sportsId'],wagler['previousSportsIds'],named['Keaton Wagler']),('2208816',['2208842'],1400))
+  # The audit of 23.10: Kenrich Williams's card was missing, Lawal's and Hopkins's were renamed into Cyrillic.
+  self.assertEqual(named['Kenrich Williams'],1214)
+  self.assertEqual({p['name']:(p['sportsName'],p['previousSportsNames']) for p in mapping if p.get('previousSportsNames')},
+   {'Tobi Lawal':('Лавал',['Lawal']),'Bryce Hopkins':('Хопкинс',['Hopkins'])})
+ def test_a_renamed_card_matches_its_old_name_and_a_row_captured_apart_keeps_its_date(self):
+  data={'players':[{'id':1,'name':'Tobi Lawal','espnId':'11','positions':[]},{'id':2,'name':'Kenrich Williams','espnId':'22','positions':[]}]}
+  catalog={'source':'snapshot','capturedAt':'d1','count':1,'players':[{'sportsId':'a','name':'Lawal','club':'Даллас','price':1000,'sportsPosition':'4'}]}
+  additions={'source':'roster','capturedAt':'d2','players':[{'sportsId':'b','name':'К. Уильямс','club':'Оклахома-Сити','price':1214,'sportsPosition':'3','source':'other roster','capturedAt':'d3'}]}
+  crosswalk={'players':[{'sportsId':'a','previousSportsNames':['Lawal'],'espnId':'11','name':'Tobi Lawal','sportsName':'Лавал','sportsClub':'Даллас'},
+                        {'sportsId':'b','espnId':'22','name':'Kenrich Williams','sportsName':'К. Уильямс','sportsClub':'Оклахома-Сити'}]}
+  apply(data,catalog,crosswalk,additions)
+  a,b=data['players'];self.assertEqual((a['sportsName'],a['price'],a['positions'],a['priceCheckedAt']),('Лавал',1000,['PF'],'d1'))
+  self.assertEqual((b['price'],b['positions'],b['priceCheckedAt'],b['positionSource']),(1214,['SF'],'d3','other roster'))
  def test_a_replaced_card_is_priced_from_the_catalog_and_keyed_by_its_new_id(self):
   data={'players':[{'id':1,'name':'Keaton Wagler','espnId':'11','positions':['SG']}]}
   catalog={'source':'snapshot','capturedAt':'d1','count':1,'players':[{'sportsId':'old','name':'Уоглер','club':'Клипперс','price':1400,'sportsPosition':'2'}]}

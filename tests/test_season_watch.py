@@ -8,6 +8,11 @@ class WatchTests(unittest.TestCase):
  def test_the_watchers_own_time_stamp_is_not_a_change(self):
   snapshot={'teams':{'0':{'journal':[{**row('A'),'seenAt':'2026-10-20T10:00:00+00:00'}]}}}
   self.assertEqual(changed_teams(snapshot,{'0':[row('A')]}),[])
+ def test_a_card_sports_ru_replaced_does_not_come_back_from_the_last_snapshot(self):
+  # Keaton Wagler's emptied 2208842 is no longer collected: the merge does not keep it as a stale row.
+  cur={'players':{'2208842':{'name':'Уоглер','games':[]},'9':{'name':'X','games':[]}}}
+  out=merge_full({'players':{'2208816':{'name':'Уоглер'}}},cur)['players']
+  self.assertNotIn('2208842',out);self.assertTrue(out['9']['stale']);self.assertIn('2208816',out)
  def test_unknown_team_counts_as_new(self):
   self.assertEqual(changed_teams({'teams':{}},{'3':[row('A')]}),['3'])
  def test_shorter_journal_is_a_bad_read_not_a_change(self):

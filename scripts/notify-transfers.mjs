@@ -213,6 +213,13 @@ for(const u of unannounced.filter(u=>!(previous.silent||[]).includes(silentKey(u
 const unknown=warnings.filter(w=>w.team>=0&&w.team!==team&&/не найден/.test(w.message)),unknownKey=w=>`unknown:${w.team}:${w.message}`;
 for(const w of unknown.filter(w=>!(previous.unknown||[]).includes(unknownKey(w))))
  await report(message(`❓ <b>${esc(teamLabel(w.team))}</b>`,esc(w.message),'Игрока нет в нашей базе: оценки нет, проверь на Sports.ru.'),()=>state.unknown.push(unknownKey(w)));
+// A Sports.ru card an FBL team holds that the reviewed map does not know or that Sports.ru renamed (allTransfers): once
+// each, mine included, for the map's review; until then the player may read as someone else. A card this checkout's map
+// already has under that name is reviewed: the deployed database only lags behind it until Pages builds again.
+const reviewed=new Map(JSON.parse(fs.readFileSync(new URL('../data/sports-player-map.json',import.meta.url),'utf8')).players.map(r=>[String(r.sportsId),r.sportsName]));
+const cards=warnings.filter(w=>w.team>=0&&w.card&&reviewed.get(w.card.sportsId)!==w.card.name),cardKey=w=>`card:${w.team}:${w.message}`;
+for(const w of cards.filter(w=>!(previous.unknown||[]).includes(cardKey(w))))
+ await report(message(`🔎 <b>Sports.ru: ${esc(teamLabel(w.team))}</b>`,esc(w.message),'Пока карта не сверена, игрок может читаться как другой: его оценка и проверка правил по нему ненадёжны.'),()=>state.unknown.push(cardKey(w)));
 if(changed)await report(message(mine),()=>{state.sent=[...new Set([...state.sent,...keys])].slice(-200);state.injuries=injuryState.fresh?hurt.map(h=>h.key):(previous.injuries||[]);});
 else console.log('Nothing new for my team: no message.');
 // Injured free agents worth a season transfer: warn once per injury when one who is out (never a day-to-day or

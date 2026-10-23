@@ -561,15 +561,30 @@ def sports_to_espn(path=PLAYER_MAP):
         return {}
 
 
-def current_cards(pool, path=PLAYER_MAP):
-    """The pool with every card Sports.ru replaced read under its new id (the map's previousSportsIds: Keaton Wagler's
-    2208842 was emptied and 2208816 opened on 23.10.2026). The emptied card is not read again; the new one keeps the
-    catalog's name and club, and the map's ESPN id (sports_to_espn) scores its games."""
+def map_rows(path=PLAYER_MAP):
     try:
-        new = {old: str(r['sportsId']) for r in json.loads(path.read_text(encoding='utf-8'))['players'] for old in r.get('previousSportsIds', [])}
+        return json.loads(path.read_text(encoding='utf-8'))['players']
     except (OSError, ValueError, KeyError):
-        new = {}
-    return [{**p, 'sportsId': new.get(p['sportsId'], p['sportsId'])} for p in pool]
+        return []
+
+
+def retired_cards(path=PLAYER_MAP):
+    """{old id: new id} of every card Sports.ru replaced (the map's previousSportsIds: Keaton Wagler's 2208842 was emptied
+    and 2208816 opened on 23.10.2026)."""
+    return {old: str(r['sportsId']) for r in map_rows(path) for old in r.get('previousSportsIds', [])}
+
+
+def current_cards(pool, path=PLAYER_MAP):
+    """The pool with every card Sports.ru replaced read under its new id (retired_cards), and every card it renamed under
+    its new short name (the map's previousSportsNames: Tobi Lawal's «Lawal», «Лавал» on 23.10.2026). The emptied card is
+    not read again; the new one keeps the catalog's club, and the map's ESPN id (sports_to_espn) scores its games."""
+    new = retired_cards(path)
+    names = {str(r['sportsId']): r['sportsName'] for r in map_rows(path) if r.get('previousSportsNames')}
+    out = []
+    for p in pool:
+        sid = new.get(p['sportsId'], p['sportsId'])
+        out.append({**p, 'sportsId': sid, **({'name': names[sid]} if sid in names else {})})
+    return out
 
 
 STAT_KEYS = ('pts', 'reb', 'ast', 'stl', 'blk', 'tov', 'pf', 'fgm', 'fga', 'ftm', 'fta')

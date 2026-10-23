@@ -21,7 +21,8 @@ async function fromArchive(ctx){
  const [core,prices,archive,state]=await Promise.all([import('../../awards-bot/core.js'),import('../../data/sports-prices-2026-10-17.json'),
   fetchJson(AWARDS_URL('archive.json'),{cache:'no-cache'}),fetchJson(AWARDS_URL('state.json'),{cache:'no-cache'}).catch(()=>null)]);
  const list=(prices.default||prices).players||[],league=core.makeLeague({players,live,holdings:stints(ctx.transfers),map:sportsMap.players,prices:list});
- const bySid=new Map(players.filter(p=>p.sportsId).map(p=>[String(p.sportsId),p]));
+ // The snapshot names a player's card of 17.10: one Sports.ru replaced since is his previous one (core.byCard).
+ const bySid=core.byCard(players);
  const rookies=new Set(players.filter(p=>p.isRookie===true).map(league.espnOf).filter(Boolean)),mef=new Map();
  for(const r of list)if(r.price>=core.MEF_PRICE.min&&r.price<=core.MEF_PRICE.max){const e=league.espnOf(bySid.get(String(r.sportsId)));if(e)mef.set(e,r.price);}
  const who=a=>{const p=league.player(a);return p?{id:p.id,sid:p.sportsId?String(p.sportsId):null}:null;};

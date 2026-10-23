@@ -35,6 +35,15 @@ function fixture({s1=[],s2=[],order=['s1','s2','s3']}={}){
  const holdings=[draft(0,1),draft(0,2),draft(0,3),draft(1,2)];
  return makeLeague({players,live,holdings,map:[{sportsId:'s4',espnId:'e4'}]});
 }
+test('awards bot: a card Sports.ru replaced still finds its player in the pre-season prices',async()=>{
+ // Keaton Wagler: the 17.10 snapshot lists 2208842 at 1400, his card is 2208816 since 23.10.2026.
+ const {byCard}=await import('../awards-bot/core.js');
+ const wagler={id:'espn:5254165',sportsId:'2208816',previousSportsIds:['2208842']},other={id:2,sportsId:'s2'};
+ const cards=byCard([wagler,other]);
+ assert.equal(cards.get('2208842'),wagler);assert.equal(cards.get('2208816'),wagler);assert.equal(cards.get('s2'),other);
+ const league=makeLeague({players:[wagler],live:{players:{}},holdings:[],prices:[{sportsId:'2208842',price:1400}]});
+ assert.equal(league.priceBefore(wagler,'2026-10-24'),1400);
+});
 // A game at 03:00 Moscow time of `moscow` (the evening before in the US).
 const at=(a,moscow='2026-10-22')=>line(a,10,{d:moscow,t:`${moscow}T00:00Z`});
 test('awards bot: the cheaper player of a position is the bench player, a price change swaps them',()=>{

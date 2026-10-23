@@ -62,8 +62,9 @@ class SportsCurrentTest(unittest.TestCase):
             pool = [{'sportsId': '2208842', 'name': 'Уоглер', 'clubId': '4186'}, {'sportsId': '1796991', 'name': 'Ленард'}]
             self.assertEqual(collector.current_cards(pool, path), [{'sportsId': '2208816', 'name': 'Уоглер', 'clubId': '4186'}, {'sportsId': '1796991', 'name': 'Ленард'}])
             self.assertEqual(collector.sports_to_espn(path), {'2208816': '5254165'})
-        real = collector.current_cards([{'sportsId': '2208842'}])
-        self.assertEqual(real, [{'sportsId': '2208816'}])
+        real = collector.current_cards([{'sportsId': '2208842'}, {'sportsId': '2208884', 'name': 'Lawal'}])
+        self.assertEqual(real, [{'sportsId': '2208816'}, {'sportsId': '2208884', 'name': 'Лавал'}])
+        self.assertEqual(collector.retired_cards(), {'2208842': '2208816'})
 
     def test_layout_change_is_caught_by_quality(self):
         pool = [{'sportsId': str(i)} for i in range(10)]
