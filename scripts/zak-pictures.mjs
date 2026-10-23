@@ -10,6 +10,7 @@ import path from 'node:path';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {references,zakPhoto,gmPhoto,gmOf,person,looks,teamLogo,generate,cost,PEOPLE,readImage,ASSETS} from './image-pipeline.mjs';
 import {claudeJSON} from './claude-text.mjs';
+import {fillPrompt} from './picture-prompt.mjs';
 
 // The league's commissioner as the n-th reference of a picture: his photo, its legend, his block, his name in a scene;
 // null without his photo.
@@ -143,12 +144,12 @@ Write a brand-new story every time: a new place, a new situation, new props, a n
 The story fits the case: an approval celebrates but Zak stays suspicious; a doubt is an investigation; a fresh breach is a bust; a repeat offence is harsher; a closed case is a release; a watched team is a stakeout. When there is a new player, the scene presents him: Zak and the GM introduce the new signing.
 Placeholders (the code replaces them with the real people and things from photos, do not describe their faces or clothes): {GM} the general manager (always in the scene), {PLAYER} the new player (always in the scene when newPlayer is given, never otherwise), {LOGO} the team's logo on some object (only if logo is true), {COMMISSIONER} the league's commissioner (optional, only if commissioner is true), {CASE} the case label on a file or a tag (optional). Write "Zak Onn" by name.
 Rules:
-- 2 to 4 sentences of plain English, at most 600 characters, starting with the setting.
+- Write the WHOLE prompt of the picture in plain English, 300-1200 characters: the setting, the action and the gag, the composition, the camera and lens, the light, the colours and the style. His signature look is a still from a 90s American action film about law and order, but the style is yours to set each time.
 - Zak Onn is always the Lawyer in a red "God Bless America" cap (the code says so; do not mention the cap). He may wear what the scene needs.
 - At most two short signs or labels in English capitals in double quotes, at most 4 words each. No other text.
 - Comedy of the 90s action film: tough, ironic, never cruel. Handcuffs, files, stamps, flashlights, binoculars, magnifying glasses are fine. No guns or any weapons, no shooting, no blood, no violence or hitting, no death, no children or schools, no drugs, no sex.
 - Numbers in the quoted signs: only those of the facts (the case label, the limits, the hours). Basketball is the only sport.
-Answer only JSON: {"scene": "..."}`;
+Answer only JSON: {"scene": "..."} (scene: the whole prompt)`;
 export const SCENE_SCHEMA={type:'object',additionalProperties:false,required:['scene'],properties:{scene:{type:'string'}}};
 export const sceneMessages=(facts,recent=[])=>({system:SCENE_SYSTEM,prompt:`${recent.length?`Recent scenes, do not repeat their ideas:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}\n\n`:''}The case:\n${JSON.stringify(facts,null,1)}`});
 const OUT_OF_BOUNDS=/\b(guns?|pistols?|rifles?|revolvers?|shotguns?|weapons?|shoot\w*|shot|bullets?|ammo|blood\w*|kill\w*|dead|death|dies?|corpses?|murder\w*|children|child|kids?|school\w*|drugs?|cocaine|sex\w*|naked|nude|punch\w*|torture\w*|explod\w*|bombs?)\b/i;
@@ -157,7 +158,7 @@ export function sceneProblems(text,facts){
  const out=[];
  if(typeof text!=='string'||!text.trim())return ['no scene'];
  const t=text.trim();
- if(t.length<40||t.length>700)out.push(`length ${t.length}`);
+ if(t.length<40||t.length>1300)out.push(`length ${t.length}`);
  if(!/^[\x20-\x7e]+$/.test(t))out.push('not plain English');
  if(!/Zak Onn/.test(t))out.push('no Zak Onn');
  if(!t.includes('{GM}'))out.push('no {GM}');
@@ -183,9 +184,27 @@ export async function writeScene(facts,{recent=[],write=claudeJSON,timeoutMs=90e
  return null;
 }
 
+// Opus's picture (owner, 23.10.2026: the whole prompt is his): the code fills in the references and who is who: Zak's
+// face and his red cap, the GM's face (never named: a name can trip the image model), the logo, the new player, the
+// commissioner when the prompt calls him.
+function writtenZak({kind,team,no,root,player,written,...story}){
+ const gm=gmOf(team),gmFace=gmPhoto(team,root),signing=sceneOf({kind,...story})==='approved'&&Boolean(player?.name),k=PEOPLE.find(x=>x.role==='commissioner');
+ const text=written.replaceAll('{CASE}',`"FBL CASE ${no}"`).replace('Zak Onn','{ZAK}');
+ return fillPrompt(text,[
+  {key:'ZAK',image:zakPhoto(ZAK_MOOD[kind]||'check',root),name:'Zak Onn',what:'Zak Onn, the league lawyer',always:true,
+   identity:`preserve his face precisely: face shape, nose, brows, eyes, hairline, greying temples, age, skin tone; instantly recognizable. ${looks(person('zak-onn')).replace(/^Zak Onn; the face exactly as in the photo; never/,'Never')}`},
+  {key:'GM',image:gmFace,name:gmFace?'the general manager':'the team\'s general manager, seen only from behind',what:'the general manager of the fantasy team',
+   identity:gmFace&&gm?`${looks({...gm,en:'the general manager'})}; the face preserved and recognizable`:null},
+  {key:'LOGO',image:teamLogo(team,root),name:'the team logo',what:'the fantasy team logo'},
+  {key:'PLAYER',image:signing?player.image||null:null,name:signing?`${player.name}, the newly signed NBA player`:'the new player',what:`${player?.name}, the newly signed NBA player`,always:signing,
+   identity:signing?`the real NBA player ${player.name}, exactly as he really looks`:null},
+  {key:'COMMISSIONER',image:k?readImage(path.join(root||ASSETS,k.photo)):null,name:'Adam Silverov, the league commissioner',what:'Adam Silverov, the league commissioner',
+   identity:k?`${looks(k)}; the face preserved and recognizable`:null}]);
+}
 // player: the newly signed player of an approved deal, {name (in Latin letters), image (his ESPN headshot, or null)}.
 // written: Claude's scene (writeScene), with its placeholders; without it, a fixed scene.
 export function zakPicture({kind,team,no,seed,root,player=null,written=null,...story}){
+ if(written)return writtenZak({kind,team,no,root,player,written,...story});
  const gm=gmOf(team),gmName=gm?.en||LEAGUE_TEAMS[team]?.gm;
  // An approved deal with its new player is presented, one of the signing scenes; without him, the plain approval.
  const key=sceneOf({kind,...story}),signing=key==='approved'&&Boolean(player?.name);

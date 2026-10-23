@@ -11,6 +11,7 @@ import {esc,dayLabel} from './messages.js';
 import {person,looks,readImage,teamLogo,gmPhoto,gmOf,ASSETS} from '../scripts/image-pipeline.mjs';
 import {dateTag} from './cards.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
+import {fillPrompt,promptProblems,PROMPT_CRAFT} from '../scripts/picture-prompt.mjs';
 
 export const MIKE_MODEL=process.env.MIKE_MODEL||CLAUDE_MODEL;
 
@@ -25,7 +26,9 @@ export function gmCorner(day,line){
 // The facts of an interview: the hero of the day and his game. who: the league's (Sports.ru) name; form: core.js form().
 export function interviewFacts(day,line,who,{form,opponent,holiday}={}){
  const s=line.s,f=form?.get(line.a),corner=gmCorner(day,line);
+ const t=Number.isInteger(line.h?.[0])?line.h[0]:null;
  return {date:`${dayLabel(day)} ${day.slice(0,4)}`,holiday:holiday?.name||null,gmQuestion:corner?{gm:corner.name,team:corner.team}:null,
+  pictureFacts:{kitColors:t!==null?LEAGUE_TEAMS[t]?.kit||null:null,fantasyTeamLogo:t!==null},
   player:{name:who(line.a,line.n),en:line.n,club:line.c,opponent:opponent||null},
   fblTeams:(line.h||[]).map(t=>({team:LEAGUE_TEAMS[t]?.name,gm:LEAGUE_TEAMS[t]?.gm||null})),
   game:{fo:line.p,minutes:Math.round(line.m),pts:s.pts,reb:s.reb,ast:s.ast,stl:s.stl,blk:s.blk,tov:s.tov,fgm:s.fgm,fga:s.fga,fgMissed:s.fga-s.fgm,ftm:s.ftm,fta:s.fta,ftMissed:s.fta-s.ftm,pf:s.pf},
@@ -47,14 +50,18 @@ const RULES=`Правила:
 - Имя игрока пиши так, как в данных (player.name).
 - 3 вопроса и 3 ответа. Пролог — 1–2 предложения, послесловие — 1–2 предложения. Всего не длиннее 1300 знаков.
 - Если в данных есть gmQuestion, Майк после трёх вопросов игроку поворачивает микрофон к GM его фэнтези-команды (gmQuestion.gm, команда gmQuestion.team) и задаёт ему один короткий колкий вопрос о выборе этого игрока; GM отвечает одной-двумя фразами как менеджер, который сделал ставку. Это поле gm; без gmQuestion оба его поля — пустые строки. Ни слова о внешности, семье и личной жизни GM: только его выбор и его команда.
-- Ответь строго JSON: {"title": "цитата игрока для заголовка, до 70 знаков, без кавычек и без его имени", "prologue": "...", "qa": [{"q": "...", "a": "..."}, ...], "remark": "колкая реплика Майка после одного из ответов или пустая строка", "gm": {"q": "вопрос GM или пустая строка", "a": "ответ GM или пустая строка"}, "afterword": "..."}`;
+- picture: полный промпт картинки этого флеш-интервью ПО-АНГЛИЙСКИ (правила ниже): {MIKE} берёт интервью у {PLAYER} после игры — где, как, в каком стиле, решаешь ты; {GM} — GM его фэнтези-команды (только если есть gmQuestion), {LOGO} — логотип его фэнтези-команды, {FBL} — логотип лиги. Форма игрока — цвета его фэнтези-команды (pictureFacts.kitColors). 300–1200 знаков.
+- Ответь строго JSON: {"title": "цитата игрока для заголовка, до 70 знаков, без кавычек и без его имени", "prologue": "...", "qa": [{"q": "...", "a": "..."}, ...], "remark": "колкая реплика Майка после одного из ответов или пустая строка", "gm": {"q": "вопрос GM или пустая строка", "a": "ответ GM или пустая строка"}, "afterword": "...", "picture": "..."}
+
+${PROMPT_CRAFT}
+- Mike Roffon is a veteran sports reporter: the code adds his face, his white gloves and his vintage chrome microphone; you dress him for the scene, never in a helmet, military clothes, camouflage or a PRESS vest.`;
 export function interviewMessages(facts){
  return {system:`${VOICE}\n\n${RULES}`,prompt:`Флеш-интервью с героем игрового дня. Данные:\n${JSON.stringify(facts,null,1)}`};
 }
 // The shape of the answer, for the CLI's structured output.
 const str={type:'string'};
-export const INTERVIEW_SCHEMA={type:'object',additionalProperties:false,required:['title','prologue','qa','remark','gm','afterword'],properties:{
- title:str,prologue:str,remark:str,afterword:str,gm:{type:'object',additionalProperties:false,required:['q','a'],properties:{q:str,a:str}},
+export const INTERVIEW_SCHEMA={type:'object',additionalProperties:false,required:['title','prologue','qa','remark','gm','afterword','picture'],properties:{
+ title:str,prologue:str,remark:str,afterword:str,picture:str,gm:{type:'object',additionalProperties:false,required:['q','a'],properties:{q:str,a:str}},
  qa:{type:'array',minItems:3,maxItems:3,items:{type:'object',additionalProperties:false,required:['q','a'],properties:{q:str,a:str}}}}};
 
 // Every number a text may use: those of the facts, and small counting words written as digits (1 to 5).
@@ -142,6 +149,22 @@ export function interviewCaption(facts,day){
  return `<b>🎙 Inside FBL • ${esc(facts.player.name)}</b> — <b>${int(facts.game.fo)}</b> ФО · герой дня ${esc(facts.date)}\n\n#inside_fbl #интервью ${dateTag(day)}`;
 }
 
+// --- His picture as Opus wrote it (the whole prompt): the code fills in the references and who is who. null when the
+// prompt breaks a rule: then the code's picture below.
+export const writtenPictureProblems=(text,facts)=>promptProblems(text,{required:['MIKE','PLAYER'],allowed:['MIKE','PLAYER','GM','LOGO','FBL'],numbers:allowedNumbers(facts),max:1400});
+export function writtenPicture(text,facts,{root=ASSETS,team=null}={}){
+ if(writtenPictureProblems(text,facts).length)return null;
+ const mike=person('mike-roffon'),club=Number.isInteger(team)?LEAGUE_TEAMS[team]:null;
+ const gm=facts.gmQuestion&&club?gmOf(team):null;
+ return fillPrompt(text,[
+  {key:'MIKE',image:readImage(`${root}/${mike.photo}`),name:'Mike Roffon',what:'Mike Roffon, the reporter (take only his face from it, not his clothes)',always:true,
+   identity:`${looks({...mike,outfit:null})}; his face preserved precisely, instantly recognizable`},
+  {key:'PLAYER',image:null,name:`the NBA player ${facts.player.en}`,always:true,identity:`the real NBA player ${facts.player.en}, exactly as he really looks (face, build, hair)`},
+  {key:'GM',image:gm?gmPhoto(team,root):null,name:'the general manager',what:'the general manager who picked the player',
+   identity:gm?`${looks({...gm,outfit:null,en:'the general manager'})}; the face preserved precisely`:null},
+  {key:'LOGO',image:club?teamLogo(team,root):null,name:'the fantasy team logo',what:"the logo of the player's fantasy team"},
+  {key:'FBL',image:readImage(fileURLToPath(new URL('./assets/fbl-logo.png',import.meta.url))),name:'the league logo',what:'the logo of the league, FBL'}]);
+}
 // --- His picture: Mike interviewing the hero after the game, the league's press wall behind them.
 // Each scene its own clothes: always a sports reporter, dressed for where he is; one look per interview. Only his face comes
 // from his photo: its camouflage helmet and PRESS vest belong to a war zone, never to an arena or a press conference.

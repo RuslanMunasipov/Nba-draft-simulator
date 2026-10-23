@@ -10,8 +10,9 @@
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {perPlayer,weeklyBlocks,races,addDays,weekOf} from './core.js';
 import {allowedNumbers,strayNumbersIn,copiedIn} from './mike-roffon.js';
-import {KITS,imageName} from './images.js';
-import {person,gmOf,gmPhoto,looks,readImage,espnHeadshot,references,ASSETS} from '../scripts/image-pipeline.mjs';
+import {imageName} from './images.js';
+import {fillPrompt,promptProblems,PROMPT_CRAFT} from '../scripts/picture-prompt.mjs';
+import {person,gmOf,gmPhoto,looks,readImage,espnHeadshot,ASSETS} from '../scripts/image-pipeline.mjs';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 import {esc} from './messages.js';
 
@@ -100,13 +101,13 @@ export function longreadFacts(data,guest,{who,gifts=[],guests=[]}={}){
   mikesShelf:gifts.slice(-8),lastGuests:guests.slice(-REPEAT_WEEKS)};
  if(guest.kind==='gm'){const t=guest.team,rows=data.mine.filter(l=>l.h?.includes(t)),per=perPlayer(rows).sort((a,b)=>b.p-a.p);
   const p=gmOf(t);
-  facts.guest={kind:'GM',name:LEAGUE_TEAMS[t].gm,team:LEAGUE_TEAMS[t].name,looks:p?[p.keep,p.style].filter(Boolean).join('; '):null,
+  facts.guest={kind:'GM',name:LEAGUE_TEAMS[t].gm,team:LEAGUE_TEAMS[t].name,kitColors:LEAGUE_TEAMS[t].kit||null,looks:p?[p.keep,p.style].filter(Boolean).join('; '):null,
    place:data.rank(t),points:data.table[t],weekPoints:data.weekPoints[t],gapToLeader:data.order[0].points-data.table[t],
    weekBest:per.slice(0,3).map(r=>({name:who(r.a,r.n),fo:round(r.p),games:r.games})),
    weekWorst:per.slice(-2).reverse().filter(r=>!per.slice(0,3).includes(r)).map(r=>({name:who(r.a,r.n),fo:round(r.p),games:r.games}))};
  }else if(guest.kind==='player'){const r=guest.row,s=data.seasonRows.get(r.a),wk=data.weekRows.get(r.a);
   const placeIn=list=>{const i=list.findIndex(x=>x.a===r.a);return i<0?null:i+1;};
-  facts.guest={kind:'игрок',name:who(r.a,r.name),club:r.club,fblTeams:(r.teams||[]).map(teamOf),
+  facts.guest={kind:'игрок',name:who(r.a,r.name),club:r.club,fblTeams:(r.teams||[]).map(teamOf),kitColors:Number.isInteger(r.teams?.[0])?LEAGUE_TEAMS[r.teams[0]].kit||null:null,
    week:wk?{fo:round(wk.p),games:wk.games,pts:wk.s.pts,reb:wk.s.reb,ast:wk.s.ast,stl:wk.s.stl,blk:wk.s.blk,tov:wk.s.tov,fgm:wk.s.fgm,fga:wk.s.fga,ftm:wk.s.ftm,fta:wk.s.fta,pf:wk.s.pf}:null,
    season:s?{fo:round(s.p),games:s.games}:null,mvpPlace:placeIn(data.mvp),rookiePlace:placeIn(data.roy)};
  }else{const p=person('adam-silverov');facts.guest={kind:'комиссар лиги',name:p?.name||'Адам Сильверов',looks:p?.keep||null};}
@@ -127,17 +128,22 @@ const RULES=`Правила:
 - Границы: стебём игру, решения и роль, а не человека — ничего о внешности, теле, расе, происхождении, семье, здоровье и личной жизни. Для реальных игроков НБА — только баскетбол и выдуманные хобби, никаких реальных личных подробностей. Никакого оружия, стрельбы, насилия, крови, смерти, наркотиков и секса — и в обыгрывании названий команд и имён тоже.
 - Объём: пролог (2–3 абзаца), 6–8 глав, эпилог (2–3 абзаца). В каждой главе: заголовок, 2–3 абзаца того, что Майк видит и делает в гостях, и 3–5 вопросов с ответами; реплика Майка — по желанию. Всего 9000–16000 знаков.
 - Заголовки глав — без номеров (их проставит вёрстка) и без чисел.
-- Для каждой главы — scene: одно-два предложения ПО-АНГЛИЙСКИ для смешной фотореалистичной картинки этой главы: что Майк и герой делают вместе в этой сцене (быт, ритуал, подарок, неловкий момент), где это происходит. Без цифр, без надписей, без имён, без оружия; Майка и героя называй «Mike» и «the guest».
-- opener: такое же описание обложки по-английски: Майк берёт интервью у героя у него в гостях, протягивая микрофон.
+- Для каждой главы — picture: полный промпт смешной картинки этой главы ПО-АНГЛИЙСКИ (правила ниже). Картинки одного выпуска — одна серия в одном визуальном стиле, который выбираешь ты. Майка обозначай {MIKE}, героя {GUEST}.
+- opener: полный промпт обложки по-английски: {MIKE} берёт интервью у {GUEST} у него в гостях, микрофон у героя; обложка выпуска Inside FBL (надпись «INSIDE FBL» — по желанию, в кавычках).
+- Факты для картинок: guest.kitColors — цвета его команды (если есть).
+
+${PROMPT_CRAFT}
+- Mike Roffon is a veteran sports reporter visiting the guest: the code adds his face, his white gloves and his vintage chrome microphone; you dress him for the scene.
+- A prompt is 300-1200 characters.
 - gift: что герой подарил Майку (коротко, по-русски) или пустая строка.
 - title — заголовок до 80 знаков; lead — одна фраза-подзаголовок; quote — цитата-афоризм героя для финала.
 Ответь только JSON по схеме.`;
 const str={type:'string'};
 export const LONGREAD_SCHEMA={type:'object',additionalProperties:false,required:['title','lead','prologue','chapters','epilogue','quote','gift','opener'],properties:{
  title:str,lead:str,prologue:{type:'array',minItems:1,maxItems:4,items:str},
- chapters:{type:'array',minItems:5,maxItems:9,items:{type:'object',additionalProperties:false,required:['heading','story','qa','remark','scene'],properties:{
+ chapters:{type:'array',minItems:5,maxItems:9,items:{type:'object',additionalProperties:false,required:['heading','story','qa','remark','picture'],properties:{
   heading:str,story:{type:'array',minItems:1,maxItems:4,items:str},qa:{type:'array',minItems:2,maxItems:6,items:{type:'object',additionalProperties:false,required:['q','a'],properties:{q:str,a:str}}},
-  remark:str,scene:str}}},
+  remark:str,picture:str}}},
  epilogue:{type:'array',minItems:1,maxItems:4,items:str},quote:str,gift:str,opener:str}};
 // notes: the owner's wishes for this issue (a redo), given to the writer as the editor's.
 export function longreadMessages(facts,notes=''){
@@ -145,15 +151,15 @@ export function longreadMessages(facts,notes=''){
 }
 
 // --- The checks: the shape, the numbers, the old lines and the pictures' scenes.
-const FORBIDDEN=/\b(guns?|rifles?|pistols?|weapons?|bullets?|shoot\w*|shot ?gun|knife|knives|swords?|blood\w*|kill\w*|corpses?|dead|death|suicide|drugs?|cocaine|naked|sex\w*)\b/i;
 export const longreadWords=x=>[x.title,x.lead,...(x.prologue||[]),...(x.chapters||[]).flatMap(c=>[c.heading,...(c.story||[]),...(c.qa||[]).flatMap(q=>[q.q,q.a]),c.remark]),
  ...(x.epilogue||[]),x.quote,x.gift].filter(Boolean).join('\n');
 export function validLongread(x){
  return Boolean(x&&typeof x.title==='string'&&Array.isArray(x.prologue)&&Array.isArray(x.chapters)&&x.chapters.length>=5&&
-  x.chapters.every(c=>typeof c.heading==='string'&&Array.isArray(c.story)&&Array.isArray(c.qa)&&c.qa.every(q=>typeof q.q==='string'&&typeof q.a==='string')&&typeof c.scene==='string')&&
+  x.chapters.every(c=>typeof c.heading==='string'&&Array.isArray(c.story)&&Array.isArray(c.qa)&&c.qa.every(q=>typeof q.q==='string'&&typeof q.a==='string')&&typeof c.picture==='string')&&
   Array.isArray(x.epilogue)&&typeof x.opener==='string');
 }
-export const sceneProblem=s=>!s||!s.trim()?'empty':s.length>500?'too long':!/^[\x20-\x7e]*$/.test(s)?'not plain English':/\d/.test(s)?'has numbers':FORBIDDEN.test(s)?'forbidden words':null;
+// A picture's prompt as Opus wrote it: {MIKE} and {GUEST} in it, the numbers in its quotes the facts' own.
+export const pictureProblems=(text,facts)=>promptProblems(text,{required:['MIKE','GUEST'],allowed:['MIKE','GUEST'],numbers:allowedNumbers(facts),max:1400});
 // What is wrong with a piece for these facts ([]: it may go out).
 export function longreadProblems(x,facts){
  if(!validLongread(x))return ['not a long read in the schema'];
@@ -162,8 +168,8 @@ export function longreadProblems(x,facts){
   out.push(`числа не из данных: ${stray.join(', ')} (цифрами или словами, в том числе порядковыми вроде «шестой») — вот где: ${where.join('; ')}; перепиши эти фразы без чисел`);}
  if(copied.length)out.push(`дословные фразы из прошлых выпусков: ${copied.join(' | ')} — перепиши`);
  if(text.length<6000)out.push(`слишком коротко (${text.length} знаков), нужно 9000–16000`);
- x.chapters.forEach((c,i)=>{const p=sceneProblem(c.scene);if(p)out.push(`scene главы ${i+1}: ${p}`);});
- const p=sceneProblem(x.opener);if(p)out.push(`opener: ${p}`);
+ x.chapters.forEach((c,i)=>{const p=pictureProblems(c.picture,facts);if(p.length)out.push(`picture главы ${i+1}: ${p.join(', ')}`);});
+ const p=pictureProblems(x.opener,facts);if(p.length)out.push(`opener: ${p.join(', ')}`);
  return out;
 }
 // Written, then sent back with its problems to be fixed (up to `fixes` times). {longread, problems, tries}: problems []
@@ -180,32 +186,29 @@ export async function writeLongread(facts,{claude=claudeJSON,model=LONGREAD_MODE
  return {longread:data,problems,tries};
 }
 
-// --- The pictures: Mike and the guest in the chapter's scene, funny and photorealistic, like the photos of his pieces.
-// The guest's face from their photo (a GM's or the commissioner's from the league's people, a player's ESPN headshot);
-// no team names or logos in a picture (the image model refuses some), a player's clothes in his FBL team's colours.
-// The opener carries the INSIDE FBL banner; the chapters no text at all.
+// --- The pictures: Opus writes each prompt whole (the scene, the composition, the light, the style); the code gives the
+// references and who is who: Mike's face, his white gloves and microphone; the guest's face from their photo (a GM's or the
+// commissioner's from the league's people, a player's ESPN headshot) and what never changes about them. No names of GMs or
+// teams go to the image model (a name can trip its safety system): the guest is "the guest".
 export async function guestReference(guest,{root=ASSETS,fetchImpl=fetch}={}){
  if(guest.kind==='gm')return gmPhoto(guest.team,root);
  if(guest.kind==='commissioner'){const p=person('adam-silverov');return p?readImage(`${root}/${p.photo}`):null;}
  return espnHeadshot(guest.row.a,{fetchImpl});
 }
-function guestLooks(guest){
- if(guest.kind==='gm'){const p=gmOf(guest.team);return p?looks({...p,outfit:null}):'the GM';}
- if(guest.kind==='commissioner'){const p=person('adam-silverov');return p?looks(p):'the commissioner';}
- const t=guest.row.teams?.[0],kit=Number.isInteger(t)?KITS[t]:null;
- return `the real NBA player ${guest.row.en}, exactly as he really looks (face, build, hair)${kit?`; when he wears team clothes they are ${kit}, no logos`:''}`;
+function guestIdentity(guest){
+ if(guest.kind==='gm'){const p=gmOf(guest.team);return {name:'the guest',identity:p?`${looks({...p,outfit:null,en:'the guest'})}; the face preserved precisely`:null};}
+ if(guest.kind==='commissioner'){const p=person('adam-silverov');return {name:'the guest',identity:p?`${looks({...p,en:'the guest'})}; the face preserved precisely`:null};}
+ return {name:`the guest, the NBA player ${guest.row.en}`,identity:`the real NBA player ${guest.row.en}, exactly as he really looks (face, build, hair)`,always:true};
 }
-export const SAFE_SCENE='Mike and the guest sit at the guest\'s kitchen table over coffee, both laughing at something on a tablet, Mike\'s vintage microphone on the table between the cups.';
-// text: the scene names what it shows in letters (player cards), the only text allowed in a chapter's picture.
-export function longreadPicture(scene,guest,{mikePhoto,guestPhoto,opener=false,text=null}){
- const refs=references([{key:'mike',image:mikePhoto,what:'Mike Roffon, the reporter (take only his face from it, not his clothes)'},
-  {key:'guest',image:guestPhoto,what:'the guest'}]);
+// The fallback picture when a written one is refused: coffee at the guest's kitchen table.
+export const SAFE_SCENE='A warm candid photo in the guest\'s kitchen: {MIKE} and {GUEST} sit at the table over coffee, both laughing at something on a tablet, the vintage microphone lying between the cups. Soft window light, 35mm lens, shallow depth of field, square frame. No text.';
+// prompt: the picture's prompt as Opus wrote it (or one written by hand), with its placeholders.
+export function longreadPicture(prompt,guest,{mikePhoto,guestPhoto}){
  const mike=person('mike-roffon');
- return {images:refs.images,prompt:`${refs.legend}
-MIKE ROFFON${refs.has.mike?` (${refs.has.mike})`:''}: ${looks({...mike,outfit:null})}. Preserve his face precisely, instantly recognizable. He is dressed for the scene, a sports reporter visiting someone (a jacket or a suit, or what the scene calls for), always his white gloves. No helmet, no military uniform, no camouflage.
-THE GUEST${refs.has.guest?` (${refs.has.guest})`:''}: ${guestLooks(guest)}. Preserve the guest's face precisely.${guest.kind!=='player'?' Dressed for the scene, at home.':''}
-SCENE: ${scene}${opener?' Mike holds his vintage chrome microphone up to the guest, interviewing, with a sharp, sceptical look.':''}
-STYLE: a funny candid photorealistic photo, like a still from a documentary about the guest's life, natural light, 35mm lens. Square composition. ${opener?'At the bottom a TV lower-third banner reads "INSIDE FBL", spelled exactly; no other text.':text?`The only text: ${text}, spelled exactly; no other captions, numbers or watermarks.`:'No text, captions, signs, logos or watermarks.'}`};
+ return fillPrompt(prompt,[
+  {key:'MIKE',image:mikePhoto,name:'Mike Roffon',what:'Mike Roffon, the reporter (take only his face from it, not his clothes)',always:true,
+   identity:`${looks({...mike,outfit:null})}; his face preserved precisely, instantly recognizable`},
+  {key:'GUEST',image:guestPhoto,what:'the guest',...guestIdentity(guest)}]);
 }
 
 // --- Telegraph: the page as its nodes (telegra.ph/api#Node), the images by their URLs.

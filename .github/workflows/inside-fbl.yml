@@ -33,11 +33,7 @@ on:
         required: false
         default: ''
       scene:
-        description: 'For picture: the new scene, in English'
-        required: false
-        default: ''
-      text:
-        description: 'For picture: the only letters it may show (like the player names on cards)'
+        description: 'For picture: the whole new prompt in English, {MIKE} and {GUEST} for the two'
         required: false
         default: ''
       week:
@@ -85,7 +81,6 @@ jobs:
           NOTES: ${{ inputs.notes }}
           CHAPTER: ${{ inputs.chapter }}
           SCENE: ${{ inputs.scene }}
-          TEXT: ${{ inputs.text }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -98,4 +93,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           node awards-bot/bot.mjs --inside-fbl --state "$RUNNER_TEMP/awards" --inside "$RUNNER_TEMP/inside" --action "$ACTION"
-          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} ${NOTES:+--notes "$NOTES"} ${CHAPTER:+--chapter "$CHAPTER"} ${SCENE:+--scene "$SCENE"} ${TEXT:+--text "$TEXT"} $AFTER
+          ${WEEK:+--inside-week "$WEEK"} ${GUEST:+--guest "$GUEST"} ${NOTES:+--notes "$NOTES"} ${CHAPTER:+--chapter "$CHAPTER"} ${SCENE:+--scene "$SCENE"} $AFTER
