@@ -63,7 +63,8 @@ export function allowedNumbers(facts){
  const walk=v=>{if(typeof v==='number')out.add(String(Math.abs(v)));else if(typeof v==='string')(v.match(/\d+/g)||[]).forEach(n=>out.add(n));else if(v&&typeof v==='object')Object.values(v).forEach(walk);};
  walk(facts);return out;
 }
-// Numbers written as Russian words (any case; ordinals too): «двадцать девять», «тридцатью девятью», «сорок пятый».
+// Numbers written as Russian words (any case; ordinals too): «двадцать девять», «тридцатью девятью», «сорок пятый»,
+// «две тысячи триста».
 // Exact forms for the short words (семья is not семь), stems for the rest. Hundreds, tens and units of a row add up.
 const NUMBER_WORDS=(()=>{
  const m=new Map(),set=(v,...ws)=>ws.forEach(w=>m.set(w,v));
@@ -75,7 +76,8 @@ const NUMBER_WORDS=(()=>{
 const NUMBER_STEMS=[['одиннадцат',11],['двенадцат',12],['тринадцат',13],['четырнадцат',14],['пятнадцат',15],['шестнадцат',16],['семнадцат',17],
  ['восемнадцат',18],['девятнадцат',19],['десят',10],['двадцат',20],['тридцат',30],['пятьдесят',50],['пятидесят',50],['шестьдесят',60],
  ['шестидесят',60],['семьдесят',70],['семидесят',70],['восемьдесят',80],['восьмидесят',80],['сороков',40],['девяност',90],['двест',200],
- ['двухсот',200],['трист',300],['трехсот',300],['четырест',400],['четырехсот',400],['пятьсот',500],['пятисот',500],['перв',1],['втор',2],
+ ['двухсот',200],['трист',300],['трехсот',300],['четырест',400],['четырехсот',400],['пятьсот',500],['пятисот',500],['шестьсот',600],['шестисот',600],['семьсот',700],['семисот',700],
+ ['восемьсот',800],['восьмисот',800],['девятьсот',900],['девятисот',900],['тысяч',1000],['перв',1],['втор',2],
  ['трет',3],['четверт',4],['пят',5],['шест',6],['седьм',7],['восьм',8],['девят',9]];
 const numberWord=w=>{
  if(NUMBER_WORDS.has(w))return NUMBER_WORDS.get(w);
@@ -84,12 +86,15 @@ const numberWord=w=>{
  return null;
 };
 export function wordNumbers(text){
- const out=[],words=String(text).toLowerCase().replace(/ё/g,'е').split(/[^\p{L}]+/u);
+ // Punctuation ends a row: «сорок, тысяча» is 40 and 1000.
+ const out=[],words=String(text).toLowerCase().replace(/ё/g,'е').replace(/[^\p{L}\s]+/gu,' | ').split(/\s+/);
  let sum=null,last=Infinity;
  const flush=()=>{if(sum!==null)out.push(sum);sum=null;last=Infinity;};
  for(const w of words){
-  const v=w?numberWord(w.replace(/ё/g,'е')):null;
+  const v=w&&w!=='|'?numberWord(w):null;
   if(v===null){flush();continue;}
+  // Thousands multiply what comes before them: «две тысячи триста» is 2300, «тысяча» alone 1000.
+  if(v===1000){if(sum!==null&&last>=1000){flush();}sum=(sum===null?1:sum)*1000;last=1000;continue;}
   // A row adds up only from bigger to smaller places: «сорок пять», not «пять сорок».
   const place=v>=100?100:v>=20?10:1;
   if(sum!==null&&place<last&&!(last===10&&v>=10))sum+=v;else{flush();sum=v;}
@@ -99,9 +104,10 @@ export function wordNumbers(text){
  return out.map(String);
 }
 // The numbers of an interview that are not in its facts, in digits or in words (none: the interview may go out).
-export function strayNumbers(interview,facts){
- const allowed=allowedNumbers(facts),text=interviewWords(interview);
- return [...new Set([...(text.match(/\d+/g)||[]),...wordNumbers(text)].filter(n=>!allowed.has(n)))];
+export function strayNumbers(interview,facts){return strayNumbersIn(interviewWords(interview),allowedNumbers(facts));}
+// The numbers of any text, in digits or in words, that are not in allowed (a set of strings).
+export function strayNumbersIn(text,allowed){
+ return [...new Set([...(String(text).match(/\d+/g)||[]),...wordNumbers(text)].filter(n=>!allowed.has(n)))];
 }
 // The lines of his Inside FBL pieces (the voice's samples) an interview must not bring back word for word.
 export const SAMPLE_LINES=['не вывеска, а петля','стягивает систему','цифры без косметики','редакционной косметики','спокойно и буднично',
@@ -113,9 +119,11 @@ export const SAMPLE_LINES=['не вывеска, а петля','стягива�
 const plain=t=>String(t).toLowerCase().replace(/ё/g,'е').replace(/[«»"„“”'’]/g,'').replace(/[—–-]/g,' ').replace(/[^\p{L}\p{N} ]/gu,' ').replace(/\s+/g,' ').trim();
 const interviewWords=x=>[x.title,x.prologue,x.remark,x.afterword,...(x.qa||[]).flatMap(q=>[q.q,q.a]),x.gm?.q,x.gm?.a].filter(Boolean).join(' ');
 // The sample lines an interview repeats (none: it may go out).
-export function copiedLines(interview){
- const text=` ${plain(interviewWords(interview))} `;
- return SAMPLE_LINES.filter(l=>text.includes(` ${plain(l)} `));
+export function copiedLines(interview){return copiedIn(interviewWords(interview));}
+// The sample lines any text repeats.
+export function copiedIn(text){
+ const t=` ${plain(text)} `;
+ return SAMPLE_LINES.filter(l=>t.includes(` ${plain(l)} `));
 }
 export function validInterview(x){
  return x&&typeof x.prologue==='string'&&Array.isArray(x.qa)&&x.qa.length>=2&&x.qa.every(q=>typeof q.q==='string'&&typeof q.a==='string')&&typeof x.afterword==='string';
