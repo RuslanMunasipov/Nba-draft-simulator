@@ -12,6 +12,7 @@ import {controls,courtWord,whyBox} from './widgets.js';
 import {POSITIONS} from '../engine.js';
 import {planValue} from '../transfer-plan.js';
 import {withFace} from '../headshot.js';
+import {teamTag} from '../team-logo.js';
 
 // ---------- Players: the Sports.ru market by this season's FBL points ----------
 // Free players (or every player) ranked by their average FBL points in this season's games, with a streak mark
@@ -93,7 +94,7 @@ function marketRow(r,i,ctx,analyse,running){
  if(now)tags.push(el('span',`в игре ${int(now.points)}${courtWord(now)}`,'chip chip--live'));
  if(inj)tags.push(el('span',inj.text,'chip '+(inj.level==='out'?'chip--danger':'chip--warn')));
  if(p.isRookie)tags.push(el('span','rookie','chip'));
- if(r.owner!==null)tags.push(el('span',r.owner===team?'твой':r.owner>=0?teamName(r.owner):'в FBL','chip chip--info'));
+ if(r.owner!==null){const c=el('span',r.owner===team?'твой':r.owner>=0?null:'в FBL','chip chip--info');if(r.owner!==team&&r.owner>=0)c.append(teamTag(r.owner,'xs'));tags.push(c);}
  if(tags.length){const t=el('span',null,'mk-tags');t.append(...tags);who.append(t);}
  who.append(el('small',`${p.team||'—'} · ${c.positions.join('/')} · ${int(c.price)}`,'mk-meta'));
  const avg=el('span',null,'mk-avg'),fig=el('span',null,'mk-fig');

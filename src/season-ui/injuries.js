@@ -4,6 +4,7 @@ import {teamName} from '../teams.js';
 import {horizons,playerOutlook,seasonEnding} from '../season.js';
 import {dec,ddmm,stampMsk} from '../format.js';
 import {face} from '../headshot.js';
+import {teamTag} from '../team-logo.js';
 import {$,bodyPart,button,clubOf,el,errorBlock,injuries,injuryInfo,injuryScope,league,live,loading,loadingBlock,openRows,owners,players,renderSeason,setInjuryScope,setReplacing,setTeam,setView,src,team} from './state.js';
 
 // ---------- Injuries ----------
@@ -22,7 +23,7 @@ export function injuriesView(ctx){
  rows.sort((a,b)=>group(a)-group(b)||back(a).localeCompare(back(b)));
  const list=el('div',null,'sp-injuries');let last=null;
  for(const r of rows){const g=group(r);
-  if(g!==last&&injuryScope==='league'){const h=el('h3',teamName(g));if(g===0)h.append(' ',el('span','ты','chip chip--accent'));list.append(h);last=g;}
+  if(g!==last&&injuryScope==='league'){const h=el('h3');h.append(teamTag(g,'md'));if(g===0)h.append(' ',el('span','ты','chip chip--accent'));list.append(h);last=g;}
   const info=injuryInfo(r.p),item=el('div',null,'sp-injury-item'+(info.level==='out'?' out':'')),head=el('div',null,'head');
   head.append(face(r.p),el('strong',r.p.name),el('span',info.text,'chip '+(info.level==='out'?'chip--danger':'chip--warn')));
   item.append(head,el('small',[r.p.team,bodyPart(r.i.type),r.i.date?'отчёт '+ddmm(String(r.i.date).slice(0,10)):''].filter(Boolean).join(' · ')));
