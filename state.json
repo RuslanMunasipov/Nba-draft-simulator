@@ -1,0 +1,439 @@
+{
+ "version": 1,
+ "days": {
+  "2026-10-20": {
+   "games": {
+    "401909088": {
+     "tip": "2026-10-20T19:00Z",
+     "home": "DET",
+     "away": "BOS",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909089": {
+     "tip": "2026-10-20T23:00Z",
+     "home": "NY",
+     "away": "PHI",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909090": {
+     "tip": "2026-10-21T01:50Z",
+     "home": "SA",
+     "away": "OKC",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    }
+   },
+   "allFinalAt": "2026-10-21T13:30:38.201Z",
+   "done": true
+  },
+  "2026-10-21": {
+   "games": {
+    "401909091": {
+     "tip": "2026-10-21T23:30Z",
+     "home": "MIA",
+     "away": "MIN",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909092": {
+     "tip": "2026-10-22T02:00Z",
+     "home": "LAL",
+     "away": "GS",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909834": {
+     "tip": "2026-10-21T23:00Z",
+     "home": "ORL",
+     "away": "ATL",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909835": {
+     "tip": "2026-10-21T23:00Z",
+     "home": "WSH",
+     "away": "MIL",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909836": {
+     "tip": "2026-10-21T23:30Z",
+     "home": "BKN",
+     "away": "CHA",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909837": {
+     "tip": "2026-10-21T23:30Z",
+     "home": "TOR",
+     "away": "CHI",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909838": {
+     "tip": "2026-10-22T00:00Z",
+     "home": "MEM",
+     "away": "UTAH",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909839": {
+     "tip": "2026-10-22T00:00Z",
+     "home": "NO",
+     "away": "IND",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909840": {
+     "tip": "2026-10-22T00:30Z",
+     "home": "HOU",
+     "away": "DAL",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909841": {
+     "tip": "2026-10-22T02:00Z",
+     "home": "POR",
+     "away": "PHX",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909842": {
+     "tip": "2026-10-22T02:30Z",
+     "home": "LAC",
+     "away": "SAC",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    }
+   },
+   "allFinalAt": "2026-10-22T05:05:43.396Z",
+   "done": true
+  },
+  "2026-10-22": {
+   "games": {
+    "401909093": {
+     "tip": "2026-10-22T23:00Z",
+     "home": "PHI",
+     "away": "CLE",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909094": {
+     "tip": "2026-10-23T01:30Z",
+     "home": "OKC",
+     "away": "DEN",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    }
+   },
+   "allFinalAt": "2026-10-23T04:20:50.202Z",
+   "done": true
+  },
+  "2026-10-23": {
+   "games": {
+    "401909095": {
+     "tip": "2026-10-23T23:00Z",
+     "home": "BOS",
+     "away": "NY",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909096": {
+     "tip": "2026-10-24T01:30Z",
+     "home": "SA",
+     "away": "HOU",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909843": {
+     "tip": "2026-10-23T23:00Z",
+     "home": "CHA",
+     "away": "ATL",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909844": {
+     "tip": "2026-10-23T23:00Z",
+     "home": "IND",
+     "away": "DAL",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909845": {
+     "tip": "2026-10-23T23:00Z",
+     "home": "ORL",
+     "away": "MIN",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909846": {
+     "tip": "2026-10-23T23:00Z",
+     "home": "WSH",
+     "away": "TOR",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909847": {
+     "tip": "2026-10-24T00:00Z",
+     "home": "MIA",
+     "away": "DET",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909848": {
+     "tip": "2026-10-23T20:00Z",
+     "home": "MIL",
+     "away": "CHI",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909849": {
+     "tip": "2026-10-24T01:30Z",
+     "home": "UTAH",
+     "away": "NO",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909850": {
+     "tip": "2026-10-24T02:00Z",
+     "home": "GS",
+     "away": "MEM",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909851": {
+     "tip": "2026-10-24T02:00Z",
+     "home": "LAL",
+     "away": "LAC",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    },
+    "401909852": {
+     "tip": "2026-10-24T02:00Z",
+     "home": "SAC",
+     "away": "POR",
+     "status": "STATUS_FINAL",
+     "final": true,
+     "off": false,
+     "archived": true
+    }
+   },
+   "allFinalAt": "2026-10-24T04:54:18.933Z",
+   "done": true
+  },
+  "2026-10-24": {
+   "games": {
+    "401909853": {
+     "tip": "2026-10-24T22:00Z",
+     "home": "CHA",
+     "away": "MIA",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    },
+    "401909854": {
+     "tip": "2026-10-24T23:30Z",
+     "home": "CLE",
+     "away": "BKN",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    },
+    "401909855": {
+     "tip": "2026-10-24T23:30Z",
+     "home": "PHI",
+     "away": "MIL",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    },
+    "401909856": {
+     "tip": "2026-10-25T00:30Z",
+     "home": "ATL",
+     "away": "HOU",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    },
+    "401909857": {
+     "tip": "2026-10-25T00:00Z",
+     "home": "CHI",
+     "away": "WSH",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    },
+    "401909858": {
+     "tip": "2026-10-25T00:00Z",
+     "home": "DAL",
+     "away": "SA",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    },
+    "401909859": {
+     "tip": "2026-10-25T01:00Z",
+     "home": "DEN",
+     "away": "NO",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    },
+    "401909860": {
+     "tip": "2026-10-25T02:00Z",
+     "home": "PHX",
+     "away": "GS",
+     "status": "STATUS_SCHEDULED",
+     "final": false,
+     "off": false
+    }
+   }
+  }
+ },
+ "posted": {
+  "daily": {
+   "2026-10-20": "sent",
+   "2026-10-21": "sent",
+   "2026-10-22": "sent",
+   "2026-10-23": "sent"
+  },
+  "weekly": {},
+  "monthly": {},
+  "rookies": {},
+  "pictures": {
+   "2026-10-22": {
+    "status": "sent",
+    "cost": 0.05,
+    "ideas": [
+     "A chaotic grand opening of a giant rebounding-and-scoring theme park, with bright banners, confetti and a cheering crowd of faceless visitors.",
+     "Stands on the top of a golden podium like a ribbon-cutting mayor, holding giant scissors and a basketball-shaped cake, while a tiny sign is planted in the cake like a flag / 32 ОЧКА И 25 ФО",
+     "Sits on a throne built from stacked rebounds-collecting nets and swatting away paper airplanes like flies, holding the sign high above his head / 17 ПОДБОРОВ, ВСЁ МОЁ",
+     "Runs on a hamster wheel that powers the whole park's lights, sweating proudly and holding the sign on a banner strapped to the wheel / 42 МИНУТЫ, 32 ОЧКА",
+     "A chaotic airport baggage claim hall where lost luggage circles on conveyor belts under harsh fluorescent lights, mocking and gloomy.",
+     "Stands at the lost luggage counter holding a tiny crumpled bag and a sign, looking baffled while five basketballs circle past him on the conveyor belt untouched / 1/6 С ИГРЫ, МЯЧИ ПОТЕРЯНЫ",
+     "Sprints after a runaway suitcase on the belt while juggling five slippery bags that slip out of his arms, holding his sign taped on a cart / 5 ПОТЕРЬ, РУКИ-ДЫРЫ",
+     "Grabs a rebound-shaped suitcase from the carousel with one hand while a pile of nine missed bags sits behind him, hugging a sign in despair / 2/11 С ИГРЫ, 6 ПОТЕРЬ"
+    ]
+   },
+   "2026-10-23": {
+    "status": "sent",
+    "cost": 0.069,
+    "ideas": [
+     "Прямой эфир прогноза погоды в ТВ-студии: Татум — ураган-синоптик с тремя перехваченными мячами в воронке, Сабонис ловит ливень из мячей ведром и раздаёт передачи, Яннис данкует под удар молнии, Jack Pott ликует в аппаратной / ШТОРМ: 36 ОЧКОВ, 3 ПЕРЕХВАТА; ЛИВЕНЬ: 19 ПОДБОРОВ, 10 ПЕРЕДАЧ; ГРОЗА: 36 ОЧКОВ, 12 ПОДБОРОВ",
+     "Late-night TV shopping channel: Miller sells basketball-shaped bricks that smash the demo table, Doncic runs a giveaway throwing balls into the crowd (11 turnovers), Pritchard demos an invisibility cape the cameraman can't find, pirate GM despairs at silent phones."
+    ]
+   }
+  },
+  "mike": {
+   "2026-10-22": {
+    "status": "sent",
+    "cost": 0
+   },
+   "2026-10-23": {
+    "status": "sent",
+    "cost": 0.0231
+   }
+  }
+ },
+ "slots": {
+  "7:SG": "1963257",
+  "2:PF": "2208841",
+  "7:PG": "2037968",
+  "1:PG": "2055894",
+  "5:C": "1963251",
+  "7:PF": "2208840",
+  "3:SG": "2150673",
+  "6:C": "2014986",
+  "3:SF": "2208838",
+  "2:SF": "2116483",
+  "2:PG": "2117860",
+  "1:PF": "1887624",
+  "5:PG": "2038007",
+  "3:PG": "2056226",
+  "0:SF": "2116565",
+  "5:PF": "2208848",
+  "2:SG": "2014915",
+  "5:SG": "2176909",
+  "2:C": "2090552",
+  "1:C": "2038508",
+  "3:PF": "2090536",
+  "4:SF": "2116461",
+  "6:PF": "2055856",
+  "7:C": "2150659",
+  "4:SG": "2208847",
+  "4:C": "1847180",
+  "4:PF": "2056241",
+  "3:C": "1963243",
+  "5:SF": "2037936",
+  "4:PG": "2038301",
+  "0:PF": "2208846",
+  "1:SG": "2102205",
+  "6:SG": "2208816",
+  "6:SF": "1963237",
+  "7:SF": "2056176",
+  "0:SG": "2176905",
+  "1:SF": "1993268",
+  "6:PG": "2014945",
+  "0:PG": "1916614",
+  "0:C": "1857188"
+ },
+ "ranks": {},
+ "updatedAt": "2026-10-24T05:56:06.223Z",
+ "firstDay": "2026-10-20"
+}
