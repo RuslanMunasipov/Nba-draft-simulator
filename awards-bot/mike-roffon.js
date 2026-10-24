@@ -41,7 +41,7 @@ const VOICE=`Ты — Майк Роффон, легендарный репорт
 - Реплика после ответа — одна сухая строка, как штамп в протоколе: без восклицаний, с подковыркой.
 - Пролог задаёт сцену и ставит диагноз в одну-две фразы, плотно и образно. Послесловие выносит вердикт и заканчивается ударной фразой, которую хочется переслать.
 - Метафоры только свои, свежие, из жизни, а не из спортивных штампов. Ирония — через точное наблюдение, а не через грубость.
-- Никаких дословных фраз из прошлых выпусков Inside FBL: каждое интервью пишется заново.
+- Каждое интервью — с чистого листа: никаких дословных фраз, тем, образов и сюжетов из прошлых интервью и лонгридов Inside FBL. Образы — только из этого матча, этого игрока, его клуба и его игры; не из времени года и не из календаря (никакой осени, урожая, огорода, грядок, теплиц).
 Игрок отвечает в своей манере: уверенно, коротко, с баскетбольным жаргоном и вкраплением английских терминов, с одной цитатой-афоризмом собственного сочинения.
 В лиге очки называются ФО (фэнтези-очки), формула лиги: очки + подборы + передачи + перехваты + блоки − промахи с игры − промахи штрафных − 2×потери − фолы + 1 за матч.`;
 const RULES=`Правила:
@@ -50,8 +50,12 @@ const RULES=`Правила:
 - 3 вопроса и 3 ответа. Пролог — 1–2 предложения, послесловие — 1–2 предложения. Всего не длиннее 1300 знаков.
 - Если в данных есть gmQuestion, Майк после трёх вопросов игроку поворачивает микрофон к GM его фэнтези-команды (gmQuestion.gm, команда gmQuestion.team) и задаёт ему один короткий колкий вопрос о выборе этого игрока; GM отвечает одной-двумя фразами как менеджер, который сделал ставку. Это поле gm; без gmQuestion оба его поля — пустые строки. Ни слова о внешности, семье и личной жизни GM: только его выбор и его команда.
 - Ответь строго JSON: {"title": "цитата игрока для заголовка, до 70 знаков, без кавычек и без его имени", "prologue": "...", "qa": [{"q": "...", "a": "..."}, ...], "remark": "колкая реплика Майка после одного из ответов или пустая строка", "gm": {"q": "вопрос GM или пустая строка", "a": "ответ GM или пустая строка"}, "afterword": "..."}`;
-export function interviewMessages(facts){
- return {system:`${VOICE}\n\n${RULES}`,prompt:`Флеш-интервью с героем игрового дня. Данные:\n${JSON.stringify(facts,null,1)}`};
+// What the writers see of the facts: no date (owner, 24.10.2026: an autumn date turned a flash interview into a harvest,
+// the theme of the week's long read; every interview starts from nothing). The date stays in the caption only.
+const forWriter=({date,...facts})=>facts;
+// fix: what was wrong with the last try, for the next one.
+export function interviewMessages(facts,fix=''){
+ return {system:`${VOICE}\n\n${RULES}`,prompt:`Флеш-интервью с героем игрового дня. Данные:\n${JSON.stringify(forWriter(facts),null,1)}${fix?`\n\nПрошлый вариант отклонён: ${fix}. Напиши заново, с чистого листа.`:''}`};
 }
 // The shape of the answer, for the CLI's structured output.
 const str={type:'string'};
@@ -122,6 +126,12 @@ const plain=t=>String(t).toLowerCase().replace(/ё/g,'е').replace(/[«»"„“
 const interviewWords=x=>[x.title,x.prologue,x.remark,x.afterword,...(x.qa||[]).flatMap(q=>[q.q,q.a]),x.gm?.q,x.gm?.a].filter(Boolean).join(' ');
 // The sample lines an interview repeats (none: it may go out).
 export function copiedLines(interview){return copiedIn(interviewWords(interview));}
+// Themes that belong to no flash interview or long read (owner, 24.10.2026: always new): the seasons and the harvest
+// of the 23.10 long read (Lemarius's greenhouse), which a flash interview with Tatum brought back.
+const STALE=/(?<!\p{L})(урожа\p{L}*|огород\p{L}*|грядк\p{L}*|(?:до|не|недо|со|пере)зре\p{L}*|колос(?!с)\p{L}*|колось\p{L}*|жатв\p{L}*|посев\p{L}*|теплиц\p{L}*|осен\p{L}*)/giu;
+// The stale theme words of any text (none: it may go out).
+export function staleIn(text){return [...new Set((String(text).toLowerCase().replace(/ё/g,'е').match(STALE)||[]))];}
+export const staleThemes=interview=>staleIn(interviewWords(interview));
 // The sample lines any text repeats.
 export function copiedIn(text){
  const t=` ${plain(text)} `;
@@ -168,25 +178,27 @@ ${CRAFT}`;
 // whose picture is drawn alone: then from the game).
 export async function writeMikePicture(facts,interview,c,{claude=claudeJSON,model=MIKE_MODEL,timeoutMs=180e3}={}){
  const team=facts.fblTeams?.[0],kit=LEAGUE_TEAMS.find(t=>t.name===team?.team)?.kit||null;
- const brief=`${interview?`Интервью:\n${JSON.stringify(interview,null,1)}\n\n`:''}Данные:\n${JSON.stringify({...facts,kitColors:kit},null,1)}`;
+ const brief=`${interview?`Интервью:\n${JSON.stringify(interview,null,1)}\n\n`:''}Данные:\n${JSON.stringify({...forWriter(facts),kitColors:kit},null,1)}`;
  return writePicture({system:PICTURE_SYSTEM,brief,c,check:t=>promptProblems(t,c,{numbers:allowedNumbers(facts)}),write:claude,model,timeoutMs,label:'Mike Roffon'});
 }
 
 // The interview from Claude (one headless call of the CLI, JSON by the schema). Answers {interview, usage} or throws.
-export async function writeInterview(facts,{claude=claudeJSON,model=MIKE_MODEL,timeoutMs=180e3}={}){
- const {data,usage}=await claude({...interviewMessages(facts),schema:INTERVIEW_SCHEMA,model,timeoutMs});
+export async function writeInterview(facts,{claude=claudeJSON,model=MIKE_MODEL,timeoutMs=180e3,fix=''}={}){
+ const {data,usage}=await claude({...interviewMessages(facts,fix),schema:INTERVIEW_SCHEMA,model,timeoutMs});
  if(!validInterview(data))throw Error('Claude text: not an interview');
  return {interview:data,usage:usage||null};
 }
-// Written until it holds no number of its own and no line of his old pieces (two tries); null when it still does.
-// The subscription bills nothing per call, so the text costs nothing.
-export async function interviewFor(facts,opts){
- for(let i=0;i<2;i++){
-  const {interview}=await writeInterview(facts,opts);
-  const stray=strayNumbers(interview,facts),copied=copiedLines(interview);
-  if(!stray.length&&!copied.length)return {interview};
-  if(stray.length)console.warn(`Mike Roffon: numbers not in the facts (${stray.join(', ')}), written again.`);
-  if(copied.length)console.warn(`Mike Roffon: lines of his old pieces (${copied.join(' | ')}), written again.`);
+// Written until it holds no number of its own, no line of his old pieces and no stale theme (three tries, each told what
+// was wrong with the last); null when it still does. The subscription bills nothing per call, so the text costs nothing.
+export async function interviewFor(facts,opts={}){
+ let fix='';
+ for(let i=0;i<3;i++){
+  const {interview}=await writeInterview(facts,{...opts,fix});
+  const stray=strayNumbers(interview,facts),copied=copiedLines(interview),stale=staleThemes(interview);
+  if(!stray.length&&!copied.length&&!stale.length)return {interview};
+  fix=[stray.length&&`числа не из данных (${stray.join(', ')})`,copied.length&&`дословные фразы старых выпусков (${copied.join(' | ')})`,
+   stale.length&&`чужая тема — время года и урожай (${stale.join(', ')}); образы только из этого матча и этого игрока`].filter(Boolean).join('; ');
+  console.warn(`Mike Roffon: ${fix}, written again.`);
  }
  return {interview:null};
 }
