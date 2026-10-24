@@ -381,11 +381,24 @@ export function horizons(ctx){
 // Players on the Sports.ru market who are missing from the database (new to the market, reached through an FBL roster).
 // They have no forecast: their prior per game is the median forecast of database players at the same Sports.ru price,
 // the price being Sports.ru's own valuation. They are never treated as rookies, whose status the market does not show.
+// A card Sports.ru replaced is not a stranger: when the snapshot's card names a database player by ESPN id and his own
+// card is gone or emptied, he moves to the new card. A catalog older than the snapshot (a page left open, a cached
+// database) then still knows him: Keaton Wagler's 2208842 → 2208816 on 23.10 made him an unknown non-rookie there.
 export function withMarket(players,live){
+ const cards=live?.players||{},byEspn=new Map(),twice=new Set();
+ for(const p of players)if(p.espnId){const k=String(p.espnId);if(byEspn.has(k))twice.add(k);byEspn.set(k,p);}
+ const moved=new Map();
+ for(const [sid,x] of Object.entries(cards)){
+  const p=x?.espnId&&!twice.has(String(x.espnId))?byEspn.get(String(x.espnId)):null;
+  if(!p||String(p.sportsId||'')===sid||!POSITIONS.includes(x.position)||!Number.isFinite(x.price))continue;
+  const own=p.sportsId?cards[p.sportsId]:null;if(own&&!emptied(own))continue;
+  moved.set(p.id,{...p,sportsId:sid,previousSportsIds:[...new Set([...(p.previousSportsIds||[]),...(p.sportsId?[String(p.sportsId)]:[])])]});
+ }
+ if(moved.size)players=players.map(p=>moved.get(p.id)||p);
  const known=new Set(players.map(p=>p.sportsId).filter(Boolean)),extra=[];
  const priced=players.filter(p=>Number.isFinite(p.price)&&Number.isFinite(p.forecast?.meanPerGame));
  const median=xs=>{const v=[...xs].sort((a,b)=>a-b);return v.length?(v[(v.length-1)>>1]+v[v.length>>1])/2:null;};
- for(const [sid,x] of Object.entries(live?.players||{})){
+ for(const [sid,x] of Object.entries(cards)){
   if(known.has(sid)||!POSITIONS.includes(x.position)||!Number.isFinite(x.price))continue;
   const near=priced.filter(p=>Math.abs(p.price-x.price)<=100),prior=median((near.length>=5?near:priced.filter(p=>p.price<=x.price+200)).map(p=>p.forecast.meanPerGame));
   extra.push({id:'sports:'+sid,sportsId:sid,name:x.fullName||x.name,sportsName:x.name,positions:[x.position],price:x.price,priceStatus:'VERIFIED',sportsClub:x.club,

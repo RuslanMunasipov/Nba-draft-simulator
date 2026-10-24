@@ -15,7 +15,7 @@ import {playersView} from './season-ui/players.js';
 import {awardsView} from './season-ui/awards.js';
 import {gamesView} from './season-ui/games.js';
 import {rulesView} from './season-ui/rules.js';
-export {refreshSeason,setSeasonPlayers,setSeasonDatabaseState,renderSeason} from './season-ui/state.js';
+export {refreshSeason,setSeasonPlayers,setSeasonDatabaseState,renderSeason,refreshHooks} from './season-ui/state.js';
 export {seasonLivePanel} from './season-ui/widgets.js';
 
 // ---------- Page ----------

@@ -103,7 +103,7 @@ test('awards pictures: Claude writes the picture, a refused one goes back to him
  const answers=[{prompt:good.replace('"11 КИРПИЧЕЙ','"99 КИРПИЧЕЙ'),idea:'x'},{prompt:good,idea:'a construction site'}];
  const w=await writeMoments(facts,c,{claude:async a=>{calls.push(a);return {data:answers.shift()};}});
  assert.equal(calls.length,2,'a refused answer is sent back');assert.match(calls[1].prompt,/numbers in quotes not in the facts: 99/);
- assert.match(calls[0].system,/жёсткий баскетбольный стёб/);assert.match(calls[0].system,/How you write the picture's prompt/);
+ assert.match(calls[0].system,/жёсткий баскетбольный стёб/);assert.match(calls[0].system,/все трое разные по тематике/);assert.match(calls[0].system,/произведение искусства, а не коллаж/);assert.match(calls[0].system,/How you write the picture's prompt/);
  assert.equal(w.prompt,good);assert.equal(w.idea,'a construction site');assert.deepEqual(w.images.map(i=>i.name),['1.png','2.png','1.png','4.png']);
  assert.equal(await writeMoments(facts,c,{claude:async()=>({data:{prompt:'x',idea:''}})}),null,'no picture of the code\'s');
  const rows=[row('1',-12,[0],{fgm:3,fga:14,tov:6}),row('2',-3,[3],{pf:6})];

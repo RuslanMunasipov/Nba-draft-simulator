@@ -9,7 +9,7 @@
 // or a line of his old pieces word for word, is sent back to be fixed, and dropped when it still does.
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {perPlayer,weeklyBlocks,races,addDays,weekOf} from './core.js';
-import {allowedNumbers,strayNumbersIn,copiedIn} from './mike-roffon.js';
+import {allowedNumbers,strayNumbersIn,copiedIn,staleIn} from './mike-roffon.js';
 import {imageName} from './images.js';
 import {cast,about,mikeRef,promptProblems,writePicture,CRAFT} from '../scripts/picture-prompt.mjs';
 import {person,gmOf,gmPhoto,readImage,espnHeadshot,ASSETS} from '../scripts/image-pipeline.mjs';
@@ -119,7 +119,7 @@ const VOICE=`Ты — Майк Роффон, легендарный репорт
 Каждую пятницу ты выпускаешь большое интервью — лонгрид. Ты едешь в гости к герою недели: домой, в офис, на корабль, во дворец, в тренировочный зал — туда, где он живёт и работает. Смотришь, чем он занят по жизни, участвуешь в его быте и ритуалах, а между делом задаёшь вопросы. Герой может что-то подарить тебе — смешной, говорящий подарок, связанный с его историей; подарки ты бережно ставишь на свою полку (mikesShelf — что там уже стоит, можно вспомнить).
 Твой стиль: хлёсткий, жёсткий, ироничный. Вопросы короткие и бьют в слабое место (место в таблице, отставание, провальная неделя, потери и промахи его игроков, «а если так и дальше?»). Цепляйся за слово из ответа и разворачивай его против собеседника. Реплика после ответа — одна сухая строка, как штамп в протоколе. Метафоры свои, свежие, из жизни. Ирония — через точное наблюдение, а не через грубость. Это вымысел, и он должен быть по-настоящему смешным: неожиданные повороты, абсурд быта, гипербола.
 Герой отвечает в своей манере: GM — как менеджер, который сделал ставку и защищает её; игрок — уверенно, с баскетбольным жаргоном и вкраплением английских терминов; комиссар — властно и уклончиво. У каждого — одна цитата-афоризм собственного сочинения.
-Никаких дословных фраз из прошлых выпусков Inside FBL: каждый лонгрид пишется заново.
+Каждый лонгрид — с чистого листа: никаких дословных фраз, тем, образов и сюжетов из прошлых лонгридов и флеш-интервью Inside FBL. Образы — только из этой недели, этого героя и его дома; не из времени года (никакой осени, урожая, огорода, грядок, теплиц).
 В лиге очки называются ФО (фэнтези-очки), формула лиги: очки + подборы + передачи + перехваты + блоки − промахи с игры − промахи штрафных − 2×потери − фолы + 1 за матч.`;
 const RULES=`Правила:
 - Тема недели — story и положение героя в данных (таблица, гонки, герои и антигерои недели). Обыграй её со всех сторон.
@@ -166,6 +166,7 @@ export function longreadProblems(x,facts,c){
  if(stray.length){const allowed=allowedNumbers(facts),where=text.split(/(?<=[.!?…])\s+|\n+/).filter(t=>strayNumbersIn(t,allowed).length).slice(0,4).map(t=>`«${t.trim().slice(0,200)}»`);
   out.push(`числа не из данных: ${stray.join(', ')} (цифрами или словами, в том числе порядковыми вроде «шестой») — вот где: ${where.join('; ')}; перепиши эти фразы без чисел`);}
  if(copied.length)out.push(`дословные фразы из прошлых выпусков: ${copied.join(' | ')} — перепиши`);
+ const stale=staleIn(text);if(stale.length)out.push(`чужая тема — время года и урожай (${stale.join(', ')}): перепиши эти места образами этой недели и этого героя`);
  if(text.length<6000)out.push(`слишком коротко (${text.length} знаков), нужно 9000–16000`);
  x.chapters.forEach((ch,i)=>{const p=pictureProblems(ch.picture,facts,c);if(p.length)out.push(`picture главы ${i+1}: ${p.join(', ')}`);});
  const p=pictureProblems(x.opener,facts,c);if(p.length)out.push(`opener: ${p.join(', ')}`);

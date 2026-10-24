@@ -153,6 +153,18 @@ def main_moved(env=None,run=subprocess.run):
     head=(out.stdout or '').split()[:1]
     return head[0] if not out.returncode and head and head[0]!=sha else None
 
+def translate_now(env=None,run=subprocess.run):
+    """Starts the translation of ESPN's texts (translate-espn.yml) after a fresh snapshot: GitHub's schedules are
+    best-effort, and a night's injury comments waited hours in English (24.10.2026). Never in a local run; a failed start
+    only leaves it to the schedule."""
+    env=os.environ if env is None else env
+    if not env.get('GITHUB_REPOSITORY') or not env.get('GH_TOKEN'):return False
+    try:out=run(['gh','workflow','run','translate-espn.yml','--ref',env.get('GITHUB_REF_NAME') or 'main'],capture_output=True,text=True,timeout=60)
+    except Exception as e:  # noqa: BLE001
+        print(f'translation start: {e}',flush=True);return False
+    if out.returncode:print(f'translation start failed: {(out.stderr or "").strip()[-300:]}',flush=True)
+    return not out.returncode
+
 class Watch:
     # After this many failed collections in a row (about 30 minutes) the chat is told the data is stale, once.
     ALERT_AFTER=3
@@ -258,7 +270,7 @@ def main():
         if ok is not None:
             w.collected(ok)
             if ok:
-                w.notify();w.publish(f'Sports.ru live snapshot {now()}')
+                w.notify();w.publish(f'Sports.ru live snapshot {now()}');translate_now()
             # A failed collection retries soon; the journals keep being watched on the last snapshot.
             next_full=time.time()+(args.full_every if ok else 10)*60
         if w.live.exists():

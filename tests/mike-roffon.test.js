@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
 import * as mike from '../awards-bot/mike-roffon.js';
-import {mikeCast,writeMikePicture,interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,writeInterview,interviewFor,copiedLines,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
+import {mikeCast,writeMikePicture,interviewFacts,interviewMessages,allowedNumbers,strayNumbers,validInterview,interviewText,interviewCaption,writeInterview,interviewFor,copiedLines,staleThemes,SAMPLE_LINES,INTERVIEW_SCHEMA,wordNumbers} from '../awards-bot/mike-roffon.js';
 
 const s={pts:45,reb:10,ast:3,stl:2,blk:1,tov:4,fgm:16,fga:29,ftm:4,fta:5,pf:1};
 const line={d:'2026-10-21',e:'g1',a:'4594268',n:'A. Edwards',c:'MIN',t:'2026-10-22T00:00Z',m:36.4,p:fblFormula(s),h:[5],b:[],s};
@@ -84,7 +84,7 @@ test('Mike Roffon: written by Claude (the subscription module, JSON by the schem
  assert.match(seen[0].system,/Майк Роффон/);assert.match(seen[0].prompt,/"fo": 39/);assert.equal(seen[0].schema,INTERVIEW_SCHEMA);
  assert.deepEqual(INTERVIEW_SCHEMA.required,['title','prologue','qa','remark','gm','afterword'],'the picture is written apart, from the interview');
  let calls=0;const bad=async o=>{calls++;return reply({...good,prologue:'Средние 28 очков.'})(o);};
- const out=await interviewFor(facts,{claude:bad});assert.equal(out.interview,null);assert.equal(calls,2);
+ const out=await interviewFor(facts,{claude:bad});assert.equal(out.interview,null);assert.equal(calls,3);
  let tries=0;const copyThenGood=async o=>(tries++?reply(good):reply({...good,afterword:'Роль важнее фамилии.'}))(o);
  assert.deepEqual((await interviewFor(facts,{claude:copyThenGood})).interview,good);assert.equal(tries,2);
  await assert.rejects(writeInterview(facts,{claude:reply({nope:1})}),/not an interview/);
@@ -114,4 +114,17 @@ test('Mike Roffon: every other day he turns to the GM of the hero\'s team too, a
  assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','captain-torres-new-win.jpg','5.jpg','fbl-logo.png']);
  assert.match(c.list[1].is,/general manager \(GM\) who picked the player/);assert.match(c.list[1].neverChanges,/always a pirate/);assert.equal(c.list[1].name,'Captain Torres New-Win');
  assert.equal(mikeCast({...f,gmQuestion:null},{team:4}).images.length,3,'no GM on a day he is not asked');
+});
+
+test('Mike Roffon: every interview starts from nothing: no date for the writer, no harvest of an old long read (24.10.2026)',async()=>{
+ assert.ok(facts.date);const m=interviewMessages(facts);
+ assert.ok(!m.prompt.includes(facts.date)&&!/"date"/.test(m.prompt),'the writer never sees the date');
+ assert.match(m.system,/с чистого листа/);
+ const tatum={...good,qa:[{q:'12 промахов?',a:'Промах — это бросок, который ещё не дозрел.'},...good.qa.slice(1)],remark:'Весь огород держится на одной грядке.',afterword:'Урожай богатый.'};
+ assert.deepEqual(staleThemes(tatum),['огород','грядке','урожай','дозрел']);
+ assert.deepEqual(staleThemes({...good,afterword:'Колоссальный вечер, заносы и осечки.'}),[],'колоссальный is not колос, осечка is not осень');
+ assert.deepEqual(staleThemes(good),[]);
+ const seen=[];const staleThenGood=async o=>{seen.push(o.prompt);const x=seen.length===1?tatum:good;return {data:x,text:JSON.stringify(x),usage:null,costUsd:0};};
+ assert.deepEqual((await interviewFor(facts,{claude:staleThenGood})).interview,good);
+ assert.equal(seen.length,2);assert.match(seen[1],/Прошлый вариант отклонён:.*чужая тема/);assert.ok(!/отклонён/.test(seen[0]));
 });
