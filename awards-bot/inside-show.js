@@ -422,7 +422,10 @@ export function segmentCast(key,{d,facts,nominees=[],patients=[],faces=new Map()
   return cast([face?{image:face,is:`the photo of ${g.en}, ${g.kind==='coach'?'the legendary NBA coach':'the NBA legend'}, the special guest of the studio`,need:true}:null,
    {...stevenRef(root),need:false},leagueLogo()]);}
  const face=(a,name,role,t)=>a&&faces.get(String(a))?playerRef(faces.get(String(a)),name,{need:false,role,...Number.isInteger(t)?{fantasyTeamColors:LEAGUE_TEAMS[t]?.kit||null}:{}}):null;
- if(key==='opening')return cast([stevenRef(root),{...dildoRef(root),is:'the photo of Christopher Dildo, the analyst of Inside FBL'},trevorRef(root),zakRef('check',root),mikeRef(root),leagueLogo(),studioRef()]);
+ // The opening and the closing at 18:00: the five hosts and the guests of the issue, revealed now (the announcement's cast
+ // has no guests: they are secret at 12:00).
+ if(key==='opening'||key==='closing')return cast([stevenRef(root),{...dildoRef(root),is:'the photo of Christopher Dildo, the analyst of Inside FBL'},trevorRef(root),zakRef('check',root),mikeRef(root),leagueLogo(),studioRef(),
+  ...guests.map(g=>guestFaces.get(g.id)?{image:guestFaces.get(g.id),is:`the photo of ${g.en}, ${g.kind==='coach'?'the legendary NBA coach':'the NBA legend'}, a special guest of the studio today`,need:true}:null)]);
  if(key==='numbers'){const top=d.standings.find(x=>x.team===d.teams[0]?.team)?.t,low=d.standings.find(x=>x.team===d.teams.at(-1)?.team)?.t;
   return cast([dildoRef(root),Number.isInteger(top)?gmRef(top,root,{is:"the photo of the GM of the week's best fantasy team",need:false}):null,
    Number.isInteger(low)&&low!==top?gmRef(low,root,{is:"the photo of the GM of the week's worst fantasy team",need:false}):null]);}
@@ -438,12 +441,13 @@ export function segmentCast(key,{d,facts,nominees=[],patients=[],faces=new Map()
  return cast([]);
 }
 const PICTURE={
- opening:`Обложка выпуска Inside FBL: студия шоу и круглый стол, за которым все пятеро ведущих (они все в референсах) — каждый собой, с тем, что у него никогда не меняется. Майк Роффон — в студийном пиджаке, без каски, камуфляжа и жилета PRESS. Сцена — из главной истории этой недели (заголовок и текст открытия Стивена): что происходит в студии, кто что держит и над чем все смеются — решаешь ты. Студия — наша, как на общем фото студии Inside FBL (оно в референсах: декорации и облик ведущих за столом), без названий и логотипов реальных шоу и каналов; надпись «INSIDE FBL» — по желанию; логотип лиги FBL — по желанию.`,
+ opening:`Обложка выпуска Inside FBL: студия шоу и круглый стол, за которым все пятеро ведущих (они все в референсах) — каждый собой, с тем, что у него никогда не меняется. Майк Роффон — в студийном пиджаке, без каски, камуфляжа и жилета PRESS. Сцена — из главной истории этой недели (заголовок и текст открытия Стивена): что происходит в студии, кто что держит и над чем все смеются — решаешь ты. Если сегодня в студии гости (studioGuests, их фото в референсах) — они за столом вместе с ведущими, каждый собой и в своём узнаваемом образе: это их выпуск тоже. Студия — наша, как на общем фото студии Inside FBL (оно в референсах: декорации и облик ведущих за столом), без названий и логотипов реальных шоу и каналов; надпись «INSIDE FBL» — по желанию; логотип лиги FBL — по желанию.`,
  numbers:`Картинка к блоку «Цифры недели» Кристофера Дилдо — кадр из фильма о сошедшем с ума математике: Дилдо в кадре, по своему фото, в прямоугольных очках, с блокнотом и ручкой, вокруг его одержимый мир — стены и доски в формулах и графиках, нити между вырезками, и панический страх ФБР (жалюзи, тени агентов, чёрный фургон; агенты никого не трогают, настоящих эмблем ФБР нет). Главная надпись кадра — его «открытие» недели из его блока. GM — если их фото в референсах — могут быть в кадре: ликуют или хватаются за голову.`,
  infirmary:`Картинка к блоку «Обход недели» Тревора Матолога: лазарет лиги, Тревор на обходе, всегда в шейном корсете и с гипсом в автографах, пациенты — по их лицам с референсов, на койках, с повязками по их травмам. Смешно, абсурдно, но без боли и крови.`,
  law:`Картинка к блоку «Закон и порядок» Зака Онна — кадр американского боевика 90-х, где весь сюжет — закон и порядок: дело недели, подозреваемые, документы, допрос, приговор. Зак Онн всегда Юрист, всегда в красной кепке с надписью «God Bless America». GM из референсов — подозреваемые или свидетели его дела, комиссар — когда к месту. Никакой техники: ни экранов, ни кода, ни серверов, ни баз — только дело.`,
  mike:`Картинка к блоку Майка Роффона: его флеш-интервью недели — с лучшим и с худшим игроком (их лица — в референсах): сцена, настроение, колкость — из этих интервью. Майк — ветеран-репортёр, всегда в белых перчатках и с винтажным хромированным микрофоном, одет как спортивный репортёр под сцену. Игроки — в цветах своих фэнтези-команд (fantasyTeamColors), без логотипов НБА.`,
  guest:`Картинка к слову специального гостя студии Inside FBL: гость (его лицо — в референсе, если оно там есть) в сцене из своего блока — в студии за круглым столом или там, куда его унесла собственная история; ведущий Стивен Экс Перт — по желанию. Гость — собой, в своём узнаваемом образе; если его фото в референсах нет — не рисуй его лицо: со спины, силуэтом, в тени или так, чтобы лица не было видно.`,
+ closing:`Закрывающая картинка выпуска Inside FBL — финальный кадр после эфира: все пятеро ведущих и гости студии (их фото в референсах), каждый собой. Свет гаснет, эфир окончен, но студия ещё живёт главными историями выпуска: его панчлайнами, «Позором недели», победителями и проигравшими. Что происходит в кадре и в каком стиле — решаешь ты; студия — наша, как на общем фото студии; надпись «INSIDE FBL» и короткая прощальная надпись по-русски — по желанию.`,
  shame:`Картинка к рубрике «Позор недели» Стивена Экс Перта — церемония вручения шуточных призов за позор в студии Inside FBL: Стивен с серьёзным лицом еле сдерживает смех, номинанты — игроки и GM (их лица — в референсах) — получают свои нелепые призы из его текста. Стебём игру и цифры, а не человека. Студия и призы свои, без реальных шоу.`,
 };
 const PICTURE_SYSTEM=key=>`Ты — бильд-редактор Inside FBL, главного журнала фэнтези-баскетбольной лиги друзей FBL: каждый понедельник ведущие по очереди выходят в эфир со своими блоками, и каждый блок выходит с одной фотореалистичной смешной картинкой. Ты придумываешь её целиком и пишешь её промпт для ChatGPT.
@@ -453,7 +457,7 @@ ${PICTURE[kindOf(key)]}
 - Ни реальных телеведущих, ни названий, логотипов и заставок реальных шоу и каналов.
 
 ${CRAFT}`;
-const brief=(key,x,facts,guests)=>`Блок «${slotOf(key,guests).rubric}», как его написал ${slotOf(key,guests).guest?'гость':'ведущий'}:\n${segmentWords(x)}\n\nДанные блока:\n${JSON.stringify(facts,null,1)}`;
+const brief=(key,x,facts,guests)=>key==='closing'?`Выпуск, который только что закончился (блоки по порядку, их заголовки и первые слова):\n${JSON.stringify(x,null,1)}\n\nДанные выпуска:\n${JSON.stringify(facts,null,1)}`:`Блок «${slotOf(key,guests).rubric}», как его написал ${slotOf(key,guests).guest?'гость':'ведущий'}:\n${segmentWords(x)}\n\nДанные блока:\n${JSON.stringify(facts,null,1)}`;
 // Claude's picture of a block ({images, prompt, idea}) or null.
 export async function writeSegmentPicture(key,x,facts,c,{guests=[],claude=claudeJSON,model=SHOW_MODEL,timeoutMs=240e3,log=console.warn}={}){
  return writePicture({system:PICTURE_SYSTEM(key),brief:brief(key,x,facts,guests),c,check:t=>promptProblems(t,c,{numbers:allowedNumbers(facts)}),write:claude,model,timeoutMs,label:`Inside FBL show, ${key}`,log});
@@ -537,6 +541,8 @@ export const htmlToNodes=html=>String(html).split('\n\n').filter(p=>p.trim()).ma
 export function showNodes(week,segments,{guests=[]}={}){
  const out=[node('p',node('i',`Главный журнал лиги FBL. Неделя ${week.n}: ${dayRu(week.start)} – ${dayRu(week.end)}. В студии: ${Object.values(HOSTS).map(h=>h.name).join(', ')}${guests.length?`; гости студии: ${guests.map(g=>g.name).join(', ')}`:''}.`))];
  for(const s of segments){
+  // The closing picture: the last of the page.
+  if(s.key==='closing'){if(s.picture)out.push(node('figure',{tag:'img',attrs:{src:s.picture}},node('figcaption','Конец выпуска')));continue;}
   const r=slotOf(s.key,guests),h=speaker(r);
   out.push(node('h3',`${h.emoji} ${r.rubric} — ${h.name}`));
   if(s.picture)out.push(node('figure',{tag:'img',attrs:{src:s.picture}}));
@@ -748,3 +754,12 @@ export function blockSteps({key,host,text,x,studio=null,polls=[],guests=[]}){
  for(const p of polls)out.push({by:host,poll:p});
  return out;
 }
+
+// --- The closing picture after the show (owner, 24.10.2026): the studio after the broadcast, the hosts and the guests,
+// the issue's punchlines; its prompt written whole by Claude from the whole show. segments: [{key, x}]; facts: the
+// opening's and the shame's (the numbers its words may carry). Answers {images, prompt, idea} or null.
+export async function writeClosingPicture(segments,facts,c,{guests=[],claude=claudeJSON,model=SHOW_MODEL,timeoutMs=240e3,log=console.warn}={}){
+ const x=segments.map(s=>saidOf(s.key,s.x,guests));
+ return writePicture({system:PICTURE_SYSTEM('closing'),brief:brief('closing',x,facts,guests),c,check:t=>promptProblems(t,c,{numbers:allowedNumbers(facts)}),write:claude,model,timeoutMs,label:'Inside FBL show, closing',log});
+}
+export const closingCaption=(week,guests=[])=>`<b>🎬 Inside FBL • Конец выпуска ${week.n}</b>\nЭфир окончен. Спасибо ${guests.length?`гостям студии — ${guests.map(g=>esc(g.name)).join(' и ')} — и `:''}всей лиге.\nДо понедельника! А в пятницу — большое интервью Майка Роффона.\n\n#inside_fbl #неделя_${week.n}`;

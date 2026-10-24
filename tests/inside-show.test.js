@@ -335,3 +335,19 @@ test('Inside FBL show: the studio is written in one pass over the show, and the 
  assert.equal(r.law.interrupt.who,'dildo');assert.match(calls[0].system,/перебивают друг друга, подкалывают чужие оценки и выбор, добавляют трэш-ток/);assert.match(calls[0].prompt,/"speaker": "zak"/);
  assert.deepEqual(await writeStudio([],{},{claude:async()=>{throw Error('down');},log:()=>{}}),{});
 });
+test('Inside FBL show: at 18:00 the guests sit at the desk on the cover; the show ends with its closing picture',async()=>{
+ const m=await import('../awards-bot/inside-show.js'),shaq=guestById('shaq'),pop=guestById('pop'),img={bytes:Buffer.from('x'),name:'g.jpg',type:'image/jpeg'};
+ const c=segmentCast('opening',{d,guests:[shaq,pop],guestFaces:new Map([['shaq',img]])});
+ assert.equal(c.refs.length,8,'the five, the logo, the studio and the guest with a photo');assert.match(c.list[7].is,/Shaquille O'Neal, the NBA legend, a special guest/);assert.equal(c.list[7].mustUse,true);
+ assert.equal(m.announceCast().refs.length,7,'the announcement keeps them secret');
+ assert.equal(segmentCast('closing',{d,guests:[shaq],guestFaces:new Map([['shaq',img]])}).refs.length,8);
+ const hosts=c.list.map((r,i)=>`the person from reference image ${i+1}`).join(', '),calls=[];
+ const good=`The studio after the broadcast: ${hosts}; Zak in his red cap "God Bless America", Mike's white gloves and microphone, Trevor's neck brace and cast, Dildo's glasses and notebook. The lights dim. No other text.`;
+ const pic=await m.writeClosingPicture([{key:'opening',x:blocks.opening}],{opening:openingFacts(d)},c,{guests:[shaq],claude:async o=>{calls.push(o);return {data:{prompt:good,idea:'lights out'}};},log:()=>{}});
+ assert.ok(pic);assert.match(calls[0].system,/Закрывающая картинка выпуска/);assert.match(calls[0].prompt,/Выпуск, который только что закончился/);
+ assert.match(m.closingCaption(week,[shaq,pop]),/^<b>🎬 Inside FBL • Конец выпуска 2<\/b>\nЭфир окончен\. Спасибо гостям студии — Шакил О'Нил и Грегг Попович — и всей лиге\./);
+ assert.doesNotMatch(m.closingCaption(week),/гостям/);
+ const nodes=showNodes(week,[{key:'closing',picture:'https://x/end.jpg',steps:[]}]);assert.equal(nodes.at(-2).tag,'figure');
+ const seen=[];await writeSegmentPicture('opening',blocks.opening,openingFacts(d,{guests:[shaq]}),c,{guests:[shaq],claude:async o=>{seen.push(o);return {data:{prompt:good,idea:'x'}};},log:()=>{}});
+ assert.match(seen[0].system,/они за столом вместе с ведущими/);
+});

@@ -87,7 +87,7 @@ import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime,telegraph,VOTED} from './inside-fbl.js';
 import {showData,openingFacts,numbersFacts,quizOf,infirmaryFacts as showInfirmary,lawFacts,weekStatements,mikeFacts,guestCandidates,shameNominees,shameFacts,
  writeSegment,segmentCast,writeSegmentPicture,quizPoll,guestPoll,shamePolls,shameOfTheYear,writeStudio,blockSteps,pollWinner,segmentCaption,segmentText,showNodes,showTitle,airTime,announceTime,reviewTime,
- rundownOf,guestFacts,saidOf,guestById,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
+ rundownOf,guestFacts,saidOf,guestById,writeClosingPicture,closingCaption,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
 import {espnHeadshot} from '../scripts/image-pipeline.mjs';
 import {checkRules,verdict} from '../src/rules.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
@@ -982,7 +982,15 @@ async function showDraft(w,st,rec){
    announce.prompt=written.prompt;announce.idea=written.idea;announce.picture=await drawn(written,`${rel}/${tag}-announce.jpg`);
   }catch(e){console.warn(`Inside FBL announcement: no picture (${e.message}).`);}
  };
- const jobs=[drawAnnounce,...segments.map(s=>()=>draw(s))];
+ // The closing picture after the show: the hosts and the guests, the issue's punchlines.
+ const closing={key:'closing',host:'steven',picture:null,prompt:null};
+ const drawClosing=async()=>{
+  try{const c=segmentCast('closing',{d,guests,guestFaces}),written=await writeClosingPicture(segments,{opening:facts.opening,shame:facts.shame},c,{guests});
+   if(!written){console.warn('Inside FBL show: Claude wrote no closing picture.');return;}
+   closing.prompt=written.prompt;closing.picture=await drawn(written,`${rel}/${tag}-closing.jpg`);
+  }catch(e){console.warn(`Inside FBL show: no closing picture (${e.message}).`);}
+ };
+ const jobs=[drawAnnounce,drawClosing,...segments.map(s=>()=>draw(s))];
  for(let i=0;i<jobs.length;i+=3)await Promise.all(jobs.slice(i,i+3).map(f=>f()));
  // Without a drawn cover or announcement picture: the photo of the studio and its cast.
  const studio=`${rel}/${tag}-studio.jpg`;fs.copyFileSync(STUDIO_PHOTO,path.join(SHOW_DIR,studio));
@@ -999,6 +1007,8 @@ async function showDraft(w,st,rec){
  const plan=segments.map(s=>{const text=segmentText(s.key,s.x,facts[s.key],{nominees,guests});
   return {key:s.key,host:s.host,title:s.x.title,caption:segmentCaption(s.key,s.x,w,{guests}),text,picture:s.picture||null,cards:s.cards||[],prompt:s.prompt||null,
    steps:blockSteps({key:s.key,host:s.host,text,x:s.x,studio:studioOf[s.key],polls:polls[s.key]||[],guests})};});
+ // The show ends with its closing picture, from the host's bot, when it was drawn.
+ if(closing.picture)plan.push({key:'closing',host:'steven',title:'Конец выпуска',caption:closingCaption(w,guests),text:'',picture:closing.picture,cards:[],prompt:closing.prompt,steps:[]});
  fs.writeFileSync(path.join(SHOW_DIR,rel,`${tag}-episode.json`),JSON.stringify({week:w,guests:guests.map(g=>g.id),facts,announce,segments:segments.map(s=>({key:s.key,...s.x})),plan},null,1));
  // Pictures and cards first: the page shows them by their raw URLs.
  if(!DRY&&!TEST)showPush(st,`Inside FBL show ${w.start}: pictures`);
@@ -1030,8 +1040,8 @@ async function sendVisual(token,chat,files,caption,to){
 }
 const filesOf=s=>[s.picture,...s.cards||[]].filter(f=>f&&fs.existsSync(path.join(SHOW_DIR,f)));
 const pollText=p=>`🗳 <b>${esc(p.question)}</b>\n${p.options.map((o,k)=>`${k===p.correct_option_id?'✔':'•'} ${esc(o)}`).join('\n')}${p.explanation?`\n<i>${esc(p.explanation)}</i>`:''}`;
-const site='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
-const buttonsOf=(s,rec)=>s.key==='opening'?{reply_markup:{inline_keyboard:[[...rec.url?[{text:'📺 Весь выпуск одной страницей',url:rec.url}]:[],{text:'📊 Сайт лиги',url:site}]]}}:{};
+// The opening's button: the issue on one page (Telegraph). The site of the league is never shown in the chat (owner, 24.10.2026).
+const buttonsOf=(s,rec)=>s.key==='opening'&&rec.url?{reply_markup:{inline_keyboard:[[{text:'📺 Весь выпуск одной страницей',url:rec.url}]]}}:{};
 // One block as it goes out: its picture and cards with the caption (a reply to `to`), then its steps (inside-show.js
 // blockSteps: the host's words, the studio's interruptions and lines, the answers, the polls), each a reply to the one
 // before, each from its own bot. bot(by) → the senders of a host's bot; chat: where. Answers {last, sender, polls: key ->
