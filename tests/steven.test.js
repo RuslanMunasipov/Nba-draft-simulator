@@ -62,7 +62,8 @@ test('Steven Ex Pert: the race facts carry the cards\' arrows, the ones out of t
  assert.equal(first.firstRace,true);assert.equal(first.mvp.top[0].trend,null,'no arrows on the first race');assert.deepEqual(first.mvp.outOfTheRace,[]);
  const five=fiveFacts('2026-11',[{pos:'PG',row:row('1',300,{games:12})},{pos:'C',row:null}],who);
  assert.deepEqual(five,{month:'ноябрь 2026',five:[{position:'PG',name:'RU P1',fo:300,games:12,fblTeams:[LEAGUE_TEAMS[1].name]},{position:'C',name:null}]});
- const m=verdictMessages('race',f);assert.match(m.system,/Стивен Экс Перт/);assert.match(m.system,/только числа из данных/);assert.match(m.prompt,/"outOfTheRace"/);
+ const m=verdictMessages('race',f);assert.match(m.system,/Стивен Экс Перт/);assert.match(m.system,/Shaqtin' a Fool/);assert.match(m.system,/колк/);
+ assert.match(m.system,/не цитируй и не изображай реальных ведущих/);assert.match(m.prompt,/выпал из гонки/);assert.match(m.system,/только числа из данных/);assert.match(m.prompt,/"outOfTheRace"/);
 });
 
 test('Steven Ex Pert: a verdict with numbers of its own is written again, then left out; the post never waits on it',async()=>{
