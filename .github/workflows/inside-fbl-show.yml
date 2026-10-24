@@ -25,9 +25,9 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'hold: nothing more goes out; release: it goes out again; redo: written anew; test: the whole show to the owner alone by Mike''s bot, its polls read; ledger: the season''s ledger of the awards to the owner; draft; announce: at 12:00; post: at 18:00'
+        description: 'hold: nothing more goes out; release: it goes out again; redo: written anew; test: the whole show to the owner alone by Mike''s bot, its polls read; ledger: the season''s ledger of the awards to the owner; teaser: the show''s launch in the league chat, once; draft; announce: at 12:00; post: at 18:00'
         type: choice
-        options: [hold, release, redo, test, ledger, draft, announce, post, votes]
+        options: [hold, release, redo, test, ledger, teaser, draft, announce, post, votes]
         default: hold
       notes:
         description: 'For redo: what to change (the hosts get it as the editor''s wishes)'
