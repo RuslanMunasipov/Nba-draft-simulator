@@ -44,9 +44,10 @@
 //   node awards-bot/bot.mjs --dildo-intro FILE --state DIR
 //                                                   Christopher Dildo's introduction to the league written by Claude on
 //                                                   the archived season, saved to FILE (data/dildo/); nothing sent
-//   node awards-bot/bot.mjs --dildo-post FILE [--send]
-//                                                   that file posted as it is with his photo by his bot (workflow
-//                                                   christopher-dildo.yml); without --send printed
+//   node awards-bot/bot.mjs --dildo-post FILE [--send] [--picture]
+//                                                   that file posted as it is by his bot with its picture (Claude's
+//                                                   prompt, ultra-realistic, ~$0.03; workflow christopher-dildo.yml);
+//                                                   without --send printed
 //   node awards-bot/bot.mjs --trevor-hello [--send]  Trevor introduces himself (data/trevor/hello.html with his photo)
 //   node awards-bot/bot.mjs --steven-hello [--send]  Steven Ex Pert introduces himself (steven.js HELLO_CAPTION, his photo)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check),
@@ -76,7 +77,7 @@ import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
-import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText,introFacts,introFor} from './dildo.js';
+import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText,introFacts,introFor,writePostPicture} from './dildo.js';
 import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption,STEVEN_QUALITY,HELLO_PHOTO,HELLO_CAPTION} from './steven.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
@@ -787,9 +788,10 @@ async function insideFbl(){
 
 // --- Christopher Dildo's own words (dildo.js), by hand. --dildo-intro FILE: his introduction to the league written by
 // Claude on the season so far (the archive of --state), its numbers checked, saved to FILE (data/dildo/) and printed;
-// nothing is sent. --dildo-post FILE [--send]: that file posted as it is, the caption of his photo, by his own bot only
-// (his word never goes from another bot); without --send it is printed.
-const DILDO_PHOTO=new URL('../scripts/assets/people/christopher-dildo.jpg',import.meta.url);
+// nothing is sent. --dildo-post FILE [--send] [--picture]: that file posted as it is by his own bot only (his word never
+// goes from another bot), with its picture: its prompt written by Claude from the post, ultra-realistic with his face
+// as in the reference, drawn by OpenAI (about $0.03; with --send, or --picture in a preview, into --cards). Never his
+// bare reference photo (owner, 24.10.2026): without a picture the post goes as text. Without --send it is printed.
 async function dildoIntro(file){
  const archive=read('archive.json',{lines:[]});
  if(!archive.lines.length)throw Error('--dildo-intro: no archived games in --state');
@@ -801,12 +803,24 @@ async function dildoIntro(file){
 async function dildoPost(file,send){
  const text=fs.readFileSync(file,'utf8').trim();
  if(text.length>1024)throw Error(`--dildo-post: ${text.length} characters, a photo's caption takes 1024`);
- if(!send){console.log(`\n===== Christopher Dildo (preview) =====\n${text}\n`);return;}
- const missing=[['CHRISTOPHER_DILDO_BOT_TOKEN',DILDO],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);
- if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);
- const body=new FormData();body.append('chat_id',String(CHAT));body.append('caption',text);body.append('parse_mode','HTML');
- body.append('photo',new Blob([fs.readFileSync(DILDO_PHOTO)],{type:'image/jpeg'}),'christopher-dildo.jpg');
- await telegram(DILDO,'sendPhoto',body);console.log(`Christopher Dildo: ${file} sent.`);
+ if(send){const missing=[['CHRISTOPHER_DILDO_BOT_TOKEN',DILDO],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);
+  if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
+ let png=null,spent=0;
+ if(send||flag('--picture')){
+  if(!OPENAI_KEY||!claudeConfigured(env))console.warn('Christopher Dildo: no OPENAI_API_KEY or Claude subscription, no picture: the post goes as text.');
+  else try{
+   const written=await writePostPicture(text);
+   if(written){console.log(`\n===== Christopher Dildo's picture (written by Claude) =====\n${written.prompt}\n`);
+    const r=await generate(written,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});png=r.png;spent=cost(r.usage);}
+   else console.warn('Christopher Dildo: Claude could not write the picture: the post goes as text.');
+  }catch(e){console.warn(`Christopher Dildo: the picture failed (${e.message}): the post goes as text.`);}
+ }
+ if(png&&CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});fs.writeFileSync(path.join(CARDS_DIR,path.basename(file).replace(/\.html$/,'.png')),png);}
+ if(!send){console.log(`\n===== Christopher Dildo (preview${png?`, picture $${spent.toFixed(3)}`:''}) =====\n${text}\n`);return;}
+ if(png){const body=new FormData();body.append('chat_id',String(CHAT));body.append('caption',text);body.append('parse_mode','HTML');
+  body.append('photo',new Blob([png],{type:'image/png'}),'christopher-dildo.png');await telegram(DILDO,'sendPhoto',body);}
+ else await telegram(DILDO,'sendMessage',{chat_id:CHAT,text,parse_mode:'HTML',disable_web_page_preview:true});
+ console.log(`Christopher Dildo: ${file} sent${png?` with its picture, $${spent.toFixed(3)}`:' as text'}.`);
 }
 
 // Steven Ex Pert introduces himself to the league (steven.js): his photo and his words, by his own bot only (an
