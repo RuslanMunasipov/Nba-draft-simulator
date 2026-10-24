@@ -87,7 +87,7 @@ import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime,telegraph,VOTED} from './inside-fbl.js';
 import {showData,openingFacts,numbersFacts,quizOf,infirmaryFacts as showInfirmary,lawFacts,weekStatements,mikeFacts,guestCandidates,shameNominees,shameFacts,
  writeSegment,segmentCast,writeSegmentPicture,quizPoll,guestPoll,shamePolls,shameOfTheYear,writeStudio,blockSteps,pollWinner,segmentCaption,segmentText,showNodes,showTitle,airTime,announceTime,reviewTime,
- rundownOf,guestFacts,saidOf,guestById,writeClosingPicture,closingCaption,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
+ rundownOf,guestFacts,saidOf,guestById,votesSummary,writeClosingPicture,closingCaption,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
 import {espnHeadshot} from '../scripts/image-pipeline.mjs';
 import {checkRules,verdict} from '../src/rules.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
@@ -774,8 +774,9 @@ async function insideFbl(){
  // hand (--guest) wins over it, a redo keeps the guest.
  inside.votes||={};
  if(action==='draft'&&!opt('--guest')&&!inside.votes[w.start]){
-  const show=await json(`${SHOW_RAW}state.json?t=${Date.now()}`).catch(()=>null),poll=show?.shows?.[addDays(w.start,-7)]?.polls?.mike;
-  if(poll){const r=await closePoll(poll);if(r){inside.votes[w.start]=r;insidePush(inside,`Inside FBL ${w.start}: the league's vote`);console.log(`Inside FBL: the league voted for ${r.option} (${r.votes} of ${r.total}).`);}}
+  // Closed on Friday morning with the show's other votes (inside-fbl-show.yml votes); closed here, silently, when it was not.
+  const show=await json(`${SHOW_RAW}state.json?t=${Date.now()}`).catch(()=>null),prev=show?.shows?.[addDays(w.start,-7)],poll=prev?.polls?.mike;
+  if(prev?.votesClosedAt||poll){const r=prev?.votesClosedAt?prev.guestVote:await closePoll(poll);if(r){inside.votes[w.start]=r;insidePush(inside,`Inside FBL ${w.start}: the league's vote`);console.log(`Inside FBL: the league voted for ${r.option} (${r.votes} of ${r.total}).`);}}
  }
  const vote=action==='draft'&&!opt('--guest')?inside.votes[w.start]?.key||null:null,keepVote=action==='redo'&&rec?.story==='vote';
  const guest=pickGuest(data,past.map(x=>x.guest),{force:opt('--guest')||vote,keep:action==='redo'?rec?.guest?.key:null,story:vote||keepVote?VOTED:null});
@@ -1102,13 +1103,36 @@ async function readVotes(token,chat,polls,{minutes=10}={}){
    console.log(`Inside FBL test: a vote in ${mine.key} (${total}).`);
    await say(`📊 <b>Вижу голос</b> в опросе «${esc(p.question)}»:\n${counts(p)}`);}
  }
- const results={};
- for(const [key,p] of Object.entries(polls)){
-  try{const poll=await tg(token,'stopPoll',{chat_id:chat,message_id:p.message_id});results[key]=pollWinner(poll,p.keys);
-   await say(`🔒 <b>Опрос закрыт</b>: «${esc(poll.question)}»\n${counts(poll)}\n${results[key]?`Итог: <b>${esc(results[key].option)}</b> (${results[key].votes} из ${results[key].total})`:'Никто не проголосовал.'}`);}
-  catch(e){console.warn(`Inside FBL test: ${key} not closed (${e.message}).`);}
+ // Closed together and told in one message (owner, 24.10.2026), as the league's votes are on Friday.
+ const closed=await closeAll(polls,chat),text=votesSummary(showWeek(),closed);
+ if(text)await say(text);
+ return Object.fromEntries(Object.entries(closed).map(([k,x])=>[k,x.result]));
+}
+// Every poll of a show closed (Telegram stopPoll, by the bot that sent it) and counted: key -> {result (pollWinner's, or
+// null when nobody voted or it could not be closed), poll (the stopped Poll, or null)}. Silent: the counting is the bot's.
+async function closeAll(polls,chat=CHAT){
+ const out={};
+ for(const [key,p] of Object.entries(polls||{})){
+  const token=senderToken(p?.sender);if(!token){out[key]={result:null,poll:null};continue;}
+  try{const poll=await tg(token,'stopPoll',{chat_id:chat,message_id:p.message_id});out[key]={result:pollWinner(poll,p.keys||[]),poll};}
+  catch(e){console.warn(`Inside FBL: the poll ${key} could not be closed (${e.message}).`);out[key]={result:null,poll:null};}
  }
- return results;
+ return out;
+}
+// The votes of a show closed on Friday morning (before the long read's draft takes Mike's guest from them), counted and
+// told to the league in one message by the host's bot: whom Mike visits, the prizes of shame, the quiz's answer.
+async function showVotes(w,st){
+ const rec=st.shows[w.start];
+ if(!rec?.polls||!Object.keys(rec.polls).length){console.log(`Inside FBL show, week ${w.n}: no votes to close.`);return;}
+ if(rec.votesClosedAt){console.log(`Inside FBL show, week ${w.n}: the votes are closed already.`);return;}
+ if(DRY){console.log(`Inside FBL show, week ${w.n}: would close ${Object.keys(rec.polls).join(', ')}.`);return;}
+ const closed=await closeAll(rec.polls);
+ rec.guestVote=closed.mike?.result||null;rec.shameResult={player:closed.shamePlayer?.result||null,gm:closed.shameGm?.result||null};
+ rec.voteResults=Object.fromEntries(Object.entries(closed).map(([k,x])=>[k,x.result]));rec.votesClosedAt=new Date().toISOString();
+ showPush(st,`Inside FBL show ${w.start}: the votes closed`);
+ const text=votesSummary(w,closed);
+ if(text&&CHAT){try{const sender=await viaFirst(hostSenders('steven'),t=>tg(t,'sendMessage',{chat_id:CHAT,text,parse_mode:'HTML',...reply(rec.posted?.closing?.last||rec.posted?.shame?.last)}),{label:'Inside FBL votes'});
+  console.log(`Inside FBL show, week ${w.n}: the votes told to the league from ${sender}.`);}catch(e){console.warn(`Inside FBL show: the votes' message failed (${e.message}).`);}}
 }
 // The announcement at 12:00, from the host's bot (else the awards bot).
 async function showAnnounce(w,st){
@@ -1151,8 +1175,9 @@ async function until(at,what){
 async function insideShow(){
  if(!SHOW_DIR)throw Error('--inside-show: --show DIR (a clone of the branch data/inside-show, or an empty directory)');
  let action=opt('--action')||'draft';if(action==='approve')action='release';
- if(!['draft','redo','hold','release','announce','post','test'].includes(action))throw Error(`--action: draft, redo, hold, release, announce, post or test, not ${action}`);
+ if(!['draft','redo','hold','release','announce','post','test','votes'].includes(action))throw Error(`--action: draft, redo, hold, release, announce, post, test or votes, not ${action}`);
  const st=showRead(),w=showWeek(),rec=st.shows[w.start];
+ if(action==='votes'){await showVotes(w,st);return;}
  // test: the show of the week made anew and sent to the owner's chat by Mike's bot with its real polls, which are read
  // as he votes, answered, closed after --minutes and counted. Nothing is pushed, published or posted to the league, and
  // the week's real draft stays as it is.
