@@ -83,9 +83,7 @@ jobs:
           AWARDS_COMMISSIONER_CHAT_ID: ${{ secrets.AWARDS_COMMISSIONER_CHAT_ID }}
           # Mike Roffon's flash interview after the day's post (awards-bot/mike-roffon.js): his own bot, written by Claude
           # (CLAUDE_CODE_OAUTH_TOKEN below), drawn by OpenAI. Without his token or Claude's there is no interview; without
-          # the OpenAI key it goes without its picture. 20 minutes after it, his report from the infirmary (infirmary.js):
-          # the FBL rosters' injured players from ESPN's injury report of that moment, its comments in Russian, the ward's
-          # pictures.
+          # the OpenAI key it goes without its picture.
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
           # Christopher Dildo, the analyst of Inside FBL (awards-bot/dildo.js): the day's album, the day's pictures and the
           # week's heroes go out by his own bot into the same chat, with his comment (written by Claude); without his token,
