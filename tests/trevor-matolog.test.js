@@ -30,9 +30,9 @@ test('Infirmary: ESPN\'s comment in Russian (the site\'s translation, else one w
 
 test('Infirmary: the report team by team with ESPN\'s comments, Trevor\'s words around it; an empty ward said so',()=>{
  const f=patients(report,rosters,who).map(x=>patientFacts(x,{}));
- const t=infirmaryText(f,{opener:'Тревор начинает обход.',afterword:'Держитесь, GM.'},'2026-10-23');
+ const t=infirmaryText(f,{opener:'Тревор начинает обход.',afterword:'Держитесь, GM.',notes:{'Тейтум':'Ахилл <в бегах>.'}},'2026-10-23');
  assert.match(t,/^<b>🏥 Лазарет FBL<\/b> · 23 октября\n\nТревор начинает обход\.\n\n<b>The Balkan Murderers<\/b> \(GM Franky Murder\) · <b>Команда им\. Алачаняна А\.М\.<\/b>/);
- assert.match(t,/🔴 <b>Тейтум<\/b> \(BOS\) — не играет до ~05\.11 · ахиллово сухожилие, операция\n<i>ESPN, 24\.10: Jayson Tatum \(knee\) will miss 2 games\.<\/i>/);
+ assert.match(t,/🔴 <b>Тейтум<\/b> \(BOS\) — не играет до ~05\.11 · ахиллово сухожилие, операция\n<i>ESPN, 24\.10: Jayson Tatum \(knee\) will miss 2 games\.<\/i>\n🥃 Ахилл &lt;в бегах&gt;\.\n/,'ESPN\'s lines untouched, his own line under them');
  assert.match(t,/🟡 <b>Каннингем<\/b>/);assert.match(t,/Держитесь, GM\.\n\n— Тревор Матолог, травматолог лиги FBL\n\n#лазарет #травмы #дата_23_10_2026$/);
  assert.ok(t.indexOf('Тейтум')<t.indexOf('Эмбиид'));
  assert.match(infirmaryText([],null,'2026-10-23'),/Палаты пусты: в составах FBL травмированных нет\.\n\n— Тревор Матолог/);assert.match(infirmaryCaption(f,'2026-10-23'),/3 в палатах/);
@@ -41,13 +41,17 @@ test('Infirmary: the report team by team with ESPN\'s comments, Trevor\'s words 
 
 test('Infirmary: Trevor\'s words only with the facts\' numbers, no stale themes, rewritten once with what was wrong',async()=>{
  const facts=infirmaryFacts(patients(report,rosters,who).map(x=>patientFacts(x,{})));
- assert.deepEqual(wordsProblems({opener:'Тейтум выбыл до ~05.11.',afterword:'Black Jacks дышат через раз.'},facts),[]);
- assert.match(wordsProblems({opener:'Минус 40 очков у GM.',afterword:'.'},facts).join(),/числа не из данных \(40\)/);
- assert.match(wordsProblems({opener:'Урожай травм.',afterword:'.'},facts).join(),/чужая тема/);
- const seen=[];const claude=async o=>{seen.push(o.prompt);return {data:seen.length===1?{opener:'Минус 40.',afterword:'.'}:{opener:'Лазарет полон.',afterword:'Держитесь.'}};};
- assert.deepEqual(await writeWords(facts,{claude,log:()=>{}}),{opener:'Лазарет полон.',afterword:'Держитесь.'});
+ assert.deepEqual(wordsProblems({opener:'Тейтум выбыл до ~05.11.',notes:[{name:'Тейтум',note:'Ахилл *ик* ушёл в параллельную вселенную.'}],afterword:'Black Jacks дышат через раз.'},facts),[]);
+ assert.match(wordsProblems({opener:'Минус 40 очков у GM.',notes:[],afterword:'.'},facts).join(),/числа не из данных \(40\)/);
+ assert.match(wordsProblems({opener:'.',notes:[{name:'Тейтум',note:'Выбыл на 9 недель.'}],afterword:'.'},facts).join(),/числа не из данных \(9\)/,'his lines checked too');
+ assert.match(wordsProblems({opener:'.',notes:[{name:'Леброн',note:'Бред.'}],afterword:'.'},facts).join(),/реплики о тех, кого нет в данных \(Леброн\)/);
+ assert.match(wordsProblems({opener:'*ик* *ик*',notes:[{name:'Тейтум',note:'*ик* *ик*'}],afterword:'.'},facts).join(),/\*ик\* 4 раз/);
+ assert.deepEqual(wordsProblems({opener:'.',afterword:'.'},facts),['не по схеме']);
+ assert.match(wordsProblems({opener:'Урожай травм.',notes:[],afterword:'.'},facts).join(),/чужая тема/);
+ const seen=[];const claude=async o=>{seen.push(o.prompt);return {data:seen.length===1?{opener:'Минус 40.',notes:[],afterword:'.'}:{opener:'Лазарет полон.',notes:[{name:'Эмбиид',note:' Колено в отпуске. '}],afterword:'Держитесь.'}};};
+ assert.deepEqual(await writeWords(facts,{claude,log:()=>{}}),{opener:'Лазарет полон.',afterword:'Держитесь.',notes:{'Эмбиид':'Колено в отпуске.'}});
  assert.match(seen[1],/Прошлый вариант отклонён: числа не из данных/);
- const m=wordsMessages(facts);assert.match(m.system,/Тревор Матолог/);assert.doesNotMatch(m.system+m.prompt,/Майк|Inside FBL/,'Trevor\'s own voice');assert.ok(!seen[0].includes('2026-10'),'no date for the writer');
+ const m=wordsMessages(facts);assert.match(m.system,/Тревор Матолог/);assert.match(m.system,/Данные ESPN неприкосновенны/);assert.doesNotMatch(m.system+m.prompt,/Майк|Inside FBL/,'Trevor\'s own voice');assert.ok(!seen[0].includes('2026-10'),'no date for the writer');
 });
 
 test('Infirmary: the pictures, a few patients each, at most two; Trevor and each patient\'s face as references',()=>{
