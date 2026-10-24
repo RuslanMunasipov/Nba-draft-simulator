@@ -12,7 +12,7 @@ import {face,withFace} from './headshot.js';
 import {teamTag} from './team-logo.js';
 import {newDraft,pick,undo,replacePick,replayDraft,exportDraft,DEFAULT_CAP,safeUrl,rosterFits,POSITIONS} from './engine.js';
 import {teamName,teamLabel} from './teams.js';
-import {setSeasonPlayers,setSeasonDatabaseState,initSeasonTabs,seasonLivePanel} from './season-ui.js';
+import {setSeasonPlayers,setSeasonDatabaseState,initSeasonTabs,seasonLivePanel,refreshHooks} from './season-ui.js';
 import LEAGUE from '../data/fbl-league.json' with {type:'json'};
 import {advanceBots,simulateDraft,draftSummary,seasonSensitivitySimulations,teamRoster} from './simulation.js';
 import {riskProfile} from './analysis.js';
@@ -521,15 +521,20 @@ function render(){
 }
 
 // ---------- Database ----------
-let databaseLoading=false;
+let databaseLoading=false,databaseAt=0;
+// A page left open (a phone keeps it for days) refreshes Sports.ru every time the season comes back, but its player
+// database only at start: an hour later the season data reads the database again, quietly, so a card Sports.ru
+// replaced or a new forecast reaches the page without a reload.
+const DATABASE_STALE_MS=36e5;
+refreshHooks.push(()=>{if(databaseAt&&Date.now()-databaseAt>DATABASE_STALE_MS)loadDatabase(false,true);});
 function banner(kind,message,action){
  const b=$('startup-banner');b.className='notice notice--'+kind;$('startup-status').textContent=message;
  const retry=$('load-retry');retry.hidden=!action;retry.disabled=false;retry.removeAttribute('aria-busy');if(action)retry.textContent=action;b.hidden=false;
 }
-async function loadDatabase(force=false){
+async function loadDatabase(force=false,quiet=false){
  if(databaseLoading)return;databaseLoading=true;
- const retry=$('load-retry');if(!retry.hidden){retry.disabled=true;retry.setAttribute('aria-busy','true');retry.textContent='Загружаю…';}else banner('info','Загружаю базу игроков…');
- setSeasonDatabaseState('loading');
+ const retry=$('load-retry');if(!quiet){if(!retry.hidden){retry.disabled=true;retry.setAttribute('aria-busy','true');retry.textContent='Загружаю…';}else banner('info','Загружаю базу игроков…');
+ setSeasonDatabaseState('loading');}
  // Render a valid cached database before waiting for the network.
  if(!state.players.length||needsCatalog){
   try{const cached=await readCache('fbl-default-db');if(cached){state=installDatabase(state,cached);database=cached;needsCatalog=false;seedLive();save();banner('info','Сохранённая база готова. Проверяю обновление…');}}catch{}
@@ -542,14 +547,16 @@ async function loadDatabase(force=false){
    // Applying the fetched database must not depend on storage capacity.
    save();
   }else database=candidate;
-  await writeCache('fbl-default-db',candidate);updateSaveStatus();
+  databaseAt=Date.now();await writeCache('fbl-default-db',candidate);updateSaveStatus();
   const prices=candidate.priceAudit?.capturedAt?` · цены Sports.ru от ${stampMsk(candidate.priceAudit.capturedAt)}`:'';
   $('database-status').textContent=`База: ${count(candidate.coverage.players,'игрок','игрока','игроков')}, rookie ${candidate.coverage.rookies} · обновлена ${stampMsk(candidate.generatedAt)}${prices}. Позиции — по Sports.ru.`;
   // The ready line stays in the (hidden) banner: the browser smoke test waits for it.
   $('startup-status').textContent=`База готова · ${count(state.players.length,'игрок','игрока','игроков')}`;$('startup-banner').hidden=true;$('load-retry').hidden=true;
   setSeasonDatabaseState('ready');
  }catch{
-  if(state.players.length){banner('warn',`Нет связи. Работаю на сохранённой базе${database?.generatedAt?' от '+stampMsk(database.generatedAt):''}; пики сохранены.`,'Обновить');setSeasonDatabaseState('ready');}
+  // A quiet refresh that fails keeps the database the page already has.
+  if(quiet);
+  else if(state.players.length){banner('warn',`Нет связи. Работаю на сохранённой базе${database?.generatedAt?' от '+stampMsk(database.generatedAt):''}; пики сохранены.`,'Обновить');setSeasonDatabaseState('ready');}
   else{banner('error','Не удалось загрузить базу игроков. Проверь интернет.','Повторить');setSeasonDatabaseState('error',()=>loadDatabase(true));}
  }finally{databaseLoading=false;updateSaveStatus();render();}
 }
