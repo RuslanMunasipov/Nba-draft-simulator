@@ -87,7 +87,7 @@ import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime,telegraph,VOTED} from './inside-fbl.js';
 import {showData,openingFacts,numbersFacts,quizOf,infirmaryFacts as showInfirmary,lawFacts,weekStatements,mikeFacts,guestCandidates,shameNominees,shameFacts,
  writeSegment,segmentCast,writeSegmentPicture,quizPoll,guestPoll,shamePoll,pollWinner,segmentCaption,segmentText,showNodes,showTitle,airTime,announceTime,reviewTime,
- rundownOf,guestFacts,saidOf,guestById,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
+ rundownOf,guestFacts,saidOf,guestById,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
 import {espnHeadshot} from '../scripts/image-pipeline.mjs';
 import {checkRules} from '../src/rules.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
@@ -975,13 +975,14 @@ async function showDraft(w,st,rec){
  };
  const jobs=[drawAnnounce,...segments.map(s=>()=>draw(s))];
  for(let i=0;i<jobs.length;i+=3)await Promise.all(jobs.slice(i,i+3).map(f=>f()));
- const look=await loadLook([]),want=[['numbers',()=>cards.weekTableCard(w,facts.numbers,look,FONTS)],['law',()=>cards.dossierCard(w,facts.law,look,FONTS)],
-  ['opening',()=>cards.showOpener(w,look,FONTS),s=>!s.picture]];
+ // Without a drawn cover or announcement picture: the photo of the studio and its cast.
+ const studio=`${rel}/${tag}-studio.jpg`;fs.copyFileSync(STUDIO_PHOTO,path.join(SHOW_DIR,studio));
+ const opener=segments.find(s=>s.key==='opening');if(opener&&!opener.picture)opener.picture=studio;
+ if(announce&&!announce.picture)announce.picture=studio;
+ const look=await loadLook([]),want=[['numbers',()=>cards.weekTableCard(w,facts.numbers,look,FONTS)],['law',()=>cards.dossierCard(w,facts.law,look,FONTS)]];
  for(const [key,html,when=()=>true] of want){const s=segments.find(x=>x.key===key);if(!s||!when(s))continue;
   try{const [png]=await renderCards([html()]);s.cards=[`${rel}/${tag}-${key}-card.png`];fs.writeFileSync(path.join(SHOW_DIR,s.cards[0]),png);}
   catch(e){console.warn(`Inside FBL show, ${key}: card failed (${e.message}).`);}}
- // An announcement without its own picture goes with the show's opener card.
- if(announce&&!announce.picture){try{const [png]=await renderCards([cards.showOpener(w,look,FONTS)]);announce.picture=`${rel}/${tag}-announce-card.png`;fs.writeFileSync(path.join(SHOW_DIR,announce.picture),png);}catch{}}
  // The polls of the show: the quiz, the vote for Mike's guest, the vote of shame.
  const first=segments[0].x,polls={numbers:quizPoll(quiz,segments.find(s=>s.key==='numbers')?.x.quizExplanation),mike:guestPoll(candidates),shame:shamePoll(nominees)};
  const keys={mike:candidates.map(c=>c.force),shame:nominees.map(n=>n.id)};

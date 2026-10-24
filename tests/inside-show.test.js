@@ -180,7 +180,7 @@ test('Inside FBL show: on air: the captions, the texts with the code\'s lines, e
 
 test('Inside FBL show: the hosts in its pictures: the five at the round table, what never changes about each',()=>{
  const c=segmentCast('opening',{d});
- assert.equal(c.refs.length,6);assert.deepEqual(c.list.filter(r=>r.mustUse).length,5);
+ assert.equal(c.refs.length,7);assert.match(c.list[6].is,/Inside FBL studio and its five hosts/);assert.ok(!c.list[6].mustUse,'the studio photo is Claude\'s to use');assert.deepEqual(c.list.filter(r=>r.mustUse).length,5);
  const all=c.list.map((r,i)=>`the person from reference image ${i+1}`).join(', ');
  const p=promptProblems(`A TV studio round table: ${all}. ${'Detailed scene. '.repeat(10)}`,c);
  for(const w of ['God Bless America','white gloves','microphone','neck brace','cast','glasses','notebook'])assert.ok(p.some(x=>x.includes(`"${w}"`)),w);

@@ -382,6 +382,9 @@ export async function writeSegment(key,facts,{handedOver='',notes='',nominees=[]
 // GMs' photos, the teams' logos.
 const FBL_LOGO=fileURLToPath(new URL('./assets/fbl-logo.png',import.meta.url));
 const leagueLogo=()=>({image:readImage(FBL_LOGO),is:'the logo of the league, FBL (Fantasy Brothers League)'});
+// The photo of the studio and its cast (owner, 24.10.2026): the show's set and how each host looks at its desk.
+export const STUDIO_PHOTO=fileURLToPath(new URL('../scripts/assets/studio/inside-fbl-cast.jpg',import.meta.url));
+export const studioRef=(file=STUDIO_PHOTO)=>({image:readImage(file),is:"the photo of the Inside FBL studio and its five hosts at the desk, left to right: Mike Roffon, Christopher Dildo, Steven Ex Pert, Trevor Matolog, Zak Onn: the show's own set (the desk, the brick-wall INSIDE FBL logo, the red and blue lights) and each host's studio look; their faces come from their own references"});
 // The references of each block's picture. faces: ESPN id -> headshot ({bytes, name, type}).
 // guestFaces: a guest's id -> his photo (his ESPN headshot, else the Wikipedia lead photo), when there is one.
 export function segmentCast(key,{d,facts,nominees=[],patients=[],faces=new Map(),guests=[],guestFaces=new Map(),root=ASSETS}={}){
@@ -390,7 +393,7 @@ export function segmentCast(key,{d,facts,nominees=[],patients=[],faces=new Map()
   return cast([face?{image:face,is:`the photo of ${g.en}, ${g.kind==='coach'?'the legendary NBA coach':'the NBA legend'}, the special guest of the studio`,need:true}:null,
    {...stevenRef(root),need:false},leagueLogo()]);}
  const face=(a,name,role,t)=>a&&faces.get(String(a))?playerRef(faces.get(String(a)),name,{need:false,role,...Number.isInteger(t)?{fantasyTeamColors:LEAGUE_TEAMS[t]?.kit||null}:{}}):null;
- if(key==='opening')return cast([stevenRef(root),{...dildoRef(root),is:'the photo of Christopher Dildo, the analyst of Inside FBL'},trevorRef(root),zakRef('check',root),mikeRef(root),leagueLogo()]);
+ if(key==='opening')return cast([stevenRef(root),{...dildoRef(root),is:'the photo of Christopher Dildo, the analyst of Inside FBL'},trevorRef(root),zakRef('check',root),mikeRef(root),leagueLogo(),studioRef()]);
  if(key==='numbers'){const top=d.standings.find(x=>x.team===d.teams[0]?.team)?.t,low=d.standings.find(x=>x.team===d.teams.at(-1)?.team)?.t;
   return cast([dildoRef(root),Number.isInteger(top)?gmRef(top,root,{is:"the photo of the GM of the week's best fantasy team",need:false}):null,
    Number.isInteger(low)&&low!==top?gmRef(low,root,{is:"the photo of the GM of the week's worst fantasy team",need:false}):null]);}
@@ -405,7 +408,7 @@ export function segmentCast(key,{d,facts,nominees=[],patients=[],faces=new Map()
  return cast([]);
 }
 const PICTURE={
- opening:`Обложка выпуска Inside FBL: студия шоу и круглый стол, за которым все пятеро ведущих (они все в референсах) — каждый собой, с тем, что у него никогда не меняется. Майк Роффон — в студийном пиджаке, без каски, камуфляжа и жилета PRESS. Сцена — из главной истории этой недели (заголовок и текст открытия Стивена): что происходит в студии, кто что держит и над чем все смеются — решаешь ты. Студия своя, без названий и логотипов реальных шоу и каналов; надпись «INSIDE FBL» на студийном экране — по желанию; логотип лиги FBL — по желанию.`,
+ opening:`Обложка выпуска Inside FBL: студия шоу и круглый стол, за которым все пятеро ведущих (они все в референсах) — каждый собой, с тем, что у него никогда не меняется. Майк Роффон — в студийном пиджаке, без каски, камуфляжа и жилета PRESS. Сцена — из главной истории этой недели (заголовок и текст открытия Стивена): что происходит в студии, кто что держит и над чем все смеются — решаешь ты. Студия — наша, как на общем фото студии Inside FBL (оно в референсах: декорации и облик ведущих за столом), без названий и логотипов реальных шоу и каналов; надпись «INSIDE FBL» — по желанию; логотип лиги FBL — по желанию.`,
  numbers:`Картинка к блоку «Цифры недели» Кристофера Дилдо — кадр из фильма о сошедшем с ума математике: Дилдо в кадре, по своему фото, в прямоугольных очках, с блокнотом и ручкой, вокруг его одержимый мир — стены и доски в формулах и графиках, нити между вырезками, и панический страх ФБР (жалюзи, тени агентов, чёрный фургон; агенты никого не трогают, настоящих эмблем ФБР нет). Главная надпись кадра — его «открытие» недели из его блока. GM — если их фото в референсах — могут быть в кадре: ликуют или хватаются за голову.`,
  infirmary:`Картинка к блоку «Обход недели» Тревора Матолога: лазарет лиги, Тревор на обходе, всегда в шейном корсете и с гипсом в автографах, пациенты — по их лицам с референсов, на койках, с повязками по их травмам. Смешно, абсурдно, но без боли и крови.`,
  law:`Картинка к блоку «Закон и порядок» Зака Онна — кадр американского боевика 90-х, где весь сюжет — закон и порядок: дело недели, подозреваемые, документы, допрос, приговор. Зак Онн всегда Юрист, всегда в красной кепке с надписью «God Bless America». GM из референсов — подозреваемые или свидетели его дела, комиссар — когда к месту. Никакой техники: ни экранов, ни кода, ни серверов, ни баз — только дело.`,
@@ -600,6 +603,7 @@ export async function writeAnnouncement(facts,guests,week,{claude=claudeJSON,mod
 export const announceCast=(root=ASSETS)=>segmentCast('opening',{root});
 const ANNOUNCE_PICTURE=`Ты — бильд-редактор Inside FBL, главного журнала фэнтези-баскетбольной лиги друзей FBL. В полдень в чат лиги выходит анонс вечернего выпуска с одной картинкой — фото со студийной записи: пятеро ведущих (их лица — в референсах) и засекреченные гости выпуска. Ты придумываешь её целиком и пишешь её промпт для ChatGPT.
 - Гости в кадре, но неузнаваемы — как именно их спрятать, решаешь ты. Рядом с ними — пасхалки: предметы, по которым знатоки угадают, кто это (из их карьеры и стиля). Никогда не называй гостей в промпте — ни имени, ни фамилии, ни прозвища: только образы и предметы.
+- Общее фото студии Inside FBL (в референсах) — наши декорации и облик ведущих: от него можно оттолкнуться, а можно уйти в совсем другой мир и стиль.
 - Каждую неделю — новая идея, новый вид и новый стиль: что угодно (владелец лиги вспоминал выпуск с фигурками LEGO — получилось очень стильно; это пример свободы, а не шаблон). Ведущих можно переодеть под праздник (holiday) или под тему гостей; то, что у каждого никогда не меняется (neverChanges), остаётся.
 - Не повторяй идеи прошлых анонсов (recentIdeas).
 - Надписи — только в кавычках, не больше двух коротких, без имён гостей; числа в них — только из данных.
