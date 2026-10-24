@@ -70,13 +70,20 @@ test('Season awards: the double-doubles count the triples too, a quadruple-doubl
  assert.match(seasonAwardsText(y),/<b>💎 Квадрупл-дабл<\/b>\nJok \(DEN\), 03\.11: 30\/11\/10\/10\/0/);
  assert.match(seasonAwardsText(x),/<b>💎 Квадрупл-дабл<\/b>\nПока не случилось\./);
 });
-test('Season awards: shooting qualifies as the NBA does, in proportion to the games played',()=>{
- assert.equal(y.shootingGames,3);
- // Field goals: 300 of 82 games, 11 made in three games; Curry's 22 of 59 qualify but shoot worse.
+test('Season awards: the best shooters are the regulars who shoot, ten attempts a game from the field, five threes',()=>{
  assert.deepEqual(y.fieldGoals.map(p=>[p.name,p.percent]),[['Jok',70.5],['Sha',57.4],['Cur',37.3]]);
- // Threes: one made a game, three in three games: Jokic's one does not qualify.
+ // Jokic's two threes in three games are too few to count.
  assert.deepEqual(y.threes.map(p=>[p.name,p.percent,p.made,p.attempts]),[['Sha',66.7,10,15],['Cur',41,16,39]]);
- assert.match(seasonAwardsText(y),/Лучший процент трёхочковых<\/b> \(от 3 попаданий\)\n1\. Sha \(OKC\) — 66\.7% \(10\/15\)/);
+ const z=seasonAwards([...more,G('2026-11-01','13','Hot','MIA',{fgm:9,fga:10,fg3m:5,fg3a:5}),G('2026-11-02','14','Few','MIA',{fgm:4,fga:4})]);
+ assert.equal(z.fieldGoals.some(p=>p.name==='Hot'),false,'one game of three is no regular');
+ assert.equal(z.fieldGoals.some(p=>p.name==='Few'),false);
+ assert.match(seasonAwardsText(y),/<b>🏹 Лучшие шутеры лиги<\/b>\nС игры \(от 10 бросков за матч\):\n1\. Jok \(DEN\) — 70\.5% \(31\/44, 14\.7 за матч\)[^]*Трёхочковые \(от 5 бросков за матч\):\n1\. Sha \(OKC\) — 66\.7% \(10\/15, 5 за матч\)/);
+});
+test('Season awards: the fewest turnovers a game, of the regulars with thirty minutes a game',()=>{
+ const bench=['2026-11-01','2026-11-02','2026-11-03'].map(d=>G(d,'15','Bench','MIA',{tov:0},12));
+ const z=seasonAwards([...more,...bench]);
+ assert.deepEqual(z.fewestTurnovers.map(p=>[p.name,p.turnoversPerGame]),[['Jok',1],['Sha',1],['Cur',4]],'twelve minutes a game do not count');
+ assert.match(seasonAwardsText(z),/<b>🧤 Меньше всего потерь<\/b> \(от 30 минут за матч\)\n1\. Jok \(DEN\) — 1 за матч \(3 за 3 матча, 30 мин\)/);
 });
 test('Season awards: Mister Consistency is the lowest spread to the average, worst game beside it',()=>{
  assert.deepEqual(y.steady.map(p=>p.name),['Sha','Jok','Cur']);assert.ok(y.steady[0].spread<y.steady[2].spread);
