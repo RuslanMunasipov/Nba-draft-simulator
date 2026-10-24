@@ -10,6 +10,10 @@ import {claudeJSON,claudeConfigured,CLAUDE_MODEL} from './claude-text.mjs';
 
 export const NEWS_URL=id=>`https://site.api.espn.com/apis/fantasy/v2/games/fba/news/players?limit=50&playerId=${id}`;
 export const NEWS_PER_PLAYER=3;
+// The injury report the site reads itself, at the moment of the visit: its comments are translated as they are now, not
+// as the collector last saw them (24.10: the night's comments waited hours in English).
+export const INJURY_URL='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries';
+export const reportComments=report=>(report?.injuries||[]).flatMap(t=>t?.injuries||[]).flatMap(i=>[i?.shortComment,i?.longComment]).filter(Boolean);
 const KEEP_NEWS_DAYS=120,KEEP_TEXT_DAYS=60;
 
 // A comment's key and a news item's text, as the site computes them.
@@ -18,7 +22,12 @@ import {textKey,newsText} from '../src/translate.js';
 // Every number of a text, as written: a translation must keep the same ones (any order). The 3 of a three-pointer is a
 // word, not a number («1-2 3Pt», «3-pointer», «3-очковые»): the first real run lost 133 of 300 stat lines on it.
 const THREES=/\b3-?(?:pt|pts|ptr|pm|pa|point|pointers?|очков\p{L}*)(?![\p{L}\d])/giu;
-export const numbersOf=s=>(String(s||'').replace(THREES,' ').match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>x.replace(',','.')).sort();
+// Other digits that are words (the run of 24.10 lost 85 of 143 news on them): the 76ers, whom Russian calls «Филадельфия»;
+// an and-1 («с фолом», «2+1»); and a 3 that is a shot, «drains the 3», «logo 3», «step-back 3» («трёхочковый»). A 3 that
+// counts something (3 of 5, 3 rebounds, a 3-4 week absence) is still a number.
+const WORDS=[/\b76ers\b/giu,/\band-?(?:1|one)\b/giu,/(?<![\d.,])[23] ?\+ ?1(?![\d.,]\d)/gu,
+ /\b(?:a|the|another|logo|corner|deep|step-?back|pull-?up|fadeaway|go-ahead|game-tying|game-winning|clutch|dagger|contested|half-court|wide-open|open|buzzer-beating|buries|drains|hits|nails|sinks|cashes|splashes)\s+3(?![\p{L}\d]|[-.,:/]\d|\s+(?:of|straight|consecutive|games?|points?|rebounds?|boards?|assists?|steals?|blocks?|turnovers?|minutes?|percent|threes|treys|times|weeks?|days?|months?)\b)/giu];
+export const numbersOf=s=>(WORDS.reduce((t,re)=>t.replace(re,' '),String(s||'').replace(THREES,' ')).match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>x.replace(',','.')).sort();
 export const sameNumbers=(a,b)=>JSON.stringify(numbersOf(a))===JSON.stringify(numbersOf(b));
 
 export const SYSTEM=`Ты переводишь на русский тексты ESPN для сайта фэнтези-лиги НБА: новости игроков (заголовок и текст) и комментарии к отчёту о травмах.
@@ -27,6 +36,7 @@ export const SYSTEM=`Ты переводишь на русский тексты 
 - Имена игроков, тренеров и журналистов оставляй латиницей, как в оригинале.
 - Клубы НБА называй по-русски, как принято в русской спортивной прессе: «Финикс», «Портленд», «Лейкерс», «Клипперс», «Никс», «Голден Стэйт»; издания и подкасты — как в оригинале.
 - Все числа оставляй теми же цифрами: счёт, статистику, минуты, даты, сроки. Не заменяй слова цифрами и цифры словами («four rebounds» — «четыре подбора», «23 points» — «23 очка»). Счёт можно писать через двоеточие.
+- Не числа, а слова: «76ers» — «Филадельфия», «and-1» — «с фолом», «a 3»/«the 3» как бросок — «трёхочковый».
 - Статистика по-русски: очки, подборы, передачи, перехваты, блок-шоты, потери, фолы, с игры (FG), трёхочковые (3Pt), штрафные (FT), минуты. «Day-to-day» — «под вопросом на ближайшие матчи», «questionable» — «под вопросом», «out» — «не сыграет».
 - Пиши живым спортивным языком, без канцелярита.
 Ответ — JSON по схеме: для каждого текста его id и перевод.`;
@@ -97,7 +107,7 @@ if(import.meta.url===`file://${process.argv[1]}`){
  const live=JSON.parse(fs.readFileSync(livePath,'utf8'));
  const old=fs.existsSync(outPath)?JSON.parse(fs.readFileSync(outPath,'utf8')):{news:{},texts:{}};
  const ids=[...new Set(Object.values(live.players||{}).map(p=>p.espnId).filter(Boolean))];
- const comments=[...new Set((live.espnInjuries?.injuries||[]).flatMap(t=>t.injuries||[]).flatMap(i=>[i.shortComment,i.longComment]).filter(Boolean))];
+ const comments=[...new Set([...reportComments(await fetchJson(INJURY_URL)),...reportComments(live.espnInjuries)])];
  const news=await playerNews(ids);
  const todo=pending({news,comments,done:old}).slice(0,max);
  console.log(`players ${ids.length}, news ${news.length}, comments ${comments.length}, to translate ${todo.length}`);

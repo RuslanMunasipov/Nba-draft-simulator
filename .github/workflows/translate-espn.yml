@@ -3,9 +3,11 @@ name: ESPN in Russian
 # into Russian by Claude through the owner's subscription (scripts/translate-espn.mjs; no API key, nothing billed per
 # call). Only new texts; at most 300 a run, newest first, so a backlog clears over a few runs. The result is
 # translations.json on the branch data/translations, which the site reads; without a translation it shows the original.
+# The season watch starts a run after every Sports.ru snapshot (scripts/season_watch.py translate_now); the hourly
+# schedule is the fallback (GitHub skips scheduled runs often: on 23.10 five of twelve ran).
 on:
   schedule:
-    - cron: '41 */2 * * *'
+    - cron: '41 * * * *'
   workflow_dispatch:
 permissions:
   contents: write

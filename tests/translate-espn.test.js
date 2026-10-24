@@ -1,7 +1,7 @@
 // ESPN's texts in Russian (scripts/translate-espn.mjs, src/translate.js): a translation keeps every number of its original
 // or is not kept, comments go first, old entries are dropped, and the site finds a text by the same key the job wrote.
 import test from 'node:test';import assert from 'node:assert/strict';
-import {translateBatch,pending,merged,sameNumbers,numbersOf,batchPrompt,SCHEMA} from '../scripts/translate-espn.mjs';
+import {translateBatch,pending,merged,sameNumbers,numbersOf,batchPrompt,SCHEMA,reportComments} from '../scripts/translate-espn.mjs';
 import {textKey,newsRu,textRu,newsText,injuryDetail} from '../src/translate.js';
 
 test('a translation keeps the numbers of its original, in any order and with a decimal comma',()=>{
@@ -13,6 +13,13 @@ test('a translation keeps the numbers of its original, in any order and with a d
  // The 3 of a three-pointer is a word.
  assert.ok(sameNumbers('12 points (5-16 FG, 1-2 3Pt, 1-2 FT) and a 3-pointer','12 очков (5/16 с игры, 1/2 трёхочковых, 1/2 штрафных) и трёхочковый'));
  assert.ok(sameNumbers('1-4 3PT','1/4 3-очковых'));assert.ok(!sameNumbers('3 steals','перехваты'),'a real 3 still counts');
+ // The 76ers, an and-1 and a 3 that is a shot are words too (the run of 24.10 lost 85 of 143 news on them).
+ assert.ok(sameNumbers('76ers mount stunning 29-point comeback','«Филадельфия» отыгралась после минус 29'));
+ assert.ok(sameNumbers('Brook Lopez somehow gets the and-1 to fall','Brook Lopez каким-то образом реализует 2+1'));
+ assert.ok(sameNumbers('Karl-Anthony Towns cashes a logo 3 for the Knicks','Karl-Anthony Towns забивает трёхочковый от логотипа за «Никс»'));
+ assert.ok(sameNumbers('Damian Lillard knocks down the 3','Damian Lillard попадает трёхочковый'));
+ assert.ok(!sameNumbers('He hit 3 of 5 shots','Он попал 5 бросков'),'a 3 that counts');
+ assert.ok(!sameNumbers('out for a 3-4 week stretch','не сыграет 4 недели'));assert.ok(!sameNumbers('the 3 rebounds','подборы'));
 });
 
 test('a batch keeps only the translations whose numbers match and that are there',async()=>{
@@ -25,6 +32,11 @@ test('a batch keeps only the translations whose numbers match and that are there
  assert.equal(warned.length,2,'one changed number, one missing');
  assert.deepEqual(asked.schema,SCHEMA);assert.match(asked.system,/латиницей/);assert.match(asked.prompt,/"id": "t3"/);
  assert.match(batchPrompt(items),/headline оставь пустым/);
+});
+
+test('the comments of an injury report, short and long, without empty ones',()=>{
+ const report={injuries:[{injuries:[{shortComment:'Out Friday.',longComment:'He will miss Friday.'},{shortComment:''}]},{injuries:[]},{}]};
+ assert.deepEqual(reportComments(report),['Out Friday.','He will miss Friday.']);assert.deepEqual(reportComments(null),[]);
 });
 
 test('what to translate: comments first, then the newest news; done ones skipped',()=>{
