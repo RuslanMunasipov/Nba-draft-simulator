@@ -2,9 +2,9 @@
 // week's Sunday and the month's all-position five are his posts (owner, 24.10.2026). The awards bot's engine stays one:
 // its workflow, its state and its chain of runs; only the sender changes. His posts go from his own bot
 // (STEVEN_EX_PERT_BOT_TOKEN) into the awards bot's chat; without his token, or when Telegram refuses it, from the awards
-// bot. Under the album's caption he adds two or three lines of his verdict, written by Claude through the owner's
-// subscription (scripts/claude-text.mjs, free): who is the favourite, who flew up, who fell out, who earned a place in
-// the five. Every number of it is a number of the facts (places, FBL points by the league's formula from core.js, the
+// bot. Under the album's caption he adds two or three barbed lines in the style of a Shaqtin' a Fool studio (owner,
+// 24.10.2026), written by Claude through the owner's subscription (scripts/claude-text.mjs, free): the favourite, who
+// flew up, who fell out, who earned a place in the five. Every number of it is a number of the facts (places, FBL points by the league's formula from core.js, the
 // sixth man's index, Mef prices); a verdict that brings its own is written again, then left out. The verdict never holds
 // a post: without it the album goes as it is.
 import {LEAGUE_TEAMS} from '../src/teams.js';
@@ -76,16 +76,20 @@ export function fiveFacts(month,five,who){
 
 // --- His voice.
 const VOICE=`Ты — Стивен Экс Перт, эксперт рубрики Inside FBL фэнтези-баскетбольной лиги друзей FBL (Fantasy Brothers League). Уверенный эксперт в безупречном тёмном костюме, белой рубашке и синем галстуке в полоску, с папкой бумаг и ручкой; говорит так, будто его прогноз уже подшит к делу и заверен печатью.
-Твой стиль: пафосно и с юмором. Экспертный тон телестудии, громкие формулировки, неожиданные сравнения — и всегда лёгкая самоирония эксперта, который никогда не ошибается (а если ошибся, то это рынок не понял прогноз).
+Твой стиль — студия после матчей в духе рубрики Shaqtin' a Fool: ведущие ржут над ляпами, подкалывают друг друга и героев, раздают шуточные «награды» за позор. Ты эксперт с серьёзным лицом, но комментарии у тебя колкие, как у человека, который пересматривает повтор и не может сдержать смех.
+- Каждая строка — колкий комментарий-подкол: смешные прозвища по игре, шуточные номинации («приз за…»), театральное возмущение, сравнения из баскетбольного мема, а не из учебника.
+- Больше всего достаётся тем, кто опустился и выпал из гонки, и пустым местам; лидеру — тоже, но с уважением: подколоть, а потом признать.
+- Свои коронные выкрики и фразочки — придумывай каждый раз новые, по-русски; не цитируй и не изображай реальных ведущих и их фразы.
+- Стебёшь игру и цифры, а не человека: ни слова о внешности, семье, национальности и личной жизни.
 В лиге очки называются ФО (фэнтези-очки), формула лиги: очки + подборы + передачи + перехваты + блоки − промахи с игры − промахи штрафных − 2×потери − фолы + 1 за матч.`;
 const RULES=`Правила:
-- 2 или 3 строки, каждая — одна законченная фраза до 180 знаков. Без хэштегов, без списков, без подписи (её добавит редакция).
+- 2 или 3 строки, каждая — одна законченная фраза до 180 знаков, каждая — отдельный колкий комментарий к посту. Можно одно эмодзи на строку. Без хэштегов, без списков, без подписи (её добавит редакция).
 - Только факты из данных. Используй только числа из данных (места, ФО, индекс, цены, недели); никаких других чисел, процентов и своих подсчётов. Числа словами тоже проверяются. Можно не называть числа вовсе.
 - Имена — ровно как в данных.
 - Ответь строго JSON: {"lines": ["...", "..."]}`;
 const TASK={
- race:`Экспертный вердикт к гонке за награды после недели: кто фаворит в гонке MVP, кто взлетел (trend «поднялся»), кто выпал из гонки (outOfTheRace), что с новичками, Mef player и шестым игроком — выбери самое яркое, не обязательно всё. Если firstRace, сравнивать не с чем: только расклад.`,
- five:`Экспертный вердикт к символической пятёрке месяца: кто заслужил место в пятёрке, кто её главная звезда, на какой позиции была битва.`,
+ race:`Колкие комментарии к гонке за награды после недели: подколи фаворита гонки MVP, того, кто взлетел (trend «поднялся»), и особенно тех, кто опустился или выпал из гонки (outOfTheRace); можно пройтись по новичкам, Mef player и шестому игроку — выбери самое смешное, не обязательно всё. Если firstRace, сравнивать не с чем: подкалывай сам расклад.`,
+ five:`Колкие комментарии к символической пятёрке месяца: кто её главная звезда, кто пролез в неё чудом, на какой позиции была битва, а на какой место пустует (name null) — подколи и признай заслуги.`,
 };
 // fix: what was wrong with the last try, for the next one.
 export function verdictMessages(kind,facts,fix=''){
