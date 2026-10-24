@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {seasonRosters,acquisition,injuredTargets,bestPackage,bestSwapFor,transferOptions,transferVerdict,packageVerdict,netChange,dealGroups,
- explainSwap,splitProduct,pointsSpread,playerOutlook,confidencePercent,confidenceLevel,pickPackage,recommendPackage,contestedBy,transferWindow,takenIds,
+ explainSwap,splitProduct,onSale,swapAnalyzer,pointsSpread,playerOutlook,confidencePercent,confidenceLevel,pickPackage,recommendPackage,contestedBy,transferWindow,takenIds,
  CONFIDENT,DOUBTFUL,MOVE_PRICE} from '../src/season.js';
 // The fixture of tests/season.test.js: 80 drafted players (ids 1..80, team = (id-1)%8, 30 a game) plus 20 free agents
 // (ids 81..100, 20..39 a game), positions two per Sports.ru slot, the last round rookies.
@@ -227,4 +227,20 @@ test('a free agent every team would buy is flagged as contested by the others',(
  assert.deepEqual(rivals,[1,2,3,4,5,6,7]);
  assert.deepEqual(contestedBy(c,{team:0,playerId:91,bankOf:()=>-5000,sort:'season'}),[],'nobody can afford him');
  assert.deepEqual(contestedBy(c,{team:0,playerId:81,bankOf:()=>5000,sort:'season'}),[],'20 a game helps nobody');
+});
+
+// ---------- off-sale cards: Sports.ru cannot sell them, so no advice buys them ----------
+test('no advice buys a card Sports.ru does not sell: emptied, off its market list or at a club outside the NBA',()=>{
+ // #100 (C, 39 a game, sportsClub F99) is the best free agent: every adviser buys him while his card is on sale.
+ const buys=row=>{const c=ctx({today:'2026-10-21',live:{...live,players:row?{1100:row}:{}}});
+  return [transferOptions(c,{team:0,outId:65,bankMoney:5000,limit:50}).some(o=>o.player.id===100),Boolean(bestSwapFor(c,{team:0,playerId:100,bankMoney:5000})),
+   Boolean(swapAnalyzer(c,{team:0,bankMoney:5000,sort:'season'})(100)),Boolean(bestPackage(c,{team:0,bankMoney:5000,k:3,sort:'season'})?.pairs.some(x=>x.in.id===100))];};
+ const card={position:'C',price:1500,club:'F99',games:[]};
+ assert.deepEqual(buys(null),[true,true,true,true],'no live row: the verified database price');
+ assert.deepEqual(buys(card),[true,true,true,true]);
+ assert.deepEqual(buys({games:[]}),[false,false,false,false],'an emptied card (Kevin Porter, 24.10.2026)');
+ assert.deepEqual(buys({...card,club:'Бешикташ'}),[false,false,false,false],'Lonnie Walker\'s card at Besiktas');
+ assert.deepEqual(buys({...card,onSale:false}),[false,false,false,false],'off the market list');
+ assert.equal(onSale({...card,club:'Бешикташ',onSale:true},live),true,'the market list decides when the snapshot has it');
+ assert.equal(onSale(undefined,live),false);
 });
