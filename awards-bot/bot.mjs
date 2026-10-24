@@ -90,6 +90,7 @@ import {showData,openingFacts,numbersFacts,quizOf,infirmaryFacts as showInfirmar
  rundownOf,guestFacts,saidOf,guestById,votesSummary,ledgerEntry,ledgerWinners,seasonTally,shameYear,ledgerText,writeClosingPicture,closingCaption,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
 import {espnHeadshot} from '../scripts/image-pipeline.mjs';
 import {checkRules,verdict} from '../src/rules.js';
+import {seasonAwards,seasonAwardsText} from './season-awards.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText,introFacts,introFor,writePostPicture} from './dildo.js';
@@ -832,6 +833,8 @@ const SHOW_GAP_MS=(Number(env.INSIDE_SHOW_GAP_SECONDS)||40)*1e3;
 // nominees and winners, kept for the season's prizes.
 const ledgerRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(SHOW_DIR,'ledger.json'),'utf8'));}catch{return {version:1,season:'2026/27',weeks:{}};}};
 const ledgerSave=l=>{if(TEST)return;fs.mkdirSync(SHOW_DIR,{recursive:true});fs.writeFileSync(path.join(SHOW_DIR,'ledger.json'),JSON.stringify(l,null,1));};
+// The season's awards after the NBA's (season-awards.js) on the archive's lines so far, every NBA player counted.
+const awardsOf=(ctx,lines)=>seasonAwards(lines,{who:ctx.who,positionOf:a=>ctx.league.positionOf(ctx.league.player(a)),rookies:ctx.rookies,heldBy:ctx.league.rostered()});
 const ledgerAired=l=>Object.entries(l.weeks).sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x).filter(x=>x.aired);
 const showRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(SHOW_DIR,'state.json'),'utf8'));}catch{return {version:1,shows:{}};}};
 function branchPush(dir,branch,message){
@@ -921,6 +924,9 @@ async function showDraft(w,st,rec){
  if(!claudeConfigured(env))throw Error('Inside FBL show: no Claude subscription (CLAUDE_CODE_OAUTH_TOKEN): no show');
  const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers),byId=new Map(ctx.players.map(p=>[p.id,p]));
  const nameOf=id=>{const p=byId.get(id);return p?ctx.who(ctx.league.espnOf(p),ctx.live.players?.[p.sportsId]?.name||p.name):String(id);};
+ // The season's awards as they stand after the week: kept on the branch (season-awards.json) for the ceremony and the
+ // next season's draft.
+ if(!TEST){const at=path.join(SHOW_DIR,'shows',w.start);fs.mkdirSync(at,{recursive:true});fs.writeFileSync(path.join(at,'season-awards.json'),JSON.stringify({asOf:w.end,...awardsOf(ctx,archive.lines.filter(l=>l.d<=w.end))},null,1));}
  const d=showData(archive.lines,w,{table,who:ctx.who,rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef,transfers:ctx.transfers,espnOf:id=>ctx.league.espnOf(byId.get(id)),nameOf});
  // Last week's vote for the prize of shame, closed now and counted once.
  const prev=st.shows[addDays(w.start,-7)];
@@ -1193,8 +1199,9 @@ async function insideShow(){
  const st=showRead(),w=showWeek(),rec=st.shows[w.start];
  if(action==='votes'){await showVotes(w,st);return;}
  // ledger: the season's ledger of the awards so far, sent to the owner by Mike's bot (printed with --dry).
- if(action==='ledger'){const text=ledgerText(seasonTally(ledgerAired(ledgerRead())));
-  if(DRY||!(REVIEW&&MIKE))console.log(text.replace(/<[^>]+>/g,''));else await tg(MIKE,'sendMessage',{chat_id:REVIEW,text,parse_mode:'HTML'});
+ if(action==='ledger'){const lines=read('archive.json',{lines:[]}).lines;
+  const text=[ledgerText(seasonTally(ledgerAired(ledgerRead()))),...lines.length?[seasonAwardsText(awardsOf(await loadLeague(),lines))]:[]].join('\n\n');
+  if(DRY||!(REVIEW&&MIKE))console.log(text.replace(/<[^>]+>/g,''));else for(const part of split(text))await tg(MIKE,'sendMessage',{chat_id:REVIEW,text:part,parse_mode:'HTML'});
   if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL: журнал наград\n\n\`\`\`\n${text.replace(/<[^>]+>/g,'')}\n\`\`\`\n`);return;}
  // test: the show of the week made anew and sent to the owner's chat by Mike's bot with its real polls, which are read
  // as he votes, answered, closed after --minutes and counted. Nothing is pushed, published or posted to the league, and
