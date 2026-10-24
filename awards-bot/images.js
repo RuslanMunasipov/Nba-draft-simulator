@@ -1,4 +1,6 @@
-// FBL awards bot, the pictures of the game day (league chat, 22.10.2026): two per day, drawn by the picture pipeline
+// FBL awards bot, the pictures of the game day (league chat, 22.10.2026): two per day, Christopher Dildo's (dildo.js):
+// each a still of a film about a mathematician gone mad, Dildo hunting the day's most striking number, panicking about
+// the FBI, the players the visions of his calculations (owner, 24.10.2026); drawn by the picture pipeline
 // (scripts/image-pipeline.mjs) and sent after the day's album. One for the heroes, one for the flops: the block's players
 // together in one scene, the first of the block in the centre, each a character of a world of his own (any theme in the
 // world, never three takes on one; one work of art, not a collage: owner, 24.10.2026) picked from his stat line (a great
@@ -13,7 +15,8 @@ import {LEAGUE_TEAMS} from '../src/teams.js';
 import {wordNumbers} from './mike-roffon.js';
 import {esc,badges} from './messages.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
-import {cast,playerRef,logoRef,gmRef,promptProblems,writePicture,picture,CRAFT} from '../scripts/picture-prompt.mjs';
+import {cast,playerRef,logoRef,gmRef,dildoRef,promptProblems,writePicture,picture,CRAFT} from '../scripts/picture-prompt.mjs';
+import {teamShare} from './dildo.js';
 
 export const SIZE='1024x1024';
 // The name as the picture spells it: ESPN's short name in Latin letters ("N. Jokic"), which the model writes reliably.
@@ -27,47 +30,52 @@ const gmName=team=>Number.isInteger(team)?LEAGUE_TEAMS[team]?.gm||null:null;
 // (scripts/claude-text.mjs, nothing billed per call): hard, funny basketball banter on the players' lines, new every day.
 const PLACE_NAMES=['centre','left','right'];
 // The facts of a block's picture, the only thing Claude sees besides the references: per player his place, name, club,
-// FBL points (core.js, scored by fblFormula), his box score, his fantasy team's GM and kit, his form.
-export function momentFacts(kind,rows,{form=new Map()}={}){
- return {picture:kind==='hero'?'the heroes of the day':'the flops of the day',players:rows.slice(0,3).map((l,i)=>{const s=l.s||{},f=form.get(l.a);
-  return {place:PLACE_NAMES[i],name:imageName(l),club:l.c||null,fbl:Math.round(l.p),minutes:Math.round(l.m||0),
+// FBL points (core.js, scored by fblFormula), his box score, his fantasy team's GM and kit, his form; teams: the day of
+// the league's eight teams (dildo.js teamFacts), the numbers Christopher Dildo hunts, and a hero's share of his team's day.
+export function momentFacts(kind,rows,{form=new Map(),teams=null}={}){
+ return {picture:kind==='hero'?'the heroes of the day':'the flops of the day',...teams?{fblTeams:teams}:{},players:rows.slice(0,3).map((l,i)=>{const s=l.s||{},f=form.get(l.a),pct=teams&&kind==='hero'?teamShare(l,teams):null;
+  return {place:PLACE_NAMES[i],name:imageName(l),club:l.c||null,fbl:Math.round(l.p),...pct!==null?{percentOfFblTeamDay:pct}:{},minutes:Math.round(l.m||0),
    game:{pts:s.pts,reb:s.reb,ast:s.ast,stl:s.stl,blk:s.blk,tov:s.tov,fgm:s.fgm,fga:s.fga,fgMissed:s.fga-s.fgm,ftm:s.ftm,fta:s.fta,ftMissed:s.fta-s.ftm,pf:s.pf},
    gm:gmName(pictureTeam(l)),kitColors:pictureTeam(l)!==null?LEAGUE_TEAMS[pictureTeam(l)]?.kit||null:null,
    form:f?{heroDaysLast7:f.hero,flopDaysLast7:f.flop,onFire:!!f.fire,frozen:!!f.ice}:null};})};
 }
-// The references of a block's picture: each player's face (when ESPN has it), each league team's logo once, the GM who
-// picked the star (when the league has his photo).
+// The references of a block's picture: each player's face (when ESPN has it), Christopher Dildo's (the pictures are
+// his), each league team's logo once, the GM who picked the star (when the league has his photo).
 export function blockCast(kind,rows,{faces=new Map(),root}={}){
  rows=rows.slice(0,3);
  const teams=[...new Set(rows.map(pictureTeam).filter(t=>t!==null))],star=pictureTeam(rows[0]);
- return cast([...rows.map((l,i)=>playerRef(faces.get(String(l.a))||null,imageName(l),{place:PLACE_NAMES[i]})),
+ return cast([...rows.map((l,i)=>playerRef(faces.get(String(l.a))||null,imageName(l),{place:PLACE_NAMES[i]})),dildoRef(root),
   ...teams.map(t=>logoRef(t,root,{is:`the logo of the fantasy team of ${rows.filter(l=>pictureTeam(l)===t).map(imageName).join(' and ')}`})),
   star!==null?gmRef(star,root,{is:`the photo of the general manager (GM) who picked ${imageName(rows[0])}`,need:false}):null]);
 }
-const BANTER=`Ты — мем-редактор FBL (Fantasy Brothers League), фэнтези-баскетбольной лиги друзей. Каждый игровой день лига выкладывает две фотореалистичные мем-картинки: героев дня (их превозносят до небес) и провалы дня (их разносят в щепки). Ты придумываешь одну из них целиком и пишешь её промпт для ChatGPT.
-Тон — жёсткий баскетбольный стёб, трэш-ток и мемы НБА: Shaqtin' a Fool, Inside the NBA, «кирпичный завод», «ледяные вены», «готовит», «отъехал», «MVP-чанты», «пенсионер», «строитель». Это должно быть по-настоящему смешно: неожиданный поворот, абсурд, гипербола, точное попадание в его статлайн. Разноси игру без жалости: промахи, потери, фолы, ноль в графе, «призрака» на площадке; героев возноси до абсурда.
-Каждый игрок — свой персонаж из своего мира, все трое разные по тематике: не три вариации одной темы. Тематика любая, ограничений нет — всё, что есть в мире, истории, кино, мифах и жизни, лишь бы она точно и ярко отмечала его выступление: герою — величие, провалу — позор и посмешище. Образ рождается из того, что торчит в его линии (очки, промахи, потери, фолы, подборы, передачи, перехваты и блоки, идеальный вечер, форма); не как у соседей и не как в недавних идеях из списка.
-Это произведение искусства, а не коллаж: одна цельная картина, как кадр большого кино или полотно мастера. Единое место, где эти миры уживаются, или одна сцена, разделённая на зоны, — решай сам, каждый день по-новому; но свет, перспектива, стиль и атмосфера у всего кадра одни, люди живут в сцене, действуют и взаимодействуют с ней и друг с другом, а не вклеены вырезками поверх фона. Продуманная композиция с глубиной (передний, средний, дальний план), кинематографичный свет, богатый цвет, детали костюмов и фактур — красиво, дорого, захватывающе; не мрачно, не серо, не уныло. В idea назови место и образ каждого игрока, чтобы следующие дни их не повторяли.
+const BANTER=`Ты — бильд-редактор Кристофера Дилдо, аналитика Inside FBL фэнтези-баскетбольной лиги друзей FBL (Fantasy Brothers League). Каждый игровой день Дилдо выкладывает две фотореалистичные картинки: героев дня (их превозносят до небес) и провалы дня (их разносят в щепки). Ты придумываешь одну из них целиком и пишешь её промпт для ChatGPT.
+Картинки Дилдо — как он сам: каждая — кадр из фильма о сошедшем с ума математике. Дилдо — очень узкий специалист: кроме математики и цифр толком ничего не знает, вечно ищет цифры и выдаёт самое интересное, что есть по цифрам в мире баскетбола. И он панически боится ФБР: ему всё время кажется, что за ним следят — задёрнутые жалюзи, тени агентов в тёмных костюмах и очках за окном, чёрный фургон у дома, взгляд через плечо, телефон, который он прячет в холодильник. Это его страх, а не сюжет про закон: агенты никого не арестовывают и к игрокам не прикасаются; никаких настоящих эмблем, печатей и значков ФБР (буквы «FBI» на куртке агента — можно).
+Дилдо (его фото в референсах) всегда в кадре, в своём одержимом мире: стены, окна, доски, зеркала, пол, потолок исписаны формулами и цифрами, нити между вырезками, графики, блокнот и ручка в руке, безумный блеск за прямоугольными очками. Где это и что он делает — каждый день новое место и новый ход, решай сам. Самая интересная цифра дня из данных — игрока или наших команд FBL и их GM (fblTeams: ФО и места команд, лучший и худший игрок команды, её кирпичи и потери, доля героя в ФО своей команды percentOfFblTeamDay) — главная надпись кадра, его «открытие»: обведена, подчёркнута, светится.
+Тон — жёсткий баскетбольный стёб, трэш-ток и мемы НБА: Shaqtin' a Fool, Inside the NBA, «кирпичный завод», «ледяные вены», «готовит», «отъехал», «MVP-чанты», «пенсионер», «строитель». Это должно быть по-настоящему смешно: неожиданный поворот, абсурд, гипербола, точное попадание в его статлайн. Разноси игру без жалости: промахи, потери, фолы, ноль в графе, «призрака» на площадке; героев возноси до абсурда. Дилдо реагирует как аналитик: героям — экстаз от найденного выброса, провалам — ужас и маниакальный хохот над цифрами.
+Игроки — видения его воспалённого ума, ожившие из его расчётов: каждый игрок — свой персонаж из своего мира, все трое разные по тематике: не три вариации одной темы. Тематика любая — всё, что есть в мире, истории, кино, мифах и жизни, лишь бы она точно и ярко отмечала его выступление: герою — величие, провалу — позор и посмешище. Образ рождается из того, что торчит в его линии (очки, промахи, потери, фолы, подборы, передачи, перехваты и блоки, идеальный вечер, форма); не как у соседей и не как в недавних идеях из списка.
+Это произведение искусства, а не коллаж: одна цельная картина, как кадр большого кино. Видения игроков живут в комнате Дилдо или комната перетекает в их миры — решай сам, каждый день по-новому; но свет, перспектива, стиль и атмосфера у всего кадра одни, люди живут в сцене, действуют и взаимодействуют с ней и друг с другом, а не вклеены вырезками поверх фона. Продуманная композиция с глубиной (передний, средний, дальний план), кинематографичный свет, богатый цвет, детали костюмов и фактур — красиво, дорого, захватывающе, напряжённо, как триллер; не серо и не уныло. В idea назови место, ход Дилдо и образ каждого игрока, чтобы следующие дни их не повторяли.
 Что должно быть на картинке:
-- Все игроки данных, звезда — первый (place centre), крупнее и впереди; лицо каждого — точь-в-точь с его референса, если он есть, иначе реальный игрок НБА, как он выглядит на самом деле.
+- Дилдо и все игроки данных; звезда — первый (place centre), крупнее и впереди остальных игроков; лицо каждого — точь-в-точь с его референса, если он есть, иначе реальный игрок НБА, как он выглядит на самом деле. Дилдо — всегда в прямоугольных очках, с блокнотом и ручкой.
 - Каждый игрок — в форме цветов своей фэнтези-команды (kitColors) с её логотипом с референса на груди, не в форме своего клуба НБА; никаких логотипов клубов и лиг НБА.
-- У каждого игрока своя надпись — табличка или то, что живёт в сцене (гравировка, вывеска, свиток, неон), — ПО-РУССКИ ЗАГЛАВНЫМИ в кавычках, не больше 6 слов; числа в ней — только его собственные из данных (ФО как «N ФО» или счётчики бокс-скора вроде «7/21 С ИГРЫ»). Надписи модель должна вывести кириллицей буква в букву — так и напиши. Баннер «ГЕРОИ ДНЯ FBL» или «ПРОВАЛЫ ДНЯ FBL» — по желанию.
+- Надписи — ПО-РУССКИ ЗАГЛАВНЫМИ в кавычках, не больше 6 слов каждая: главная — его «открытие», и у каждого игрока своя (табличка, формула на стене, страница блокнота, неон — то, что живёт в сцене); числа в них — только из данных (ФО как «N ФО», счётчики бокс-скора вроде «7/21 С ИГРЫ», цифры команд из fblTeams). Надписи модель должна вывести кириллицей буква в букву — так и напиши. Баннер «ГЕРОИ ДНЯ FBL» или «ПРОВАЛЫ ДНЯ FBL» — по желанию.
 - GM, который выбрал звезду, — если его фото есть в референсах: на заднем плане, меньше игроков, радуется героям или в отчаянии от провала. Его имя можно написать только в надписи.
 Границы:
 - Стебём игру, а не человека: ничего про внешность, тело, расу, происхождение, семью, здоровье и личную жизнь.
 - Никаких судов, судей и юристов: закон лиги в награды не лезет.
-- На картинке только эти игроки, GM звезды и безликая массовка.
+- На картинке только Дилдо, эти игроки, GM звезды, безликие агенты и безликая массовка.
 
 ${CRAFT}`;
 export function momentMessages(facts,recent=[]){
- return `Картинка: ${facts.picture}.${recent.length?`\nНедавние идеи, не повторяй:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}`:''}\nДанные:\n${JSON.stringify(facts.players,null,1)}`;
+ return `Картинка: ${facts.picture}.${recent.length?`\nНедавние идеи, не повторяй:\n${recent.slice(-30).map(x=>`- ${x}`).join('\n')}`:''}\nДанные:\n${JSON.stringify(facts.fblTeams?{players:facts.players,fblTeams:facts.fblTeams}:facts.players,null,1)}`;
 }
 // Every number a player's sign may carry: his FBL points and his box score's counts.
-const numbersOf=p=>new Set([p.fbl,p.minutes,...Object.values(p.game)].filter(Number.isFinite).map(v=>String(Math.abs(v))));
+const numbersOf=p=>new Set([p.fbl,p.minutes,p.percentOfFblTeamDay,...Object.values(p.game)].filter(Number.isFinite).map(v=>String(Math.abs(v))));
+// Every number of the teams' day (fblTeams): their FBL points, places, counts, and the digits of their names.
+const teamNumbers=v=>typeof v==='number'?[String(Math.abs(v))]:typeof v==='string'?v.match(/\d+/g)||[]:v&&typeof v==='object'?Object.values(v).flatMap(teamNumbers):[];
 // What is wrong with Claude's prompt for these facts and references ([]: it may go to the image model): the players'
-// faces all in it, the numbers in quotes the players' own (in digits or in words).
+// faces all in it, the numbers in quotes the players' own or their teams' (in digits or in words).
 export function momentProblems(text,facts,c){
- const numbers=new Set(facts.players.flatMap(p=>[...numbersOf(p)]));
+ const numbers=new Set([...facts.players.flatMap(p=>[...numbersOf(p)]),...teamNumbers(facts.fblTeams||[])]);
  const out=promptProblems(text,c,{numbers});
  if(typeof text!=='string')return out;
  const signs=(text.match(/"[^"\n]*"/g)||[]).join(' '),strayW=wordNumbers(signs).filter(v=>!numbers.has(v));

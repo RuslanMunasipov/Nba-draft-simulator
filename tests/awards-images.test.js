@@ -7,6 +7,7 @@ import {fblFormula} from '../src/fbl-scoring.js';
 import {parseSummary,dailyBlocks} from '../awards-bot/core.js';
 import {dayPictures,blockCast,imageName,pictureTeam,SIZE,momentFacts,momentProblems,writeMoments,momentMessages,givenMoments} from '../awards-bot/images.js';
 import * as images from '../awards-bot/images.js';
+import {teamFacts} from '../awards-bot/dildo.js';
 
 const golden=JSON.parse(fs.readFileSync(new URL('./fixtures/fbl-formula-golden.json',import.meta.url),'utf8')).lines;
 // The golden lines as an ESPN box score, every player held by league team 0: the pictures' numbers come from core.js.
@@ -111,4 +112,31 @@ test('awards pictures: Claude writes the picture, a refused one goes back to him
  assert.equal(p.prompt,good);assert.deepEqual(p.ideas,['a construction site'],'kept so that the next days do not repeat them');
  assert.equal(givenMoments({prompt:good,idea:'i'},facts,c).prompt,good,'a prompt given by hand, checked like his');
  assert.equal(givenMoments({prompt:'x'},facts,c),null);
+});
+
+test('awards pictures: Christopher Dildo\'s, a still of a film about a mathematician gone mad, in fear of the FBI',async()=>{
+ const root=assets();fs.mkdirSync(path.join(root,'people'),{recursive:true});fs.writeFileSync(path.join(root,'people','christopher-dildo.jpg'),'cd');
+ const rows=[row('1',-12,[0],{fgm:3,fga:14,tov:6}),row('2',-3,[3],{pf:6})];
+ const faces=new Map([['1',{bytes:Buffer.from('f1'),name:'1.png',type:'image/png'}],['2',{bytes:Buffer.from('f2'),name:'2.png',type:'image/png'}]]);
+ const c=blockCast('flop',rows,{faces,root});
+ assert.deepEqual(c.images.map(i=>i.name),['1.png','2.png','christopher-dildo.jpg','1.png','4.png','1.jpg']);
+ assert.match(c.list[2].is,/Christopher Dildo/);assert.equal(c.list[2].mustUse,true);assert.match(c.list[2].alwaysDrawn,/mathematician gone mad/);assert.match(c.list[2].alwaysDrawn,/FBI/);
+ const facts=factsOf(),withDildo=good.replace('Wide 24mm','Christopher Dildo from reference image 3, his rectangular glasses and notebook, laughs at them. Wide 24mm').replace(/reference image 3 and reference image 4/,'reference image 4 and reference image 5');
+ assert.deepEqual(momentProblems(withDildo,facts,c),[]);
+ assert.match(momentProblems(good.replace(/reference image 3 and reference image 4/,'reference image 4 and reference image 5'),facts,c).join(),/reference image 3 \(the photo of Christopher Dildo.*\) not used/,'he is always in it');
+ assert.match(momentProblems(withDildo.replace(' and notebook',''),facts,c).join(),/no "notebook"/);
+ const calls=[];await writeMoments(facts,c,{claude:async a=>{calls.push(a);return {data:{prompt:withDildo,idea:'i'}};}});
+ assert.match(calls[0].system,/сошедшем с ума математике/);assert.match(calls[0].system,/панически боится ФБР/);assert.match(calls[0].system,/самое интересное, что есть по цифрам/);
+});
+
+test('awards pictures: the day\'s most striking number may be our teams\', computed by the code',()=>{
+ const lines=[{...row('1',30,[0]),d:'2026-10-21',e:'g1',m:30},{...row('2',10,[0]),d:'2026-10-21',e:'g2',m:30},{...row('3',-4,[3]),d:'2026-10-21',e:'g3',m:30}];
+ const blocks=dailyBlocks(lines),teams=teamFacts(lines,(a,n)=>imageName({a,n}),blocks);
+ const facts=momentFacts('hero',blocks.heroes,{teams});
+ assert.equal(facts.fblTeams[0].fo,40);assert.equal(facts.fblTeams[0].gm,'Franky Murder');assert.equal(facts.players[0].percentOfFblTeamDay,75);
+ const c=blockCast('hero',blocks.heroes,{root:assets(),faces:new Map(lines.map(l=>[l.a,{bytes:Buffer.from(l.a),name:l.a+'.png',type:'image/png'}]))});
+ const prompt=n=>`The real NBA players from reference image 1 and reference image 2, faces exactly as in the photos, rise from a wall of chalk formulas; the main sign, circled, reads "${n}% ФО КОМАНДЫ ОДИН"; each in the colours of his fantasy team, the logo from reference image 3 on the chest. The Russian words drawn letter by letter in Cyrillic; no other text, captions or watermarks. Wide lens, cinematic thriller light.`;
+ assert.deepEqual(momentProblems(prompt(75),facts,c),[]);
+ assert.match(momentProblems(prompt(77),facts,c).join(),/numbers in quotes not in the facts: 77/);
+ assert.match(momentMessages(facts),/"fblTeams"/);
 });

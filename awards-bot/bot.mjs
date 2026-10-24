@@ -61,14 +61,14 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey,esc} from './messages.js';
 import {dayAlbum,weekHeroesAlbum,raceAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
-import {dayPictures,momentFacts,blockCast,givenMoments,writeMoments} from './images.js';
+import {dayPictures,momentFacts,blockCast,givenMoments,writeMoments,imageName} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,mikeCast,writeMikePicture} from './mike-roffon.js';
 import {generate,cost} from '../scripts/image-pipeline.mjs';
 import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
-import {asDildo,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
+import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
 import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption} from './steven.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
@@ -456,6 +456,8 @@ async function infirmary(day,ctx,{send=live&&!!TREVOR,draw=true,prompts:only=fal
 const PICTURES=env.DAY_PICTURES==='1'&&!!OPENAI_KEY;
 async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true,recent=[]}={}){
  const blocks=dailyBlocks(lines.filter(l=>l.d===day)),f=form(lines,day),written={};
+ // The day of our eight teams, the numbers Christopher Dildo hunts: names in Latin letters, as the pictures spell them.
+ const teams=teamFacts(lines.filter(l=>l.d===day),(a,n)=>imageName({a,n}),{heroes:blocks.heroes,flops:blocks.flops});
  const kinds=[['hero',blocks.heroes],['flop',blocks.flops]].filter(([,rows])=>rows.length);
  // The players' faces first: Claude writes the prompt for the references there are.
  const ids=[...new Set([...blocks.heroes.slice(0,3),...blocks.flops.slice(0,3)].map(l=>String(l.a)))];
@@ -464,7 +466,7 @@ async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true,recent=[]
  // --moments FILE (a preview): the prompts as JSON {hero: {prompt, idea}, flop: ...}, checked like Claude's.
  const given=opt('--moments')?JSON.parse(fs.readFileSync(opt('--moments'),'utf8')):null;
  for(const [kind,rows] of kinds){
-  const facts=momentFacts(kind,rows,{form:f}),c=blockCast(kind,rows,{faces});
+  const facts=momentFacts(kind,rows,{form:f,teams}),c=blockCast(kind,rows,{faces});
   if(!draw)console.log(`\n===== ${day} ${kind} facts =====\n${JSON.stringify(facts.players)}`);
   if(given){written[kind]=givenMoments(given[kind],facts,c);continue;}
   if(!claudeConfigured(env)){console.warn(`${day}: no Claude subscription, no ${kind} picture.`);continue;}
