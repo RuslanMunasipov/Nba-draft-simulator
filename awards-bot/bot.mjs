@@ -35,7 +35,8 @@
 //                                                   an interview that went without one; --infirmary: his report
 //                                                   from the infirmary instead, ESPN's injury report as it is now,
 //                                                   drawn, ~$0.06); the state is only read
-// Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
+// Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check),
+// CHRISTOPHER_DILDO_BOT_TOKEN (his bot posts the day, its pictures and the week's heroes: dildo.js). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
 // own); when the cards cannot be drawn or sent, its text goes instead.
@@ -50,7 +51,7 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie,siteSummary,byCard} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey,esc} from './messages.js';
-import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
+import {dayAlbum,weekAlbum,weekHeroesAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
 import {dayPictures,momentFacts,blockCast,givenMoments,writeMoments} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,mikeCast,writeMikePicture} from './mike-roffon.js';
@@ -60,6 +61,7 @@ import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCa
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './infirmary.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
+import {asDildo,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -133,7 +135,7 @@ function pushState(state,archive){
 // --- Telegram.
 const TOKEN=env.AWARDS_BOT_TOKEN,CHAT=env.AWARDS_CHAT_ID,COMMISSIONER=env.AWARDS_COMMISSIONER_CHAT_ID;
 const live=Boolean(TOKEN&&CHAT)&&!flag('--preview');
-async function post(text,chat=CHAT,label='league chat'){
+async function post(text,chat=CHAT,label='league chat',token=TOKEN){
  if(!text)return;
  if(!live||!chat){
   console.log(`\n===== ${label} (preview) =====\n${text}\n`);
@@ -141,7 +143,7 @@ async function post(text,chat=CHAT,label='league chat'){
   return;
  }
  for(const part of split(text)){
-  const r=await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
+  const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({chat_id:chat,text:part,parse_mode:'HTML',disable_web_page_preview:true})});
   const body=await r.json().catch(()=>({}));
   if(!r.ok||!body.ok)throw Error(`Telegram ${label}: ${r.status} ${body.description||''}`);
@@ -155,7 +157,7 @@ const CARDS_DIR=opt('--cards'),FORCED=opt('--holiday');
 // --holiday KEY dresses the cards for that holiday whatever the day; --holiday none: no holiday decor at all.
 if(FORCED&&FORCED!=='none'&&!HOLIDAYS.some(h=>h.key===FORCED))throw Error(`--holiday: ${FORCED} is not a key of holidays.js (or none)`);
 const holidayFor=day=>FORCED?HOLIDAYS.find(h=>h.key===FORCED)||null:holidayOf(day);
-async function sendAlbum(pngs,caption){
+async function sendAlbum(pngs,caption,token=TOKEN){
  const one=pngs.length===1;
  for(let attempt=0;;attempt++){
   const data=new FormData();data.append('chat_id',String(CHAT));
@@ -164,7 +166,7 @@ async function sendAlbum(pngs,caption){
    pngs.forEach((png,i)=>data.append(`c${i}`,new Blob([png],{type:'image/png'}),`card-${i+1}.png`));}
   // A dropped connection (fetch throws, no answer at all: 23.10.2026) is tried again like a server error.
   let r;
-  try{r=await fetch(`https://api.telegram.org/bot${TOKEN}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:data,signal:AbortSignal.timeout(120e3)});}
+  try{r=await fetch(`https://api.telegram.org/bot${token}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:data,signal:AbortSignal.timeout(120e3)});}
   catch(e){const why=`${e.message}${e.cause?` (${e.cause.code||e.cause.message})`:''}`;
    if(attempt>=3)throw Error(`Telegram album: ${why}`);console.warn(`Telegram album: ${why}, tried again.`);await sleep(5000*(attempt+1));continue;}
   const body=await r.json().catch(()=>({}));
@@ -174,12 +176,13 @@ async function sendAlbum(pngs,caption){
  }
 }
 // build(look) → {cards, caption}; athletes: the ESPN ids whose headshots it shows; text: the post as text, the fallback.
-async function postAlbum(name,athletes,build,text){
+// via(send): the sender (dildo below); the awards bot's by default.
+async function postAlbum(name,athletes,build,text,{via=send=>send(TOKEN)}={}){
  let album,pngs;
  try{
   const {loadLook,renderCards,FONTS}=await import('./render.mjs');
   album=build(await loadLook(athletes),FONTS);pngs=await renderCards(album.cards);
- }catch(e){console.warn(`${name}: cards failed (${e.message}); the text goes instead.`);return post(text);}
+ }catch(e){console.warn(`${name}: cards failed (${e.message}); the text goes instead.`);return via(t=>post(text,CHAT,'league chat',t));}
  if(CARDS_DIR){
   fs.mkdirSync(CARDS_DIR,{recursive:true});
   pngs.forEach((png,i)=>{const f=path.join(CARDS_DIR,`${name}-${i+1}.png`);fs.writeFileSync(f,png);console.log('card: '+f);});
@@ -190,9 +193,17 @@ async function postAlbum(name,athletes,build,text){
   if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### ${name}: album of ${pngs.length} (preview)\n\n\`\`\`\n${album.caption}\n\`\`\`\n\n`);
   return;
  }
- try{await sendAlbum(pngs,album.caption);}
- catch(e){console.warn(`${name}: album not sent (${e.message}); the text goes instead.`);await post(text);}
+ try{await via(t=>sendAlbum(pngs,album.caption,t));}
+ catch(e){console.warn(`${name}: album not sent (${e.message}); the text goes instead.`);await via(t=>post(text,CHAT,'league chat',t));}
 }
+
+// --- Christopher Dildo (dildo.js): the day's album, the day's pictures and the week's heroes go out by his own bot
+// (CHRISTOPHER_DILDO_BOT_TOKEN) into the same chat; without his token, or when Telegram refuses it, by the awards bot.
+// His comment in their captions is written by Claude through the subscription; without it, or when he cannot write
+// one, the post goes with his signature alone.
+const DILDO=env.CHRISTOPHER_DILDO_BOT_TOKEN;
+const dildo=send=>asDildo(send,{dildo:DILDO,awards:TOKEN});
+const dildoComment=facts=>claudeConfigured(env)?commentFor(facts):Promise.resolve(null);
 
 // Archive every finished game of a day not archived yet. Returns the day's games that will still be played.
 async function archiveDay(day,state,archive,league){
@@ -225,8 +236,16 @@ async function weekly(day,ctx,archive,state,mark){
  await refresh(days,archive);
  const all=archive.lines.filter(l=>l.d<=day),r=races(all,{rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
  const wb=weeklyBlocks(all.filter(l=>l.d>=week.start)),rec=records(all);
- const text=[weeklyText(week,wb,ctx.who),racesText(week,r,ctx.who,state.ranks),recordsText(rec,ctx.who,today)].join('\n\n');
- const shown=[...Object.values(wb).flat(),...Object.values(r).flat(),...rec.best,...rec.worst].map(x=>x.a);
+ // The week's heroes, flops and free agents first: Christopher Dildo's album, marked apart (a run cut short between the
+ // two albums posts only the race next time).
+ if(!mark||!state.posted.weekHeroes?.[week.start]){
+  const comment=await dildoComment(weekFacts(week,wb,ctx.who));
+  await postAlbum(`week-${week.n}-heroes`,Object.values(wb).flat().map(x=>x.a),(look,fonts)=>{const a=weekHeroesAlbum(week,wb,ctx.who,look,fonts,{holiday:holidayFor(day)});return {...a,caption:signCaption(a.caption,comment)};},
+   signText(weeklyText(week,wb,ctx.who),comment),{via:dildo});
+  if(mark){(state.posted.weekHeroes||={})[week.start]=live?'sent':'preview';pushState(state,archive);}
+ }
+ const text=[racesText(week,r,ctx.who,state.ranks),recordsText(rec,ctx.who,today)].join('\n\n');
+ const shown=[...Object.values(r).flat(),...rec.best,...rec.worst].map(x=>x.a);
  await postAlbum(`week-${week.n}`,shown,(look,fonts)=>weekAlbum(week,wb,r,rec,ctx.who,look,fonts,{previous:state.ranks,holiday:holidayFor(day)}),text);
  if(mark){state.posted.weekly[week.start]=live?'sent':'preview';state.ranks=ranksOf(r);}
  const missing=withoutRookie(ctx.rosters,p=>p?.isRookie===true);
@@ -361,8 +380,8 @@ async function infirmary(day,ctx,{send=live&&!!MIKE,draw=true}={}){
 
 // --- The day's pictures (images.js): the heroes in one picture and the flops in another, their prompts written by Claude
 // through the owner's subscription (free; without it, or when he cannot write one, no picture), drawn by OpenAI (about
-// $0.03 each) and sent by the awards bot after the day's album, before Mike Roffon. recent: the ideas of the last days,
-// not to repeat. Only with DAY_PICTURES=1 and OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and
+// $0.03 each) and sent by Christopher Dildo's bot (the awards bot's without it) after the day's album, before Mike
+// Roffon. recent: the ideas of the last days, not to repeat. Only with DAY_PICTURES=1 and OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and
 // draws them with --pictures (paid; without the key the request goes out bare, for a proxy that adds it). Never holds the
 // awards: a failure is logged.
 const PICTURES=env.DAY_PICTURES==='1'&&!!OPENAI_KEY;
@@ -392,21 +411,23 @@ async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true,recent=[]
    if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});const f=path.join(CARDS_DIR,`picture-${day}-${p.kind}.png`);fs.writeFileSync(f,r.png);
     fs.writeFileSync(f.replace(/png$/,'txt'),p.caption+'\n\n'+p.prompt+'\n');console.log('picture: '+f);}
    if(send){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',p.caption);form.append('parse_mode','HTML');
-    form.append('photo',new Blob([r.png],{type:'image/png'}),`fbl-${p.kind}-${day}.png`);await telegram(TOKEN,'sendPhoto',form);sent++;}
+    form.append('photo',new Blob([r.png],{type:'image/png'}),`fbl-${p.kind}-${day}.png`);await dildo(t=>telegram(t,'sendPhoto',form));sent++;}
   }catch(e){console.warn(`${day}: the ${p.kind} picture failed (${e.message}).`);}
  }
  console.log(`${day}: ${drawn} of ${pictures.length} picture(s) drawn${send?`, ${sent} sent`:''}, $${spent.toFixed(3)}.`);
  return {status:send?(sent?'sent':'failed'):(drawn?'preview':'failed'),cost:Math.round(spent*1e4)/1e4,ideas};
 }
 
-// The day's post: its album, its text as the fallback.
-function dayPost(day,lines,ctx,postponed){
+// The day's post: its album, its text as the fallback; Christopher Dildo's, with his comment.
+async function dayPost(day,lines,ctx,postponed){
  const mine=lines.filter(l=>l.d===day),before=lines.filter(l=>l.d<day),blocks=dailyBlocks(mine);
  const news=daysBetween(SEASON_START,day)>=RECORD_ALERTS_FROM_DAY?recordNews(before,mine):[];
  const text=dailyText(day,blocks,ctx.who,{news,postponed,today:moscowDay(now())});
- if(!text)return Promise.resolve();
- const shown=[...Object.values(blocks).flat(),...news.map(x=>x.line)].map(x=>x.a);
- return postAlbum(`day-${day}`,shown,(look,fonts)=>dayAlbum(day,blocks,ctx.who,look,fonts,{news,postponed,form:form(lines,day),holiday:holidayFor(day),week:weekOf(day)}),text);
+ if(!text)return;
+ const shown=[...Object.values(blocks).flat(),...news.map(x=>x.line)].map(x=>x.a),f=form(lines,day);
+ const comment=await dildoComment(dayFacts(blocks,ctx.who,{form:f,news}));
+ return postAlbum(`day-${day}`,shown,(look,fonts)=>{const a=dayAlbum(day,blocks,ctx.who,look,fonts,{news,postponed,form:f,holiday:holidayFor(day),week:weekOf(day)});return {...a,caption:signCaption(a.caption,comment)};},
+  signText(text,comment),{via:dildo});
 }
 
 // Follow a game day to its post: wait for the last tip-off, check every minute until every game is over (archiving each

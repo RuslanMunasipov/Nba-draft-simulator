@@ -45,15 +45,15 @@ test('awards cards: hashtags navigate by type, week, month and date',()=>{
  const mo=monthAlbum('2026-10',[{pos:'PG',row:null}],who,look,fonts);assert.match(mo.caption,/#пятёрка_месяца #октябрь_2026$/);
 });
 
-test('awards cards: the week album is four cards, the sixth man by his index, arrows since last week',()=>{
+test('awards cards: the week album is the race in three cards, the sixth man by his index, arrows since last week',()=>{
  const row=(a,p)=>({a,n:'P'+a,c:'DEN',games:2,m:60,p,s,h:[1]});
  const r={mvp:[row('1',70),row('2',60)].map(x=>({...x,teams:[1]})),roy:[],mef:[{...row('3',40),teams:[],price:1400}],
   sixth:[{key:'2:5',team:2,a:'5',n:'P5',c:'BOS',games:2,bench:1,p:30,index:15}]};
  const {cards}=weekAlbum(week,{heroes:[row('1',70)],flops:[],gold:[]},r,{best:[line('9',50)],worst:[line('8',-12)]},who,look,fonts,{previous:{mvp:['2','1']}});
- assert.equal(cards.length,4);assert.match(cards[0],/Итоги недели/);
- assert.match(cards[1],/\+70/);assert.match(cards[1],/2 матча/);
- assert.match(cards[2],/▲1/,'up one place since last week');
- assert.match(cards[3],/<span class="n">15<\/span><span class="u">индекс<\/span>/);assert.match(cards[3],/30 ФО · запас 1\/2/);assert.match(cards[3],/Рекорды сезона/);
+ assert.equal(cards.length,3);assert.match(cards[0],/Итоги недели/);
+ assert.ok(cards.every(c=>!/Герои недели/.test(c)),'the week\'s heroes are Christopher Dildo\'s album');
+ assert.match(cards[1],/▲1/,'up one place since last week');
+ assert.match(cards[2],/<span class="n">15<\/span><span class="u">индекс<\/span>/);assert.match(cards[2],/30 ФО · запас 1\/2/);assert.match(cards[2],/Рекорды сезона/);
 });
 
 test('awards cards: a holiday dresses the cards, the layout stays',()=>{

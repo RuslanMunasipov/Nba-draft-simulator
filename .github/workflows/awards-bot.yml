@@ -87,6 +87,10 @@ jobs:
           # the FBL rosters' injured players from ESPN's injury report of that moment, its comments in Russian, the ward's
           # pictures.
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
+          # Christopher Dildo, the analyst of Inside FBL (awards-bot/dildo.js): the day's album, the day's pictures and the
+          # week's heroes go out by his own bot into the same chat, with his comment (written by Claude); without his token,
+          # or when Telegram refuses it, by the awards bot.
+          CHRISTOPHER_DILDO_BOT_TOKEN: ${{ secrets.CHRISTOPHER_DILDO_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
