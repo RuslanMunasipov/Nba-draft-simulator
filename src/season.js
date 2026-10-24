@@ -440,7 +440,14 @@ function selling(ctx,team,outId,bankMoney,byId){
 }
 // The league's «белое правило» list (ctx.white: ids of players who count); without a list the rule is not enforced.
 const whiteOf=ctx=>ctx.white?.size?ctx.white:null;
-const onMarket=(raw,ctx)=>raw.sportsId&&(ctx.live?.players?.[raw.sportsId]||raw.priceStatus==='VERIFIED');
+// A card Sports.ru sells: one on its market list (the collector's onSale, from team/create/150.json); in a snapshot
+// without that list, a card not emptied and at a club Sports.ru has an NBA calendar for (Lonnie Walker's card stayed
+// priced at «Бешикташ», 24.10.2026). No advice buys an off-sale card; a team that holds one keeps it.
+export function onSale(row,live){
+ if(!row)return false;if(typeof row.onSale==='boolean')return row.onSale;
+ return !emptied(row)&&(!row.club||!live?.clubs||Object.hasOwn(live.clubs,row.club));
+}
+const onMarket=(raw,ctx)=>{if(!raw.sportsId)return false;const row=ctx.live?.players?.[raw.sportsId];return row?onSale(row,ctx.live):raw.priceStatus==='VERIFIED';};
 // Sports.ru allows at most two players of one NBA club. One already over the limit after an NBA trade may stay, but no purchase may add to it.
 export const clubRoom=(rest,p)=>!p.club||rest.filter(q=>q.club===p.club).length<CLUB_LIMIT;
 const fits=(sale,p)=>Number.isFinite(p.price)&&p.price<=sale.money&&(!sale.needRookie||p.isRookie===true)&&(!sale.needWhite||sale.white.has(String(p.id)))&&clubRoom(sale.rest,p)&&rosterFits([...sale.rest,p]);
@@ -578,7 +585,7 @@ export function bestPackage(ctx,{team,bankMoney,k=3,sort='month',poolPerPosition
  const crowded=new Set(roster.map(p=>p.club).filter(c=>c&&roster.filter(p=>p.club===c).length>CLUB_LIMIT));
  const pool=[];
  for(const pos of POSITIONS){
-  pool.push(...ctx.players.filter(p=>!taken.has(p.id)&&p.sportsId&&(ctx.live?.players?.[p.sportsId]||p.priceStatus==='VERIFIED'))
+  pool.push(...ctx.players.filter(p=>!taken.has(p.id)&&onMarket(p,ctx))
    .map(p=>current(p,ctx)).filter(p=>p.positions.includes(pos)&&Number.isFinite(p.price)&&p.price<=wealth&&!crowded.has(p.club))
    .map(p=>({p,v:value(p)})).sort((a,b)=>b.v-a.v).slice(0,poolPerPosition));
  }
