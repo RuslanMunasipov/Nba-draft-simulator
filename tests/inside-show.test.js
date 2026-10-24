@@ -71,7 +71,7 @@ test('Inside FBL show: the prizes of shame, a player\'s and a GM\'s: a player on
  assert.equal(shameNominees(d,{breaches:[7]}).filter(x=>x.gmNominee)[1].kind,'дело Зака Онна','a breach of the rules nominates its GM');
  const f=shameFacts(d,n);assert.equal(f.players.length,pl.length);assert.equal(f.gms.length,gms.length);assert.ok([...f.players,...f.gms].every(x=>!('a' in x)&&!('option' in x)));
  const [pp,gp]=shamePolls(n);assert.equal(pp.key,'shamePlayer');assert.equal(gp.key,'shameGm');assert.match(gp.poll.question,/среди GM/);
- assert.deepEqual(pp.names,pl.map(x=>x.name));assert.deepEqual(gp.names,gms.map(x=>x.name));assert.ok([...pp.poll.options,...gp.poll.options].every(o=>o.length<=100));
+ assert.deepEqual(pp.names,pl.map(x=>`player:${x.a}`));assert.deepEqual(gp.names,gms.map(x=>`gm:${x.t}`));assert.ok([...pp.poll.options,...gp.poll.options].every(o=>o.length<=100));
 });
 
 test('Inside FBL show: whom the league may send Mike to on Friday, none of the last guests, the long read\'s --guest',()=>{
@@ -360,4 +360,26 @@ test('Inside FBL show: the votes closed together, told to the league in one mess
   shamePlayer:{result:{option:'Эдвардс — 18 промахов с игры',votes:1,total:1},poll:null},shameGm:{result:null,poll:null}});
  assert.match(t,/^🗳 <b>Inside FBL • Итоги голосований выпуска 2<\/b>\n\n🎤 В пятницу Майк Роффон едет в гости к: <b>Franky Murder \(The Balkan Murderers\)<\/b> \(2 из 3\)\n🏆 Позор недели среди игроков: <b>Эдвардс — 18 промахов с игры<\/b> \(1 из 1\)\n🏆 Позор недели среди GM: голосов нет\n🧮 Задачка Дилдо: верный ответ — <b>Texas 76 Citrus \(Лемариус\)<\/b>, угадали 3 из 4\n\nОпрос завершён, всем спасибо!/);
  assert.match(t,/#inside_fbl #неделя_2 #итоги_голосования$/);assert.equal(votesSummary(week,{}),null,'no votes: no message');
+});
+test('Inside FBL show: the ledger of the awards: every issue\'s tops, antitops, nominees and winners, by id, counted for the season',async()=>{
+ const m=await import('../awards-bot/inside-show.js'),n=shameNominees(d),q=quizOf({...d,week:{...week,n:1}}),c=guestCandidates(d,[]);
+ const e=m.ledgerEntry(d,{nominees:n,guests:[guestById('shaq')],quiz:q,candidates:c});
+ assert.deepEqual([e.week,e.start,e.end],[2,'2026-11-02'.replace('11-02','10-26'),'2026-11-01']);
+ assert.equal(e.top.heroOfTheWeek.key,'player:1');assert.equal(e.top.heroOfTheWeek.name,'Эдвардс');assert.equal(e.top.bestTeam.key,'gm:5');
+ assert.ok(e.antitop.flopOfTheWeek.key.startsWith('player:'));assert.ok(e.antitop.worstTeam.key.startsWith('gm:'));
+ assert.ok(e.nominations.shamePlayer.nominees.every(x=>/^player:\d+$/.test(x.key)));assert.ok(e.nominations.shameGm.nominees.every(x=>/^gm:\d$/.test(x.key)));
+ assert.deepEqual(shamePolls(n)[0].names,e.nominations.shamePlayer.nominees.map(x=>x.key),'the polls count by the same keys');
+ assert.deepEqual(e.guests,[{id:'shaq',name:"Шакил О'Нил"}]);assert.equal(e.quiz.answer,q.options[q.correct]);
+ const young=e.nominations.shamePlayer.nominees[0],gm=e.nominations.shameGm.nominees[0];
+ m.ledgerWinners(e,{shamePlayer:{result:{key:young.key,option:'x',votes:3,total:5}},shameGm:{result:{key:gm.key,option:'y',votes:2,total:4}},
+  mike:{result:{key:c[0].force,option:c[0].label,votes:1,total:1}},numbers:{poll:{options:q.options.map((text,i)=>({text,voter_count:i===q.correct?4:1})),total_voter_count:7,correct_option_id:q.correct}}});
+ assert.deepEqual(e.nominations.shamePlayer.winner,{key:young.key,name:'Янг',team:young.team,votes:3,total:5});assert.equal(e.nominations.shameGm.winner.name,'Лемариус');
+ assert.equal(e.guestVote.winner.key,c[0].force);assert.deepEqual([e.quiz.right,e.quiz.voters],[4,7]);
+ // Two players of one name never count as one: the tally goes by the key.
+ const other={...structuredClone(e),start:'2026-11-02',nominations:{shamePlayer:{winner:{key:'player:999',name:'Янг'}},shameGm:{winner:{key:gm.key,name:'Лемариус'}}}};
+ const t=m.seasonTally([e,other,structuredClone(e)]);
+ assert.deepEqual(t.shamePlayer.map(x=>[x.key,x.count]),[[young.key,2],['player:999',1]]);assert.deepEqual(t.shameGm.map(x=>[x.name,x.count]),[['Лемариус',3]]);
+ assert.equal(t.heroOfTheWeek[0].count,3);assert.equal(t.guests[0].name,"Шакил О'Нил");
+ assert.deepEqual(m.shameYear(t).players,[{name:'Янг',wins:2},{name:'Янг',wins:1}]);
+ const text=m.ledgerText(t);assert.match(text,/^📒 <b>Inside FBL • Журнал наград сезона 2026\/27<\/b>\nВыпусков: 3/);assert.match(text,/<b>🏆 Позор года — GM<\/b>\n1\. Лемариус — 3/);assert.match(text,/<b>⭐ Герой недели<\/b>\n1\. Эдвардс — 3/);
 });
