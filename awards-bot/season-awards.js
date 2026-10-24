@@ -34,7 +34,7 @@ export function seasonAwards(lines,{who=(a,n)=>n,positionOf=()=>null,rookies=new
  const leaders=of=>rows.filter(r=>of(r)>0).sort((a,b)=>of(b)-of(a)||a.games-b.games||a.a.localeCompare(b.a)).slice(0,top)
   .map(r=>entry(r,ctx,{value:of(r),valuePerGame:Math.round(10*of(r)/r.games)/10}));
  const stats={assists:leaders(r=>r.s.ast),rebounds:leaders(r=>r.s.reb),bricks:leaders(r=>r.s.fga-r.s.fgm),turnovers:leaders(r=>r.s.tov),fouls:leaders(r=>r.s.pf)};
- return {games:new Set(lines.map(l=>l.d)).size,allFbl,roy,dpoy,ironMan,...stats,...doubles(lines,ctx,top),...shooting(lines,rows,ctx,top),
+ return {games:new Set(lines.map(l=>l.d)).size,allFbl,roy,dpoy,ironMan,...stats,...doubles(lines,ctx,top),...shooting(rows,ctx,top),fewestTurnovers:careful(rows,ctx,top),
   steady:steady(lines,rows,ctx,top),...dealAwards(lines,{transfers,espnOf,nameOf,who,table,top}),records:seasonRecords(lines,{who,heldBy,top})};
 }
 
@@ -50,17 +50,23 @@ function doubles(lines,ctx,top){
   fblTeams:(ctx.heldBy.get(l.a)||[]).map(t=>LEAGUE_TEAMS[t]?.name).filter(Boolean),date:l.d,game:l.e,fo:round(l.p),...Object.fromEntries(TENS.map(k=>[k,l.s[k]]))}));
  return {doubleDoubles:list(dd),tripleDoubles:list(td),quadrupleDoubles:quadruple};
 }
-// Shooting (owner, 24.10.2026) as the NBA qualifies it, in proportion to the season so far: field goals with 300 made over
-// 82 games, threes with 82 made; the games are the most any NBA club has played. Lines without threes count none.
-export const QUALIFY={fgmPerGame:300/82,fg3mPerGame:82/82};
-function shooting(lines,rows,ctx,top){
- const clubs=new Map();for(const l of lines)(clubs.get(l.c)||clubs.set(l.c,new Set()).get(l.c)).add(l.e);
- const games=Math.max(0,...[...clubs.values()].map(x=>x.size));
- const pct=(made,att,min)=>{const rate=x=>x.s[made]/x.s[att];
-  return rows.filter(x=>(x.s[made]||0)>=min&&x.s[att]>0).sort((a,b)=>rate(b)-rate(a)||b.s[made]-a.s[made]||a.a.localeCompare(b.a)).slice(0,top)
-   .map(x=>entry(x,ctx,{made:x.s[made],attempts:x.s[att],percent:Math.round(1000*rate(x))/10}));};
- const fieldGoals=pct('fgm','fga',Math.max(1,Math.ceil(QUALIFY.fgmPerGame*games))),threes=pct('fg3m','fg3a',Math.max(1,Math.ceil(QUALIFY.fg3mPerGame*games)));
- return {fieldGoals,threes,shootingGames:games};
+// The league's regulars: games at least 60% of the most any player has played (the awards of rates need them).
+export const QUALIFY={games:0.6,fgaPerGame:10,fg3aPerGame:5,minutesPerGame:30};
+const regulars=rows=>{const most=Math.max(0,...rows.map(r=>r.games)),min=Math.max(1,Math.ceil(QUALIFY.games*most));return rows.filter(r=>r.games>=min);};
+// The league's best shooters (owner, 24.10.2026): the best percentage of the regulars who shoot, from the field from ten
+// attempts a game, threes from five. Lines without threes count none.
+function shooting(rows,ctx,top){
+ const best=(made,att,perGame)=>{const rate=x=>x.s[made]/x.s[att];
+  return regulars(rows).filter(x=>x.s[att]>0&&x.s[att]>=perGame*x.games).sort((a,b)=>rate(b)-rate(a)||b.s[made]-a.s[made]||a.a.localeCompare(b.a)).slice(0,top)
+   .map(x=>entry(x,ctx,{made:x.s[made],attempts:x.s[att],attemptsPerGame:Math.round(10*x.s[att]/x.games)/10,percent:Math.round(1000*rate(x))/10}));};
+ return {fieldGoals:best('fgm','fga',QUALIFY.fgaPerGame),threes:best('fg3m','fg3a',QUALIFY.fg3aPerGame)};
+}
+// The fewest turnovers (owner, 24.10.2026: a turnover costs two FBL points): the regulars with thirty minutes a game and
+// more, by turnovers a game; at equal ones the more minutes.
+function careful(rows,ctx,top){
+ const per=r=>r.s.tov/r.games,mins=r=>r.m/r.games;
+ return regulars(rows).filter(r=>mins(r)>=QUALIFY.minutesPerGame).sort((a,b)=>per(a)-per(b)||mins(b)-mins(a)||a.a.localeCompare(b.a)).slice(0,top)
+  .map(r=>entry(r,ctx,{turnovers:r.s.tov,turnoversPerGame:Math.round(10*per(r))/10,minutesPerGame:Math.round(10*mins(r))/10}));
 }
 // Mister Consistency: the steadiest of the season's top 50 by FBL points a game, with games at least 60% of the most any
 // player has: the lowest spread of his games' points (standard deviation) to his average.
@@ -131,6 +137,7 @@ const games=n=>`${n} ${plural(n,'матч','матча','матчей')}`;
 function otherAwardsText(x){
  const who=p=>`${esc(p.name)}${p.club?` (${esc(p.club)})`:''}${p.fblTeams?.length?` · ${esc(p.fblTeams.join(', '))}`:''}`;
  const list=(rows,num)=>rows?.length?rows.map((p,i)=>`${i+1}. ${who(p)} — ${num(p)}`).join('\n'):'—';
+ const shot=p=>`${p.percent}% (${p.made}/${p.attempts}, ${p.attemptsPerGame} за матч)`;
  const total=(...forms)=>p=>`${p.value} ${plural(p.value,...forms)} (${p.valuePerGame} за матч)`;
  const gm=g=>`${esc(g.team)}${g.gm?` (GM ${esc(g.gm)})`:''}`;
  const deal=d=>`${gm(d)}, ${DAY(d.date)}: ${esc(d.sold.name)} → ${esc(d.bought.name)} — ${d.difference>0?'+':''}${d.difference} ФО (купленный ${d.bought.fo}, проданный ${d.sold.fo})`;
@@ -140,8 +147,8 @@ function otherAwardsText(x){
   `<b>🎯 Ассистент года</b>\n${list(x.assists,total('передача','передачи','передач'))}`,`<b>🧲 Подборщик года</b>\n${list(x.rebounds,total('подбор','подбора','подборов'))}`,
   `<b>✌️ Дабл-даблы</b>\n${list(x.doubleDoubles,p=>`${p.count} за ${games(p.games)}`)}`,`<b>🔺 Трипл-даблы</b>\n${list(x.tripleDoubles,p=>`${p.count} за ${games(p.games)}`)}`,
   `<b>💎 Квадрупл-дабл</b>\n${quad}`,
-  `<b>🏹 Лучший процент с игры</b> (от ${Math.max(1,Math.ceil(QUALIFY.fgmPerGame*x.shootingGames))} попаданий)\n${list(x.fieldGoals,p=>`${p.percent}% (${p.made}/${p.attempts})`)}`,
-  `<b>👌 Лучший процент трёхочковых</b> (от ${Math.max(1,Math.ceil(QUALIFY.fg3mPerGame*x.shootingGames))} попаданий)\n${list(x.threes,p=>`${p.percent}% (${p.made}/${p.attempts})`)}`,
+  `<b>🏹 Лучшие шутеры лиги</b>\nС игры (от ${QUALIFY.fgaPerGame} бросков за матч):\n${list(x.fieldGoals,shot)}\nТрёхочковые (от ${QUALIFY.fg3aPerGame} бросков за матч):\n${list(x.threes,shot)}`,
+  `<b>🧤 Меньше всего потерь</b> (от ${QUALIFY.minutesPerGame} минут за матч)\n${list(x.fewestTurnovers,p=>`${p.turnoversPerGame} за матч (${p.turnovers} за ${games(p.games)}, ${p.minutesPerGame} мин)`)}`,
   `<b>📏 Мистер стабильность</b>\n${list(x.steady,p=>`${p.perGame} ФО за матч, разброс ±${p.spread}, худший матч ${p.worst}`)}`,
   `<b>👔 GM года</b> (сумма сделок сезона)\n${x.gmOfTheYear?.length?x.gmOfTheYear.map((g,i)=>`${i+1}. ${gm(g)} — ${g.net>0?'+':''}${g.net} ФО за ${g.deals} ${plural(g.deals,'сделку','сделки','сделок')}${g.place?`, ${g.place}-е место`:''}`).join('\n'):'—'}`,
   `<b>🤝 Сделка года</b>\n${deals(x.dealOfTheYear)}`,`<b>🙈 Сделка года наоборот</b>\n${deals(x.antiDeal)}`,
