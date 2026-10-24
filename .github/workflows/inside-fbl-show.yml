@@ -22,9 +22,9 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'hold: nothing more goes out; release: it goes out again; redo: written anew; draft; announce: at 12:00; post: at 18:00'
+        description: 'hold: nothing more goes out; release: it goes out again; redo: written anew; test: the whole show to the owner alone by Mike''s bot, its polls read; draft; announce: at 12:00; post: at 18:00'
         type: choice
-        options: [hold, release, redo, draft, announce, post]
+        options: [hold, release, redo, test, draft, announce, post]
         default: hold
       notes:
         description: 'For redo: what to change (the hosts get it as the editor''s wishes)'
@@ -34,6 +34,10 @@ on:
         description: 'For draft/redo: the special guests by hand, ids of data/inside-show-guests.json, e.g. shaq,pop (empty: chosen by Claude; redo keeps them)'
         required: false
         default: ''
+      minutes:
+        description: 'For test: how long the polls stay open while the votes are read'
+        required: false
+        default: '10'
       week:
         description: 'A US day of the show''s week, YYYY-MM-DD (empty: the last full week, Monday to Sunday)'
         required: false
@@ -76,6 +80,7 @@ jobs:
           ACTION: ${{ github.event.schedule == '7 11,12,13 * * 1' && 'post' || github.event.schedule == '7 7,8 * * 1' && 'announce' || github.event.schedule == '7 2,3,4,5 * * 1' && 'draft' || inputs.action }}
           AFTER: ${{ github.event.schedule == '7 2,3,4,5 * * 1' && '--wait-sunday --wait-review' || '' }}
           GUESTS: ${{ inputs.guests }}
+          MINUTES: ${{ inputs.minutes }}
           WEEK: ${{ inputs.week }}
           NOTES: ${{ inputs.notes }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
@@ -95,4 +100,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           node awards-bot/bot.mjs --inside-show --state "$RUNNER_TEMP/awards" --show "$RUNNER_TEMP/show" --action "$ACTION"
-          ${WEEK:+--show-week "$WEEK"} ${NOTES:+--notes "$NOTES"} ${GUESTS:+--guests "$GUESTS"} $AFTER
+          ${WEEK:+--show-week "$WEEK"} ${NOTES:+--notes "$NOTES"} ${GUESTS:+--guests "$GUESTS"} ${MINUTES:+--minutes "$MINUTES"} $AFTER
