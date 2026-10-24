@@ -42,6 +42,7 @@
 //                                                   (~$0.06; --prompts: only the pictures' prompts, free) and,
 //                                                   with --send, posted by his bot; nothing is saved
 //   node awards-bot/bot.mjs --trevor-hello [--send]  Trevor introduces himself (data/trevor/hello.html with his photo)
+//   node awards-bot/bot.mjs --steven-hello [--send]  Steven Ex Pert introduces himself (steven.js HELLO_CAPTION, his photo)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check),
 // CHRISTOPHER_DILDO_BOT_TOKEN (his bot posts the day, its pictures and the week's heroes: dildo.js),
 // STEVEN_EX_PERT_BOT_TOKEN (his bot posts the awards race and the month's five: steven.js),
