@@ -6,7 +6,8 @@ name: Awards bot
 # GitHub's schedule (best-effort, often hours late; the cron below only restarts a broken chain). A run sleeps until the
 # day's last game is about to tip off, waits for the tip-off, checks every minute until every game is over and posts the
 # game day at once. Then the
-# week and the awards race after Sunday's games, and the month's five after its last game day.
+# week and the awards race after Sunday's games, and the month's five after its last game day (the race and the five
+# from Steven Ex Pert's bot).
 # Run it by hand with a US game day to preview that day's posts (nothing saved or sent).
 on:
   schedule:
@@ -85,6 +86,10 @@ jobs:
           # (CLAUDE_CODE_OAUTH_TOKEN below), drawn by OpenAI. Without his token or Claude's there is no interview; without
           # the OpenAI key it goes without its picture.
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
+          # Steven Ex Pert, the league's expert (awards-bot/steven.js): the awards race after Sunday and the month's five
+          # go from his bot into the same chat, with his verdict written by Claude. Without his token, or when Telegram
+          # refuses it, the awards bot posts them.
+          STEVEN_EX_PERT_BOT_TOKEN: ${{ secrets.STEVEN_EX_PERT_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

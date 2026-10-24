@@ -34,9 +34,11 @@
 //                                                   by his bot with --send (--picture-only: only his picture, for
 //                                                   an interview that went without one); the state is only read
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
-// the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
-// and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
-// own); when the cards cannot be drawn or sent, its text goes instead.
+// the token and chat the posts are printed and kept in the state as previews, never sent. STEVEN_EX_PERT_BOT_TOKEN: the
+// bot of Steven Ex Pert (steven.js), who posts the awards race and the month's five into the same chat (without it, or
+// when Telegram refuses it, the awards bot does). Every post of the day, the week and the month goes as one album of
+// cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its own); when the cards cannot be drawn
+// or sent, its text goes instead.
 // Optional: LIVE_URL (sports-current.json), DB_PATH (a local default-draft.json), NOW (ISO time, for a dry run),
 // WATCH_MINUTES (how long one run may stay, 330 by default: GitHub stops a job at 360), CHAIN (stay the whole time and
 // let the workflow start the next run).
@@ -48,7 +50,7 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie,siteSummary,byCard} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey,esc} from './messages.js';
-import {dayAlbum,weekAlbum,monthAlbum} from './cards.js';
+import {dayAlbum,weekAlbum,raceAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
 import {dayPictures,momentFacts,blockCast,givenMoments,writeMoments} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,mikeCast,writeMikePicture} from './mike-roffon.js';
@@ -57,6 +59,7 @@ import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
+import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText} from './steven.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -130,7 +133,7 @@ function pushState(state,archive){
 // --- Telegram.
 const TOKEN=env.AWARDS_BOT_TOKEN,CHAT=env.AWARDS_CHAT_ID,COMMISSIONER=env.AWARDS_COMMISSIONER_CHAT_ID;
 const live=Boolean(TOKEN&&CHAT)&&!flag('--preview');
-async function post(text,chat=CHAT,label='league chat'){
+async function post(text,chat=CHAT,label='league chat',token=TOKEN){
  if(!text)return;
  if(!live||!chat){
   console.log(`\n===== ${label} (preview) =====\n${text}\n`);
@@ -138,7 +141,7 @@ async function post(text,chat=CHAT,label='league chat'){
   return;
  }
  for(const part of split(text)){
-  const r=await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
+  const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({chat_id:chat,text:part,parse_mode:'HTML',disable_web_page_preview:true})});
   const body=await r.json().catch(()=>({}));
   if(!r.ok||!body.ok)throw Error(`Telegram ${label}: ${r.status} ${body.description||''}`);
@@ -152,7 +155,7 @@ const CARDS_DIR=opt('--cards'),FORCED=opt('--holiday');
 // --holiday KEY dresses the cards for that holiday whatever the day; --holiday none: no holiday decor at all.
 if(FORCED&&FORCED!=='none'&&!HOLIDAYS.some(h=>h.key===FORCED))throw Error(`--holiday: ${FORCED} is not a key of holidays.js (or none)`);
 const holidayFor=day=>FORCED?HOLIDAYS.find(h=>h.key===FORCED)||null:holidayOf(day);
-async function sendAlbum(pngs,caption){
+async function sendAlbum(pngs,caption,token=TOKEN){
  const one=pngs.length===1;
  for(let attempt=0;;attempt++){
   const data=new FormData();data.append('chat_id',String(CHAT));
@@ -161,7 +164,7 @@ async function sendAlbum(pngs,caption){
    pngs.forEach((png,i)=>data.append(`c${i}`,new Blob([png],{type:'image/png'}),`card-${i+1}.png`));}
   // A dropped connection (fetch throws, no answer at all: 23.10.2026) is tried again like a server error.
   let r;
-  try{r=await fetch(`https://api.telegram.org/bot${TOKEN}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:data,signal:AbortSignal.timeout(120e3)});}
+  try{r=await fetch(`https://api.telegram.org/bot${token}/${one?'sendPhoto':'sendMediaGroup'}`,{method:'POST',body:data,signal:AbortSignal.timeout(120e3)});}
   catch(e){const why=`${e.message}${e.cause?` (${e.cause.code||e.cause.message})`:''}`;
    if(attempt>=3)throw Error(`Telegram album: ${why}`);console.warn(`Telegram album: ${why}, tried again.`);await sleep(5000*(attempt+1));continue;}
   const body=await r.json().catch(()=>({}));
@@ -171,12 +174,15 @@ async function sendAlbum(pngs,caption){
  }
 }
 // build(look) → {cards, caption}; athletes: the ESPN ids whose headshots it shows; text: the post as text, the fallback.
-async function postAlbum(name,athletes,build,text){
+// senders: the bots it may go from, in order (steven.js stevenSenders); the awards bot by default.
+const AWARDS_SENDER=[{name:'awards bot',token:TOKEN}];
+async function postAlbum(name,athletes,build,text,senders=AWARDS_SENDER){
+ const asText=()=>viaFirst(senders,t=>post(text,CHAT,'league chat',t),{label:name});
  let album,pngs;
  try{
   const {loadLook,renderCards,FONTS}=await import('./render.mjs');
   album=build(await loadLook(athletes),FONTS);pngs=await renderCards(album.cards);
- }catch(e){console.warn(`${name}: cards failed (${e.message}); the text goes instead.`);return post(text);}
+ }catch(e){console.warn(`${name}: cards failed (${e.message}); the text goes instead.`);return asText();}
  if(CARDS_DIR){
   fs.mkdirSync(CARDS_DIR,{recursive:true});
   pngs.forEach((png,i)=>{const f=path.join(CARDS_DIR,`${name}-${i+1}.png`);fs.writeFileSync(f,png);console.log('card: '+f);});
@@ -187,8 +193,8 @@ async function postAlbum(name,athletes,build,text){
   if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### ${name}: album of ${pngs.length} (preview)\n\n\`\`\`\n${album.caption}\n\`\`\`\n\n`);
   return;
  }
- try{await sendAlbum(pngs,album.caption);}
- catch(e){console.warn(`${name}: album not sent (${e.message}); the text goes instead.`);await post(text);}
+ try{const by=await viaFirst(senders,t=>sendAlbum(pngs,album.caption,t),{label:name});if(senders.length>1)console.log(`${name}: sent by ${by}.`);}
+ catch(e){console.warn(`${name}: album not sent (${e.message}); the text goes instead.`);await asText();}
 }
 
 // Archive every finished game of a day not archived yet. Returns the day's games that will still be played.
@@ -217,14 +223,28 @@ async function refresh(days,archive){
 }
 const ranksOf=r=>Object.fromEntries(Object.entries(r).map(([k,list])=>[k,list.map(raceKey)]));
 
+// --- Steven Ex Pert (steven.js): the awards race and the month's five go from his bot (STEVEN_EX_PERT_BOT_TOKEN), else
+// from the awards bot, with his verdict written by Claude through the subscription (free); without the subscription, or
+// when Claude cannot write one with the facts' numbers only, the post goes without it.
+const STEVEN_SENDERS=stevenSenders({steven:env.STEVEN_EX_PERT_BOT_TOKEN,awards:TOKEN});
+async function stevenVerdict(kind,facts){
+ if(!claudeConfigured(env)){console.log(`Steven Ex Pert: no Claude subscription, the ${kind} goes without his verdict.`);return null;}
+ const {verdict}=await verdictFor(kind,facts);
+ if(verdict)console.log(`Steven Ex Pert on the ${kind}:\n${verdict.join('\n')}`);
+ return verdict;
+}
 async function weekly(day,ctx,archive,state,mark){
  const week=weekOf(day),days=Array.from({length:7},(_,i)=>addDays(week.start,i)),today=moscowDay(now());
  await refresh(days,archive);
  const all=archive.lines.filter(l=>l.d<=day),r=races(all,{rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
  const wb=weeklyBlocks(all.filter(l=>l.d>=week.start)),rec=records(all);
- const text=[weeklyText(week,wb,ctx.who),racesText(week,r,ctx.who,state.ranks),recordsText(rec,ctx.who,today)].join('\n\n');
- const shown=[...Object.values(wb).flat(),...Object.values(r).flat(),...rec.best,...rec.worst].map(x=>x.a);
- await postAlbum(`week-${week.n}`,shown,(look,fonts)=>weekAlbum(week,wb,r,rec,ctx.who,look,fonts,{previous:state.ranks,holiday:holidayFor(day)}),text);
+ // Steven Ex Pert's verdict on the race is written first, so the week's two posts go one right after the other.
+ const verdict=await stevenVerdict('race',raceFacts(week,r,rec,ctx.who,state.ranks));
+ await postAlbum(`week-${week.n}`,Object.values(wb).flat().map(x=>x.a),(look,fonts)=>weekAlbum(week,wb,ctx.who,look,fonts,{holiday:holidayFor(day)}),weeklyText(week,wb,ctx.who));
+ // The awards race: Steven Ex Pert's album (steven.js), from his bot.
+ const shown=[...Object.values(r).flat(),...rec.best,...rec.worst].map(x=>x.a);
+ const text=verdictText([racesText(week,r,ctx.who,state.ranks),recordsText(rec,ctx.who,today)].join('\n\n'),verdict);
+ await postAlbum(`race-${week.n}`,shown,(look,fonts)=>{const a=raceAlbum(week,r,rec,ctx.who,look,fonts,{previous:state.ranks,holiday:holidayFor(day)});return {...a,caption:withVerdict(a.caption,verdict)};},text,STEVEN_SENDERS);
  if(mark){state.posted.weekly[week.start]=live?'sent':'preview';state.ranks=ranksOf(r);}
  const missing=withoutRookie(ctx.rosters,p=>p?.isRookie===true);
  if(missing.length&&(!mark||!state.posted.rookies[week.start])){
@@ -238,7 +258,10 @@ async function monthly(day,ctx,archive,state,mark){
  const end=Date.parse(`${addDays(day,1)}T08:00:00+03:00`)-1,heldAtEnd=new Map();
  for(const p of ctx.league.players){const e=ctx.league.espnOf(p),t=ctx.league.teamsAtTime(p,end);if(e&&t.length)heldAtEnd.set(e,t);}
  const five=monthFive(lines,{heldAtEnd,positionOf:a=>ctx.league.positionOf(ctx.league.player(a))});
- await postAlbum(`month-${month}`,five.filter(x=>x.row).map(x=>x.row.a),(look,fonts)=>monthAlbum(month,five,ctx.who,look,fonts,{holiday:holidayFor(day)}),monthText(month,five,ctx.who));
+ // Steven Ex Pert's album (steven.js), from his bot, with his verdict on the five.
+ const verdict=await stevenVerdict('five',fiveFacts(month,five,ctx.who));
+ await postAlbum(`month-${month}`,five.filter(x=>x.row).map(x=>x.row.a),(look,fonts)=>{const a=monthAlbum(month,five,ctx.who,look,fonts,{holiday:holidayFor(day)});return {...a,caption:withVerdict(a.caption,verdict)};},
+  verdictText(monthText(month,five,ctx.who),verdict),STEVEN_SENDERS);
  if(mark)state.posted.monthly[month]=live?'sent':'preview';
 }
 // --- Mike Roffon (mike-roffon.js): after the day's post, his flash interview with the hero of the day, from his own bot
