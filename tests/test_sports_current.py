@@ -237,6 +237,17 @@ class MarketListTests(unittest.TestCase):
         collector.stamp_on_sale(players, cards)
         self.assertEqual((players['2176000']['onSale'], players['1']['onSale']), (True, False))
 
+    def test_a_card_the_market_list_brought_is_read_again_whatever_the_list_says_now(self):
+        previous = {'players': {'2176500': {'name': 'Новый', 'club': 'Юта', 'clubId': '4203', 'marketAddition': 'MARKET', 'price': 1100},
+                                '2176501': {'name': 'С ростера', 'marketAddition': 'FBL_ROSTER'}, '2176502': {'name': 'Каталог', 'marketAddition': 'MARKET'},
+                                '2208842': {'name': 'Ваглер', 'marketAddition': 'MARKET'}}}
+        pool = [{'sportsId': '2176502', 'name': 'Каталог'}]
+        # Emptied since, he is on no list, catalog or roster: unread, he would stay on sale with his last price.
+        self.assertEqual(collector.keep_market_cards(pool, previous), ['2176500'], 'not a roster one, a known one or a replaced card')
+        self.assertEqual(pool[1], {'sportsId': '2176500', 'name': 'Новый', 'club': 'Юта', 'clubId': '4203', 'marketAddition': 'MARKET'})
+        self.assertEqual(collector.keep_market_cards(pool, previous), [])
+        self.assertEqual(collector.keep_market_cards(pool, {}), [])
+
     def test_quality_is_of_the_cards_on_sale(self):
         cards = {str(i): {} for i in range(10)}
         pool = [{'sportsId': str(i)} for i in range(12)]

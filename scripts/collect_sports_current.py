@@ -1044,6 +1044,18 @@ def add_market(pool, market):
     return added
 
 
+def keep_market_cards(pool, previous):
+    """Every card an earlier snapshot took from the market list stays in the pool: one Sports.ru empties later is in no
+    catalog, additions file or roster, and unread it would stay on sale forever with its last price; read, it shows
+    emptied. A run without the list reads them too. A card Sports.ru replaced (retired_cards) goes. Returns the ids kept."""
+    known, retired = {p['sportsId'] for p in pool}, retired_cards()
+    kept = [sid for sid, p in ((previous or {}).get('players') or {}).items()
+            if p.get('marketAddition') == 'MARKET' and sid not in known and sid not in retired]
+    pool.extend({'sportsId': sid, 'name': previous['players'][sid].get('name'), 'club': previous['players'][sid].get('club'),
+                 'clubId': previous['players'][sid].get('clubId'), 'marketAddition': 'MARKET'} for sid in kept)
+    return kept
+
+
 def stamp_on_sale(players, market):
     """onSale of every collected card: on the market list or not, only when the list was read. The site prefers it to its
     own guess (not emptied, at an NBA club: Lonnie Walker's card stayed priced at «Бешикташ», 24.10.2026)."""
@@ -1153,7 +1165,8 @@ def main():
             if r['sportsId'] not in known:
                 known.add(r['sportsId'])
                 pool.append({'sportsId': r['sportsId'], 'name': r['name'], 'club': r['club'], 'marketAddition': 'FBL_ROSTER'})
-    # And through the market list, which has every card on sale whoever holds it.
+    # And through the market list, which has every card on sale whoever holds it; a card it brought earlier is read again.
+    keep_market_cards(pool, previous)
     added = add_market(pool, market)
     players, calendars = {}, {}
     with ThreadPoolExecutor(WORKERS) as ex:

@@ -165,8 +165,9 @@ export function playersView(base){
   if(hides.length){line.append(' · скрыто:');hides.forEach(([k,w,t],i)=>{const b=button(t(v.hidden[k]),()=>widen(w),'btn-ghost btn-sm');b.title='Показать их';line.append(i?' · ':' ',b);});}
   list.replaceChildren(header,...shown.map((r,i)=>marketRow(r,i,ctx,analyse,running)));
   // The NBA players Sports.ru does not sell who match the query: the owner learns why they are not in the list (Tobe Awaka,
-  // 24.10.2026); when nobody else matches even with every filter widened, they are the answer.
-  const away=q?unsold.filter(p=>playerSearchMatches(p,q)).slice(0,5).map(p=>el('p',`${p.name} (${p.team}) — в НБА, но Sports.ru его не продаёт: купить нельзя.`)):[];
+  // 24.10.2026); when nobody else matches even with every filter widened, they are the answer. From three letters: one or two
+  // match most of them.
+  const away=q.replace(/\s/g,'').length>=3?unsold.filter(p=>playerSearchMatches(p,q)).slice(0,5).map(p=>el('p',`${p.name} (${p.team}) — в НБА, но Sports.ru его не продаёт: купить нельзя.`)):[];
   if(!rows.length){const s=el('div',null,'state');
    if(v.hidden.all)s.append(el('strong','Никого не нашлось'),el('p',`${q?`По запросу «${q}» с`:'С'} этими фильтрами игроков нет: фильтры скрывают ${count(v.hidden.all,'игрока','игрока','игроков')}.`),...away,
     button('Сбросить фильтры',()=>{market={...market,...MARKET_WIDEST};gamesBeforeRookies=null;marketShown=MARKET_PAGE;saveMarket();renderSeason();}));
