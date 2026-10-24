@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {moved} from '../awards-bot/core.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {raceAlbum} from '../awards-bot/cards.js';
-import {STEVEN,SIGNATURE,CAPTION_LIMIT,stevenSenders,viaFirst,raceFacts,fiveFacts,verdictMessages,verdictLines,strayNumbers,verdictFor,withVerdict,verdictText} from '../awards-bot/steven.js';
+import {picturePlayers,stevenCast,writeStevenPicture,pictureCaption,STEVEN,SIGNATURE,CAPTION_LIMIT,stevenSenders,viaFirst,raceFacts,fiveFacts,verdictMessages,verdictLines,strayNumbers,verdictFor,withVerdict,verdictText} from '../awards-bot/steven.js';
 
 const s={pts:31,reb:14,ast:11,stl:2,blk:1,tov:3,fgm:12,fga:19,ftm:5,fta:6,pf:2};
 const row=(a,p,extra={})=>({a,n:'P'+a,c:'DEN',games:2,m:60,p,s,h:[1],teams:[1],...extra});
@@ -97,7 +97,7 @@ test('Steven Ex Pert: the bot sends the race and the five from his bot, keeps th
  const src=fs.readFileSync(new URL('../awards-bot/bot.mjs',import.meta.url),'utf8');
  assert.match(src,/stevenSenders\(\{steven:env\.STEVEN_EX_PERT_BOT_TOKEN,awards:TOKEN\}\)/);
  assert.match(src,/const steven=send=>viaFirst\(STEVEN_SENDERS,send/);
- assert.match(src,/postAlbum\(`race-\$\{week\.n\}`[^\n]*raceAlbum[^\n]*\{via:steven\}\);/);
+ assert.match(src,/const album=\(look,fonts\)=>raceAlbum\([^\n]*\n await postAlbum\(`race-\$\{week\.n\}`[^\n]*album\(look,fonts\)[^\n]*\{via:steven\}\);/);
  assert.doesNotMatch(src.match(/postAlbum\(`week-\$\{week\.n\}-heroes`[\s\S]*?\);\n/)[0],/steven/,'the week\'s heroes are not his');
  assert.match(src,/postAlbum\(`month-\$\{month\}`[\s\S]{0,400}?\{via:steven\}\);/);
  for(const key of ['state.posted.weekly[week.start]=live?\'sent\':\'preview\'','state.ranks=ranksOf(r)','state.posted.monthly[month]=live?\'sent\':\'preview\''])
@@ -105,4 +105,42 @@ test('Steven Ex Pert: the bot sends the race and the five from his bot, keeps th
  assert.match(src,/await post\(rookieAlert\(missing\),COMMISSIONER,'commissioner'\);/,'the rookie check stays the awards bot\'s');
  const wf=fs.readFileSync(new URL('../.github/workflows/awards-bot.yml',import.meta.url),'utf8');
  assert.match(wf,/STEVEN_EX_PERT_BOT_TOKEN: \$\{\{ secrets\.STEVEN_EX_PERT_BOT_TOKEN \}\}/);
+});
+
+test('Steven Ex Pert\'s picture: him, the MVP leader, the one who flew up and the one who dropped; the five\'s players',()=>{
+ const p=picturePlayers('race',{r:races,previous},who);
+ assert.deepEqual(p.map(x=>[x.a,x.en,x.name,x.role]),[['1','P1','RU P1','the leader of the MVP race'],['2','P2','RU P2','dropped 1 place(s) in the MVP race']],
+  'P1 led and flew up (one person once); P4 is new, no arrow of places');
+ const first=picturePlayers('race',{r:races,previous:{}},who);
+ assert.deepEqual(first.map(x=>[x.a,x.role]),[['1','the leader of the MVP race'],['7','the leader of the rookie of the year race']]);
+ const five=picturePlayers('five',{five:[{pos:'PG',row:row('1',300)},{pos:'C',row:null}]},who);
+ assert.deepEqual(five.map(x=>[x.a,x.role]),[['1','the PG of the month\'s all-position five']]);
+ const face={bytes:Buffer.from('x'),name:'1.png',type:'image/png'};
+ const c=stevenCast(p,{faces:new Map([['1',face]])});
+ assert.equal(c.images.length,2,'a player without a face stays out');assert.equal(c.images[0].name,'steven-ex-pert.jpg');
+ assert.equal(c.list[0].mustUse,true);assert.equal(c.list[0].name,'Steven Ex Pert');assert.match(c.list[0].usualLook,/papers/);
+ assert.match(c.list[1].is,/ESPN headshot of the real NBA player P1/);assert.equal(c.list[1].leagueName,'RU P1');assert.equal(c.list[1].fantasyTeamColors,LEAGUE_TEAMS[1].kit);
+});
+
+test('Steven Ex Pert\'s picture: Claude writes the prompt whole from his barbs, numbers in its words only from the facts',async()=>{
+ const f=raceFacts(week,races,rec,who,previous),c=stevenCast(picturePlayers('race',{r:races,previous},who),{faces:new Map([['1',{bytes:Buffer.from('x'),name:'1.png',type:'image/png'}]])});
+ const body='A photorealistic comedy TV studio scene. The man from reference image 1, keeping his face exactly, in a dark suit with papers, hands a golden trophy to the basketball player from reference image 2, keeping his face exactly. No other text, captions or watermarks appear. ';
+ const calls=[],answers=[{prompt:body+'A banner reads "ПРИЗ ЗА 999 ПРОМАХОВ".',idea:'x'},{prompt:body+'A banner reads "170 ФО И КОРОНА".',idea:'trophy'}];
+ const w=await writeStevenPicture('race',f,['RU P1 уже примеряет корону.','RU P2 опустился на 1 — рынок не понял.'],c,{claude:async x=>{calls.push(x);return {data:answers.shift()};},log:()=>{}});
+ assert.equal(calls.length,2,'a number not of the facts goes back to Claude');assert.match(calls[1].prompt,/numbers in quotes not in the facts: 999/);
+ assert.match(w.prompt,/170 ФО И КОРОНА/);assert.equal(w.images.length,2);assert.equal(w.idea,'trophy');
+ assert.match(calls[0].system,/Shaqtin' a Fool/);assert.match(calls[0].system,/Ни реальных телеведущих/);
+ assert.match(calls[0].prompt,/Комментарии Стивена:\nRU P1 уже примеряет корону\./);assert.match(calls[0].prompt,/ESPN headshot/);
+ const none=await writeStevenPicture('five',f,null,c,{claude:async()=>({data:{prompt:'too short',idea:''}}),log:()=>{}});
+ assert.equal(none,null,'no prompt Claude could write: no picture');
+});
+
+test('Steven Ex Pert\'s picture: its caption is the album\'s title, his name and its hashtags; posted right after his album',()=>{
+ assert.equal(pictureCaption('<b>🏆 Гонка за награды · после 3-й недели</b>\nЛидер гонки MVP: RU P1 — 170 ФО\n\n#гонка_за_награды #неделя_3 #ноябрь_2026'),
+  '<b>🏆 Гонка за награды · после 3-й недели</b>\n🎬 Стивен Экс Перт, эксперт Inside FBL\n\n#гонка_за_награды #неделя_3 #ноябрь_2026');
+ const src=fs.readFileSync(new URL('../awards-bot/bot.mjs',import.meta.url),'utf8');
+ assert.match(src,/postAlbum\(`race-\$\{week\.n\}`[^\n]*\n await stevenPhoto\(`race-\$\{week\.n\}`,pic,/);
+ assert.match(src,/\{via:steven\}\);\n await stevenPhoto\(`month-\$\{month\}`,pic,/);
+ assert.match(src,/await steven\(t=>telegram\(t,'sendPhoto',form\)\)/,'from his bot, the awards bot behind it');
+ assert.match(src,/draw=preview\?flag\('--pictures'\):!!OPENAI_KEY/,'a preview draws only with --pictures');
 });
