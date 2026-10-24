@@ -77,7 +77,7 @@ import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCa
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText,introFacts,introFor} from './dildo.js';
-import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption,HELLO_PHOTO,HELLO_CAPTION} from './steven.js';
+import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption,STEVEN_QUALITY,HELLO_PHOTO,HELLO_CAPTION} from './steven.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
@@ -260,7 +260,7 @@ async function stevenVerdict(kind,facts){
  return verdict;
 }
 // His picture (steven.js), right after his album, from his bot: its prompt written by Claude from his barbs, drawn by
-// OpenAI (about $0.03). A scheduled run draws it with OPENAI_API_KEY; a preview prints its prompt with --prompts (free)
+// OpenAI in high quality (ultra-realism, owner 24.10.2026: about $0.05-0.15). A scheduled run draws it with OPENAI_API_KEY; a preview prints its prompt with --prompts (free)
 // and draws it with --pictures (paid). null: no picture. Never holds a post: a failure is logged.
 async function stevenPicture(name,kind,facts,verdict,players){
  const preview=flag('--preview'),draw=preview?flag('--pictures'):!!OPENAI_KEY;
@@ -272,7 +272,7 @@ async function stevenPicture(name,kind,facts,verdict,players){
   if(!written){console.warn(`${name}: Claude wrote no picture of Steven Ex Pert: none.`);return null;}
   console.log(`\n===== ${name}: Steven Ex Pert's picture (written by Claude, ${written.images.length} references: ${written.images.map(i=>i.name).join(', ')}) =====\n${written.prompt}\n`);
   if(!draw)return null;
-  const r=await generate(written,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
+  const r=await generate({...written,quality:STEVEN_QUALITY},{key:OPENAI_KEY,timeoutMs:300e3,attempts:2});
   console.log(`${name}: Steven Ex Pert's picture drawn, $${cost(r.usage).toFixed(3)}.`);
   return r.png;
  }catch(e){console.warn(`${name}: Steven Ex Pert's picture failed (${e.message}): none.`);return null;}

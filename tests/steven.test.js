@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {moved} from '../awards-bot/core.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {raceAlbum} from '../awards-bot/cards.js';
-import {picturePlayers,stevenCast,writeStevenPicture,pictureCaption,STEVEN,SIGNATURE,CAPTION_LIMIT,stevenSenders,viaFirst,raceFacts,fiveFacts,verdictMessages,verdictLines,strayNumbers,verdictFor,withVerdict,verdictText} from '../awards-bot/steven.js';
+import {picturePlayers,stevenCast,writeStevenPicture,pictureCaption,realismProblems,STEVEN_QUALITY,STEVEN,SIGNATURE,CAPTION_LIMIT,stevenSenders,viaFirst,raceFacts,fiveFacts,verdictMessages,verdictLines,strayNumbers,verdictFor,withVerdict,verdictText} from '../awards-bot/steven.js';
 
 const s={pts:31,reb:14,ast:11,stl:2,blk:1,tov:3,fgm:12,fga:19,ftm:5,fta:6,pf:2};
 const row=(a,p,extra={})=>({a,n:'P'+a,c:'DEN',games:2,m:60,p,s,h:[1],teams:[1],...extra});
@@ -124,7 +124,7 @@ test('Steven Ex Pert\'s picture: him, the MVP leader, the one who flew up and th
 
 test('Steven Ex Pert\'s picture: Claude writes the prompt whole from his barbs, numbers in its words only from the facts',async()=>{
  const f=raceFacts(week,races,rec,who,previous),c=stevenCast(picturePlayers('race',{r:races,previous},who),{faces:new Map([['1',{bytes:Buffer.from('x'),name:'1.png',type:'image/png'}]])});
- const body='A photorealistic comedy TV studio scene. The man from reference image 1, keeping his face exactly, in a dark suit with papers, hands a golden trophy to the basketball player from reference image 2, keeping his face exactly. No other text, captions or watermarks appear. ';
+ const body='An ultra-photorealistic comedy TV studio photograph, shot on a full-frame camera with an 85mm lens. The man from reference image 1, keeping his face exactly, in a dark suit with papers, hands a golden trophy to the basketball player from reference image 2, keeping his face exactly. No other text, captions or watermarks appear. ';
  const calls=[],answers=[{prompt:body+'A banner reads "ПРИЗ ЗА 999 ПРОМАХОВ".',idea:'x'},{prompt:body+'A banner reads "170 ФО И КОРОНА".',idea:'trophy'}];
  const w=await writeStevenPicture('race',f,['RU P1 уже примеряет корону.','RU P2 опустился на 1 — рынок не понял.'],c,{claude:async x=>{calls.push(x);return {data:answers.shift()};},log:()=>{}});
  assert.equal(calls.length,2,'a number not of the facts goes back to Claude');assert.match(calls[1].prompt,/numbers in quotes not in the facts: 999/);
@@ -155,4 +155,20 @@ test('Steven Ex Pert introduces himself: his photo, his words in one caption, no
  assert.match(hello,/telegram\(env\.STEVEN_EX_PERT_BOT_TOKEN,'sendPhoto',form\)/);assert.doesNotMatch(hello,/steven\(|\(TOKEN,/,'never the awards bot');
  const wf=fs.readFileSync(new URL('../.github/workflows/steven-ex-pert.yml',import.meta.url),'utf8');
  assert.match(wf,/--steven-hello \$SEND/);assert.match(wf,/STEVEN_EX_PERT_BOT_TOKEN: \$\{\{ secrets\.STEVEN_EX_PERT_BOT_TOKEN \}\}/);
+});
+
+test('Steven Ex Pert\'s picture: ultra-realism and his face exactly as in the owner\'s reference, in high quality',async()=>{
+ assert.equal(STEVEN_QUALITY,'high');
+ assert.deepEqual(realismProblems('An ultra-photorealistic photograph. The man from reference image 1 keeps his face exactly.'),[]);
+ assert.equal(realismProblems('A cartoon of the man from reference image 1, his face exactly.').length,1,'no ultra-realism');
+ assert.equal(realismProblems('An ultra-realistic photo of reference image 1 at a desk.').length,1,'his face not kept');
+ const c=stevenCast([]);assert.match(c.list[0].is,/never the studio or the words behind him/);assert.match(c.list[0].neverChanges,/face exactly as in his photo/);
+ const ref=fs.readFileSync(new URL('../scripts/assets/people/steven-ex-pert.ref.jpg',import.meta.url));assert.equal(c.images[0].bytes.length,ref.length,'the small copy of the owner\'s reference goes');
+ const calls=[],answers=[{prompt:'A photorealistic studio scene. The man from reference image 1 laughs at a desk with papers, keeping his face exactly. No other text, captions or watermarks appear. '.repeat(2),idea:'x'},
+  {prompt:'An ultra-photorealistic studio photograph, 85mm lens, natural skin. The man from reference image 1 laughs at a desk with papers, his face preserved exactly. No other text, captions or watermarks appear. '.repeat(2),idea:'y'}];
+ const w=await writeStevenPicture('race',{week:1},null,c,{claude:async x=>{calls.push(x);return {data:answers.shift()};},log:()=>{}});
+ assert.equal(calls.length,2);assert.match(calls[1].prompt,/ultra-photorealism/);assert.equal(w.idea,'y');
+ assert.match(calls[0].system,/ультрареализме/);
+ const src=fs.readFileSync(new URL('../awards-bot/bot.mjs',import.meta.url),'utf8');
+ assert.match(src,/generate\(\{\.\.\.written,quality:STEVEN_QUALITY\}/);
 });

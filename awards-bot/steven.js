@@ -8,7 +8,9 @@
 // sixth man's index, Mef prices); a verdict that brings its own is written again, then left out. The verdict never holds
 // a post: without it the album goes as it is. Right after the album, his picture: the punchline of his barbs, its prompt
 // written whole by Claude (owner, 23.10.2026, scripts/picture-prompt.mjs), the code giving only the references (his face,
-// the players' ESPN faces), drawn by OpenAI; no prompt or no drawing, no picture.
+// the players' ESPN faces), drawn by OpenAI; no prompt or no drawing, no picture. Ultra-realism always (owner,
+// 24.10.2026): a real photograph, his face exactly as in his photo (the owner's reference, people/steven-ex-pert.jpg), in
+// high quality; a prompt that does not ask for it goes back to Claude.
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {esc,dayLabel,raceKey} from './messages.js';
 import {moved} from './core.js';
@@ -151,15 +153,25 @@ export function picturePlayers(kind,{r,five,previous={}},who){
 // His references: his photo first (always), then the players' faces (faces: ESPN id -> headshot); a player without one
 // stays out of the picture.
 export function stevenRef(root=ASSETS){
- return {image:readImage(path.join(root,STEVEN.photo)),is:'the photo of Steven Ex Pert, the league expert',facts:about(STEVEN),need:true};
+ return {image:readImage(path.join(root,STEVEN.photo)),is:'the photo of Steven Ex Pert, the league expert: his face and look exactly, never the studio or the words behind him',facts:about(STEVEN),need:true};
+}
+// His pictures are drawn in high quality (the others' in low): one a week and one a month.
+export const STEVEN_QUALITY='high';
+// What his prompt must ask for (owner, 24.10.2026): ultra-realism and his face exactly as in his reference.
+export function realismProblems(text){
+ const t=String(text||''),out=[];
+ if(!/ultra[- ]?(photo)?realis/i.test(t))out.push('ask for ultra-photorealism in plain words: a real photograph (camera, lens, natural skin texture), never a drawing, a painting, CGI or a cartoon');
+ if(!/reference image 1[^.]*\b(face|identity)\b|\b(face|identity)\b[^.]*reference image 1/i.test(t))out.push('say that the face of Steven Ex Pert (reference image 1) is preserved exactly, identical to the reference');
+ return out;
 }
 export function stevenCast(players,{faces=new Map(),root=ASSETS}={}){
  return cast([stevenRef(root),...players.map(p=>playerRef(faces.get(p.a)||null,p.en,{need:false,role:p.role,leagueName:p.name,
   fantasyTeamColors:LEAGUE_TEAMS[p.teams[0]]?.kit||null}))]);
 }
-const PICTURE_SYSTEM=`Ты — бильд-редактор Inside FBL, рубрики фэнтези-баскетбольной лиги друзей FBL. Эксперт Стивен Экс Перт ведёт свою студию в духе Shaqtin' a Fool: колкие комментарии к гонке за награды и к символической пятёрке месяца, подколы, шуточные «призы за позор», театральное возмущение. К его посту выходит одна фотореалистичная смешная картинка — панчлайн его комментариев. Ты придумываешь её целиком и пишешь её промпт для ChatGPT.
+const PICTURE_SYSTEM=`Ты — бильд-редактор Inside FBL, рубрики фэнтези-баскетбольной лиги друзей FBL. Эксперт Стивен Экс Перт ведёт свою студию в духе Shaqtin' a Fool: колкие комментарии к гонке за награды и к символической пятёрке месяца, подколы, шуточные «призы за позор», театральное возмущение. К его посту выходит одна смешная картинка — панчлайн его комментариев — в ультрареализме: настоящая фотография, не рисунок.
+- Ультрареализм всегда: как живой кадр профессиональной камеры (назови камеру, объектив, свет), естественная кожа с порами, настоящие ткани, никакой рисовки, мультяшности, CGI, пластиковой кожи, каши в лицах и рук с лишними пальцами. В промпте прямо: ultra-photorealistic. Ты придумываешь её целиком и пишешь её промпт для ChatGPT.
 - Картинка — из этих комментариев и этих фактов: его подколы, его прозвища, его шуточные награды. Где, как и в каком стиле — решаешь ты, каждый раз по-новому.
-- Стивен Экс Перт — всегда в кадре и всегда собой (лицо с его фото, его неизменное и обычный вид — в референсе): уверенный эксперт с серьёзным лицом, который еле сдерживает смех.
+- Стивен Экс Перт — всегда в кадре, крупно и резко, лицом к камере или в три четверти, и всегда собой: лицо — точно как на его фото (reference image 1), узнаваемое с первого взгляда, без изменений черт, возраста и причёски; с фото берутся только он сам и его вид, не студия и не надписи за ним. Уверенный эксперт с серьёзным лицом, который еле сдерживает смех.
 - Игроки — с лицами с референсов, в форме цветов своей фэнтези-команды (fantasyTeamColors), без логотипов НБА. Стебём игру и цифры, а не человека: ничего унизительного о внешности, семье, национальности.
 - Ни реальных телеведущих, ни названий, логотипов и заставок реальных шоу и каналов: студия, награды и выкрики — свои.
 - Надписи — только в кавычках, по-русски, заглавными, до 6 слов; числа в них — только из данных.
@@ -169,7 +181,7 @@ ${CRAFT}`;
 // (null: from the facts alone); c: stevenCast.
 export async function writeStevenPicture(kind,facts,verdict,c,{claude=claudeJSON,model=STEVEN_MODEL,timeoutMs=180e3,log=console.warn}={}){
  const brief=`${kind==='race'?'Гонка за награды после недели.':'Символическая пятёрка месяца.'}\n${verdict?.length?`Комментарии Стивена:\n${verdict.join('\n')}\n\n`:''}Данные:\n${JSON.stringify(facts,null,1)}`;
- return writePicture({system:PICTURE_SYSTEM,brief,c,check:t=>promptProblems(t,c,{numbers:allowedNumbers(facts)}),write:claude,model,timeoutMs,label:'Steven Ex Pert',log});
+ return writePicture({system:PICTURE_SYSTEM,brief,c,check:t=>[...promptProblems(t,c,{numbers:allowedNumbers(facts)}),...realismProblems(t)],write:claude,model,timeoutMs,label:'Steven Ex Pert',log});
 }
 // The caption under his picture: the album's title (its first line), his signature and the album's hashtags.
 export function pictureCaption(caption){
