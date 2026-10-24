@@ -5,7 +5,9 @@ import {LEAGUE_TEAMS} from '../src/teams.js';
 import {dailyBlocks,weeklyBlocks,form} from '../awards-bot/core.js';
 import {dayAlbum,weekHeroesAlbum} from '../awards-bot/cards.js';
 import fs from 'node:fs';
-import {introFacts,introMessages,introProblems,introText,introFor} from '../awards-bot/dildo.js';
+import os from 'node:os';
+import path from 'node:path';
+import {introFacts,introMessages,introProblems,introText,introFor,writePostPicture,realismProblems} from '../awards-bot/dildo.js';
 import {refused,asDildo,lines as noteLines,COMMENT_LIMIT,teamFacts,dayFacts,weekFacts,commentMessages,commentProblems,commentFor,signCaption,signText,SIGNATURE,CAPTION_LIMIT} from '../awards-bot/dildo.js';
 
 const s={pts:31,reb:14,ast:11,stl:2,blk:1,tov:3,fgm:12,fga:19,ftm:5,fta:6,pf:2};
@@ -161,4 +163,18 @@ test('Christopher Dildo introduces himself: the season\'s numbers only, his phot
 test('Christopher Dildo: his introduction kept in data/dildo fits his photo and holds only checked numbers',()=>{
  const file=new URL('../data/dildo/2026-10-24-intro.html',import.meta.url),text=fs.readFileSync(file,'utf8').trim();
  assert.ok(text.length<=1024);assert.match(text,/Кристофер Дилдо представляется/);assert.ok(text.includes(SIGNATURE));
+});
+
+test('Christopher Dildo\'s own posts: a picture Claude writes, ultra-realistic with his face, never the bare reference photo',async()=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'assets-'));fs.mkdirSync(path.join(root,'people'));fs.writeFileSync(path.join(root,'people','christopher-dildo.jpg'),'cd');
+ const text='<b>📓 Кристофер Дилдо</b>\nЛемариус: 311 ФО.';
+ const ok='An ultra-photorealistic film still shot on a real cinema camera: the young man from reference image 1, his face exactly as in the photo, rectangular glasses, a notebook in hand, grins at a wall of chalk formulas; the circled sign reads "311 ФО". Only these Cyrillic words, no other text, captions or watermarks.';
+ const calls=[],answers=[{prompt:ok.replace('An ultra-photorealistic film still shot on a real cinema camera','A cartoon'),idea:'x'},{prompt:ok,idea:'chalk wall'}];
+ const w=await writePostPicture(text,{root,claude:async a=>{calls.push(a);return {data:answers.shift()};}});
+ assert.equal(w.prompt,ok);assert.deepEqual(w.images.map(i=>i.name),['christopher-dildo.jpg'],'his face is the reference, the reference is never the picture');
+ assert.match(calls[1].prompt,/not said to be ultra-photorealistic/);assert.match(calls[0].system,/Ультрареализм/);assert.match(calls[0].prompt,/Лемариус: 311 ФО/);
+ assert.equal(await writePostPicture(text,{root,claude:async()=>({data:{prompt:ok.replace('"311 ФО"','"999 ФО"'),idea:''}})}),null,'numbers only from the post, else no picture');
+ assert.deepEqual(realismProblems('A hyper-realistic photo'),[]);
+ const src=fs.readFileSync(new URL('../awards-bot/bot.mjs',import.meta.url),'utf8');
+ assert.doesNotMatch(src,/people\/christopher-dildo\.jpg/,'the bot never posts his reference photo');
 });

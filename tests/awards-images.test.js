@@ -82,7 +82,7 @@ test('awards pictures: captions, at most three players',()=>{
 const factsOf=()=>momentFacts('flop',[row('1',-12,[0],{fgm:3,fga:14,tov:6}),row('2',-3,[3],{pf:6})]);
 const castOf=()=>blockCast('flop',[row('1',-12,[0],{fgm:3,fga:14,tov:6}),row('2',-3,[3],{pf:6})],{root:assets(),
  faces:new Map([['1',{bytes:Buffer.from('f1'),name:'1.png',type:'image/png'}],['2',{bytes:Buffer.from('f2'),name:'2.png',type:'image/png'}]])});
-const good='A dusty construction site at golden hour, shot like a glossy home-improvement commercial: the real NBA player from reference image 1, his face exactly as in the photo, lays bricks into a crooked wall with a trowel, his sign nailed to it reading "11 КИРПИЧЕЙ. ПРОРАБ ГОДА"; the player from reference image 2, face exactly as in the photo, poses in a sash of referee whistles, his sign at his feet reading "-3 ФО. ЗАТО 6 ФОЛОВ". Both in the colours of their fantasy teams, the logos from reference image 3 and reference image 4 on their chests. The Russian words drawn letter by letter in Cyrillic; no other text. Wide 24mm, warm haze, square frame.';
+const good='An ultra-photorealistic film still, a real camera photograph: a dusty construction site at golden hour, shot like a glossy home-improvement commercial: the real NBA player from reference image 1, his face exactly as in the photo, lays bricks into a crooked wall with a trowel, his sign nailed to it reading "11 КИРПИЧЕЙ. ПРОРАБ ГОДА"; the player from reference image 2, face exactly as in the photo, poses in a sash of referee whistles, his sign at his feet reading "-3 ФО. ЗАТО 6 ФОЛОВ". Both in the colours of their fantasy teams, the logos from reference image 3 and reference image 4 on their chests. The Russian words drawn letter by letter in Cyrillic; no other text. Wide 24mm, warm haze, square frame.';
 
 test('awards pictures: Claude\'s prompt is checked: his players\' faces in it, their own numbers only',()=>{
  const facts=factsOf(),c=castOf();
@@ -135,8 +135,15 @@ test('awards pictures: the day\'s most striking number may be our teams\', compu
  const facts=momentFacts('hero',blocks.heroes,{teams});
  assert.equal(facts.fblTeams[0].fo,40);assert.equal(facts.fblTeams[0].gm,'Franky Murder');assert.equal(facts.players[0].percentOfFblTeamDay,75);
  const c=blockCast('hero',blocks.heroes,{root:assets(),faces:new Map(lines.map(l=>[l.a,{bytes:Buffer.from(l.a),name:l.a+'.png',type:'image/png'}]))});
- const prompt=n=>`The real NBA players from reference image 1 and reference image 2, faces exactly as in the photos, rise from a wall of chalk formulas; the main sign, circled, reads "${n}% ФО КОМАНДЫ ОДИН"; each in the colours of his fantasy team, the logo from reference image 3 on the chest. The Russian words drawn letter by letter in Cyrillic; no other text, captions or watermarks. Wide lens, cinematic thriller light.`;
+ const prompt=n=>`An ultra-photorealistic film still. The real NBA players from reference image 1 and reference image 2, faces exactly as in the photos, rise from a wall of chalk formulas; the main sign, circled, reads "${n}% ФО КОМАНДЫ ОДИН"; each in the colours of his fantasy team, the logo from reference image 3 on the chest. The Russian words drawn letter by letter in Cyrillic; no other text, captions or watermarks. Wide lens, cinematic thriller light.`;
  assert.deepEqual(momentProblems(prompt(75),facts,c),[]);
  assert.match(momentProblems(prompt(77),facts,c).join(),/numbers in quotes not in the facts: 77/);
  assert.match(momentMessages(facts),/"fblTeams"/);
+});
+
+test('awards pictures: Christopher Dildo\'s pictures are ultra-realistic, his face as in the reference',async()=>{
+ const facts=factsOf(),c=castOf();
+ assert.match(momentProblems(good.replace('An ultra-photorealistic film still, a real camera photograph: a','A'),facts,c).join(),/not said to be ultra-photorealistic/);
+ const calls=[];await writeMoments(facts,c,{claude:async a=>{calls.push(a);return {data:{prompt:good,idea:'i'}};}});
+ assert.match(calls[0].system,/Ультрареализм — главное требование/);assert.match(calls[0].system,/Лица людей с референсов — точь-в-точь/);
 });

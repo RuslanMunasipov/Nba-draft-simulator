@@ -14,6 +14,7 @@ import {allowedNumbers,strayNumbersIn} from './mike-roffon.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {bricks,records} from './core.js';
+import {cast,dildoRef,promptProblems,writePicture,CRAFT} from '../scripts/picture-prompt.mjs';
 
 export const DILDO_MODEL=process.env.DILDO_MODEL||CLAUDE_MODEL;
 export const SIGNATURE='— Кристофер Дилдо, аналитик Inside FBL';
@@ -195,4 +196,28 @@ export async function introFor(facts,{claude=claudeJSON,model=DILDO_MODEL,timeou
   fix=problems.join('; ');warn(`Christopher Dildo's introduction: ${fix}${i+1<tries?', written again':', none'}.`);
  }
  return null;
+}
+
+// --- His pictures (owner, 24.10.2026, after his introduction went out with the bare reference photo: «ужасной»): never
+// the reference photo itself; always a picture drawn ultra-realistic, his face exactly as in the reference. Claude writes
+// its prompt whole; the code only checks it says so (with the references and the numbers, scripts/picture-prompt.mjs).
+const REALISM=/\b(?:ultra[- ]?(?:photo)?realistic|photo[- ]?realistic|hyper[- ]?realistic)\b/i;
+// Drawn in the image model's high quality (the others draw low): the realism is the point. About $0.05 a picture instead of
+// $0.03 (an estimate: low is 196 output tokens, medium 439; high is billed by what it returns, logged with every picture).
+export const PICTURE_QUALITY='high';
+export const realismProblems=text=>typeof text==='string'&&!REALISM.test(text)?['not said to be ultra-photorealistic (a real camera photograph, never an illustration)']:[];
+export const ULTRA_REALISM=`Ультрареализм — главное требование: картинка должна выглядеть как настоящий кадр, снятый кинокамерой, неотличимый от фотографии. Не рисунок, не иллюстрация, не 3D-рендер, не мультяшность, не пластиковая или восковая кожа, не «ИИ-гладкость»: живая кожа с порами и неровностями, естественные блики на стёклах очков, реальная оптика (объектив, глубина резкости), правдоподобный свет, лёгкое плёночное зерно. В промпте прямо напиши, что это ultra-photorealistic. Лица людей с референсов — точь-в-точь: те же черты, форма лица, причёска, возраст, очки; мгновенно узнаваемы; не моложе, не красивее, не карикатурнее, без искажений.`;
+const POST_PICTURE=`Ты — бильд-редактор Кристофера Дилдо, аналитика Inside FBL фэнтези-баскетбольной лиги друзей FBL (Fantasy Brothers League). Его пост (текст ниже) выходит в чат лиги с одной картинкой; ты придумываешь её целиком и пишешь её промпт для ChatGPT.
+${ULTRA_REALISM}
+- Дилдо (его фото в референсах) — главный герой кадра: молодой ботан в прямоугольных очках и клетчатой рубашке, блокнот и ручка в руке. Картинка — кадр из фильма о сошедшем с ума математике и из этого поста: его одержимый мир цифр (стены, доски, окна в формулах и цифрах, нити между вырезками), злорадная ухмылка того, кто всех посчитал, и его панический страх ФБР (жалюзи, тень агента, чёрный фургон; агенты только следят; никаких настоящих эмблем и печатей ФБР, буквы «FBI» на куртке — можно). Где и как — решай сам.
+- Баскетбол — единственный спорт (НБА). Логотип лиги FBL — по желанию.
+- Надписи — только в кавычках, ПО-РУССКИ ЗАГЛАВНЫМИ, не больше 6 слов каждая, кириллицей буква в букву; числа в них — только из текста поста.
+
+${CRAFT}`;
+// The picture of one of his posts ({images, prompt, idea}), or null: then the post goes as text, never with the bare
+// reference photo. text: the post (Telegram HTML); root: the assets folder.
+export async function writePostPicture(text,{root,claude=claudeJSON,model=DILDO_MODEL,timeoutMs=180e3}={}){
+ const c=cast([dildoRef(root)]),plain=String(text).replace(/<[^>]+>/g,''),numbers=new Set(plain.match(/\d+/g)||[]);
+ const w=await writePicture({system:POST_PICTURE,brief:`Пост Дилдо:\n${plain}`,c,check:t=>[...promptProblems(t,c,{numbers}),...realismProblems(t)],write:claude,model,timeoutMs,label:'Christopher Dildo\'s picture'});
+ return w&&{...w,quality:PICTURE_QUALITY};
 }

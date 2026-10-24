@@ -1,7 +1,9 @@
 name: Christopher Dildo
 # Manual only: posts one of Christopher Dildo's own words (a file of data/dildo/, written once and kept there: his
-# introduction to the league, awards-bot/dildo.js) as it is, the caption of his photo, into the league chat by his own bot.
-# Never from another bot: without CHRISTOPHER_DILDO_BOT_TOKEN the run fails. Run it once per file; send off prints it only.
+# introduction to the league, awards-bot/dildo.js) as it is into the league chat by his own bot, with its picture: its
+# prompt written by Claude from the post, ultra-realistic with his face as in the reference, drawn by OpenAI (about $0.03).
+# Never his bare reference photo: without a picture the post goes as text. Never from another bot: without
+# CHRISTOPHER_DILDO_BOT_TOKEN the run fails. Run it once per file; send off prints it only (nothing drawn, nothing billed).
 on:
   workflow_dispatch:
     inputs:
@@ -27,10 +29,17 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
+      # The picture's prompt is written by Claude through the owner's subscription (scripts/claude-text.mjs).
+      - name: Install Claude Code
+        continue-on-error: true
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
       - name: Post to the league chat
         env:
           CHRISTOPHER_DILDO_BOT_TOKEN: ${{ secrets.CHRISTOPHER_DILDO_BOT_TOKEN }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The OpenAI key only for a run that posts (the picture is paid).
+          OPENAI_API_KEY: ${{ inputs.send && secrets.OPENAI_API_KEY || '' }}
           FILE: ${{ inputs.file }}
           SEND: ${{ inputs.send && '1' || '' }}
         run: |

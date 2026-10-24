@@ -16,7 +16,7 @@ import {wordNumbers} from './mike-roffon.js';
 import {esc,badges} from './messages.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 import {cast,playerRef,logoRef,gmRef,dildoRef,promptProblems,writePicture,picture,CRAFT} from '../scripts/picture-prompt.mjs';
-import {teamShare} from './dildo.js';
+import {teamShare,realismProblems,ULTRA_REALISM,PICTURE_QUALITY} from './dildo.js';
 
 export const SIZE='1024x1024';
 // The name as the picture spells it: ESPN's short name in Latin letters ("N. Jokic"), which the model writes reliably.
@@ -54,6 +54,7 @@ const BANTER=`Ты — бильд-редактор Кристофера Дилд
 Тон — жёсткий баскетбольный стёб, трэш-ток и мемы НБА: Shaqtin' a Fool, Inside the NBA, «кирпичный завод», «ледяные вены», «готовит», «отъехал», «MVP-чанты», «пенсионер», «строитель». Это должно быть по-настоящему смешно: неожиданный поворот, абсурд, гипербола, точное попадание в его статлайн. Разноси игру без жалости: промахи, потери, фолы, ноль в графе, «призрака» на площадке; героев возноси до абсурда. Дилдо реагирует как аналитик: героям — экстаз от найденного выброса, провалам — ужас и маниакальный хохот над цифрами.
 Игроки — видения его воспалённого ума, ожившие из его расчётов: каждый игрок — свой персонаж из своего мира, все трое разные по тематике: не три вариации одной темы. Тематика любая — всё, что есть в мире, истории, кино, мифах и жизни, лишь бы она точно и ярко отмечала его выступление: герою — величие, провалу — позор и посмешище. Образ рождается из того, что торчит в его линии (очки, промахи, потери, фолы, подборы, передачи, перехваты и блоки, идеальный вечер, форма); не как у соседей и не как в недавних идеях из списка.
 Это произведение искусства, а не коллаж: одна цельная картина, как кадр большого кино. Видения игроков живут в комнате Дилдо или комната перетекает в их миры — решай сам, каждый день по-новому; но свет, перспектива, стиль и атмосфера у всего кадра одни, люди живут в сцене, действуют и взаимодействуют с ней и друг с другом, а не вклеены вырезками поверх фона. Продуманная композиция с глубиной (передний, средний, дальний план), кинематографичный свет, богатый цвет, детали костюмов и фактур — красиво, дорого, захватывающе, напряжённо, как триллер; не серо и не уныло. В idea назови место, ход Дилдо и образ каждого игрока, чтобы следующие дни их не повторяли.
+${ULTRA_REALISM}
 Что должно быть на картинке:
 - Дилдо и все игроки данных; звезда — первый (place centre), крупнее и впереди остальных игроков; лицо каждого — точь-в-точь с его референса, если он есть, иначе реальный игрок НБА, как он выглядит на самом деле. Дилдо — всегда в прямоугольных очках, с блокнотом и ручкой.
 - Каждый игрок — в форме цветов своей фэнтези-команды (kitColors) с её логотипом с референса на груди, не в форме своего клуба НБА; никаких логотипов клубов и лиг НБА.
@@ -80,6 +81,8 @@ export function momentProblems(text,facts,c){
  if(typeof text!=='string')return out;
  const signs=(text.match(/"[^"\n]*"/g)||[]).join(' '),strayW=wordNumbers(signs).filter(v=>!numbers.has(v));
  if(strayW.length)out.push(`numbers in words not in the lines: ${strayW.join(', ')}`);
+ // Christopher Dildo's pictures are ultra-realistic, his face as in its reference (owner, 24.10.2026).
+ out.push(...realismProblems(text));
  return out;
 }
 // Claude's picture of a block ({images, prompt, idea}), or null: then none is drawn. recent: the ideas of the last days.
@@ -102,6 +105,6 @@ const TITLE={hero:'⭐ Герои дня',flop:'💩 Провалы дня'};
 // (written: {hero, flop}, each {images, prompt, idea}).
 export function dayPictures(blocks,who,{written={}}={}){
  return [['hero',blocks.heroes],['flop',blocks.flops]].map(([kind,rows])=>[kind,(rows||[]).slice(0,3)]).filter(([kind,rows])=>rows.length&&written[kind])
-  .map(([kind,rows])=>({kind,players:rows.map(l=>String(l.a)),images:written[kind].images,prompt:written[kind].prompt,size:SIZE,ideas:written[kind].idea?[written[kind].idea]:[],
+  .map(([kind,rows])=>({kind,players:rows.map(l=>String(l.a)),images:written[kind].images,prompt:written[kind].prompt,size:SIZE,quality:PICTURE_QUALITY,ideas:written[kind].idea?[written[kind].idea]:[],
    caption:[`<b>${TITLE[kind]}</b>`,...rows.map((l,i)=>line(who,l,i,kind))].join('\n')}));
 }
