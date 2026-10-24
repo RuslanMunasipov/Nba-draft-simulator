@@ -178,3 +178,11 @@ test('Christopher Dildo\'s own posts: a picture Claude writes, ultra-realistic w
  const src=fs.readFileSync(new URL('../awards-bot/bot.mjs',import.meta.url),'utf8');
  assert.doesNotMatch(src,/people\/christopher-dildo\.jpg/,'the bot never posts his reference photo');
 });
+
+test('Christopher Dildo: his reference is the owner\'s photo of 24.10.2026 only, never the old one',()=>{
+ // The size of a JPEG from its frame header.
+ const size=file=>{const b=fs.readFileSync(file);for(let i=2;i<b.length;){const m=b[i+1],len=b.readUInt16BE(i+2);if(m>=0xc0&&m<=0xc3)return [b.readUInt16BE(i+7),b.readUInt16BE(i+5)];i+=2+len;}return null;};
+ const dir=new URL('../scripts/assets/people/',import.meta.url);
+ assert.deepEqual(size(new URL('christopher-dildo.jpg',dir)),[1254,1254],'the owner\'s reference, not the old 453×468 one');
+ assert.deepEqual(size(new URL('christopher-dildo.ref.jpg',dir)),[512,512],'its small copy goes to the image model');
+});

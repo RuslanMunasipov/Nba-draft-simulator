@@ -48,7 +48,7 @@ export function trevorRef(root){
 // Christopher Dildo, the analyst of Inside FBL (the day's pictures are his): his face, always his glasses and notebook.
 export function dildoRef(root){
  const p=person('christopher-dildo');
- return {image:readImage(path.join(root||ASSETS,p.photo)),is:'the photo of Christopher Dildo, the analyst of Inside FBL, whose pictures these are',facts:about(p),need:true,say:['glasses','notebook']};
+ return {image:readImage(path.join(root||ASSETS,p.photo)),is:'the photo of Christopher Dildo, the analyst of Inside FBL, whose pictures these are: take his face from it exactly, not its TV-studio background',facts:about(p),need:true,say:['glasses','notebook']};
 }
 // An NBA player: his ESPN headshot ({bytes, name, type}, or null).
 export const playerRef=(face,name,{need=true,...facts}={})=>({image:face,is:`the ESPN headshot of the real NBA player ${name}`,facts,need});
