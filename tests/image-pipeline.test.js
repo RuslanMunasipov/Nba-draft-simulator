@@ -178,6 +178,7 @@ test('the league\'s people: every photo exists, GMs by team, what a picture keep
  assert.match(about(person('coach-i')).neverChanges,/always an emperor/);assert.match(about(person('coach-i')).alwaysDrawn,/oil painting/);
  assert.match(about(person('mike-roffon')).neverChanges,/white gloves and a vintage chrome microphone, always/);
  assert.doesNotMatch(person('mike-roffon').keep,/helmet/,'the helmet is one of his outfits, not his signature');
+ assert.match(about(person('trevor-matolog')).neverChanges,/always a beige foam cervical neck brace and a white plaster cast/);
 });
 
 test('the league\'s team logos: one per team, in draft order, as the pictures and the awards cards read them',async()=>{
