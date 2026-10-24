@@ -17,7 +17,7 @@
 // itself (show-cards.js). The polls are the code's: their options and the quiz's answer come from the facts.
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {fblTransfers,fblWeek,verdict,transferTime,timeLabel,TRANSFER_HOURS,WATCHLIST,FBL_TRANSFERS,isFreeTransfer} from '../src/rules.js';
-import {perPlayer,addDays,SEASON_START} from './core.js';
+import {perPlayer,addDays,SEASON_START,SEASON_END} from './core.js';
 import {weekData,STORIES,storyGuest,REPEAT_WEEKS} from './inside-fbl.js';
 import {teamFacts} from './dildo.js';
 import {allowedNumbers,strayNumbersIn,copiedIn,staleIn} from './mike-roffon.js';
@@ -238,28 +238,46 @@ export function guestCandidates(d,recent=[],{max=4}={}){
  return out.length>=2?out:[];
 }
 
-// --- Steven's prizes of shame: the week's worst moments of the players on the league's rosters, by the code (one each,
-// a player once): the worst game, the most bricks, the most turnovers, the worst deal of a GM, the most fouls, the most
-// missed free throws, the week's flop.
-export function shameNominees(d,{max=4}={}){
- const lines=d.mine.filter(l=>l.h?.length&&l.s),out=[],used=new Set();
- const pick=(list,score,min,kind,stat)=>{const l=[...list].filter(x=>score(x)>=min&&!used.has(x.a)).sort((a,b)=>score(b)-score(a)||a.t.localeCompare(b.t))[0];
-  if(!l)return;used.add(l.a);out.push({kind,a:l.a,en:imageName(l),name:d.who(l.a,l.n),club:l.c,...team(l.h[0]),t:l.h[0],day:dayRu(l.d),stat:stat(l),fo:round(l.p),game:box(l.s)});};
+// --- Steven's prizes of shame (owner, 24.10.2026): two of them every week, one for a player and one for a GM, each with
+// the league's vote, and at the season's end the prizes of shame of the year for both, by the weeks' winners. The
+// nominees are the code's. Players (one each, a player once): the worst game, the most bricks, the most turnovers, the
+// most fouls, the most missed free throws, the week's flop. GMs (a GM once): the worst deal of the week, a breach of the
+// rules (breaches: the teams Zak found in breach), the week's worst team, the deal that sold the hottest player, the most
+// turnovers and the most missed shots of a team.
+export function shameNominees(d,{breaches=[],max=4}={}){
+ const lines=d.mine.filter(l=>l.h?.length&&l.s),players=[],used=new Set();
+ const pick=(list,score,min,kind,stat)=>{if(players.length>=max)return;const l=[...list].filter(x=>score(x)>=min&&!used.has(x.a)).sort((a,b)=>score(b)-score(a)||a.t.localeCompare(b.t))[0];
+  if(!l)return;used.add(l.a);players.push({kind,a:l.a,en:imageName(l),name:d.who(l.a,l.n),club:l.c,...team(l.h[0]),t:l.h[0],day:dayRu(l.d),stat:stat(l),fo:round(l.p),game:box(l.s)});};
  pick(lines.filter(l=>l.m>=15),l=>-l.p,-Infinity,'худший матч недели',l=>`${round(l.p)} ФО за матч`);
  pick(lines,l=>l.s.fga-l.s.fgm,8,'кирпичи',l=>`${l.s.fga-l.s.fgm} промахов с игры`);
  pick(lines,l=>l.s.tov,5,'потери',l=>`${l.s.tov} потерь`);
- const deal=[...d.deals].filter(x=>x.difference<0).sort((a,b)=>a.difference-b.difference)[0];
- if(deal)out.push({kind:'сделка недели наоборот',gmNominee:true,name:deal.gm,team:deal.team,gm:deal.gm,t:deal.t,stat:`продал ${deal.sold.name}, купил ${deal.bought.name}`,
-  sold:deal.sold,bought:deal.bought,difference:deal.difference});
  pick(lines,l=>l.s.pf,5,'фолы',l=>`${l.s.pf} фолов`);
  pick(lines,l=>l.s.fta-l.s.ftm,4,'штрафные',l=>`${l.s.fta-l.s.ftm} промахов со штрафной`);
- const flop=d.flops[0]&&!used.has(d.flops[0].a)?d.weekRows.get(d.flops[0].a):null;
- if(flop)out.push({kind:'антигерой недели',a:flop.a,en:imageName(flop),name:d.who(flop.a,flop.n),club:flop.c,...team(flop.h?.[0]),t:flop.h?.[0],stat:`${round(flop.p)} ФО за неделю`,fo:round(flop.p),games:flop.games});
- return out.slice(0,max).map((x,i)=>({id:`n${i+1}`,...x,option:`${x.gmNominee?`GM ${x.name}`:x.name} — ${x.stat}`.slice(0,100)}));
+ const flop=d.flops[0]&&!used.has(d.flops[0].a)&&players.length<max?d.weekRows.get(d.flops[0].a):null;
+ if(flop)players.push({kind:'антигерой недели',a:flop.a,en:imageName(flop),name:d.who(flop.a,flop.n),club:flop.c,...team(flop.h?.[0]),t:flop.h?.[0],stat:`${round(flop.p)} ФО за неделю`,fo:round(flop.p),games:flop.games});
+ const gms=[],held=new Set(),gm=(t,kind,stat,extra={})=>{if(!Number.isInteger(t)||held.has(t)||gms.length>=max)return;held.add(t);gms.push({kind,gmNominee:true,t,name:LEAGUE_TEAMS[t].gm,team:LEAGUE_TEAMS[t].name,gm:LEAGUE_TEAMS[t].gm,stat,...extra});};
+ const bad=[...d.deals].filter(x=>x.difference<0).sort((a,b)=>a.difference-b.difference);
+ if(bad[0])gm(bad[0].t,'сделка недели наоборот',`продал ${bad[0].sold.name}, купил ${bad[0].bought.name}`,{sold:bad[0].sold,bought:bad[0].bought,difference:bad[0].difference});
+ for(const t of breaches)gm(t,'дело Зака Онна','нарушение регламента');
+ const worst=d.standings.reduce((a,b)=>(b.weekFo<a.weekFo?b:a),d.standings[0]);if(worst)gm(worst.t,'худшая неделя лиги',`${worst.weekFo} ФО за неделю`,{weekFo:worst.weekFo});
+ const hot=[...d.deals].filter(x=>x.difference<0).sort((a,b)=>b.sold.fo-a.sold.fo)[0];if(hot)gm(hot.t,'продал того, кто выстрелил',`продал ${hot.sold.name}, а тот набрал ${hot.sold.fo} ФО`,{sold:hot.sold,bought:hot.bought,difference:hot.difference});
+ const tidx=name=>LEAGUE_TEAMS.findIndex(x=>x.name===name),desc=k=>[...d.teams].sort((a,b)=>b[k]-a[k])[0];
+ const tov=desc('turnovers');if(tov)gm(tidx(tov.team),'потери команды',`${tov.turnovers} потерь у команды`,{turnovers:tov.turnovers});
+ const miss=desc('missedShots');if(miss)gm(tidx(miss.team),'кирпичный завод',`${miss.missedShots} промахов с игры у команды`,{missedShots:miss.missedShots});
+ return [...players,...gms].map((x,i)=>({id:`n${i+1}`,...x,option:(x.gmNominee?`${x.name} (${x.team}) — ${x.stat}`:`${x.name} — ${x.stat}`).slice(0,100)}));
 }
-export function shameFacts(d,nominees){
- return {week:weekLabel(d),nominees:nominees.map(({a,en,t,option,...x})=>x),
-  nextFriday:'в пятницу — большое интервью Майка Роффона',nextShow:'следующий выпуск Inside FBL — в понедельник'};
+// The prizes of shame of the year so far: the weeks' winners counted. results: the shows' shameResult, oldest first.
+export function shameOfTheYear(results=[]){
+ const count=side=>{const m=new Map();for(const r of results){const k=r?.[side]?.key;if(k)m.set(k,(m.get(k)||0)+1);}
+  return [...m].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([name,wins])=>({name,wins}));};
+ return {players:count('player'),gms:count('gm')};
+}
+// seasonFinal: the season's last show, when the prizes of the year are given (the leaders of shameOfTheYear).
+export function shameFacts(d,nominees,{year={players:[],gms:[]},seasonFinal=d.week.end>=SEASON_END}={}){
+ const out=n=>n.map(({a,en,t,option,...x})=>x),top=list=>list.filter(x=>x.wins===list[0]?.wins);
+ return {week:weekLabel(d),players:out(nominees.filter(n=>!n.gmNominee)),gms:out(nominees.filter(n=>n.gmNominee)),
+  shameOfTheYear:year,...seasonFinal?{seasonFinal:{player:top(year.players),gm:top(year.gms)}}:{},
+  nextFriday:'в пятницу — большое интервью Майка Роффона',nextShow:seasonFinal?'это последний выпуск сезона':'следующий выпуск Inside FBL — в понедельник'};
 }
 
 // --- A guest's facts: the week of our league as the hosts see it, and what they said in the studio before him (their
@@ -289,7 +307,7 @@ const VOICES={
  dildo:`Ты — Кристофер Дилдо, молодой аналитик Inside FBL: прямоугольные очки, клетчатая рубашка, блокнот, где всё посчитано. Очень узкий специалист: кроме математики и цифр ничего не знаешь и не делаешь вид, что знаешь. Злобный ботан, который математически смеётся над всеми: над провалами, над GM и их выбором, над командами и даже над героями; уверен, что умнее всех в лиге, и доказываешь это цифрами. Образы только из твоего мира: графики, выборки, выбросы, медиана, тренды, погрешность, корреляция, теоремы, контрольная, которую все завалили. Ты панически боишься, что за тобой следит ФБР, — одной фразой, не больше.`,
  trevor:`Ты — Тревор Матолог, главный травматолог лиги FBL. Пьяный мастер медицины: тридцать лет при командах НБА, гений, который каждую травму проверил на себе (отсюда шейный корсет и гипс в автографах), давно не просыхает. Манера — циничный безумный гений в духе дядюшки Рика из «Рика и Морти» (без цитат и упоминаний сериала): бормочешь, перескакиваешь с мысли на мысль, сыплешь псевдонаучной чушью (выдуманные синдромы, теории заговора сухожилий, параллельные вселенные), икаешь (*ик* — не больше трёх раз за блок), но в конце ставишь точный диагноз. Чушь — только в образах и шутках, никогда в данных ESPN: статусы, сроки, травмы — ровно как в данных. Ирония — над последствиями для команд и GM, над медициной и над собой, никогда над болью человека.`,
  zak:`Ты — Зак Онн, главный юрист лиги FBL, буква её закона. Адвокат с большой буквы, всегда в красной кепке «God Bless America». Твои слова — для лиги, а не для разработчиков: ты ничего не знаешь о программировании и всё — о законе, делах и сомнительных типах. Никогда не говори о технике: ни карточек, ни номеров, ни реестров, ни баз, ни ботов, ни кода, ни коллекций, ни счёта проверенных записей — всё говори как дело: подозреваемый, документы, расследование, приговор. Твой голос — американский боевик 90-х о законе и порядке: коротко, хлёстко, часто о себе в третьем лице («Зак Онн»), холодная ирония, суровость без мата. Твой мир — значок, наручники, тёмные очки, ночной город, допрос, досье, прицел, суд. О ФО, очках, наградах, игре игроков и прогнозах ты не говоришь: это не твоё дело.`,
- mike:`Ты — Майк Роффон, легендарный репортёр Inside FBL: ветеран, которого не впечатлить ни цифрами, ни позой, всегда в белых перчатках и с винтажным микрофоном. По пятницам у тебя большое интервью — лонгрид, сегодня ты в студии. Стиль: хлёсткий, жёсткий, ироничный. Вопросы короткие, без лести, бьют в слабое место; цепляешься за слово из ответа и разворачиваешь его против собеседника; реплика после ответа — одна сухая строка, как штамп в протоколе. Метафоры свои, свежие, из жизни; ирония через точное наблюдение. Игрок отвечает уверенно, коротко, с баскетбольным жаргоном и вкраплением английских терминов.`,
+ mike:`Ты — Майк Роффон, легендарный репортёр Inside FBL: ветеран, которого не впечатлить ни цифрами, ни позой, всегда в белых перчатках и с винтажным микрофоном. По пятницам у тебя большое интервью — лонгрид, сегодня ты в студии. Стиль: хлёсткий, жёсткий, ироничный. Вопросы короткие, без лести, бьют в слабое место; цепляешься за слово из ответа и разворачиваешь его против собеседника; реплика после ответа — одна сухая строка, как штамп в протоколе. Метафоры свои, свежие, из жизни; ирония через точное наблюдение. Игрок отвечает уверенно, коротко, с баскетбольным жаргоном по-русски; английские словечки — только русскими буквами (юзадж, клатч, бэк-ту-бэк).`,
 };
 // A guest speaks in his own manner (the guests' list: style), as a guest of the studio among the hosts.
 const guestVoice=g=>`Ты — ${g.name} (${g.en}), ${g.kind==='coach'?'легендарный тренер НБА':'легенда НБА'}: ${g.known}. Сегодня ты специальный гость студии Inside FBL и вместе с ведущими обсуждаешь неделю нашей лиги друзей.
@@ -303,6 +321,7 @@ const COMMON=`Правила эфира:
 - Стебём игру, цифры и решения, а не человека: ни слова о внешности, теле, происхождении, семье, здоровье и личной жизни. Не цитируй и не изображай реальных телеведущих и шоу.
 - Это живой эфир за круглым столом: открой блок одной фразой-ответом на то, как тебе передали слово (handedOver), и закончи handoff — одной фразой, которой ты по имени передаёшь слово следующему (next). Если в студии сегодня гости (studioGuests) — к ним можно обращаться и подкалывать их, как своих.
 - Каждый выпуск — с чистого листа: свои свежие образы этой недели, ничего из прошлых выпусков; никаких времён года и урожая.
+- Только по-русски: никакой латиницы, кроме названий команд, имён GM и клубов — ровно как в данных. Баскетбольные термины — по-русски (подбор, потеря, бросок, кирпич, дабл-дабл, концовка); если русского слова нет, английское пиши русскими буквами (юзадж, клатч, хай-юзадж шутер).
 - Без хэштегов, без подписи (её поставит вёрстка), без HTML и markdown; эмодзи — не больше трёх на блок.
 - Ответь только JSON по схеме.`;
 const TASKS={
@@ -312,7 +331,7 @@ const TASKS={
  law:`Твой блок — «Закон и порядок» (900–1900 знаков в paragraphs, 2–4 абзаца). Дело недели: команды под подозрением и с нарушениями (teams: verdict, charges — rule, sure: доказано или под проверкой, detail), законность сделок недели (lastWeek: сделки и лимит), команды под прицелом (watchlist), постановления лиги недели (statementsOfTheWeek). Потом — новая неделя (newWeek): рынок открыт заново, у каждой команды снова её сделки в запасе (transfersLeft), где стоит белое правило и правило новичка; полное досье по командам вёрстка поставит отдельно под твоим текстом — ты выделяешь главное и предупреждаешь. verdict — одна ударная фраза-приговор недели, до 110 знаков. title — до 70 знаков, без чисел.`,
  mike:`Твой блок — «После лонгрида: флеш-интервью недели» (1500–2700 знаков всего). afterLongread — 1–3 абзаца о том, что изменилось после твоего пятничного лонгрида (afterLongread в данных: герой лонгрида на пятницу — onFriday, после воскресенья — afterSunday, table — места команд в пятницу и сейчас); если afterLongread в данных null, одной-двумя фразами скажи, что в пятницу ты снова едешь в гости. Затем два флеш-интервью: best — с лучшим игроком недели (bestOfTheWeek), worst — с худшим (worstOfTheWeek; если он null — все поля worst пустые строки): prologue — одна-две фразы, qa — 2–3 коротких вопроса и ответа, remark — сухая реплика Майка или пустая строка. pollLine — одна фраза: лига голосует, к кому ты поедешь в пятницу (nextFridayVote — варианты опроса; если их нет — пустая строка). title — до 70 знаков, без чисел.`,
  guest:`Твой блок — слово специального гостя студии (700–1900 знаков в paragraphs, 2–4 абзаца). Обсуди результаты нашей лиги за неделю по данным: таблица, команды и их GM, герой и антигерой недели, гонки, лучшая и худшая сделка. Ответь кому-то из ведущих на то, что они сказали в студии (saidInTheStudio), — поспорь или поддержи. Стебёшь или поощряешь, как эксперты, но своим голосом. title — твоя фраза-заголовок до 70 знаков, без чисел.`,
- shame:`Твой блок — «Позор недели», финал выпуска (1000–2000 знаков всего). paragraphs — 1–2 абзаца: вступление к церемонии. prizes — по одному на каждого номинанта из nominees (nominee — его id), в том же порядке: prize — смешное название шуточного приза за позор (до 60 знаков, без чисел), line — колкий комментарий к его номинации (до 220 знаков); gmNominee — это GM за сделку недели наоборот. pollLine — одна фраза: лига голосует, кому достанется главный «Позор недели» (итоги — в следующем выпуске). farewell — 1–2 фразы: прощание до следующего понедельника, напомни про пятничный лонгрид Майка. handoff — пустая строка. title — до 70 знаков, без чисел.`,
+ shame:`Твой блок — «Позор недели», финал выпуска (1300–2800 знаков всего). Номинаций две: среди игроков (players) и среди GM (gms). paragraphs — 1–2 абзаца: вступление к церемонии. prizes — по одному на каждого номинанта, сначала все игроки, потом все GM, в том порядке, как в данных (nominee — его id): prize — смешное название шуточного приза за позор (до 60 знаков, без чисел), line — колкий комментарий к его номинации (до 220 знаков). GM достаётся за его решения и его команду: сделки, состав, дело Зака Онна. shameOfTheYear — сколько недельных «Позоров» уже собрали игроки и GM: подколи лидеров гонки за «Позор года». Если есть seasonFinal — это последний выпуск сезона: торжественно вручи «Позор года» игроку и GM из seasonFinal. pollLine — одна фраза: лига голосует в двух опросах, кому достанутся «Позор недели» среди игроков и среди GM (итоги — в следующем выпуске). farewell — 1–2 фразы: прощание до следующего понедельника, напомни про пятничный лонгрид Майка. handoff — пустая строка. title — до 70 знаков, без чисел.`,
 };
 const str={type:'string'},paras=(min,max)=>({type:'array',minItems:min,maxItems:max,items:str});
 const qa={type:'array',minItems:2,maxItems:3,items:{type:'object',additionalProperties:false,required:['q','a'],properties:{q:str,a:str}}};
@@ -325,10 +344,10 @@ export const SCHEMAS={
  law:schema({title:str,paragraphs:paras(2,4),verdict:str,handoff:str}),
  mike:schema({title:str,afterLongread:paras(1,3),best:flash,worst:flash,pollLine:str,handoff:str}),
  guest:schema({title:str,paragraphs:paras(2,4),handoff:str}),
- shame:schema({title:str,paragraphs:paras(1,2),prizes:{type:'array',minItems:1,maxItems:6,items:{type:'object',additionalProperties:false,required:['nominee','prize','line'],properties:{nominee:str,prize:str,line:str}}},pollLine:str,farewell:str,handoff:str}),
+ shame:schema({title:str,paragraphs:paras(1,2),prizes:{type:'array',minItems:1,maxItems:8,items:{type:'object',additionalProperties:false,required:['nominee','prize','line'],properties:{nominee:str,prize:str,line:str}}},pollLine:str,farewell:str,handoff:str}),
 };
 // The lengths of each block's words (characters): a block out of them goes back to be fixed.
-export const LENGTH={guest:[600,2300],opening:[450,1800],numbers:[900,2900],infirmary:[600,2400],law:[600,2400],mike:[1100,3300],shame:[700,2600]};
+export const LENGTH={guest:[600,2300],opening:[450,1800],numbers:[900,2900],infirmary:[600,2400],law:[600,2400],mike:[1100,3300],shame:[900,3400]};
 
 // handedOver: the line the previous host gave the word with; notes: the owner's wishes for this issue (a redo).
 // guests: the issue's special guests (the guests' list), in every host's sight.
@@ -341,9 +360,18 @@ export function segmentMessages(key,facts,{handedOver='',notes='',guests=[]}={})
 export const segmentWords=x=>[x?.title,...(x?.paragraphs||[]),...(x?.afterLongread||[]),x?.quizLine,x?.quizExplanation,x?.verdict,
  ...['best','worst'].flatMap(k=>x?.[k]?[x[k].prologue,...(x[k].qa||[]).flatMap(q=>[q.q,q.a]),x[k].remark]:[]),
  ...(x?.prizes||[]).flatMap(p=>[p.prize,p.line]),x?.pollLine,x?.farewell,x?.handoff].filter(t=>typeof t==='string'&&t.trim()).join('\n');
+// The Latin words of a text that are not the data's own (team, GM and club names) nor the show's (FBL, Inside, NBA,
+// MVP, GM): the owner wants Russian, the English slang in Russian letters (24.10.2026).
+const LATIN_OK=new Set(['fbl','inside','nba','mvp','gm','espn']);
+export function latinIn(text,facts){
+ const known=new Set(),words=t=>(String(t).match(/[A-Za-z][A-Za-z'’]*/g)||[]).map(w=>w.toLowerCase());
+ const walk=v=>{if(typeof v==='string')words(v).forEach(w=>known.add(w));else if(v&&typeof v==='object')Object.values(v).forEach(walk);};walk(facts);
+ return [...new Set(words(text).filter(w=>!LATIN_OK.has(w)&&!known.has(w)))];
+}
+export const LATIN_FIX='пиши по-русски: термины по-русски, а если русского слова нет — английское русскими буквами (юзадж, клатч, хай-юзадж шутер)';
 const ZAK_WORDS=/(?<!\p{L})(карточ\p{L}*|реестр\p{L}*|баз[аеуыо]й? данных|баз[аеуы](?!\p{L})|бот\p{L}{0,3}(?!\p{L})|код(?:а|ом|у|е)?(?!\p{L})|коллекци\p{L}*|айди|id(?!\p{L})|алгоритм\p{L}*|программ\p{L}*|сервер\p{L}*|компьютер\p{L}*|скрипт\p{L}*|записей)/iu;
 const ZAK_OFF=/(?<!\p{L})ФО(?!\p{L})|фэнтези-очк|наград|MVP|прогноз/iu;
-// What is wrong with a block for its facts ([]: it may go on air). nominees: Steven's prizes of shame, in order.
+// What is wrong with a block for its facts ([]: it may go on air). nominees: Steven's prizes of shame, players then GMs.
 export function segmentProblems(key,x,facts,{nominees=[],guests=[]}={}){
  const s=SCHEMAS[kindOf(key)];
  if(!x||typeof x!=='object'||s.required.some(k=>x[k]===undefined))return ['ответ не по схеме'];
@@ -351,6 +379,7 @@ export function segmentProblems(key,x,facts,{nominees=[],guests=[]}={}){
  if(stray.length){const where=text.split(/(?<=[.!?…])\s+|\n+/).filter(t=>strayNumbersIn(t,allowed).length).slice(0,4).map(t=>`«${t.trim().slice(0,160)}»`);
   out.push(`числа не из данных: ${stray.join(', ')} (цифрами или словами, в том числе порядковыми) — вот где: ${where.join('; ')}; перепиши эти фразы без чисел`);}
  const copied=copiedIn(text);if(copied.length)out.push(`дословные фразы старых выпусков: ${copied.join(' | ')} — перепиши`);
+ const lat=latinIn(text,facts);if(lat.length)out.push(`латиница не из данных: ${lat.join(', ')} — ${LATIN_FIX}`);
  const stale=staleIn(text);if(stale.length)out.push(`чужая тема — время года и урожай (${stale.join(', ')}): перепиши образами этой недели`);
  const [min,max]=LENGTH[kindOf(key)],n=text.length;
  if(n<min)out.push(`слишком коротко (${n} знаков), нужно хотя бы ${min}`);if(n>max)out.push(`слишком длинно (${n} знаков), нужно не больше ${max}`);
@@ -404,7 +433,8 @@ export function segmentCast(key,{d,facts,nominees=[],patients=[],faces=new Map()
  if(key==='mike'){const b=d.heroes[0],w=d.flops[0];
   return cast([mikeRef(root),b&&faces.get(String(b.a))?playerRef(faces.get(String(b.a)),imageName(b),{role:'the best player of the week',fantasyTeamColors:LEAGUE_TEAMS[b.h?.[0]]?.kit||null}):null,
    w&&faces.get(String(w.a))?playerRef(faces.get(String(w.a)),imageName(w),{role:'the worst player of the week',fantasyTeamColors:LEAGUE_TEAMS[w.h?.[0]]?.kit||null}):null]);}
- if(key==='shame')return cast([stevenRef(root),...nominees.slice(0,3).map(n=>n.gmNominee?gmRef(n.t,root,{is:'the photo of the GM nominated for the deal of the week in reverse',need:false}):face(n.a,n.en,`nominated for a prize of shame: ${n.kind}`,n.t))]);
+ if(key==='shame'){const pl=nominees.filter(n=>!n.gmNominee).slice(0,2),gm=nominees.filter(n=>n.gmNominee).slice(0,2);
+  return cast([stevenRef(root),...pl.map(n=>face(n.a,n.en,`a player nominated for the prize of shame: ${n.kind}`,n.t)),...gm.map(n=>gmRef(n.t,root,{is:`the photo of a GM nominated for the prize of shame: ${n.kind}`,need:false}))]);}
  return cast([]);
 }
 const PICTURE={
@@ -414,7 +444,7 @@ const PICTURE={
  law:`Картинка к блоку «Закон и порядок» Зака Онна — кадр американского боевика 90-х, где весь сюжет — закон и порядок: дело недели, подозреваемые, документы, допрос, приговор. Зак Онн всегда Юрист, всегда в красной кепке с надписью «God Bless America». GM из референсов — подозреваемые или свидетели его дела, комиссар — когда к месту. Никакой техники: ни экранов, ни кода, ни серверов, ни баз — только дело.`,
  mike:`Картинка к блоку Майка Роффона: его флеш-интервью недели — с лучшим и с худшим игроком (их лица — в референсах): сцена, настроение, колкость — из этих интервью. Майк — ветеран-репортёр, всегда в белых перчатках и с винтажным хромированным микрофоном, одет как спортивный репортёр под сцену. Игроки — в цветах своих фэнтези-команд (fantasyTeamColors), без логотипов НБА.`,
  guest:`Картинка к слову специального гостя студии Inside FBL: гость (его лицо — в референсе, если оно там есть) в сцене из своего блока — в студии за круглым столом или там, куда его унесла собственная история; ведущий Стивен Экс Перт — по желанию. Гость — собой, в своём узнаваемом образе; если его фото в референсах нет — не рисуй его лицо: со спины, силуэтом, в тени или так, чтобы лица не было видно.`,
- shame:`Картинка к рубрике «Позор недели» Стивена Экс Перта — церемония вручения шуточных призов за позор в студии Inside FBL: Стивен с серьёзным лицом еле сдерживает смех, номинанты (их лица — в референсах) получают свои нелепые призы из его текста. Стебём игру и цифры, а не человека. Студия и призы свои, без реальных шоу.`,
+ shame:`Картинка к рубрике «Позор недели» Стивена Экс Перта — церемония вручения шуточных призов за позор в студии Inside FBL: Стивен с серьёзным лицом еле сдерживает смех, номинанты — игроки и GM (их лица — в референсах) — получают свои нелепые призы из его текста. Стебём игру и цифры, а не человека. Студия и призы свои, без реальных шоу.`,
 };
 const PICTURE_SYSTEM=key=>`Ты — бильд-редактор Inside FBL, главного журнала фэнтези-баскетбольной лиги друзей FBL: каждый понедельник ведущие по очереди выходят в эфир со своими блоками, и каждый блок выходит с одной фотореалистичной смешной картинкой. Ты придумываешь её целиком и пишешь её промпт для ChatGPT.
 ${PICTURE[kindOf(key)]}
@@ -435,7 +465,12 @@ export function quizPoll(quiz,explanation){
   ...explanation?{explanation:String(explanation).slice(0,200)}:{},is_anonymous:true};
 }
 export const guestPoll=candidates=>candidates.length>=2?{question:'🎤 К кому Майк Роффон поедет в гости в пятницу?',options:candidates.map(c=>c.label),is_anonymous:true}:null;
-export const shamePoll=nominees=>nominees.length>=2?{question:'🏆 Позор недели: кому лига вручает главный приз?',options:nominees.map(n=>n.option),is_anonymous:true}:null;
+// The two votes of shame: {key, poll, names (whom each option stands for: the year's count goes by them)}.
+export function shamePolls(nominees){
+ const one=(key,list,question)=>list.length>=2?{key,poll:{question,options:list.map(n=>n.option),is_anonymous:true},names:list.map(n=>n.name)}:null;
+ return [one('shamePlayer',nominees.filter(n=>!n.gmNominee),'🏆 Позор недели среди игроков: кому лига вручает приз?'),
+  one('shameGm',nominees.filter(n=>n.gmNominee),'🏆 Позор недели среди GM: кому лига вручает приз?')].filter(Boolean);
+}
 // The winner of a stopped poll (Telegram's Poll: options with voter_count): the most votes, the first of them at a tie;
 // null when nobody voted. keys: what each option stands for, in order.
 export function pollWinner(poll,keys=[]){
@@ -478,7 +513,12 @@ export function segmentText(key,x,facts,{nominees=[],guests=[]}={}){
   body=[ps(x.afterLongread),b?flashText(b.name,x.best,`лучший игрок недели, ${b.fo} ФО`):null,w?flashText(w.name,x.worst,`худший игрок недели, ${w.fo} ФО`):null,
    tidy(x.pollLine)?`🗳 <b>${esc(tidy(x.pollLine))}</b>`:null,'<i>Интервью вымышленные: цифры настоящие, слова — нет.</i>'].filter(Boolean).join('\n\n');}
  else if(key==='shame'){const by=new Map((x.prizes||[]).map(p=>[p.nominee,p]));
-  body=[ps(x.paragraphs),nominees.map(n=>{const p=by.get(n.id);return `🏆 <b>Приз «${esc(unquote(p?.prize||n.kind))}»</b> — <b>${esc(n.gmNominee?`GM ${n.name}`:n.name)}</b> (${esc(n.stat)})${p?.line?`\n${esc(tidy(p.line))}`:''}`;}).join('\n\n'),
+  const prize=n=>{const p=by.get(n.id);return `🏆 <b>Приз «${esc(unquote(p?.prize||n.kind))}»</b> — <b>${esc(n.gmNominee?`GM ${n.name}`:n.name)}</b>${n.gmNominee?` (${esc(n.team)})`:''}: ${esc(n.stat)}${p?.line?`\n${esc(tidy(p.line))}`:''}`;};
+  const pl=nominees.filter(n=>!n.gmNominee),gm=nominees.filter(n=>n.gmNominee),yr=facts.shameOfTheYear,fin=facts.seasonFinal;
+  const race=list=>list.slice(0,3).map(x=>`${esc(x.name)} — ${x.wins}`).join(' · ');
+  body=[ps(x.paragraphs),pl.length?`<b>🧍 Игроки</b>\n\n${pl.map(prize).join('\n\n')}`:null,gm.length?`<b>👔 GM</b>\n\n${gm.map(prize).join('\n\n')}`:null,
+   fin?`<b>👑 Позор года</b>\nИгрок: ${fin.player.map(x=>`<b>${esc(x.name)}</b> (${x.wins})`).join(', ')||'—'}\nGM: ${fin.gm.map(x=>`<b>${esc(x.name)}</b> (${x.wins})`).join(', ')||'—'}`
+    :yr&&(yr.players.length||yr.gms.length)?`<b>📈 Гонка за «Позор года»</b>${yr.players.length?`\nИгроки: ${race(yr.players)}`:''}${yr.gms.length?`\nGM: ${race(yr.gms)}`:''}`:null,
    tidy(x.pollLine)?`🗳 <b>${esc(tidy(x.pollLine))}</b>`:null,ps([x.farewell])].filter(Boolean).join('\n\n');}
  else if(s.guest)body=`${ps(x.paragraphs)}\n\n<i>Слова гостя вымышлены: цифры настоящие, слова — нет.</i>`;
  else body=ps(x.paragraphs);
@@ -501,9 +541,15 @@ export function showNodes(week,segments,{guests=[]}={}){
   out.push(node('h3',`${h.emoji} ${r.rubric} — ${h.name}`));
   if(s.picture)out.push(node('figure',{tag:'img',attrs:{src:s.picture}}));
   if(s.title)out.push(node('p',node('b',`«${unquote(s.title)}»`)));
-  out.push(...htmlToNodes(s.text.split('\n\n').slice(1).join('\n\n')));
+  // The live studio's lines (s.steps) as quotes between the host's words; the host's first words without their heading.
+  const steps=s.steps||[{text:s.text}];let first=true;
+  for(const st of steps){
+   if(st.poll){out.push(node('blockquote',`🗳 ${st.poll.poll.question}\n${st.poll.poll.options.map(o=>`• ${o}`).join('\n')}\nГолосование — в чате лиги.`));continue;}
+   if(st.studio){out.push(node('blockquote',...inline(st.text.replace(/\n/g,' '))));continue;}
+   out.push(...htmlToNodes(first?st.text.split('\n\n').slice(1).join('\n\n'):st.text));first=false;
+  }
   for(const c of s.cards||[])out.push(node('figure',{tag:'img',attrs:{src:c}}));
-  for(const p of s.polls||[])out.push(node('blockquote',`🗳 ${p.question}\n${p.options.map(o=>`• ${o}`).join('\n')}\nГолосование — в чате лиги.`));
+  if(!s.steps)for(const p of s.polls||[])out.push(node('blockquote',`🗳 ${p.question}\n${p.options.map(o=>`• ${o}`).join('\n')}\nГолосование — в чате лиги.`));
  }
  out.push(node('p',node('i','Inside FBL выходит по понедельникам. Цифры настоящие, ФО по формуле лиги; слова и интервью — вымышленные.')));
  return out;
@@ -576,6 +622,7 @@ export function announceProblems(x,facts,guests,week){
  const out=[],text=[x.title,...x.topics,...x.guestHints||[],x.teaser].join('\n'),factsNoNames={...facts,secretGuests:facts.secretGuests.map(({realName,...g})=>g)};
  const stray=strayNumbersIn(text,allowedNumbers(factsNoNames));if(stray.length)out.push(`числа не из данных: ${stray.join(', ')} — перепиши без них`);
  const leak=giveaway(text,guests);if(leak.length)out.push(`гости секретные: в анонсе их не называют (${leak.join(', ')}) — только намёки`);
+ const lat=latinIn(text,factsNoNames);if(lat.length)out.push(`латиница не из данных: ${lat.join(', ')} — ${LATIN_FIX}`);
  if((x.guestHints||[]).length!==guests.length)out.push(`guestHints — ровно по одной загадке на гостя: ${guests.length}`);
  const stale=staleIn(text);if(stale.length)out.push(`чужая тема — время года и урожай (${stale.join(', ')})`);
  if(announceCaption(x,week,guests).length>1024)out.push('анонс длиннее подписи к фото Telegram: сократи темы');
@@ -614,4 +661,90 @@ export async function writeAnnouncePicture(x,facts,c,{guests=[],recent=[],claude
  const brief=`Анонс выпуска:\n${[x.title,...x.topics,...x.guestHints||[],x.teaser].join('\n')}\n\nДанные:\n${JSON.stringify({...facts,recentIdeas:recent.slice(-10)},null,1)}`;
  const check=t=>{const p=promptProblems(t,c,{numbers:allowedNumbers(facts)}),leak=giveaway(t,guests);return leak.length?[...p,`the guests are secret: never name them in the prompt (${leak.join(', ')}), only hint with objects`]:p;};
  return writePicture({system:ANNOUNCE_PICTURE,brief,c,check,write:claude,model,timeoutMs,label:'Inside FBL announcement',log});
+}
+
+// --- The live studio (owner, 24.10.2026): the hosts and the guests interrupt one another mid-block and, after a block,
+// tease its verdicts and choices with trash talk; the one who spoke answers back. Written by Claude in one pass over the
+// whole show once its blocks are written, so the jokes can run through it. Each line from the bot of whoever says it.
+// Who may speak: the hosts by their key, a guest by his block's key (guest1, guest2).
+export function studioCast(guests=[]){
+ const out=Object.entries(HOSTS).map(([who,h])=>({who,name:h.name,role:h.role,bot:who}));
+ rundownOf(guests).filter(s=>s.guest).forEach(s=>out.push({who:s.key,name:s.guest.name,role:speaker(s).role,bot:'steven',style:s.guest.style}));
+ return out;
+}
+const speakerKey=s=>s.guest?s.key:s.host;
+const BANTER_LINE=220;
+const line={type:'object',additionalProperties:false,required:['who','line','answer'],properties:{who:str,line:str,answer:str}};
+export const BANTER_SCHEMA={type:'object',additionalProperties:false,required:['blocks'],properties:{blocks:{type:'array',items:{type:'object',additionalProperties:false,required:['key','interrupt','reactions'],properties:{
+ key:str,interrupt:{type:'object',additionalProperties:false,required:['after','who','line','comeback'],properties:{after:{type:'integer'},who:str,line:str,comeback:str}},
+ reactions:{type:'array',maxItems:2,items:line}}}}}};
+// The paragraphs of a block where it may be interrupted.
+const parasOf=x=>x?.paragraphs||x?.afterLongread||[];
+export function banterMessages(segments,guests=[]){
+ const people=studioCast(guests),slots=segments.map(s=>({key:s.key,speaker:speakerKey(slotOf(s.key,guests)),rubric:slotOf(s.key,guests).rubric,title:s.x.title,paragraphs:parasOf(s.x),
+  ...s.key==='mike'?{interviews:[s.x.best,s.x.worst]}:{},...s.key==='shame'?{prizes:s.x.prizes}:{}}));
+ return {system:`${SHOW}\n\nТы — режиссёр живой студии Inside FBL. Блоки ведущих уже написаны; твоя задача — сделать из них живой эфир за круглым столом: ведущие и гости перебивают друг друга, подкалывают чужие оценки и выбор, добавляют трэш-ток, а тот, кому досталось, огрызается в ответ.
+Кто в студии (who — ключ, им подписываешь реплику):
+${people.map(p=>`- ${p.who}: ${p.name}, ${p.role}${p.style?`. Манера: ${p.style}`:''}`).join('\n')}
+Голоса ведущих: Стивен — уверенный эксперт студии с театральным возмущением; Кристофер Дилдо — злобный ботан, высмеивает всех цифрами; Тревор Матолог — пьяный безумный гений медицины, бормочет и икает; Зак Онн — юрист из боевика 90-х, говорит только о законе, о себе в третьем лице, без очков и наград, ни слова о технике; Майк Роффон — хлёсткий ветеран-репортёр с сухими штампами. Гости — в своей манере.
+Правила:
+- Для каждого блока (key) — interrupt: кто-то перебивает ведущего посреди блока (after — после скольких абзацев paragraphs, от 1 до их числа минус 1; who — не сам ведущий блока; line — реплика, которой он вклинивается; comeback — короткий ответ ведущего блока, после которого он продолжает). Перебивай только там, где это смешно: в двух–четырёх блоках за выпуск; в остальных interrupt.who — пустая строка.
+- reactions — одна-две реплики с места после блока: подколоть оценку или выбор ведущего, добавить трэш-тока, поспорить или неожиданно поддержать; answer — ответ ведущего блока (или пустая строка). who — не сам ведущий блока.
+- Каждая реплика — одна-две фразы, до ${BANTER_LINE} знаков, в голосе того, кто говорит. Цепляйся за конкретные слова и цифры блока. Перекидывайтесь шутками через весь выпуск.
+- Стебём игру, цифры, оценки и решения, а не человека: ни слова о внешности, теле, происхождении, семье, здоровье.
+- Числа — только те, что есть в блоках; никаких своих.
+- Только по-русски: никакой латиницы, кроме названий команд и имён GM, как в блоках; английские словечки — русскими буквами.
+- Ответь только JSON по схеме.`,
+  prompt:`Выпуск, блоки по порядку эфира:\n${JSON.stringify(slots,null,1)}`};
+}
+// Claude's studio, line by line: a line out of the rules is left out (a number not of the show, Latin, Zak off his law,
+// a speaker answering himself, too long). allFacts: every block's facts. Answers key -> {interrupt, reactions}.
+export function studioLines(raw,segments,allFacts,guests=[]){
+ const present=new Set(studioCast(guests).map(p=>p.who)),allowed=allowedNumbers(allFacts),out={};
+ const ok=(who,text)=>{const t=tidy(text);if(!t||t.length>BANTER_LINE+40)return null;
+  if(strayNumbersIn(t,allowed).length||latinIn(t,allFacts).length||staleIn(t).length)return null;
+  if(who==='zak'&&(ZAK_WORDS.test(t)||ZAK_OFF.test(t)))return null;return t;};
+ let interrupts=0;
+ for(const b of raw?.blocks||[]){
+  const seg=segments.find(s=>s.key===b.key);if(!seg)continue;
+  const me=speakerKey(slotOf(seg.key,guests)),n=parasOf(seg.x).length,r={interrupt:null,reactions:[]};
+  const i=b.interrupt;
+  if(i&&i.who&&i.who!==me&&present.has(i.who)&&Number.isInteger(i.after)&&i.after>=1&&i.after<n&&interrupts<4){
+   const l=ok(i.who,i.line),c=ok(me,i.comeback);if(l&&c){r.interrupt={after:i.after,who:i.who,line:l,comeback:c};interrupts++;}}
+  for(const x of (b.reactions||[]).slice(0,2)){if(!x.who||x.who===me||!present.has(x.who))continue;const l=ok(x.who,x.line);if(!l)continue;
+   r.reactions.push({who:x.who,line:l,answer:x.answer?ok(me,x.answer)||'':''});}
+  out[seg.key]=r;
+ }
+ return out;
+}
+export async function writeStudio(segments,allFacts,{guests=[],claude=claudeJSON,model=SHOW_MODEL,timeoutMs=300e3,log=console.warn}={}){
+ try{const {data}=await claude({...banterMessages(segments,guests),schema:BANTER_SCHEMA,model,timeoutMs});return studioLines(data,segments,allFacts,guests);}
+ catch(e){log(`Inside FBL show: no live studio (${e.message}).`);return {};}
+}
+// The studio's lines as they go out: who says it (his bot, his name) and the words (Telegram HTML). speakers: who -> name.
+export const studioName=(who,guests=[])=>studioCast(guests).find(p=>p.who===who)?.name||who;
+export const studioBot=(who,guests=[])=>studioCast(guests).find(p=>p.who===who)?.bot||'steven';
+export const interruptText=(who,line,guests)=>`⚡️ <b>${esc(studioName(who,guests))}</b> перебивает:\n${esc(line)}`;
+export const reactionText=(who,line,guests)=>`💬 <b>${esc(studioName(who,guests))}:</b> ${esc(line)}`;
+export const answerText=(who,line,guests)=>`↩️ <b>${esc(studioName(who,guests))}:</b> ${esc(line)}`;
+// A block's text cut where it is interrupted: [before, after] (after begins with the speaker's comeback), or null.
+export function splitForInterrupt(text,x,interrupt){
+ const p=parasOf(x)[interrupt.after-1];if(!p)return null;
+ const mark=esc(tidy(p)),i=text.indexOf(mark);if(i<0)return null;
+ const a=text.slice(0,i+mark.length).trim(),b=text.slice(i+mark.length).trim();
+ return b?[a,`<i>${esc(interrupt.comeback)}</i>\n\n${b}`]:null;
+}
+// A block on air as its messages after its picture, each a reply to the one before: [{by: the bot (a host key), text,
+// main: the block's own last words (the opening's buttons go there)} | {by, poll: {key, poll, names}}]. key, host, text,
+// x: the block; studio: studioLines' for it; polls: its polls.
+export function blockSteps({key,host,text,x,studio=null,polls=[],guests=[]}){
+ const me=speakerKey(slotOf(key,guests)),out=[],i=studio?.interrupt,cut=i&&splitForInterrupt(text,x,i);
+ if(cut)out.push({by:host,text:cut[0]},{by:studioBot(i.who,guests),text:interruptText(i.who,i.line,guests),studio:true},{by:host,text:cut[1],main:true});
+ else out.push({by:host,text,main:true});
+ for(const r of studio?.reactions||[]){
+  out.push({by:studioBot(r.who,guests),text:reactionText(r.who,r.line,guests),studio:true});
+  if(r.answer)out.push({by:host,text:answerText(me,r.answer,guests),studio:true});
+ }
+ for(const p of polls)out.push({by:host,poll:p});
+ return out;
 }

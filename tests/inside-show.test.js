@@ -5,7 +5,7 @@ import {LEAGUE_TEAMS} from '../src/teams.js';
 import {weekOf} from '../awards-bot/core.js';
 import {pickGuest,VOTED} from '../awards-bot/inside-fbl.js';
 import {showData,dealsOf,openingFacts,numbersFacts,quizOf,infirmaryFacts,lawFacts,weekStatements,mikeFacts,guestCandidates,shameNominees,shameFacts,
- RUNDOWN,HOSTS,SCHEMAS,segmentMessages,segmentProblems,writeSegment,segmentCast,quizPoll,guestPoll,shamePoll,pollWinner,segmentCaption,segmentText,
+ RUNDOWN,HOSTS,SCHEMAS,segmentMessages,segmentProblems,writeSegment,segmentCast,quizPoll,guestPoll,shamePolls,shameOfTheYear,latinIn,studioCast,studioLines,writeStudio,blockSteps,splitForInterrupt,interruptText,pollWinner,segmentCaption,segmentText,
  patientLines,dossierLines,showNodes,showTitle,airTime,airEnd,reviewTime,announceTime,GUESTS,MAX_GUESTS,guestById,rundownOf,speaker,kindOf,guestFacts,saidOf,
  guestPool,pickShowGuests,lifeOf,guestCheck,guestWords,announceFacts,announceProblems,announceCaption,writeAnnouncement,announceCast,writeAnnouncePicture,writeSegmentPicture} from '../awards-bot/inside-show.js';
 import {weekTableCard,dossierCard,showOpener} from '../awards-bot/show-cards.js';
@@ -60,14 +60,18 @@ test('Inside FBL show: Dildo\'s quiz is the code\'s: four options of the facts, 
  assert.equal(numbersFacts(d,q).quiz.answer,q.answer);assert.equal(numbersFacts(d,q).deals[0].t,undefined);
 });
 
-test('Inside FBL show: the prizes of shame, a player once, a GM for the deal of the week in reverse',()=>{
- const n=shameNominees(d);
- assert.ok(n.length>=3&&n.length<=4);assert.equal(new Set(n.filter(x=>!x.gmNominee).map(x=>x.a)).size,n.filter(x=>!x.gmNominee).length);
+test('Inside FBL show: the prizes of shame, a player\'s and a GM\'s: a player once, a GM once, each with the league\'s vote',()=>{
+ const n=shameNominees(d),pl=n.filter(x=>!x.gmNominee),gms=n.filter(x=>x.gmNominee);
+ assert.ok(pl.length>=3&&pl.length<=4);assert.equal(new Set(pl.map(x=>x.a)).size,pl.length);
+ assert.ok(gms.length>=2&&gms.length<=4);assert.equal(new Set(gms.map(x=>x.t)).size,gms.length,'a GM once');
  assert.deepEqual(n.map(x=>x.id),n.map((_,i)=>`n${i+1}`));
  assert.equal(n[0].kind,'худший матч недели');assert.equal(n[0].name,'Янг');assert.match(n[0].option,/^Янг — -?\d+ ФО за матч$/);
- const gm=n.find(x=>x.gmNominee);assert.equal(gm.name,'Лемариус');assert.match(gm.option,/^GM Лемариус — продал Эдвардс, купил Нулевой$/);
- const f=shameFacts(d,n);assert.ok(f.nominees.every(x=>!('a' in x)&&!('option' in x)));
- const p=shamePoll(n);assert.equal(p.options.length,n.length);assert.ok(p.options.every(o=>o.length<=100));
+ const gm=gms[0];assert.equal(gm.name,'Лемариус');assert.equal(gm.kind,'сделка недели наоборот');assert.match(gm.option,/^Лемариус \(Texas 76 Citrus\) — продал Эдвардс, купил Нулевой$/);
+ assert.ok(gms.some(x=>x.kind==='худшая неделя лиги'));
+ assert.equal(shameNominees(d,{breaches:[7]}).filter(x=>x.gmNominee)[1].kind,'дело Зака Онна','a breach of the rules nominates its GM');
+ const f=shameFacts(d,n);assert.equal(f.players.length,pl.length);assert.equal(f.gms.length,gms.length);assert.ok([...f.players,...f.gms].every(x=>!('a' in x)&&!('option' in x)));
+ const [pp,gp]=shamePolls(n);assert.equal(pp.key,'shamePlayer');assert.equal(gp.key,'shameGm');assert.match(gp.poll.question,/среди GM/);
+ assert.deepEqual(pp.names,pl.map(x=>x.name));assert.deepEqual(gp.names,gms.map(x=>x.name));assert.ok([...pp.poll.options,...gp.poll.options].every(o=>o.length<=100));
 });
 
 test('Inside FBL show: whom the league may send Mike to on Friday, none of the last guests, the long read\'s --guest',()=>{
@@ -170,8 +174,11 @@ test('Inside FBL show: on air: the captions, the texts with the code\'s lines, e
  assert.match(segmentCaption('law',blocks.law,week),/^<b>⚖️ Inside FBL • Закон и порядок<\/b>\nЗак Онн, главная буква закона лиги\n\n#inside_fbl #неделя_2 #закон_и_порядок$/);
  const t=segmentText('law',blocks.law,law);
  assert.match(t,/<b>📁 Досье на новую неделю<\/b>/);assert.match(t,/⚖️ <b>Закон не спит\.<\/b>/);assert.match(t,/🎙 <i>Майк, микрофон твой\.<\/i>/);assert.ok(t.endsWith(HOSTS.zak.sign));
- const n=shameNominees(d),s=segmentText('shame',{title:'Позор',paragraphs:['Начали.'],prizes:n.map(x=>({nominee:x.id,prize:'«Кирпич»',line:'Ох.'})),pollLine:'Голосуйте.',farewell:'Пока.',handoff:''},shameFacts(d,n),{nominees:n});
- assert.match(s,/🏆 <b>Приз «Кирпич»<\/b> — <b>Янг<\/b> \(-?\d+ ФО за матч\)\nОх\./);assert.match(s,/🏆 <b>Приз «Кирпич»<\/b> — <b>GM Лемариус<\/b>/);assert.doesNotMatch(s,/🎙 <i>/);
+ const n=shameNominees(d),year={players:[{name:'Янг',wins:2}],gms:[{name:'Jack Pott',wins:1}]},s=segmentText('shame',{title:'Позор',paragraphs:['Начали.'],prizes:n.map(x=>({nominee:x.id,prize:'«Кирпич»',line:'Ох.'})),pollLine:'Голосуйте.',farewell:'Пока.',handoff:''},shameFacts(d,n,{year}),{nominees:n});
+ assert.match(s,/<b>🧍 Игроки<\/b>\n\n🏆 <b>Приз «Кирпич»<\/b> — <b>Янг<\/b>: -?\d+ ФО за матч\nОх\./);assert.match(s,/<b>👔 GM<\/b>\n\n🏆 <b>Приз «Кирпич»<\/b> — <b>GM Лемариус<\/b> \(Texas 76 Citrus\)/);
+ assert.match(s,/<b>📈 Гонка за «Позор года»<\/b>\nИгроки: Янг — 2\nGM: Jack Pott — 1/);assert.doesNotMatch(s,/🎙 <i>/);
+ const fin=segmentText('shame',{title:'Позор',paragraphs:['Финал.'],prizes:[],pollLine:'',farewell:'До сезона.',handoff:''},shameFacts(d,n,{year,seasonFinal:true}),{nominees:n});
+ assert.match(fin,/<b>👑 Позор года<\/b>\nИгрок: <b>Янг<\/b> \(2\)\nGM: <b>Jack Pott<\/b> \(1\)/);
  const m=mikeFacts(d,{}),mt=segmentText('mike',{title:'Т',afterLongread:['В пятницу снова в гости.'],best:{prologue:'П.',qa:[{q:'В?',a:'О.'}],remark:''},worst:{prologue:'П2.',qa:[{q:'В2?',a:'О2.'}],remark:'Штамп.'},pollLine:'Голосуйте, куда мне ехать.',handoff:'Стивен, твой позор.'},m);
  assert.match(mt,/<b>🎤 Флеш-интервью: лучший игрок недели, \d+ ФО — Эдвардс<\/b>/);assert.match(mt,/<b>Майк Роффон\.<\/b> В2\?\n<b>Брансон\.<\/b> О2\./);
  assert.match(mt,/<i>Интервью вымышленные: цифры настоящие, слова — нет\.<\/i>/);assert.match(mt,/<i>Майк Роффон: Штамп\.<\/i>/);
@@ -283,4 +290,48 @@ test('Inside FBL show: the announcement at 12:00: the topics, the secret guests 
  const prompts=[];const pic=await writeAnnouncePicture(x,f,c,{guests:[shaq],recent:['old idea'],claude:async o=>{prompts.push(o);return {data:{prompt:prompts.length===1?good.replace('two guests',"Shaquille O'Neal and a guest"):good,idea:'lego'}};},log:()=>{}});
  assert.ok(pic);assert.equal(prompts.length,2);assert.match(prompts[1].prompt,/the guests are secret: never name them/);assert.match(prompts[0].prompt,/old idea/);
  assert.match(prompts[0].system,/фигурками LEGO/);assert.match(prompts[0].system,/Никогда не называй гостей в промпте/);
+});
+
+test('Inside FBL show: the prizes of shame of the year: the weeks\' winners counted, the season\'s last show gives them',()=>{
+ const y=shameOfTheYear([{player:{key:'Янг'},gm:{key:'Jack Pott'}},{player:{key:'Уилсон'},gm:{key:'Jack Pott'}},{player:{key:'Янг'},gm:null},null]);
+ assert.deepEqual(y,{players:[{name:'Янг',wins:2},{name:'Уилсон',wins:1}],gms:[{name:'Jack Pott',wins:1}].map(x=>({...x,wins:2}))});
+ const f=shameFacts(d,shameNominees(d),{year:y,seasonFinal:true});assert.deepEqual(f.seasonFinal.player,[{name:'Янг',wins:2}]);assert.match(f.nextShow,/последний выпуск сезона/);
+ assert.equal(shameFacts(d,[]).seasonFinal,undefined,'not the last week');
+});
+test('Inside FBL show: only Russian: Latin words other than the data\'s own go back, the English slang in Russian letters',()=>{
+ const f=openingFacts(d);
+ assert.deepEqual(latinIn('Сабонис из SAC, Texas 76 Citrus и GM Jack Pott, лидер MVP в FBL.',{...f,x:'SAC Texas 76 Citrus Jack Pott'}),[]);
+ assert.deepEqual(latinIn('Glass мой, double-double идёт, это налог на usage.',f),['glass','double','usage']);
+ assert.match(segmentProblems('opening',{...blocks.opening,paragraphs:[...blocks.opening.paragraphs,'Это чистый usage, bro.']},f).join(),/латиница не из данных: usage, bro — пиши по-русски.*юзадж/);
+ assert.deepEqual(segmentProblems('opening',{...blocks.opening,paragraphs:[...blocks.opening.paragraphs,'Это чистый хай-юзадж шутер.']},f),[]);
+ assert.match(segmentMessages('mike',{}).system,/английские словечки — только русскими буквами/);assert.match(segmentMessages('numbers',{}).system,/Только по-русски/);
+});
+test('Inside FBL show: the live studio: an interruption mid-block, lines from the desk, the answers, each from its own bot',()=>{
+ const shaq=guestById('shaq'),segs=[{key:'numbers',host:'dildo',x:blocks.numbers},{key:'law',host:'zak',x:blocks.law},{key:'guest1',host:'steven',x:{title:'Шак',paragraphs:['Раз.','Два.'],handoff:''}}];
+ const facts={numbers:numbersFacts(d),law};
+ assert.deepEqual(studioCast([shaq]).map(p=>[p.who,p.bot]),[['steven','steven'],['dildo','dildo'],['trevor','trevor'],['zak','zak'],['mike','mike'],['guest1','steven']]);
+ const raw={blocks:[
+  {key:'numbers',interrupt:{after:1,who:'zak',line:'Зак Онн изымает эту таблицу как улику.',comeback:'Зак, улики считаю я.'},reactions:[{who:'trevor',line:'Кристофер, твоя медиана хромает *ик*.',answer:'Зато не на голеностоп.'},{who:'numbers',line:'сам себе',answer:''}]},
+  {key:'law',interrupt:{after:1,who:'zak',line:'Сам себя перебиваю.',comeback:'—'},reactions:[{who:'guest1',line:'Шак видел законы и посерьёзнее.',answer:'Зак Онн видел Шака.'},{who:'mike',line:'Сорок два свидетеля, Зак.',answer:''}]},
+  {key:'guest1',interrupt:{after:1,who:'mike',line:'Шак, а штрафные?',comeback:'Майк, не начинай.'},reactions:[{who:'zak',line:'Зак Онн нашёл это в базе данных.',answer:''}]}]};
+ const st=studioLines(raw,segs,facts,[shaq]);
+ assert.deepEqual(st.numbers.interrupt,{after:1,who:'zak',line:'Зак Онн изымает эту таблицу как улику.',comeback:'Зак, улики считаю я.'});
+ assert.equal(st.numbers.reactions.length,1,'nobody answers from his own block');assert.equal(st.law.interrupt,null,'a host never interrupts himself');
+ assert.deepEqual(st.law.reactions.map(r=>r.who),['guest1'],'a number not of the show is left out');
+ assert.equal(st.guest1.reactions.length,0,'Zak never speaks of machines');assert.equal(st.guest1.interrupt.who,'mike');
+ const text=segmentText('numbers',blocks.numbers,facts.numbers),steps=blockSteps({key:'numbers',host:'dildo',text,x:blocks.numbers,studio:st.numbers,polls:[{key:'numbers',poll:{question:'Q',options:['a','b']},names:[]}]});
+ assert.deepEqual(steps.map(x=>x.by),['dildo','zak','dildo','trevor','dildo','dildo']);
+ assert.ok(steps[0].text.endsWith(blocks.numbers.paragraphs[0].trim()));assert.match(steps[1].text,/^⚡️ <b>Зак Онн<\/b> перебивает:\nЗак Онн изымает/);
+ assert.match(steps[2].text,/^<i>Зак, улики считаю я\.<\/i>\n\n/);assert.ok(steps[2].main);assert.ok(steps[2].text.endsWith(HOSTS.dildo.sign));
+ assert.match(steps[3].text,/^💬 <b>Тревор Матолог:<\/b> Кристофер, твоя медиана/);assert.match(steps[4].text,/^↩️ <b>Кристофер Дилдо:<\/b> Зато не на голеностоп\./);assert.ok(steps[5].poll);
+ const g=blockSteps({key:'guest1',host:'steven',text:segmentText('guest1',segs[2].x,{}, {guests:[shaq]}),x:segs[2].x,studio:st.guest1,guests:[shaq]});
+ assert.deepEqual(g.map(x=>x.by),['steven','mike','steven'],'a guest speaks through the host\'s bot');assert.match(g[2].text,/^<i>Майк, не начинай\.<\/i>/);
+ assert.deepEqual(blockSteps({key:'law',host:'zak',text:'x',x:blocks.law}).map(x=>x.by),['zak'],'no studio: the block as it is');
+ const nodes=showNodes(week,[{key:'numbers',title:'Цифры',text,steps,picture:null,cards:[]}]);
+ assert.ok(nodes.filter(n=>n.tag==='blockquote').length>=4,'the studio\'s lines and the poll as quotes on the page');
+});
+test('Inside FBL show: the studio is written in one pass over the show, and the show goes on without it',async()=>{
+ const calls=[];const r=await writeStudio([{key:'law',host:'zak',x:blocks.law}],{law},{claude:async o=>{calls.push(o);return {data:{blocks:[{key:'law',interrupt:{after:1,who:'dildo',line:'Зак, а по формуле?',comeback:'Формулы Зак Онн оставляет присяжным.'},reactions:[]}]}};}});
+ assert.equal(r.law.interrupt.who,'dildo');assert.match(calls[0].system,/перебивают друг друга, подкалывают чужие оценки и выбор, добавляют трэш-ток/);assert.match(calls[0].prompt,/"speaker": "zak"/);
+ assert.deepEqual(await writeStudio([],{},{claude:async()=>{throw Error('down');},log:()=>{}}),{});
 });
