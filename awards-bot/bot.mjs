@@ -32,9 +32,7 @@
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
 //                                                   mike-roffon.yml): written and drawn, posted into the league chat
 //                                                   by his bot with --send (--picture-only: only his picture, for
-//                                                   an interview that went without one; --infirmary: his report
-//                                                   from the infirmary instead, ESPN's injury report as it is now,
-//                                                   drawn, ~$0.06); the state is only read
+//                                                   an interview that went without one); the state is only read
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
@@ -58,7 +56,6 @@ import {generate,cost} from '../scripts/image-pipeline.mjs';
 import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
-import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './infirmary.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
@@ -311,54 +308,6 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  }catch(e){console.warn(`${day}: Mike Roffon failed (${e.message}).`);return {status:'failed'};}
 }
 
-// Mike Roffon's report from the infirmary (infirmary.js): ESPN's injury report as it is now, the FBL rosters' patients, their
-// comments in Russian (the site's translations; the missing ones translated now by Claude), Mike's opener and afterword
-// written by Claude, and the ward's pictures (prompts written by Claude, drawn by OpenAI, about $0.03 each, at most two).
-// send: posted by his bot (sent: {status, cost, patients, at}); else printed. draw: the pictures (paid).
-const TRANSLATIONS='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/translations/translations.json';
-async function infirmary(day,ctx,{send=live&&!!MIKE,draw=true}={}){
- let report;
- try{report=await json(ESPN+'injuries');}catch(e){console.warn(`${day}: no ESPN injury report (${e.message}): no infirmary.`);return {status:'failed'};}
- // A report that lists nobody is a broken feed, never an empty infirmary.
- if(!report?.injuries?.some?.(t=>t?.injuries?.length)){console.warn(`${day}: ESPN's injury report lists nobody: no infirmary.`);return {status:'failed'};}
- const list=patients(report,ctx.rosters,ctx.who),tr=await json(TRANSLATIONS).catch(()=>null);
- const ru=Object.fromEntries(Object.entries(tr?.texts||{}).map(([k,v])=>[k,v.text])),todo=untranslated(list,tr),writes=claudeConfigured(env);
- if(todo.length&&writes)Object.assign(ru,await translateNow(todo));
- const facts=list.map(x=>patientFacts(x,ru));
- let words=null,spent=0;const pics=[];
- if(facts.length&&writes){
-  try{words=await writeWords(infirmaryFacts(facts));}catch(e){console.warn(`${day}: Claude did not write the infirmary's words (${e.message}).`);}
-  if(draw&&OPENAI_KEY){
-   const {headshot}=await import('./render.mjs');
-   for(const group of pictureGroups(facts)){
-    const faces=new Map((await Promise.all(group.map(async p=>[p.espnId,await headshot(p.espnId)]))).filter(([,f])=>f));
-    let written=null;
-    try{written=await writeWardPicture(group,wardCast(group,faces));}catch(e){console.warn(`${day}: Claude did not write the ward's picture (${e.message}).`);}
-    if(!written)continue;
-    try{const r=await generate(written,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});pics.push(r.png);spent+=cost(r.usage);}
-    catch(e){console.warn(`${day}: the ward's picture failed (${e.message}).`);}
-   }
-  }
- }
- const text=infirmaryText(facts,words,day),caption=infirmaryCaption(facts,day);
- if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});pics.forEach((p,i)=>fs.writeFileSync(path.join(CARDS_DIR,`infirmary-${day}-${i+1}.png`),p));
-  fs.writeFileSync(path.join(CARDS_DIR,`infirmary-${day}.txt`),caption+'\n\n'+text+'\n');}
- if(!send){console.log(`\n===== Mike Roffon's infirmary (preview, ${pics.length} picture(s), $${spent.toFixed(3)}) =====\n${caption}\n\n${text}\n`);return {status:'preview',cost:spent};}
- try{
-  let shown=null;
-  if(pics.length===1){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',caption);form.append('parse_mode','HTML');
-   form.append('photo',new Blob([pics[0]],{type:'image/png'}),`infirmary-${day}.png`);shown=await telegram(MIKE,'sendPhoto',form);}
-  else if(pics.length>1){const form=new FormData();form.append('chat_id',String(CHAT));
-   form.append('media',JSON.stringify(pics.map((_,i)=>({type:'photo',media:`attach://p${i}`,...i?{}:{caption,parse_mode:'HTML'}}))));
-   pics.forEach((p,i)=>form.append(`p${i}`,new Blob([p],{type:'image/png'}),`infirmary-${day}-${i+1}.png`));
-   shown=(await telegram(MIKE,'sendMediaGroup',form))[0];}
-  for(const [i,part] of split(text).entries())await telegram(MIKE,'sendMessage',{chat_id:CHAT,text:part,parse_mode:'HTML',disable_web_page_preview:true,
-   ...i===0&&shown?{reply_parameters:{message_id:shown.message_id}}:{}});
-  console.log(`${day}: Mike Roffon's infirmary sent: ${facts.length} patient(s), ${pics.length} picture(s), $${spent.toFixed(3)}.`);
-  return {status:'sent',cost:Math.round(spent*1e4)/1e4,patients:facts.length,at:new Date(now()).toISOString()};
- }catch(e){console.warn(`${day}: Mike Roffon's infirmary failed (${e.message}).`);return {status:'failed'};}
-}
-
 // --- The day's pictures (images.js): the heroes in one picture and the flops in another, their prompts written by Claude
 // through the owner's subscription (free; without it, or when he cannot write one, no picture), drawn by OpenAI (about
 // $0.03 each) and sent by the awards bot after the day's album, before Mike Roffon. recent: the ideas of the last days,
@@ -424,8 +373,6 @@ async function watchDay(day,ctx,archive,state){
     const recent=Object.keys(state.posted.pictures||{}).sort().slice(-7).flatMap(d=>state.posted.pictures[d].ideas||[]);
     (state.posted.pictures||={})[day]=await picturesPost(day,archive.lines,ctx,{recent});pushState(state,archive);}
    if(!state.posted.mike?.[day]){const m=await mikeInterview(day,archive.lines,ctx,state);if(m){(state.posted.mike||={})[day]=m;pushState(state,archive);}}
-   // Mike's report from the infirmary, 20 minutes after his interview (below, once the week and the month are posted).
-   if(live&&MIKE&&!state.posted.infirmary?.[day]){(state.posted.infirmary||={})[day]={status:'due',at:new Date(now()+INFIRMARY_DELAY_MS).toISOString()};pushState(state,archive);}
    break;
   }
   if(step.do==='later'){console.log(`${day}: the last game tips off at ${step.until?new Date(step.until).toISOString():'?'}; a later run follows it.`);return false;}
@@ -438,14 +385,6 @@ async function watchDay(day,ctx,archive,state){
  save(state,archive);
  if(isSunday(day)&&!state.posted.weekly[weekOf(day).start]){await weekly(day,ctx,archive,state,true);pushState(state,archive);}
  if(isMonthEnd(day)&&!state.posted.monthly[day.slice(0,7)]){await monthly(day,ctx,archive,state,true);pushState(state,archive);}
- const inf=state.posted.infirmary?.[day];
- if(inf?.status==='due'){
-  const at=Date.parse(inf.at),wait=at-now();
-  if(now()-START+wait>WATCH_MS-2*60e3){console.log(`${day}: the infirmary's time (${inf.at}) goes past this run; the next run posts it.`);return true;}
-  if(wait>0){console.log(`${day}: the infirmary at ${inf.at}.`);save(state,archive);await sleep(wait);}
-  state.posted.infirmary[day]=now()>at+INFIRMARY_LATE_MS?{status:'late',at:inf.at}:await infirmary(day,ctx);
-  pushState(state,archive);
- }
  return true;
 }
 // One pass: archive what finished, then follow yesterday's and today's games (US Eastern) to their posts, in order: last
@@ -500,7 +439,6 @@ async function preview(day){
  await dayPost(day,archive.lines,ctx,[]);
  if(flag('--prompts')||flag('--pictures'))await picturesPost(day,archive.lines,ctx,{send:false,draw:flag('--pictures')});
  await mikeInterview(day,archive.lines,ctx,state);
- if(flag('--infirmary'))await infirmary(day,ctx,{send:false,draw:flag('--pictures')});
  if(flag('--week')||isSunday(day))await weekly(day,ctx,archive,state,false);
  if(flag('--month')||isMonthEnd(day))await monthly(day,ctx,archive,state,false);
 }
@@ -522,10 +460,6 @@ async function mikeByHand(day){
  const send=flag('--send'),only=flag('--picture-only');
  if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT],...only?[['OPENAI_API_KEY',OPENAI_KEY]]:[['CLAUDE_CODE_OAUTH_TOKEN',claudeConfigured(env)]]].filter(x=>!x[1]).map(x=>x[0]);
   if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
- if(flag('--infirmary')){
-  if(send){const missing=[['MIKE_ROFFON_BOT_TOKEN',MIKE],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
-  const r=await infirmary(day,await loadLeague(),{send});if(r.status!==(send?'sent':'preview'))process.exitCode=1;return;
- }
  const ctx=await loadLeague(),m=only?await mikePictureOnly(day,archive.lines,ctx,state,send):await mikeInterview(day,archive.lines,ctx,state,{send,write:true});
  if(!m)throw Error(`${day}: no hero of the day`);
  if(m.status!==(send?'sent':'preview'))process.exitCode=1;
