@@ -62,37 +62,52 @@ export function patientFacts(x,ru={}){
   reportDay:x.i.date?ddmm(String(x.i.date).slice(0,10)):null,comment:comment?ru[textKey(comment)]||null:null,commentEn:comment||null};
 }
 
-// --- Trevor's words: an opener and an afterword (the list itself is the report's).
-const VOICE=`Ты — Тревор Матолог, главный травматолог фэнтези-лиги FBL (Fantasy Brothers League). Тридцать лет врачом при командах НБА, ни одной пропущенной игры. Каждую травму ты сначала проверяешь на себе, чтобы знать срок восстановления не по учебнику: поэтому ты сам в шейном корсете и с гипсом, на котором расписываются все, кого ты отправил в лазарет. Своих болячек не замечаешь. Каждый день ты делаешь обход лазарета лиги — травмированных игроков из составов команд FBL — и пишешь короткую сводку.
-Твой стиль: врачебный обход — диагнозы, прогнозы, назначения, сухой медицинский юмор; предельно серьёзно, как хирург на брифинге, коротко и плотно. Ирония — над последствиями для фэнтези-команд и их GM (дыры в составах, сгоревшие очки, срочные замены), никогда над травмой, болью и здоровьем человека: к самим травмам и игрокам — с уважением.
-Фраза «Поверьте, я это проходил» — твоя, но не обязательна: не чаще раза за сводку.
-Каждая сводка — с чистого листа: никаких тем, образов и фраз из прошлых выпусков; не из времени года и не из календаря. Образы — только из этого лазарета и этих команд.`;
+// --- Trevor's words (owner, 24.10.2026): a voice like no one else's, a drunken master in the manner of Rick Sanchez, who
+// may ramble any nonsense, but only around ESPN's data, never in it: his opener, one line on each patient and his afterword
+// go beside the report's own lines (the status, the term, the injury, ESPN's comment), which the code lays out untouched.
+const VOICE=`Ты — Тревор Матолог, главный травматолог фэнтези-лиги FBL (Fantasy Brothers League). Пьяный мастер медицины: тридцать лет при командах НБА, гений, который видел всё, каждую травму проверил на себе (отсюда шейный корсет и гипс в автографах всех, кого он отправил в лазарет) и давно не просыхает. Каждый день ты делаешь обход лазарета лиги — травмированных игроков из составов команд FBL — и комментируешь его.
+Твоя подача ни на кого не похожа. Манера — как у дядюшки Рика из «Рика и Морти»: циничный безумный гений, который умнее всех и не скрывает этого; бормочет, перескакивает с мысли на мысль, обрывает сам себя, сыплет псевдонаучной чушью (выдуманные синдромы, теории заговора сухожилий, параллельные вселенные, где этот голеностоп цел), икает посреди фразы (*ик*), презирает «эти ваши фэнтези-очки», но в конце всё-таки бросает точный диагноз. Можешь нести любую чушь — всё равно никто не поймёт.
+Не цитируй сериал и не упоминай Рика, Морти и их фразы: манера твоя собственная. *ик* — не больше трёх раз за весь обход. «Поверьте, я это проходил» — твоя фраза, не чаще раза за обход.
+Ирония и чушь — над последствиями для фэнтези-команд и их GM (дыры в составах, сгоревшие очки, срочные замены), над медициной и над самим собой, никогда над болью и здоровьем человека.
+Каждый обход — с чистого листа: никаких тем, образов и фраз из прошлых выпусков; не из времени года и не из календаря. Образы — только из этого лазарета и этих команд.`;
 const RULES=`Правила:
-- Пиши только по данным ниже. Числа — только из данных (сроки «до ~ДД.ММ» можно повторить); никаких других чисел, ни цифрами, ни словами. Можно не называть числа вовсе.
+- Данные ESPN неприкосновенны: статус, срок, часть тела, вид травмы, команды и GM — только как в данных. Не противоречь им и не добавляй фактов о травмах, которых нет в данных (операций, сроков, рецидивов, решений тренера). Чушь — только в образах, теориях и шутках, заведомо абсурдных, а не в фактах.
+- Числа — только из данных (сроки «до ~ДД.ММ» можно повторить); никаких других чисел, ни цифрами, ни словами. Можно не называть числа вовсе.
 - Имена игроков, команд и GM — как в данных.
-- opener — 1–2 предложения: Тревор начинает обход и ставит общий диагноз лиге (чьи составы пострадали сильнее). afterword — одно предложение, ударная фраза.
-- Список пациентов и комментарии ESPN вёрстка добавит сама: не пересказывай их.
-- Ответь строго JSON: {"opener": "...", "afterword": "..."}`;
+- opener — 1–3 предложения: Тревор вваливается на обход и ставит общий диагноз лиге (чьи составы пострадали сильнее).
+- notes — по одной реплике Тревора на каждого пациента, до 25 слов: его диагноз и бред о нём. name — ровно как name пациента в данных.
+- afterword — одно предложение, ударная фраза.
+- Строки пациентов и комментарии ESPN вёрстка добавит сама: не пересказывай их.
+- Ответь строго JSON: {"opener": "...", "notes": [{"name": "...", "note": "..."}], "afterword": "..."}`;
 const str={type:'string'};
-export const WORDS_SCHEMA={type:'object',additionalProperties:false,required:['opener','afterword'],properties:{opener:str,afterword:str}};
+export const WORDS_SCHEMA={type:'object',additionalProperties:false,required:['opener','notes','afterword'],properties:{opener:str,afterword:str,
+ notes:{type:'array',items:{type:'object',additionalProperties:false,required:['name','note'],properties:{name:str,note:str}}}}};
 export const wordsMessages=facts=>({system:`${VOICE}\n\n${RULES}`,prompt:`Лазарет лиги сегодня. Данные:\n${JSON.stringify(facts,null,1)}`});
-const wordsOf=x=>`${x?.opener||''} ${x?.afterword||''}`;
+const notesOf=x=>Array.isArray(x?.notes)?x.notes:[];
+const wordsOf=x=>[x?.opener,...notesOf(x).map(n=>n?.note),x?.afterword].filter(s=>typeof s==='string').join(' ');
 // What is wrong with Trevor's words ([]: they may go out).
 export function wordsProblems(x,facts){
- if(!x||typeof x.opener!=='string'||!x.opener.trim()||typeof x.afterword!=='string')return ['не по схеме'];
+ if(!x||typeof x.opener!=='string'||!x.opener.trim()||typeof x.afterword!=='string'||!Array.isArray(x.notes))return ['не по схеме'];
  const out=[],t=wordsOf(x),stray=strayNumbersIn(t,allowedNumbers(facts)),copied=copiedIn(t),stale=staleIn(t);
+ const names=new Set((facts.patients||[]).map(p=>p.name)),unknown=notesOf(x).filter(n=>!names.has(n?.name)).map(n=>n?.name);
+ const long=notesOf(x).filter(n=>String(n?.note||'').length>220).map(n=>n.name),hic=(t.match(/\*ик\*/gi)||[]).length;
  if(stray.length)out.push(`числа не из данных (${stray.join(', ')})`);
  if(copied.length)out.push(`дословные фразы старых выпусков (${copied.join(' | ')})`);
  if(stale.length)out.push(`чужая тема — время года и урожай (${stale.join(', ')})`);
- if(t.length>600)out.push(`слишком длинно (${t.length} знаков, до 600)`);
+ if(unknown.length)out.push(`реплики о тех, кого нет в данных (${unknown.join(', ')}): name — ровно как в данных`);
+ if(long.length)out.push(`слишком длинные реплики (${long.join(', ')}): до 25 слов`);
+ if(hic>3)out.push(`*ик* ${hic} раз, не больше трёх`);
+ if(x.opener.length+x.afterword.length>700)out.push(`вступление и концовка слишком длинные (${x.opener.length+x.afterword.length} знаков, до 700)`);
  return out;
 }
 // Trevor's words, written until they pass (two tries, the second told what was wrong); null: the report goes without them.
-export async function writeWords(facts,{claude=claudeJSON,model=TREVOR_MODEL,timeoutMs=120e3,log=console.warn}={}){
+// {opener, notes: {patient's name: his line}, afterword}.
+export async function writeWords(facts,{claude=claudeJSON,model=TREVOR_MODEL,timeoutMs=180e3,log=console.warn}={}){
  const m=wordsMessages(facts);let fix='';
  for(let i=0;i<2;i++){
   const {data}=await claude({system:m.system,prompt:m.prompt+(fix?`\n\nПрошлый вариант отклонён: ${fix}. Напиши заново.`:''),schema:WORDS_SCHEMA,model,timeoutMs});
-  const p=wordsProblems(data,facts);if(!p.length)return {opener:data.opener.trim(),afterword:data.afterword.trim()};
+  const p=wordsProblems(data,facts);
+  if(!p.length)return {opener:data.opener.trim(),afterword:data.afterword.trim(),notes:Object.fromEntries(data.notes.filter(n=>n.note.trim()).map(n=>[n.name,n.note.trim()]))};
   fix=p.join('; ');log(`Infirmary: Trevor's words refused (${fix}).`);
  }
  return null;
@@ -101,7 +116,8 @@ export async function writeWords(facts,{claude=claudeJSON,model=TREVOR_MODEL,tim
 // The facts the writers see: no date (every piece from nothing, mike-roffon.js forWriter).
 export const infirmaryFacts=list=>({patients:list.map(({espnId,...p})=>p),teamsHit:[...new Set(list.flatMap(p=>p.fblTeams.map(t=>t.team)))]});
 
-// --- The report as Telegram HTML: Trevor's opener, the patients team by team with ESPN's comment, his afterword.
+// --- The report as Telegram HTML: Trevor's opener, the patients team by team (ESPN's lines as they are, then his own
+// line on each), his afterword.
 const HEAD='<b>🏥 Лазарет FBL</b>',SIGNATURE='— Тревор Матолог, травматолог лиги FBL',TAGS=day=>`#лазарет #травмы ${dateTag(day)}`;
 const STATUS_MARK=p=>p.out?'🔴':'🟡';
 export function infirmaryText(list,words,day){
@@ -114,8 +130,8 @@ export function infirmaryText(list,words,day){
   return [title,...g.rows.map(p=>{
    const injury=[p.where,p.what].filter(Boolean).join(', ');
    const line=`${STATUS_MARK(p)} <b>${esc(p.name)}</b>${p.club?` (${esc(p.club)})`:''} — ${esc([p.status.toLowerCase(),p.until].filter(Boolean).join(' '))}${injury?` · ${esc(injury)}`:''}`;
-   const c=p.comment||p.commentEn;
-   return c?`${line}\n<i>ESPN${p.reportDay?`, ${esc(p.reportDay)}`:''}: ${esc(c)}</i>`:line;})].join('\n');});
+   const c=p.comment||p.commentEn,note=words?.notes?.[p.name];
+   return [line,...c?[`<i>ESPN${p.reportDay?`, ${esc(p.reportDay)}`:''}: ${esc(c)}</i>`]:[],...note?[`🥃 ${esc(note)}`]:[]].join('\n');})].join('\n');});
  return [head,...words?.opener?['',esc(words.opener)]:[],'',blocks.join('\n\n'),...words?.afterword?['',esc(words.afterword)]:[],'',
   SIGNATURE,'',TAGS(day)].join('\n');
 }
@@ -130,7 +146,7 @@ export function wardCast(group,faces,root){
 const PICTURE_SYSTEM=`Ты — бильд-редактор фэнтези-баскетбольной лиги друзей FBL. Каждый день Тревор Матолог, главный травматолог лиги, делает обход лазарета: травмированных игроков НБА из составов команд FBL. Ты пишешь промпт картинки к его сводке.
 - Сцена — лазарет: игроки на больничных койках (или в креслах, на костылях — как подсказывают их травмы), Тревор на обходе у их постелей. Где именно, как и в каком стиле — решаешь ты, каждый раз по-новому.
 - Травмы показывай честно и бережно: повязки, лангеты, лёд на нужном месте (injury). Юмор — в ситуации и в деталях палаты, никогда не в боли и не в крови.
-- Тревор Матолог — врач, предельно серьёзный, и сам весь в травмах: всегда шейный корсет и гипс на правой руке в автографах игроков (он проверяет каждую травму на себе). Его обычный вид — белый халат, стетоскоп, планшет; остальное подбери под сцену.
+- Тревор Матолог — пьяный мастер медицины, безумный циничный гений, сам весь в травмах: всегда шейный корсет и гипс на правой руке в автографах игроков (он проверяет каждую травму на себе). Его обычный вид — белый халат, стетоскоп, планшет, фляжка в кармане; остальное подбери под сцену. Никаких отсылок к чужим мультсериалам и их персонажам.
 - Игроки — каждый со своим лицом с референса; больничная одежда, на одеяле или пледе можно цвета его фэнтези-команды (kitColors). Никаких логотипов НБА.
 - Надписи — только в кавычках; числа в них — только из данных.
 
