@@ -47,6 +47,8 @@ test('Infirmary: Trevor\'s words only with the facts\' numbers, no stale themes,
  assert.match(wordsProblems({opener:'.',notes:[{name:'Леброн',note:'Бред.'}],afterword:'.'},facts).join(),/реплики о тех, кого нет в данных \(Леброн\)/);
  assert.match(wordsProblems({opener:'*ик* *ик*',notes:[{name:'Тейтум',note:'*ик* *ик*'}],afterword:'.'},facts).join(),/\*ик\* 4 раз/);
  assert.deepEqual(wordsProblems({opener:'.',afterword:'.'},facts),['не по схеме']);
+ assert.match(wordsProblems({opener:'.',notes:[{name:'Тейтум',note:'Ахилл, не играет. Заговор сухожилий.'}],afterword:'.'},facts).join(),/реплики повторяют статус \(Тейтум\)/,'straight into the nonsense');
+ assert.deepEqual(wordsProblems({opener:'.',notes:[{name:'Тейтум',note:'А знаешь, почему ты травмирован? Да потому что ахилл ушёл к другому.'}],afterword:'.'},facts),[]);
  assert.match(wordsProblems({opener:'Урожай травм.',notes:[],afterword:'.'},facts).join(),/чужая тема/);
  const seen=[];const claude=async o=>{seen.push(o.prompt);return {data:seen.length===1?{opener:'Минус 40.',notes:[],afterword:'.'}:{opener:'Лазарет полон.',notes:[{name:'Эмбиид',note:' Колено в отпуске. '}],afterword:'Держитесь.'}};};
  assert.deepEqual(await writeWords(facts,{claude,log:()=>{}}),{opener:'Лазарет полон.',afterword:'Держитесь.',notes:{'Эмбиид':'Колено в отпуске.'}});
