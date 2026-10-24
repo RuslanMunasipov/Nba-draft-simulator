@@ -1,30 +1,37 @@
 name: Inside FBL show
-# Inside FBL, the league's main journal (awards-bot/inside-show.js): every Monday at 19:00 Moscow the whole cast goes on
-# air in the league chat, block after block, each from its own bot (Steven Ex Pert opens, then Christopher Dildo, Trevor
-# Matolog, Zak Onn, Mike Roffon, and Steven closes with the prizes of shame), every block a reply to the one before it,
-# with its picture (prompts by Claude, drawn by OpenAI: about $0.03 each), the code's cards and the league's polls.
-# The owner approves every issue first, as he does the long read:
-#   - Monday morning (09:07-12:07 Moscow, once the awards bot posted the week's Sunday) the draft: every block written by
-#     Claude through the owner's subscription, its page on Telegraph sent to the owner by Mike's bot
-#     (INSIDE_FBL_REVIEW_CHAT_ID, else his personal TELEGRAM_CHAT_ID), its link in the run's summary;
-#   - by hand: approve (on air at 19:00; approved later that Monday, at once), or redo (written and drawn anew, with the
-#     owner's notes if any);
-#   - from 15:07 Moscow the post runs wait for 19:00, read the state again and air an approved show; one not approved
-#     that Monday does not go out. GitHub's schedule is best-effort, so they start hours early.
+# Inside FBL, the league's main journal (awards-bot/inside-show.js): every Monday the whole cast goes on air in the league
+# chat, block after block, each from its own bot (Steven Ex Pert opens, then Christopher Dildo, Trevor Matolog, Zak Onn,
+# Mike Roffon, at most two special guests, NBA legends or coaches, and Steven closes with the prizes of shame), every
+# block a reply to the one before it, with its picture (prompts by Claude, drawn by OpenAI: about $0.03 each), the code's
+# cards and the league's polls. Its Monday, Moscow time (owner, 24.10.2026):
+#   - from 05:07 the draft: it waits for the awards bot to post the week's Sunday, chooses the guests, writes and draws
+#     every block and the announcement; at 09:00 the owner gets the announcement and the whole show in his own chat by
+#     Mike's bot (INSIDE_FBL_REVIEW_CHAT_ID, else his personal TELEGRAM_CHAT_ID);
+#   - 12:00 the announcement in the league: the studio's photo with the secret guests and the issue's topics (runs from
+#     10:07 wait for it);
+#   - 18:00 the show on air (runs from 14:07 wait for it).
+# By hand: hold (nothing more goes out), release (it goes out again; what is past its hour goes at once), redo (written
+# and drawn anew: notes, the owner's wishes; guests, other guests), draft, announce, post.
+# GitHub's schedule is best-effort, so every run starts hours early and waits.
 # State, pictures and cards live on the branch data/inside-show (the Telegraph page shows them by their raw URLs).
 on:
   schedule:
-    - cron: '7 6,7,8,9 * * 1'
-    - cron: '7 12,13,14,15 * * 1'
+    - cron: '7 2,3,4,5 * * 1'
+    - cron: '7 7,8 * * 1'
+    - cron: '7 11,12,13 * * 1'
   workflow_dispatch:
     inputs:
       action:
-        description: 'draft: the week''s show for review; approve: on air on Monday at 19:00; redo: written anew; post: wait for 19:00 and air it if approved'
+        description: 'hold: nothing more goes out; release: it goes out again; redo: written anew; draft; announce: at 12:00; post: at 18:00'
         type: choice
-        options: [draft, approve, redo, post]
-        default: draft
+        options: [hold, release, redo, draft, announce, post]
+        default: hold
       notes:
         description: 'For redo: what to change (the hosts get it as the editor''s wishes)'
+        required: false
+        default: ''
+      guests:
+        description: 'For draft/redo: the special guests by hand, ids of data/inside-show-guests.json, e.g. shaq,pop (empty: chosen by Claude; redo keeps them)'
         required: false
         default: ''
       week:
@@ -34,8 +41,8 @@ on:
 permissions:
   contents: write
 concurrency:
-  # The post runs wait hours for 19:00 in a group of their own, so an approval or a redo is never queued behind them.
-  group: ${{ (github.event.schedule == '7 12,13,14,15 * * 1' || inputs.action == 'post') && 'inside-show-post' || 'inside-show' }}
+  # The announcement and the show wait hours in groups of their own, so a hold or a redo is never queued behind them.
+  group: ${{ (github.event.schedule == '7 11,12,13 * * 1' || inputs.action == 'post') && 'inside-show-post' || (github.event.schedule == '7 7,8 * * 1' || inputs.action == 'announce') && 'inside-show-announce' || 'inside-show' }}
   cancel-in-progress: false
 jobs:
   show:
@@ -66,8 +73,9 @@ jobs:
           fi
       - name: Draft, approve or air
         env:
-          ACTION: ${{ github.event.schedule == '7 12,13,14,15 * * 1' && 'post' || github.event.schedule == '7 6,7,8,9 * * 1' && 'draft' || inputs.action }}
-          AFTER: ${{ github.event.schedule == '7 6,7,8,9 * * 1' && '--after-sunday' || '' }}
+          ACTION: ${{ github.event.schedule == '7 11,12,13 * * 1' && 'post' || github.event.schedule == '7 7,8 * * 1' && 'announce' || github.event.schedule == '7 2,3,4,5 * * 1' && 'draft' || inputs.action }}
+          AFTER: ${{ github.event.schedule == '7 2,3,4,5 * * 1' && '--wait-sunday --wait-review' || '' }}
+          GUESTS: ${{ inputs.guests }}
           WEEK: ${{ inputs.week }}
           NOTES: ${{ inputs.notes }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
@@ -87,4 +95,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           node awards-bot/bot.mjs --inside-show --state "$RUNNER_TEMP/awards" --show "$RUNNER_TEMP/show" --action "$ACTION"
-          ${WEEK:+--show-week "$WEEK"} ${NOTES:+--notes "$NOTES"} $AFTER
+          ${WEEK:+--show-week "$WEEK"} ${NOTES:+--notes "$NOTES"} ${GUESTS:+--guests "$GUESTS"} $AFTER
