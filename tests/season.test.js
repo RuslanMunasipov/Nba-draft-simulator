@@ -327,6 +327,17 @@ test('market players missing from the database get a price-based prior and are m
  assert.equal(x.forecast.meanPerGame,30);
  assert.equal(withMarket(players,{players:{}}),players);
 });
+test('a card Sports.ru replaced moves its database player instead of making a stranger of him',()=>{
+ // A catalog older than the snapshot still has the emptied card: the new one carries the same ESPN id.
+ const rookie={id:'espn:9',espnId:'9',name:'Keaton Wagler',sportsId:'2208842',isRookie:true,rookieStatus:'SOURCE_REPORTED_NO_EXPERIENCE',positions:['SG'],price:1400};
+ const card={name:'Уоглер',fullName:'Китон Уоглер',position:'SG',price:1422,club:'Клипперс',espnId:'9'};
+ const all=withMarket([...players,rookie],{players:{'2208842':{},'2208816':card}}),w=all.find(p=>p.id==='espn:9');
+ assert.equal(w.sportsId,'2208816');assert.deepEqual(w.previousSportsIds,['2208842']);assert.equal(w.isRookie,true);
+ assert.equal(all.some(p=>p.id==='sports:2208816'),false);assert.equal(rookie.sportsId,'2208842');
+ // His own card still sold on Sports.ru: two cards, nothing is moved.
+ const both=withMarket([...players,rookie],{players:{'2208842':{...card},'2208816':card}});
+ assert.equal(both.find(p=>p.id==='espn:9').sportsId,'2208842');assert.equal(both.some(p=>p.id==='sports:2208816'),true);
+});
 
 test('the derived roster is checked against the roster Sports.ru shows',()=>{
  const roster=picks.filter((_,i)=>i%8===0).map(id=>({sportsId:String(1000+id)}));
