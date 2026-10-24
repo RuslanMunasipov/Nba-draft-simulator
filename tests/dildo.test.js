@@ -4,7 +4,7 @@ import {fblFormula} from '../src/fbl-scoring.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {dailyBlocks,weeklyBlocks,form} from '../awards-bot/core.js';
 import {dayAlbum,weekHeroesAlbum} from '../awards-bot/cards.js';
-import {refused,asDildo,teamFacts,dayFacts,weekFacts,commentMessages,commentProblems,commentFor,signCaption,signText,SIGNATURE,CAPTION_LIMIT} from '../awards-bot/dildo.js';
+import {refused,asDildo,lines as noteLines,COMMENT_LIMIT,teamFacts,dayFacts,weekFacts,commentMessages,commentProblems,commentFor,signCaption,signText,SIGNATURE,CAPTION_LIMIT} from '../awards-bot/dildo.js';
 
 const s={pts:31,reb:14,ast:11,stl:2,blk:1,tov:3,fgm:12,fga:19,ftm:5,fta:6,pf:2};
 const bad={pts:6,reb:2,ast:1,stl:0,blk:0,tov:5,fgm:2,fga:14,ftm:2,fta:6,pf:5};
@@ -120,4 +120,17 @@ test('Christopher Dildo: the week\'s heroes are an album of their own with the w
  assert.match(cards[1],/Герои недели/);assert.match(cards[1],/Провалы недели/);assert.match(cards[1],/Золотая жила недели/);assert.match(cards[1],/\+44/);
  assert.match(caption,/^<b>🗓 Итоги недели 1 · 19–25 октября 2026<\/b>\nГерой недели: RU P1 — \+44 ФО/);
  assert.match(caption,/\n\n#итоги_недели #неделя_1 #октябрь_2026$/);assert.doesNotMatch(caption,/гонка/);
+});
+
+test('Christopher Dildo: an evil nerd laughing at everyone with maths, in 3 or 4 sharp notes, a line each',async()=>{
+ const facts=dayFacts(dailyBlocks(lines),who,{lines}),{system}=commentMessages(facts);
+ assert.match(system,/злобный ботан, который математически смеётся над всеми/);assert.match(system,/даже над героями/);assert.match(system,/3–4 короткие колкие пометки, каждая с новой строки/);
+ assert.equal(noteLines('- RU P1: 44 ФО.\n\n2) RU P2:  12 кирпичей.\n• Выборка мала.\nТеорема доказана.\nПятая строка лишняя.'),'RU P1: 44 ФО.\nRU P2: 12 кирпичей.\nВыборка мала.\nТеорема доказана.','a line each, list marks dropped, at most four');
+ assert.equal(noteLines('-14 ФО у RU P2.'),'-14 ФО у RU P2.','a minus is not a list mark');
+ const notes='RU P1: 44 ФО, выброс, но выборка из одного матча.\nRU P2: 12 кирпичей, теорема о стене доказана.\nGM Franky Murder, ваш выбор — погрешность.';
+ const comment=await commentFor(facts,{claude:async()=>({data:{comment:notes}}),warn:quiet});
+ assert.equal(comment,notes,'his lines stay lines');
+ const {caption}=dayAlbum('2026-10-21',dailyBlocks(lines),who,look,fonts,{week});
+ const signed=signCaption(caption,'х'.repeat(COMMENT_LIMIT));
+ assert.ok(signed.length<=CAPTION_LIMIT);assert.match(signed,/📓/,'the longest comment he may write still fits the caption');
 });
