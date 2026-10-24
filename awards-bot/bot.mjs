@@ -1199,12 +1199,26 @@ async function until(at,what){
  if(now()<at){console.log(`Inside FBL show: waiting for ${new Date(at).toISOString()} (${what}).`);await sleep(at-now());}
  return true;
 }
+// The show's launch in the league chat (owner, 24.10.2026), sent once by hand: data/inside-show-teaser.json, the first
+// message with the studio's photo, each from its host's bot, a reply to the one before. --again sends it once more.
+async function showTeaser(st){
+ const t=JSON.parse(fs.readFileSync(new URL('data/inside-show-teaser.json',ROOT),'utf8')),[first,...rest]=t.messages;
+ if(st.teaser?.sentAt&&!flag('--again')){console.log(`Inside FBL teaser: already sent ${st.teaser.sentAt}; --again sends it once more.`);return;}
+ fs.mkdirSync(path.join(SHOW_DIR,'teaser'),{recursive:true});fs.copyFileSync(new URL(t.photo,ROOT),path.join(SHOW_DIR,'teaser',path.basename(t.photo)));
+ const s={key:'teaser',host:first.by,caption:first.text,picture:`teaser/${path.basename(t.photo)}`,cards:[],steps:rest.map(m=>({by:m.by,text:m.text}))};
+ if(DRY){printBlock(s);return;}
+ if(!CHAT)throw Error('--action teaser: the league chat (AWARDS_CHAT_ID or LEAGUE_TELEGRAM_CHAT_ID)');
+ const r=await sendBlock(s,{},{chat:CHAT,bot:hostSenders,pause:6000});
+ st.teaser={sentAt:new Date().toISOString(),last:r.last,sender:r.sender};showPush(st,'Inside FBL: the launch in the league chat');
+ console.log(`Inside FBL teaser: sent (${t.messages.length} messages).`);
+}
 async function insideShow(){
  if(!SHOW_DIR)throw Error('--inside-show: --show DIR (a clone of the branch data/inside-show, or an empty directory)');
  let action=opt('--action')||'draft';if(action==='approve')action='release';
- if(!['draft','redo','hold','release','announce','post','test','votes','ledger'].includes(action))throw Error(`--action: draft, redo, hold, release, announce, post, test, votes or ledger, not ${action}`);
+ if(!['draft','redo','hold','release','announce','post','test','votes','ledger','teaser'].includes(action))throw Error(`--action: draft, redo, hold, release, announce, post, test, votes, ledger or teaser, not ${action}`);
  const st=showRead(),w=showWeek(),rec=st.shows[w.start];
  if(action==='votes'){await showVotes(w,st);return;}
+ if(action==='teaser'){await showTeaser(st);return;}
  // ledger: the season's ledger of the awards so far, sent to the owner by Mike's bot (printed with --dry).
  if(action==='ledger'){const lines=read('archive.json',{lines:[]}).lines;
   const text=[ledgerText(seasonTally(ledgerAired(ledgerRead()))),...lines.length?[seasonAwardsText(awardsOf(await loadLeague(),lines))]:[]].join('\n\n');
