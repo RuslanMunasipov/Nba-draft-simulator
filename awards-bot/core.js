@@ -9,7 +9,9 @@ import {TRANSFER_HOURS} from '../src/rules.js';
 import RULES from '../data/league-rules.json' with {type:'json'};
 
 export const SEASON_START=RULES.yahoo.scoringStart,SEASON_END=RULES.yahoo.scoringEnd;
-export const STATS=['pts','reb','ast','stl','blk','tov','fgm','fga','ftm','fta','pf'];
+// fg3m, fg3a: threes (owner, 24.10.2026: the season's three-point percentage); not in the FBL formula. Lines archived
+// before them are filled in by the bot (bot.mjs pass): until then they count as none.
+export const STATS=['pts','reb','ast','stl','blk','tov','fgm','fga','ftm','fta','pf','fg3m','fg3a'];
 // Minimum minutes: a flop of the day among the league's players, a flop of the week. The NBA antitop takes every player
 // who took the floor (league chat, 21.10.2026: a minus in eight minutes is the point of it).
 export const MIN_FLOP=15,MIN_WEEK_FLOP=60;
@@ -66,9 +68,9 @@ export function parseSummary(json,game,day){
   const labels=st.labels||st.names||[];
   for(const a of st.athletes||[]){
    if(!a.stats?.length||a.didNotPlay)continue;
-   const x=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]])),[fgm,fga]=made(x.FG),[ftm,fta]=made(x.FT);
+   const x=Object.fromEntries(labels.map((l,i)=>[l,a.stats[i]])),[fgm,fga]=made(x.FG),[ftm,fta]=made(x.FT),[fg3m,fg3a]=made(x['3PT']);
    const mm=String(x.MIN||'0').split(':'),m=Math.round((num(mm[0])+num(mm[1])/60)*10)/10;
-   const s={pts:num(x.PTS),reb:num(x.REB),ast:num(x.AST),stl:num(x.STL),blk:num(x.BLK),tov:num(x.TO),fgm,fga,ftm,fta,pf:num(x.PF)};
+   const s={pts:num(x.PTS),reb:num(x.REB),ast:num(x.AST),stl:num(x.STL),blk:num(x.BLK),tov:num(x.TO),fgm,fga,ftm,fta,pf:num(x.PF),fg3m,fg3a};
    let p;try{p=fblPoints({...s,minutes:m});}catch{continue;}
    out.push({d:day,e:game.id,a:String(a.athlete?.id),n:a.athlete?.shortName||a.athlete?.displayName||'',c:team.team?.abbreviation||'',t:game.tip,m,s,p});
   }
@@ -138,7 +140,7 @@ export function settle(lines,league,slots){
 }
 
 // --- Rankings.
-const sumStats=lines=>Object.fromEntries(STATS.map(k=>[k,lines.reduce((s,l)=>s+l.s[k],0)]));
+const sumStats=lines=>Object.fromEntries(STATS.map(k=>[k,lines.reduce((s,l)=>s+(l.s[k]||0),0)]));
 // Lines summed per player (a week, a month, the season): points, games, minutes, stats, every team that held him.
 export function perPlayer(lines){
  const by=new Map();
