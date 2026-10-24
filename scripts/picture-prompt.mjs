@@ -40,6 +40,11 @@ export function mikeRef(root){
  const p=person('mike-roffon');
  return {image:readImage(path.join(root||ASSETS,p.photo)),is:'the photo of Mike Roffon, the reporter: take only his face from it, never its clothes',facts:about(p),need:true,say:['white gloves','microphone']};
 }
+// Trevor Matolog, the league's trauma doctor: his face, and always his neck brace and his cast with players' autographs.
+export function trevorRef(root){
+ const p=person('trevor-matolog');
+ return {image:readImage(path.join(root||ASSETS,p.photo)),is:'the photo of Trevor Matolog, the league\'s trauma doctor',facts:about(p),need:true,say:['neck brace','cast']};
+}
 // An NBA player: his ESPN headshot ({bytes, name, type}, or null).
 export const playerRef=(face,name,{need=true,...facts}={})=>({image:face,is:`the ESPN headshot of the real NBA player ${name}`,facts,need});
 

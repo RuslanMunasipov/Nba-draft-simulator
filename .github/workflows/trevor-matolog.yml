@@ -1,0 +1,56 @@
+name: Trevor Matolog
+# Trevor Matolog's report from the infirmary, by hand (awards-bot/trevor-matolog.js). The awards bot posts it by itself 20
+# minutes after Mike Roffon's flash interview; this one is for a day it missed, or a test. ESPN's injury report as it is
+# at the moment of the run, the FBL rosters' patients, their comments in Russian, his words written by Claude through the
+# owner's subscription, the ward's pictures drawn by OpenAI (about $0.03 each, at most two) and, with "send", posted into
+# the league chat by Trevor's bot. Nothing is saved, so every run with "send" posts again. Without "send": the report in
+# the run's log and its pictures in the run's artifact. "prompts_only": the pictures' prompts in the log, nothing drawn.
+on:
+  workflow_dispatch:
+    inputs:
+      day:
+        description: 'The report''s day, YYYY-MM-DD (empty: today in New York)'
+        required: false
+      send:
+        description: 'Post it into the league chat (unticked: only written and drawn)'
+        type: boolean
+        default: false
+      prompts_only:
+        description: 'Only the pictures'' prompts, nothing drawn (free)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: trevor-matolog
+  cancel-in-progress: false
+jobs:
+  infirmary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Install Claude Code
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
+      - name: Write, draw and post
+        env:
+          DAY: ${{ inputs.day }}
+          SEND: ${{ inputs.send && '--send' || '' }}
+          PROMPTS: ${{ inputs.prompts_only && '--prompts' || '' }}
+          AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          TREVOR_MATOLOG_BOT_TOKEN: ${{ secrets.TREVOR_MATOLOG_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          DAY="${DAY:-$(TZ=America/New_York date +%F)}"
+          node awards-bot/bot.mjs --trevor-day "$DAY" --cards "$RUNNER_TEMP/trevor/out" $SEND $PROMPTS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trevor-matolog-${{ github.run_id }}
+          path: ${{ runner.temp }}/trevor/out
+          if-no-files-found: ignore
