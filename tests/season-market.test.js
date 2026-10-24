@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {seasonRosters,withMarket,takenIds} from '../src/season.js';
 import {MARKET_DEFAULT,MARKET_WIDEST,marketSettings,marketRows,marketFilter,marketView,unsoldPlayers,cardsOnSale} from '../src/season-market.js';
 // 16 drafted players (two a team; #2's card emptied, #3 without a card), free #17 (two hot games) and #18 (a rookie
@@ -55,4 +55,11 @@ test('stored filters: one saved before the version field loses its games filter,
  assert.deepEqual(marketSettings({scope:'all',pos:'C',minGames:1,maxPrice:1500,sort:'price',streaks:true,rookies:false}),
   {...MARKET_DEFAULT,scope:'all',pos:'C',maxPrice:1500,sort:'price',streaks:true,version:1});
  assert.equal(marketSettings({minGames:3,version:1}).minGames,3);
+});
+// The page itself (src/season-ui/players.js), read as text: the list of the players Sports.ru does not sell stays open across
+// a re-render, and a search that finds nobody does not say the player is not in the NBA — those players have only their
+// English names («Авака» was told so of Tobe Awaka, 24.10.2026).
+test('the players page keeps the unsold list open and does not rule a name out of the NBA',()=>{
+ const ui=readFileSync(new URL('../src/season-ui/players.js',import.meta.url),'utf8');
+ assert.match(ui,/d\.dataset\.key='mk:unsold'/);assert.doesNotMatch(ui,/ни в составах НБА/);assert.match(ui,/ищи по-английски/);
 });

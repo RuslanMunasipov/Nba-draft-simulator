@@ -6,7 +6,7 @@ import {seasonForm,swapAnalyzer,takenIds,STREAK} from '../season.js';
 import {MARKET_WIDEST,marketSettings,marketRows,marketView,unsoldPlayers,cardsOnSale} from '../season-market.js';
 import {playerSearchMatches} from '../player-search.js';
 import {fblGame} from '../standings.js';
-import {int,dec,signed,count,ddmm} from '../format.js';
+import {int,dec,signed,count,plural,ddmm} from '../format.js';
 import {openPlayerSheet} from '../sheet.js';
 import {$,readJson,PERIOD,PERIOD_LONG,PERIOD_SHORT,SPORTS_URL,basePlayers,button,byId,card,clubOf,confidenceBadge,el,forGains,games,horizon,injuries,injuryInfo,link,live,livePoints,needsLive,rawLive,renderSeason,same,team,teamBank,transfersLeft} from './state.js';
 import {controls,courtWord,whyBox} from './widgets.js';
@@ -95,7 +95,8 @@ function marketRow(r,i,ctx,analyse,running){
  avg.append(fig);if(form.last.length)avg.append(sparkBars(form));
  const price=el('span',null,'mk-price'),delta=Number.isFinite(row.price)&&Number.isFinite(row.initialPrice)?row.price-row.initialPrice:0;
  price.append(el('strong',int(c.price)));if(delta){const d=el('small',(delta>0?'▲ ':'▼ ')+int(Math.abs(delta)),delta>0?'up':'down');d.title='Изменение цены с начала сезона';price.append(d);}
- sum.append(el('span',String(i+1),'mk-rank'),withFace(p,who,'md','mk-who'),el('span',club,'mk-club'),el('span',c.positions.join('/'),'mk-pos'),avg,analyzerCell(r,ctx,analyse),price);
+ const clubCell=el('span',club,'mk-club');clubCell.title=club;
+ sum.append(el('span',String(i+1),'mk-rank'),withFace(p,who,'md','mk-who'),clubCell,el('span',c.positions.join('/'),'mk-pos'),avg,analyzerCell(r,ctx,analyse),price);
  box.append(sum);
  box.addEventListener('toggle',()=>{if(!box.open||box.dataset.filled)return;box.dataset.filled='1';box.append(marketDetails(r,ctx,analyse));});
  return box;
@@ -144,10 +145,11 @@ export function playersView(base){
  // The list is Sports.ru's market: NBA players without a card on sale cannot be bought, so they are listed apart, not hidden
  // (60 on 24.10.2026: 58 without a card, 19 of them already played, such as Tobe Awaka, and 2 emptied cards).
  const unsold=unsoldPlayers(basePlayers,live,takenIds(ctx)),rookiesAway=unsold.filter(p=>p.isRookie===true).length;
- const unsoldNote=el('div',null,'sp-note mk-unsold');
- unsoldNote.append(el('p',`Sports.ru продаёт карточки ${count(cardsOnSale(live),'игрока','игроков','игроков')}.`+(unsold.length?` Ещё ${count(unsold.length,'игрока','игрока','игроков')} из составов НБА Sports.ru не продаёт — купить их нельзя, поэтому в списке их нет.`
+ const unsoldNote=el('div',null,'sp-note mk-unsold'),them=unsold.length===1?'его':'их';
+ unsoldNote.append(el('p',`Sports.ru продаёт карточки ${count(cardsOnSale(live),'игрока','игроков','игроков')}.`+(unsold.length?` Ещё ${count(unsold.length,'игрок','игрока','игроков')} из составов НБА у Sports.ru не ${plural(unsold.length,'продаётся','продаются','продаются')} — купить ${them} нельзя, поэтому в списке ${them} нет.`
   +(market.rookies&&rookiesAway?` Новичков среди них — ${int(rookiesAway)}.`:''):'')));
- if(unsold.length){const d=el('details',null,'inline'),ul=el('ul');for(const p of unsold)ul.append(el('li',`${p.name} — ${p.team}${p.isRookie===true?' · новичок':''}`));d.append(el('summary','Кого Sports.ru не продаёт'),ul);unsoldNote.append(d);}
+ // Keyed, so a filter tap or the live refresh does not close the list while the owner reads it.
+ if(unsold.length){const d=el('details',null,'inline'),ul=el('ul');d.dataset.key='mk:unsold';for(const p of unsold)ul.append(el('li',`${p.name} — ${p.team}${p.isRookie===true?' · новичок':''}`));d.append(el('summary','Кого Sports.ru не продаёт'),ul);unsoldNote.append(d);}
  const games=Math.max(0,...all.map(r=>r.form.games)),early=games<5?el('p',`Сезон только начался: средние по ${games<=1?'одному матчу':'1–'+games+' матчам'} пока шумные. Стрик — от ${count(STREAK.min,'матча','матчей','матчей')} подряд заметно выше (🔥) или ниже (🧊) прогноза.`,'warning'):null;
  const list=el('div',null,'mk-list'),header=el('div',null,'mk-header');
  for(const [t,c] of [['#','mk-rank'],['Игрок','mk-who'],['Клуб','mk-club'],['Поз.','mk-pos'],['ФО/матч','mk-avg'],['Анализатор · '+PERIOD[horizon].toLowerCase(),'mk-ana'],['Цена','mk-price']])header.append(el('span',t,c));
@@ -169,7 +171,9 @@ export function playersView(base){
    if(v.hidden.all)s.append(el('strong','Никого не нашлось'),el('p',`${q?`По запросу «${q}» с`:'С'} этими фильтрами игроков нет: фильтры скрывают ${count(v.hidden.all,'игрока','игрока','игроков')}.`),...away,
     button('Сбросить фильтры',()=>{market={...market,...MARKET_WIDEST};gamesBeforeRookies=null;marketShown=MARKET_PAGE;saveMarket();renderSeason();}));
    else if(away.length)s.append(el('strong','Нет на рынке Sports.ru'),...away);
-   else s.append(el('strong','Никого не нашлось'),el('p',q?`По запросу «${q}» никого нет ни на рынке Sports.ru, ни в составах НБА.`:'На рынке Sports.ru сейчас нет игроков.'));
+   // The players Sports.ru does not sell have only their English names, so a Russian query cannot rule them out («Авака»
+   // was told Tobe Awaka is not in the NBA, 24.10.2026).
+   else s.append(el('strong','Никого не нашлось'),el('p',q?`По запросу «${q}» на рынке Sports.ru никого нет.`+(unsold.length&&/[а-яё]/i.test(q)?' Игроков НБА, которых Sports.ru не продаёт, ищи по-английски — их список выше.':''):'На рынке Sports.ru сейчас нет игроков.'));
    if(q&&!v.hidden.all)s.append(button('Очистить поиск',()=>{marketQuery='';marketShown=MARKET_PAGE;renderSeason();}));
    list.append(s);}
   else if(away.length){const n=el('div',null,'sp-note');n.append(...away);list.append(n);}

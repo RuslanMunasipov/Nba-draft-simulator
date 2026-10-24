@@ -767,6 +767,8 @@ body:has(.sheet[open]){overflow:hidden}
 .mk-tags .chip{min-height:20px;padding:1px 7px;font-size:11px}
 .mk-meta{display:none}
 .mk-club,.mk-pos{font-size:var(--fs-sm);font-weight:700;color:var(--text-2)}
+/* Sports.ru's Russian club name (a player without an ESPN club) is wider than the 48px track: clipped, the whole name in its title. */
+.mk-club{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mk-avg{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2)}
 .mk-fig{display:grid;justify-items:end;text-align:right}
 .mk-fig strong{font-size:var(--fs-lg);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
