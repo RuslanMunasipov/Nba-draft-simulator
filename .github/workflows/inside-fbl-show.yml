@@ -1,0 +1,90 @@
+name: Inside FBL show
+# Inside FBL, the league's main journal (awards-bot/inside-show.js): every Monday at 19:00 Moscow the whole cast goes on
+# air in the league chat, block after block, each from its own bot (Steven Ex Pert opens, then Christopher Dildo, Trevor
+# Matolog, Zak Onn, Mike Roffon, and Steven closes with the prizes of shame), every block a reply to the one before it,
+# with its picture (prompts by Claude, drawn by OpenAI: about $0.03 each), the code's cards and the league's polls.
+# The owner approves every issue first, as he does the long read:
+#   - Monday morning (09:07-12:07 Moscow, once the awards bot posted the week's Sunday) the draft: every block written by
+#     Claude through the owner's subscription, its page on Telegraph sent to the owner by Mike's bot
+#     (INSIDE_FBL_REVIEW_CHAT_ID, else his personal TELEGRAM_CHAT_ID), its link in the run's summary;
+#   - by hand: approve (on air at 19:00; approved later that Monday, at once), or redo (written and drawn anew, with the
+#     owner's notes if any);
+#   - from 15:07 Moscow the post runs wait for 19:00, read the state again and air an approved show; one not approved
+#     that Monday does not go out. GitHub's schedule is best-effort, so they start hours early.
+# State, pictures and cards live on the branch data/inside-show (the Telegraph page shows them by their raw URLs).
+on:
+  schedule:
+    - cron: '7 6,7,8,9 * * 1'
+    - cron: '7 12,13,14,15 * * 1'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'draft: the week''s show for review; approve: on air on Monday at 19:00; redo: written anew; post: wait for 19:00 and air it if approved'
+        type: choice
+        options: [draft, approve, redo, post]
+        default: draft
+      notes:
+        description: 'For redo: what to change (the hosts get it as the editor''s wishes)'
+        required: false
+        default: ''
+      week:
+        description: 'A US day of the show''s week, YYYY-MM-DD (empty: the last full week, Monday to Sunday)'
+        required: false
+        default: ''
+permissions:
+  contents: write
+concurrency:
+  # The post runs wait hours for 19:00 in a group of their own, so an approval or a redo is never queued behind them.
+  group: ${{ (github.event.schedule == '7 12,13,14,15 * * 1' || inputs.action == 'post') && 'inside-show-post' || 'inside-show' }}
+  cancel-in-progress: false
+jobs:
+  show:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Install Claude Code
+        run: npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.308 && claude --version
+      - name: Read the awards bot's archive and the show's branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/awards"
+          for i in 1 2 3; do git fetch -q origin data/awards-bot:refs/remotes/origin/data/awards-bot && break; sleep $((i * 10)); done
+          git show origin/data/awards-bot:state.json > "$RUNNER_TEMP/awards/state.json"
+          git show origin/data/awards-bot:archive.json > "$RUNNER_TEMP/awards/archive.json"
+          # The branch keeps every week's pictures: a clone that fails while the branch exists must not start it anew.
+          if ! git clone -q --depth 1 --branch data/inside-show "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/show"; then
+            code=0; git ls-remote --exit-code origin data/inside-show >/dev/null || code=$?
+            [ "$code" = 2 ] || { echo "Cannot clone data/inside-show"; exit 1; }
+            mkdir -p "$RUNNER_TEMP/show"
+          fi
+      - name: Draft, approve or air
+        env:
+          ACTION: ${{ github.event.schedule == '7 12,13,14,15 * * 1' && 'post' || github.event.schedule == '7 6,7,8,9 * * 1' && 'draft' || inputs.action }}
+          AFTER: ${{ github.event.schedule == '7 6,7,8,9 * * 1' && '--after-sunday' || '' }}
+          WEEK: ${{ inputs.week }}
+          NOTES: ${{ inputs.notes }}
+          AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          # The hosts' bots; a block whose bot is missing or refused goes from the awards bot.
+          AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
+          STEVEN_EX_PERT_BOT_TOKEN: ${{ secrets.STEVEN_EX_PERT_BOT_TOKEN }}
+          CHRISTOPHER_DILDO_BOT_TOKEN: ${{ secrets.CHRISTOPHER_DILDO_BOT_TOKEN }}
+          TREVOR_MATOLOG_BOT_TOKEN: ${{ secrets.TREVOR_MATOLOG_BOT_TOKEN }}
+          MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
+          # Zak Onn speaks through the league bot; the personal one is only compared, never used.
+          LEAGUE_TELEGRAM_BOT_TOKEN: ${{ secrets.LEAGUE_TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
+          INSIDE_FBL_REVIEW_CHAT_ID: ${{ secrets.INSIDE_FBL_REVIEW_CHAT_ID || secrets.TELEGRAM_CHAT_ID }}
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node awards-bot/bot.mjs --inside-show --state "$RUNNER_TEMP/awards" --show "$RUNNER_TEMP/show" --action "$ACTION"
+          ${WEEK:+--show-week "$WEEK"} ${NOTES:+--notes "$NOTES"} $AFTER

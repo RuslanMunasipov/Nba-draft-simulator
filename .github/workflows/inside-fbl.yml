@@ -25,7 +25,7 @@ on:
         required: false
         default: ''
       guest:
-        description: 'For draft/redo: gm:<1-8>, player:<ESPN id> or commissioner (empty: by the week''s story; redo keeps the guest)'
+        description: 'For draft/redo: gm:<1-8>, player:<ESPN id> or commissioner (empty: the league''s vote of Monday''s show, else by the week''s story; redo keeps the guest)'
         required: false
         default: ''
       chapter:
@@ -83,6 +83,9 @@ jobs:
           SCENE: ${{ inputs.scene }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           MIKE_ROFFON_BOT_TOKEN: ${{ secrets.MIKE_ROFFON_BOT_TOKEN }}
+          # Monday's show (inside-fbl-show.yml) lets the league vote whom Mike visits: the Friday draft closes that poll with
+          # the bot that sent it (Mike's, or the awards bot when his was refused) and takes the winner as the guest.
+          AWARDS_BOT_TOKEN: ${{ secrets.AWARDS_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # The league's Telegraph account (createAccount once), so the pages can be edited; without it each page gets

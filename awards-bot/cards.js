@@ -26,6 +26,8 @@ export const NOMINATION={
  week:{key:'week',icon:'🗓️',title:'Итоги недели',ring:['#3ea6ff','#7c5cff'],tag:'итоги_недели'},
  race:{key:'race',icon:'🏆',title:'Гонка за награды',ring:['#3ea6ff','#22d3ee'],tag:'гонка_за_награды'},
  month:{key:'month',icon:'🏅',title:'Символическая пятёрка',ring:['#22c55e','#ffcf40'],tag:'пятёрка_месяца'},
+ // Inside FBL, the Monday show (inside-show.js): its opener when the cover picture could not be drawn.
+ show:{key:'show',icon:'🎙',title:'Inside FBL',ring:['#ff4d5e','#3ea6ff'],tag:'inside_fbl'},
 };
 // Slots per block: a block always has them all, an empty one is drawn as a dash, so the layout never moves.
 export const SLOTS={hero:3,flop:3,gold:3,antitop:3,weekHero:3,weekFlop:3,weekGold:3,mvp:10,roy:4,mef:4,sixth:4,record:3};
@@ -192,10 +194,10 @@ const head=(look,title,emo,tone)=>`<div class="head"><span class="bar" style="ba
 const block=(look,title,emo,tone,rows,n,make,cls='')=>`<div class="block ${cls}">${head(look,title,emo,tone)}${cells(rows,n,make)}</div>`;
 const grid=(look,title,emo,tone,rows,n,make)=>{const half=Math.ceil(n/2);
  return `<div class="block">${head(look,title,emo,tone)}<div class="grid2"><div class="block">${cells(rows,n,make,0,half)}</div><div class="block">${cells(rows,n,make,half,n)}</div></div></div>`;};
-function page(look,fonts,{title,sub,foot='',holiday},body){
+export function page(look,fonts,{title,sub,foot='',note='ФО по формуле лиги FBL',holiday},body){
  return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fonts,holiday?.accent||ACCENT)}</style></head><body><div class="card${framed(look,holiday)}">${decor(look,holiday,false)}
 <div class="top"><div><div class="brand">FBL · сезон 2026/27 ${badge(look,holiday)}</div><div class="title">${esc(title)}</div></div><div class="sub">${sub}</div></div>${body}
-<div class="foot"><span>ФО по формуле лиги FBL</span><span>${esc(foot)}</span></div></div></body></html>`;
+<div class="foot"><span>${esc(note)}</span><span>${esc(foot)}</span></div></div></body></html>`;
 }
 
 // --- The opener: the nomination's emblem (a ring with the league's name around the league's logo, assets/fbl-logo.png,
@@ -299,4 +301,5 @@ export function monthAlbum(month,five,who,look,fonts,{holiday=null}={}){
 
 // Every emoji a card may show, for the renderer to load once.
 export const CARD_EMOJI=[...new Set(['⭐','💩','🆓','🤡','🏆','🌱','💊','🪑','🥇','🥈','🥉','🎄','🔥','🧊','🧱','🗓️','🏅',
+ '🎙','📓','⚖️','✅','🚫','🔎','🚨','🎯','📁','❔',
  ...LEAGUE_TEAMS.map(t=>t.symbol),...HOLIDAY_EMOJI])];

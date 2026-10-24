@@ -71,21 +71,25 @@ export function storyGuest(id,data){
  }
  return null;
 }
-export function pickGuest(data,history=[],{force=null,keep=null}={}){
- if(force){const g=forcedGuest(force,data);if(g)return g;}
+// story: the story a guest by hand comes with (the league's vote of Inside FBL on Monday: inside-show.js); the editor's
+// choice by default.
+export function pickGuest(data,history=[],{force=null,keep=null,story=null}={}){
+ if(force){const g=forcedGuest(force,data,story);if(g)return g;}
  // keep: the guest of the draft being redone (its key), with the story that brought them.
  if(keep){for(const st of STORIES){const g=storyGuest(st.id,data);if(g?.key===keep)return {...g,story:st};}
-  const [kind,id]=keep.split(':'),g=forcedGuest(kind==='gm'?`gm:${Number(id)+1}`:keep,data);if(g)return g;}
+  const [kind,id]=keep.split(':'),g=forcedGuest(kind==='gm'?`gm:${Number(id)+1}`:keep,data,story);if(g)return g;}
  const recent=new Set(history.slice(-REPEAT_WEEKS).map(h=>h.key)),start=(data.week.n-1)%STORIES.length;
  for(let i=0;i<STORIES.length;i++){const s=STORIES[(start+i)%STORIES.length],g=storyGuest(s.id,data);if(g&&!recent.has(g.key))return {...g,story:s};}
  const s=STORIES[start];return {...storyGuest(s.id,data)||{key:'commissioner',kind:'commissioner'},story:s};
 }
 // A guest by hand: gm:<team number 1-8>, player:<ESPN id> or commissioner.
-function forcedGuest(force,data){
- const [kind,id]=String(force).split(':');
- if(kind==='gm'&&Number(id)>=1&&Number(id)<=LEAGUE_TEAMS.length)return {key:`gm:${Number(id)-1}`,kind:'gm',team:Number(id)-1,story:{id:'manual',ru:'гость недели по выбору редакции'}};
- if(kind==='player'&&id){const row=data.seasonRows.get(String(id));if(row)return {key:`player:${row.a}`,kind:'player',row:{a:row.a,name:row.n,en:imageName(row),club:row.c,fo:round(row.p),games:row.games,teams:row.h},story:{id:'manual',ru:'гость недели по выбору редакции'}};}
- if(kind==='commissioner')return {key:'commissioner',kind:'commissioner',story:{id:'manual',ru:'гость недели по выбору редакции'}};
+const BY_HAND={id:'manual',ru:'гость недели по выбору редакции'};
+export const VOTED={id:'vote',ru:'гость недели по голосованию лиги в понедельничном выпуске Inside FBL: лига сама отправила Майка к нему'};
+function forcedGuest(force,data,story=null){
+ const [kind,id]=String(force).split(':'),st=story||BY_HAND;
+ if(kind==='gm'&&Number(id)>=1&&Number(id)<=LEAGUE_TEAMS.length)return {key:`gm:${Number(id)-1}`,kind:'gm',team:Number(id)-1,story:st};
+ if(kind==='player'&&id){const row=data.seasonRows.get(String(id));if(row)return {key:`player:${row.a}`,kind:'player',row:{a:row.a,name:row.n,en:imageName(row),club:row.c,fo:round(row.p),games:row.games,teams:row.h},story:st};}
+ if(kind==='commissioner')return {key:'commissioner',kind:'commissioner',story:st};
  return null;
 }
 
@@ -235,7 +239,7 @@ export function telegraphNodes(x,facts,{opener,images=[]}={}){
  return nodes;
 }
 export const pageTitle=x=>`Inside FBL — ${String(x.title).replace(/^[«"„“]+|[»"“”]+$/g,'')}`.slice(0,256);
-const telegraph=async(method,params,fetchImpl)=>{
+export const telegraph=async(method,params,fetchImpl=fetch)=>{
  const r=await fetchImpl(`https://api.telegra.ph/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(params),signal:AbortSignal.timeout(60e3)});
  const out=await r.json().catch(()=>({}));
  if(!out.ok)throw Error(`Telegraph ${method}: ${out.error||r.status}`);

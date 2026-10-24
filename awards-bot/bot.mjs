@@ -31,6 +31,15 @@
 //                                                   an approved one into the league chat on Friday at 18:00
 //                                                   Moscow, never at another time (see insideFbl). G: gm:<1-8>,
 //                                                   player:<ESPN id> or commissioner
+//   node awards-bot/bot.mjs --inside-show --state DIR --show DIR --action draft|redo|approve|post [--show-week DAY]
+//                          [--notes TEXT] [--after-sunday] [--inside DIR] [--dry]
+//                                                   Inside FBL, the Monday show (inside-show.js, workflow
+//                                                   inside-fbl-show.yml) of DAY's week (by default the last full one): every
+//                                                   host's block written and drawn, the draft on the branch
+//                                                   data/inside-show (--show DIR, a clone of it) and on Telegraph for
+//                                                   the owner's review; post airs an approved one block after block
+//                                                   from the hosts' bots on Monday at 19:00 Moscow (see insideShow);
+//                                                   --dry: nothing pushed, published or sent
 //   node awards-bot/bot.mjs --mike-day DAY --state DIR [--send] [--picture-only] [--cards DIR]
 //                                                   Mike Roffon's interview of an archived day by hand (workflow
 //                                                   mike-roffon.yml): written and drawn, posted into the league chat
@@ -74,7 +83,10 @@ import {dayPictures,momentFacts,blockCast,givenMoments,writeMoments,imageName} f
 import {interviewFacts,interviewFor,interviewText,interviewCaption,mikeCast,writeMikePicture} from './mike-roffon.js';
 import {generate,cost} from '../scripts/image-pipeline.mjs';
 import {picture} from '../scripts/picture-prompt.mjs';
-import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
+import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime,telegraph,VOTED} from './inside-fbl.js';
+import {showData,openingFacts,numbersFacts,quizOf,infirmaryFacts as showInfirmary,lawFacts,weekStatements,mikeFacts,guestCandidates,shameNominees,shameFacts,RUNDOWN,HOSTS,
+ writeSegment,segmentCast,writeSegmentPicture,quizPoll,guestPoll,shamePoll,pollWinner,segmentCaption,segmentText,showNodes,showTitle,airTime,airEnd} from './inside-show.js';
+import {checkRules} from '../src/rules.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText,introFacts,introFor,writePostPicture} from './dildo.js';
@@ -755,7 +767,15 @@ async function insideFbl(){
  const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers);
  const data=weekData(archive.lines,w.end,{table,who:ctx.who,rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
  const past=Object.entries(inside.weeks).filter(([k,x])=>k<w.start&&x.status==='sent').sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x);
- const guest=pickGuest(data,past.map(x=>x.guest),{force:opt('--guest'),keep:action==='redo'?rec?.guest?.key:null});
+ // The league's vote of Monday's show (inside-show.js): whom Mike visits this Friday, closed and counted once; a guest by
+ // hand (--guest) wins over it, a redo keeps the guest.
+ inside.votes||={};
+ if(action==='draft'&&!opt('--guest')&&!inside.votes[w.start]){
+  const show=await json(`${SHOW_RAW}state.json?t=${Date.now()}`).catch(()=>null),poll=show?.shows?.[addDays(w.start,-7)]?.polls?.mike;
+  if(poll){const r=await closePoll(poll);if(r){inside.votes[w.start]=r;insidePush(inside,`Inside FBL ${w.start}: the league's vote`);console.log(`Inside FBL: the league voted for ${r.option} (${r.votes} of ${r.total}).`);}}
+ }
+ const vote=action==='draft'&&!opt('--guest')?inside.votes[w.start]?.key||null:null,keepVote=action==='redo'&&rec?.story==='vote';
+ const guest=pickGuest(data,past.map(x=>x.guest),{force:opt('--guest')||vote,keep:action==='redo'?rec?.guest?.key:null,story:vote||keepVote?VOTED:null});
  const facts=longreadFacts(data,guest,{who:ctx.who,gifts:past.map(x=>x.gift).filter(Boolean),guests:past.map(x=>x.guest.name)});
  console.log(`Inside FBL, week ${w.n} (${w.start} – ${w.end}): ${facts.guest.name}, ${guest.story.id}${action==='redo'?', anew':''}.`);
  // The references of its pictures first: Claude writes their prompts with the piece.
@@ -774,7 +794,7 @@ async function insideFbl(){
  insidePush(inside,`Inside FBL ${w.start}: pictures`);
  const url=k=>out[k]?`${RAW}images/${w.start}/${tag}-${k}.jpg`:null;
  const page=await publishPage(longread,facts,{token:TELEGRAPH,opener:url('opener'),images:longread.chapters.map((_,i)=>url(String(i+1)))});
- const entry={status:'page',url:page,title:longread.title,images:longread.chapters.map((_,i)=>url(String(i+1))),guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',approved:false,
+ const entry={status:'page',url:page,title:longread.title,story:guest.story.id,images:longread.chapters.map((_,i)=>url(String(i+1))),guest:{key:guest.key,name:facts.guest.name},gift:longread.gift||'',approved:false,
   caption:longreadCaption(longread,facts,page),opener:out.opener?`images/${w.start}/${tag}-opener.jpg`:null,pictures:Object.keys(out).length,
   cost:Math.round(((rec?.cost||0)+spent)*1e4)/1e4,at:new Date().toISOString(),drafts:[...(rec?.drafts||[]),...rec?.url?[rec.url]:[]]};
  inside.weeks[w.start]=entry;insidePush(inside,`Inside FBL ${w.start}: draft`);
@@ -784,6 +804,231 @@ async function insideFbl(){
   const note=`📝 <b>На согласование: Inside FBL, неделя ${w.n}</b>\n${esc(facts.guest.name)} — <a href="${esc(page)}">${esc(longread.title)}</a>\n\nВыйдет в пятницу в 18:00 по Москве, только если одобришь: Actions → Inside FBL → approve. Переписать: redo (можно с пожеланиями).`;
   try{await insidePhoto(REVIEW,entry.opener,note.slice(0,1024));}catch(e){console.warn(`Inside FBL: the review note failed (${e.message}).`);}
  }
+}
+
+// --- Inside FBL, the Monday show (inside-show.js): the whole cast on air one after another, each from its own bot, every
+// block a reply to the one before it. The awards bot's state is only read; the show keeps its state, pictures and cards
+// on the branch data/inside-show (--show DIR, a clone of it). The owner approves every issue, as he does the long read:
+//   draft    Monday morning, once the awards bot posted the week's Sunday (--after-sunday): every block written and
+//            drawn, the show's page on Telegraph (its web edition) sent to the owner for review; last week's vote for the
+//            prize of shame closed and counted
+//   redo     the same anew (--notes: the owner's wishes); the approval is gone
+//   approve  the show goes on air at 19:00 Moscow; approved later that Monday, at once
+//   post     wait for Monday 19:00 Moscow, read the state again, air an approved show; never on another day
+// --dry: nothing pushed, published or sent; the draft's files stay in --show DIR, post prints the show as it would air.
+const SHOW_DIR=opt('--show'),DRY=flag('--dry'),REPO=env.GITHUB_REPOSITORY||'RuslanMunasipov/Nba-draft-simulator';
+const SHOW_RAW=`https://raw.githubusercontent.com/${REPO}/data/inside-show/`,INSIDE_RAW=`https://raw.githubusercontent.com/${REPO}/data/inside-fbl/`;
+const SHOW_GAP_MS=(Number(env.INSIDE_SHOW_GAP_SECONDS)||40)*1e3;
+const showRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(SHOW_DIR,'state.json'),'utf8'));}catch{return {version:1,shows:{}};}};
+function branchPush(dir,branch,message){
+ const token=env.GH_TOKEN,repo=env.GITHUB_REPOSITORY;if(DRY||!token||!repo)return;
+ const git=(...a)=>execFileSync('git',['-C',dir,...a],{stdio:'pipe'});
+ try{
+  if(!fs.existsSync(path.join(dir,'.git')))git('init','-q','-b',branch);
+  git('config','user.name','github-actions[bot]');git('config','user.email','41898282+github-actions[bot]@users.noreply.github.com');
+  git('add','-A');git('commit','-q','--allow-empty','-m',message);
+  git('push','-q',`https://x-access-token:${token}@github.com/${repo}.git`,`HEAD:${branch}`);
+ }catch(e){console.warn(`${branch}: push failed (${String(e.stderr||e.message).trim().slice(-300)}).`);}
+}
+function showPush(st,message){fs.mkdirSync(SHOW_DIR,{recursive:true});fs.writeFileSync(path.join(SHOW_DIR,'state.json'),JSON.stringify(st,null,1));branchPush(SHOW_DIR,'data/inside-show',message);}
+function showRefresh(){
+ if(DRY||!fs.existsSync(path.join(SHOW_DIR,'.git'))||!env.GH_TOKEN||!env.GITHUB_REPOSITORY)return;
+ try{execFileSync('git',['-C',SHOW_DIR,'pull','-q','--ff-only',`https://x-access-token:${env.GH_TOKEN}@github.com/${env.GITHUB_REPOSITORY}.git`,'data/inside-show'],{stdio:'pipe'});}
+ catch(e){console.warn(`Inside FBL show: could not read the state again (${String(e.stderr||e.message).trim().slice(-200)}).`);}
+}
+// The hosts' bots: each block goes from its host's bot, else (no token, or Telegram refuses it) from the awards bot.
+// Zak's is the league bot, never the personal one.
+const HOST_TOKEN={steven:env.STEVEN_EX_PERT_BOT_TOKEN,dildo:DILDO,trevor:TREVOR,mike:MIKE,
+ zak:env.LEAGUE_TELEGRAM_BOT_TOKEN&&env.LEAGUE_TELEGRAM_BOT_TOKEN!==env.TELEGRAM_BOT_TOKEN?env.LEAGUE_TELEGRAM_BOT_TOKEN:null};
+const senderToken=name=>name==='awards'?TOKEN:HOST_TOKEN[name];
+function hostSenders(host){
+ const out=[],seen=new Set();
+ for(const [name,t] of [[host,HOST_TOKEN[host]],['awards',TOKEN]]){const x=String(t||'').trim();if(x&&!seen.has(x)){seen.add(x);out.push({name,token:x});}}
+ return out;
+}
+// A poll closed (Telegram stopPoll by the bot that sent it) and counted: pollWinner's, or null.
+async function closePoll(p){
+ const token=senderToken(p?.sender);if(!p||!token||!CHAT)return null;
+ try{const poll=await telegram(token,'stopPoll',{chat_id:CHAT,message_id:p.message_id});return pollWinner(poll,p.keys||[]);}
+ catch(e){console.warn(`Inside FBL: the poll ${p.message_id} could not be closed (${e.message}).`);return null;}
+}
+// The long reads' state and a week's piece (its facts as the page went out), from --inside DIR or the branch.
+async function longreadOf(start){
+ const file=async f=>INSIDE_DIR&&fs.existsSync(path.join(INSIDE_DIR,f))?JSON.parse(fs.readFileSync(path.join(INSIDE_DIR,f),'utf8')):json(INSIDE_RAW+f);
+ const inside=await file('state.json').catch(()=>({weeks:{}})),entry=inside.weeks?.[start];
+ let facts=null;
+ if(entry?.status==='sent'&&entry.opener){const prefix=entry.opener.replace(/opener(-[a-z0-9]+)?\.jpg$/,'');
+  facts=(await file(`${prefix}longread.json`).catch(()=>null))?.facts||null;}
+ const recent=Object.entries(inside.weeks||{}).filter(([k,x])=>k<=start&&x.status==='sent').sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x.guest?.key).filter(Boolean);
+ return {entry,facts,recent};
+}
+// The show's week: the last full one, Monday to Sunday (US game days), before the week of today.
+const showWeek=()=>{const d=opt('--show-week');return d?weekOf(d):weekOf(addDays(weekOf(usDay(now())).start,-1));};
+// A draft: every block written by Claude in its turn (each gets the line it was handed the word with), its picture
+// written by Claude and drawn by OpenAI, the cards drawn, the Telegraph page published. Answers the state's entry.
+async function showDraft(w,st,rec){
+ const archive=read('archive.json',{lines:[]});
+ if(!archive.lines.some(l=>l.d>=w.start&&l.d<=w.end))throw Error(`Inside FBL show: no archived games of the week ${w.start} – ${w.end}`);
+ if(!claudeConfigured(env))throw Error('Inside FBL show: no Claude subscription (CLAUDE_CODE_OAUTH_TOKEN): no show');
+ const ctx=await loadLeague(),table=teamPoints({players:ctx.players,live:ctx.live},ctx.transfers),byId=new Map(ctx.players.map(p=>[p.id,p]));
+ const nameOf=id=>{const p=byId.get(id);return p?ctx.who(ctx.league.espnOf(p),ctx.live.players?.[p.sportsId]?.name||p.name):String(id);};
+ const d=showData(archive.lines,w,{table,who:ctx.who,rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef,transfers:ctx.transfers,espnOf:id=>ctx.league.espnOf(byId.get(id)),nameOf});
+ // Last week's vote for the prize of shame, closed now and counted once.
+ const prev=st.shows[addDays(w.start,-7)];
+ if(prev?.polls?.shame&&!prev.shameResult&&!DRY){const r=await closePoll(prev.polls.shame);if(r){prev.shameResult=r;showPush(st,`Inside FBL show ${addDays(w.start,-7)}: the vote of shame closed`);}}
+ const lastShame=prev?.shameResult?{winner:prev.shameResult.option,votes:prev.shameResult.votes,totalVotes:prev.shameResult.total}:null;
+ // The facts of every block.
+ const lr=await longreadOf(w.start),candidates=guestCandidates(d,lr.recent);
+ let report=null;try{report=await json(ESPN+'injuries');}catch(e){console.warn(`Inside FBL show: no ESPN injury report (${e.message}).`);}
+ const list=report?.injuries?.some?.(t=>t?.injuries?.length)?patients(report,ctx.rosters,ctx.who):[];
+ const tr=await json(TRANSLATIONS).catch(()=>null),ru=Object.fromEntries(Object.entries(tr?.texts||{}).map(([k,v])=>[k,v.text])),todo=untranslated(list,tr);
+ if(todo.length)Object.assign(ru,await translateNow(todo));
+ // The new week is the one after the show's: its Monday at the earliest (a draft made early, a dry run).
+ const pts=list.map(x=>patientFacts(x,ru)),today=[moscowDay(now()),addDays(w.end,1)].sort()[1],league=local('data/fbl-league.json');
+ const checks=checkRules({rosters:seasonRosters(ctx.transfers),byId,transfers:ctx.transfers,white:(league.white||[]).map(String),checked:(league.whiteChecked||[]).map(String),today,
+  clubOf:p=>ctx.live.players?.[p.sportsId]?.club||p.sportsClub,nameOf:p=>nameOf(p.id)});
+ const dir=new URL('data/announcements/',ROOT),statements=weekStatements(fs.readdirSync(dir).filter(f=>f.endsWith('.html')).map(name=>({name,text:fs.readFileSync(new URL(name,dir),'utf8')})),w,today);
+ const nominees=shameNominees(d),quiz=quizOf(d);
+ const facts={opening:openingFacts(d,{lastShame}),numbers:numbersFacts(d,quiz),...report?{infirmary:showInfirmary(d,pts)}:{},
+  law:lawFacts(d,checks,{transfers:ctx.transfers,today,announcements:statements,nameOf}),mike:mikeFacts(d,{longread:lr,candidates}),shame:shameFacts(d,nominees)};
+ // The blocks, in their order on air: a block that stays wrong is left out (the opening holds the show: none without it).
+ const notes=opt('--notes')||'',segments=[];let handedOver='';
+ for(const s of RUNDOWN){
+  if(!facts[s.key]){console.warn(`Inside FBL show, ${s.key}: no facts, left out.`);handedOver='';continue;}
+  let r;try{r=await writeSegment(s.key,facts[s.key],{handedOver,notes,nominees});}catch(e){r={problems:[e.message]};}
+  if(r.problems.length){console.warn(`Inside FBL show, ${s.key}: left out (${r.problems.join('; ')}).`);
+   if(s.key==='opening')throw Error('Inside FBL show: the opening could not be written, no show');handedOver='';continue;}
+  segments.push({key:s.key,host:s.host,x:r.segment});handedOver=r.segment.handoff||'';
+  console.log(`Inside FBL show, ${s.key}: written (${r.tries} ${r.tries>1?'tries':'try'}).`);
+ }
+ // A handoff to a host who is not on air is not shown.
+ segments.forEach((s,i)=>{const next=RUNDOWN[RUNDOWN.findIndex(r=>r.key===s.key)+1];if(next&&segments[i+1]?.key!==next.key)s.x={...s.x,handoff:''};});
+ // The pictures: their prompts by Claude, drawn by OpenAI three at a time; the cards by the code.
+ const {headshot,loadLook,renderCards,FONTS}=await import('./render.mjs'),cards=await import('./show-cards.js');
+ const athletes=[...new Set([...pts.filter(p=>p.out).slice(0,3).map(p=>p.espnId),d.heroes[0]?.a,d.flops[0]?.a,...nominees.map(n=>n.a)].filter(Boolean).map(String))];
+ const faces=new Map((await Promise.all(athletes.map(async a=>[a,await headshot(a)]))).filter(([,f])=>f));
+ const tag=Date.now().toString(36),rel=`shows/${w.start}`,out=path.join(SHOW_DIR,rel);fs.mkdirSync(out,{recursive:true});
+ let spent=0;
+ const draw=async s=>{
+  try{const c=segmentCast(s.key,{d,facts:facts[s.key],nominees,patients:pts,faces}),written=await writeSegmentPicture(s.key,s.x,facts[s.key],c);
+   if(!written){console.warn(`Inside FBL show, ${s.key}: Claude wrote no picture.`);return;}
+   s.prompt=written.prompt;if(!OPENAI_KEY)return;
+   const r=await generate({...written,format:'jpeg'},{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});spent+=cost(r.usage);
+   s.picture=`${rel}/${tag}-${s.key}.jpg`;fs.writeFileSync(path.join(SHOW_DIR,s.picture),r.png);
+  }catch(e){console.warn(`Inside FBL show, ${s.key}: no picture (${e.message}).`);}
+ };
+ for(let i=0;i<segments.length;i+=3)await Promise.all(segments.slice(i,i+3).map(draw));
+ const look=await loadLook([]),want=[['numbers',()=>cards.weekTableCard(w,facts.numbers,look,FONTS)],['law',()=>cards.dossierCard(w,facts.law,look,FONTS)],
+  ['opening',()=>cards.showOpener(w,look,FONTS),s=>!s.picture]];
+ for(const [key,html,when=()=>true] of want){const s=segments.find(x=>x.key===key);if(!s||!when(s))continue;
+  try{const [png]=await renderCards([html()]);s.cards=[`${rel}/${tag}-${key}-card.png`];fs.writeFileSync(path.join(SHOW_DIR,s.cards[0]),png);}
+  catch(e){console.warn(`Inside FBL show, ${key}: card failed (${e.message}).`);}}
+ // The polls of the show: the quiz, the vote for Mike's guest, the vote of shame.
+ const opening=segments[0].x,polls={numbers:quizPoll(quiz,segments.find(s=>s.key==='numbers')?.x.quizExplanation),mike:guestPoll(candidates),shame:shamePoll(nominees)};
+ const keys={mike:candidates.map(c=>c.force),shame:nominees.map(n=>n.id)};
+ const plan=segments.map(s=>({key:s.key,host:s.host,title:s.x.title,caption:segmentCaption(s.key,s.x,w),text:segmentText(s.key,s.x,facts[s.key],{nominees}),
+  picture:s.picture||null,cards:s.cards||[],prompt:s.prompt||null,poll:polls[s.key]||null,pollKeys:keys[s.key]||null}));
+ fs.writeFileSync(path.join(SHOW_DIR,rel,`${tag}-episode.json`),JSON.stringify({week:w,facts,segments:segments.map(s=>({key:s.key,...s.x})),plan},null,1));
+ // Pictures and cards first: the page shows them by their raw URLs.
+ if(!DRY)showPush(st,`Inside FBL show ${w.start}: pictures`);
+ const page=DRY?null:await (async()=>{
+  try{const access=TELEGRAPH||(await telegraph('createAccount',{short_name:'InsideFBL',author_name:'Inside FBL'})).access_token;
+   return (await telegraph('createPage',{access_token:access,title:showTitle(w,opening),author_name:'Inside FBL · главный журнал лиги',
+    content:showNodes(w,plan.map(s=>({...s,picture:s.picture&&SHOW_RAW+s.picture,cards:s.cards.map(c=>SHOW_RAW+c),polls:s.poll?[s.poll]:[]}))),return_content:false})).url;}
+  catch(e){console.warn(`Inside FBL show: no Telegraph page (${e.message}).`);return null;}})();
+ const shown=plan.filter(s=>s.picture).length;
+ console.log(`Inside FBL show, week ${w.n}: draft of ${plan.length} blocks, ${shown} pictures, $${spent.toFixed(3)}${page?`, ${page}`:''}.`);
+ return {status:'draft',approved:false,n:w.n,tag,title:opening.title,url:page,plan,polls:{},posted:{},
+  cost:Math.round(((rec?.cost||0)+spent)*1e4)/1e4,at:new Date().toISOString(),drafts:[...(rec?.drafts||[]),...rec?.url?[rec.url]:[]]};
+}
+// The show on air: block after block, each from its host's bot (else the awards bot), its picture and cards with the
+// caption as a reply to the block before, its text as a reply under them, then its poll. What went out is marked at
+// once, so a run cut short goes on from the next block and never posts one twice.
+async function showAir(w,st){
+ const rec=st.shows[w.start],reply=id=>id?{reply_parameters:{message_id:id,allow_sending_without_reply:true}}:{};
+ const site='https://ruslanmunasipov.github.io/Nba-draft-simulator/';
+ rec.status='airing';rec.posted||={};rec.polls||={};
+ // Telegram's flood limit (429) waits as it says, once or twice; any other failure is the block's own.
+ const tg=async(token,method,body)=>{for(let i=0;;i++){try{return await telegram(token,method,body);}
+  catch(e){const wait=Number(String(e.message).match(/retry after (\d+)/i)?.[1]);if(!/: 429 /.test(e.message)||i>=2)throw e;await sleep(((wait||5)+1)*1e3);}}};
+ let last=null;
+ for(const [i,s] of rec.plan.entries()){
+  if(rec.posted[s.key]){last=rec.posted[s.key].last;continue;}
+  if(i&&last&&!DRY)await sleep(SHOW_GAP_MS);
+  const files=[s.picture,...s.cards].filter(f=>f&&fs.existsSync(path.join(SHOW_DIR,f)));
+  const parts=split(s.text),buttons=s.key==='opening'?{reply_markup:{inline_keyboard:[[...rec.url?[{text:'📺 Весь выпуск одной страницей',url:rec.url}]:[],{text:'📊 Сайт лиги',url:site}]]}}:{};
+  if(DRY){console.log(`\n===== ${s.key} (${HOSTS[s.host].name}; ${files.join(', ')||'no picture'}) =====\n${s.caption}\n\n${parts.join('\n\n--- next message ---\n\n')}${s.poll?`\n\n[poll] ${s.poll.question}\n${s.poll.options.map((o,k)=>`${k===s.poll.correct_option_id?'✔':'•'} ${o}`).join('\n')}${s.poll.explanation?`\n(${s.poll.explanation})`:''}`:''}\n`);
+   rec.posted[s.key]={last:null,preview:true};continue;}
+  let token=null,shown=null,at=last;
+  const visual=async t=>{
+   token=t;await tg(t,'sendChatAction',{chat_id:CHAT,action:files.length?'upload_photo':'typing'}).catch(()=>{});await sleep(4000);
+   if(!files.length){shown=await tg(t,'sendMessage',{chat_id:CHAT,text:s.caption,parse_mode:'HTML',...reply(last)});return;}
+   const form=new FormData();form.append('chat_id',String(CHAT));if(last)form.append('reply_parameters',JSON.stringify({message_id:last,allow_sending_without_reply:true}));
+   const blob=f=>new Blob([fs.readFileSync(path.join(SHOW_DIR,f))],{type:f.endsWith('.png')?'image/png':'image/jpeg'});
+   if(files.length===1){form.append('caption',s.caption);form.append('parse_mode','HTML');form.append('photo',blob(files[0]),path.basename(files[0]));shown=await tg(t,'sendPhoto',form);}
+   else{form.append('media',JSON.stringify(files.map((f,k)=>({type:'photo',media:`attach://p${k}`,...k===0?{caption:s.caption,parse_mode:'HTML'}:{}}))));
+    files.forEach((f,k)=>form.append(`p${k}`,blob(f),path.basename(f)));shown=(await tg(t,'sendMediaGroup',form))[0];}
+  };
+  // A block that fails on the way is marked with what went out of it: the show goes on, and never posts it twice.
+  let sender=null;
+  try{
+   sender=await viaFirst(hostSenders(s.host),visual,{label:`Inside FBL show, ${s.key}`});at=shown.message_id;
+   await tg(token,'sendChatAction',{chat_id:CHAT,action:'typing'}).catch(()=>{});await sleep(3000);
+   for(const [k,part] of parts.entries())at=(await tg(token,'sendMessage',{chat_id:CHAT,text:part,parse_mode:'HTML',disable_web_page_preview:true,...reply(at),...k===parts.length-1?buttons:{}})).message_id;
+   rec.posted[s.key]={last:at,sender,at:new Date().toISOString()};
+  }catch(e){console.warn(`Inside FBL show, ${s.key}: failed on air (${e.message}).`);rec.posted[s.key]={last:at,sender,failed:e.message,at:new Date().toISOString()};}
+  if(s.poll&&sender&&!rec.posted[s.key].failed){try{const m=await tg(token,'sendPoll',{chat_id:CHAT,...s.poll,options:s.poll.options.map(text=>({text})),...reply(at)});
+   rec.polls[s.key]={message_id:m.message_id,sender,keys:s.pollKeys||[]};}catch(e){console.warn(`Inside FBL show, ${s.key}: the poll failed (${e.message}).`);}}
+  last=at;showPush(st,`Inside FBL show ${w.start}: ${s.key} on air`);
+  if(sender)console.log(`Inside FBL show, ${s.key}: on air from ${sender}.`);
+ }
+ rec.status=DRY?rec.status:'sent';if(!DRY){rec.sentAt=new Date().toISOString();showPush(st,`Inside FBL show ${w.start}: sent`);}
+ console.log(`Inside FBL show, week ${w.n}: ${DRY?'previewed':'sent'}.`);
+}
+async function insideShow(){
+ if(!SHOW_DIR)throw Error('--inside-show: --show DIR (a clone of the branch data/inside-show, or an empty directory)');
+ const action=opt('--action')||'draft';
+ if(!['draft','redo','approve','post'].includes(action))throw Error(`--action: draft, redo, approve or post, not ${action}`);
+ const st=showRead(),w=showWeek(),rec=st.shows[w.start];
+ if(rec?.status==='sent'){console.log(`Inside FBL show, week ${w.n}: already on air (${rec.url||'no page'}).`);return;}
+ const canAir=()=>{const missing=[['AWARDS_CHAT_ID',CHAT],['a bot (AWARDS_BOT_TOKEN or a host\'s)',Object.values(HOST_TOKEN).some(Boolean)||TOKEN]].filter(x=>!x[1]).map(x=>x[0]);
+  if(missing.length&&!DRY)throw Error(`Inside FBL show: missing ${missing.join(', ')}`);};
+ if(action==='approve'){
+  if(!rec?.plan)throw Error(`Inside FBL show, week ${w.n}: no draft to approve (${rec?.status||'nothing yet'}); run draft first`);
+  rec.approved=true;rec.approvedAt=new Date().toISOString();showPush(st,`Inside FBL show ${w.start}: approved`);
+  const at=airTime(w);console.log(`Inside FBL show, week ${w.n}: approved, on air ${new Date(at).toISOString()} (${rec.url||'no page'}).`);
+  // Approved after its hour on its Monday: on air at once.
+  if(now()>=at&&now()<=airEnd(w)){canAir();await showAir(w,st);}
+  return;
+ }
+ if(action==='post'){
+  canAir();const at=airTime(w);
+  if(!DRY){
+   if(now()>airEnd(w)){console.log(`Inside FBL show, week ${w.n}: its Monday is over; not on air.`);return;}
+   if(now()<at){console.log(`Inside FBL show: waiting for ${new Date(at).toISOString()}.`);await sleep(at-now());}
+   showRefresh();
+  }
+  const fresh=DRY?st:showRead(),x=fresh.shows[w.start];
+  if(x?.status==='sent'){console.log(`Inside FBL show, week ${w.n}: already on air.`);return;}
+  if(!x?.plan||(!x.approved&&!DRY)){console.log(`Inside FBL show, week ${w.n}: not approved (${x?.status||'no draft'}); not on air.`);return;}
+  await showAir(w,fresh);return;
+ }
+ // draft or redo
+ if(action==='draft'&&rec?.plan){console.log(`Inside FBL show, week ${w.n}: the draft is there (${rec.url||'no page'})${rec.approved?', approved':''}.`);return;}
+ if(flag('--after-sunday')&&!read('state.json',{posted:{weekly:{}}}).posted.weekly?.[w.start]){
+  console.log(`Inside FBL show, week ${w.n}: the week's Sunday is not posted yet; a later run drafts.`);return;}
+ const entry=await showDraft(w,st,rec);
+ st.shows[w.start]=entry;showPush(st,`Inside FBL show ${w.start}: draft`);
+ if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL, выпуск ${w.n}: черновик на согласование\n\n${entry.url?`[${entry.title}](${entry.url})`:entry.title}\n\n${entry.plan.map(s=>`- ${HOSTS[s.host].name}: ${s.title}${s.picture?'':' (без картинки)'}`).join('\n')}\n\n`);
+ if(REVIEW&&MIKE&&!DRY){
+  const note=`📝 <b>На согласование: Inside FBL, выпуск ${w.n}</b>\n${entry.url?`<a href="${esc(entry.url)}">${esc(entry.title)}</a>`:esc(entry.title)}\n\nБлоки: ${entry.plan.map(s=>esc(HOSTS[s.host].name)).join(' → ')}.\n\nВыйдет в понедельник в 19:00 по Москве, только если одобришь: Actions → Inside FBL show → approve. Переписать: redo (можно с пожеланиями).`;
+  const cover=entry.plan[0].picture||entry.plan[0].cards[0];
+  try{const body=new FormData();body.append('chat_id',String(REVIEW));body.append('caption',note.slice(0,1024));body.append('parse_mode','HTML');
+   if(cover){body.append('photo',new Blob([fs.readFileSync(path.join(SHOW_DIR,cover))]),path.basename(cover));await telegram(MIKE,'sendPhoto',body);}
+   else await telegram(MIKE,'sendMessage',{chat_id:REVIEW,text:note,parse_mode:'HTML'});}
+  catch(e){console.warn(`Inside FBL show: the review note failed (${e.message}).`);}
+ }
+ if(DRY)console.log(`Inside FBL show (dry): the draft is in ${SHOW_DIR}; --action post --dry shows it as it would air.`);
 }
 
 // --- Christopher Dildo's own words (dildo.js), by hand. --dildo-intro FILE: his introduction to the league written by
@@ -840,6 +1085,7 @@ if(flag('--steven-hello'))await stevenHello();
 else if(opt('--dildo-intro')&&STATE_DIR)await dildoIntro(opt('--dildo-intro'));
 else if(opt('--dildo-post'))await dildoPost(opt('--dildo-post'),flag('--send'));
 else if(flag('--inside-fbl')&&STATE_DIR)await insideFbl();
+else if(flag('--inside-show')&&STATE_DIR)await insideShow();
 else if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
 else if(flag('--trevor-hello'))await trevorHello();
 else if(trevorDay)await trevorByHand(trevorDay);
