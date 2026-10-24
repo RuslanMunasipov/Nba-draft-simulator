@@ -34,11 +34,11 @@ export const gmRef=(team,root,{is='the photo of the general manager (GM) of the 
  ({image:gmPhoto(team,root),is,facts:about(gmOf(team)),need});
 export const logoRef=(team,root,{is='the logo of the fantasy team',need=false}={})=>
  ({image:teamLogo(team,root),is,facts:{teamColors:LEAGUE_TEAMS[team]?.kit||null},need});
-// Mike Roffon: only the face of his photo (its camouflage helmet and PRESS vest belong to a war zone), always his white
+// Mike Roffon: his studio portrait (owner, 24.10.2026: his face and his usual look), always his white
 // gloves and his microphone.
 export function mikeRef(root){
  const p=person('mike-roffon');
- return {image:readImage(path.join(root||ASSETS,p.photo)),is:'the photo of Mike Roffon, the reporter: take only his face from it, never its clothes',facts:about(p),need:true,say:['white gloves','microphone']};
+ return {image:readImage(path.join(root||ASSETS,p.photo)),is:'the photo of Mike Roffon, the reporter: his face and his studio look',facts:about(p),need:true,say:['white gloves','microphone']};
 }
 // Trevor Matolog, the league's trauma doctor: his face, and always his neck brace and his cast with players' autographs.
 export function trevorRef(root){

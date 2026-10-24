@@ -84,7 +84,7 @@ test('Inside FBL: the pictures: Claude writes each prompt whole, the code gives 
  const pp=await import('../awards-bot/inside-fbl.js');
  assert.equal(pp.SAFE_SCENE,undefined,'no fallback scene of the code\'s');assert.equal(pp.longreadPicture,undefined);
  assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','x.jpg']);
- assert.match(c.list[0].is,/only his face/);assert.match(c.list[1].neverChanges,/thin rimless tinted glasses/);assert.equal(c.list[1].name,'Lemarius');
+ assert.match(c.list[0].is,/his face and his studio look/);assert.match(c.list[1].neverChanges,/thin rimless tinted glasses/);assert.equal(c.list[1].name,'Lemarius');
  assert.match(longreadCast({kind:'commissioner'},{guestPhoto:img}).list[1].is,/Adam Silverov/);
  const pl=longreadCast({kind:'player',row:{a:'3',en:'T. Young',teams:[7]}});
  assert.equal(pl.images.length,1,'no face: Mike alone');

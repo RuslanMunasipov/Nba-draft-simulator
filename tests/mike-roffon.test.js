@@ -62,7 +62,7 @@ test('Mike Roffon: his picture\'s references: his face, the hero\'s, the GM on t
  for(const name of ['interviewPicture','writtenPicture','writtenPictureProblems'])assert.equal(mike[name],undefined,name);
  const c=mikeCast({...facts,gmQuestion:null},{team:5,face});
  assert.deepEqual(c.images.map(i=>i.name),['mike-roffon.jpg','4594268.png','6.jpg','fbl-logo.png']);
- assert.match(c.list[0].is,/only his face/);assert.match(c.list[0].neverChanges,/white gloves and a vintage chrome microphone/);
+ assert.match(c.list[0].is,/his face and his studio look/);assert.match(c.list[0].neverChanges,/white gloves and a vintage chrome microphone/);
  assert.deepEqual(c.refs[0].say,['white gloves','microphone']);assert.equal(c.list[1].mustUse,true);assert.equal(c.list[2].teamColors,'navy blue, lemon yellow and cream');
  assert.deepEqual(mikeCast(facts).images.map(i=>i.name),['mike-roffon.jpg','fbl-logo.png'],'no face, no fantasy team');
 });

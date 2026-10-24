@@ -91,7 +91,7 @@ test('the references Claude writes from: numbered as they go, who is on each, th
  assert.deepEqual(about(null),{});assert.deepEqual(cast([]),{images:[],refs:[],list:[]});
  const real=cast([zakRef(),commissionerRef(),mikeRef(),playerRef(null,'X')]);
  assert.deepEqual(real.images.map(i=>i.name),['check.jpg','adam-silverov.jpg','mike-roffon.jpg']);
- assert.match(real.list[2].is,/only his face/);
+ assert.match(real.list[2].is,/his face and his studio look/);
 });
 
 test('Claude\'s prompt goes as he wrote it: only the references he names, numbered anew when one is left out',()=>{
@@ -176,7 +176,7 @@ test('the league\'s people: every photo exists, GMs by team, what a picture keep
  assert.deepEqual([2,3,5,6,7].map(t=>gmOf(t).id),['jack-pott','robert-khachaturyan','lemarius','fy-zhil','strap-onn']);
  assert.match(about(person('captain-torres-new-win')).neverChanges,/always a pirate: a weathered brown leather tricorn hat.*dreadlocks/);
  assert.match(about(person('coach-i')).neverChanges,/always an emperor/);assert.match(about(person('coach-i')).alwaysDrawn,/oil painting/);
- assert.match(about(person('mike-roffon')).neverChanges,/white gloves and a vintage chrome microphone, always/);
+ assert.match(about(person('mike-roffon')).neverChanges,/^white gloves and a vintage chrome microphone .*always$/);
  assert.doesNotMatch(person('mike-roffon').keep,/helmet/,'the helmet is one of his outfits, not his signature');
  assert.match(about(person('trevor-matolog')).neverChanges,/always a beige foam cervical neck brace and a white plaster cast/);
 });
