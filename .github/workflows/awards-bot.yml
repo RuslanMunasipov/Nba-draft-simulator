@@ -89,6 +89,10 @@ jobs:
           # week's heroes go out by his own bot into the same chat, with his comment (written by Claude); without his token,
           # or when Telegram refuses it, by the awards bot.
           CHRISTOPHER_DILDO_BOT_TOKEN: ${{ secrets.CHRISTOPHER_DILDO_BOT_TOKEN }}
+          # Trevor Matolog, the league's trauma doctor (awards-bot/trevor-matolog.js): 20 minutes after Mike's interview, his
+          # report from the infirmary by his own bot: the FBL rosters' injured players from ESPN's injury report of that
+          # moment, its comments in Russian, the ward's pictures. Without his token there is no report.
+          TREVOR_MATOLOG_BOT_TOKEN: ${{ secrets.TREVOR_MATOLOG_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # The subscription token of Claude Code (`claude setup-token`) for the bots' texts; no API key.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

@@ -17,7 +17,10 @@
 //                                                   --prompts: the prompts of the day's two pictures (free);
 //                                                   --pictures: the pictures drawn by OpenAI, ~$0.05, into --cards;
 //                                                   --mike: Mike Roffon's interview written by Claude and, with
-//                                                   OPENAI_API_KEY, drawn, ~$0.02)
+//                                                   OPENAI_API_KEY, drawn, ~$0.02;
+//                                                   --infirmary: Trevor Matolog's report from the infirmary, ESPN's
+//                                                   injury report as it is now, its pictures' prompts with --prompts,
+//                                                   drawn with --pictures, ~$0.06)
 //   node awards-bot/bot.mjs --inside-fbl --state DIR --inside DIR --action draft|redo|approve|post [--inside-week DAY]
 //                          [--guest G] [--notes TEXT] [--after-thursday]
 //                                                   Mike Roffon's weekly long read (inside-fbl.js, workflow
@@ -33,8 +36,14 @@
 //                                                   mike-roffon.yml): written and drawn, posted into the league chat
 //                                                   by his bot with --send (--picture-only: only his picture, for
 //                                                   an interview that went without one); the state is only read
+//   node awards-bot/bot.mjs --trevor-day DAY [--send] [--prompts] [--cards DIR]
+//                                                   Trevor Matolog's report from the infirmary by hand (workflow
+//                                                   trevor-matolog.yml): ESPN's injury report as it is now, drawn
+//                                                   (~$0.06; --prompts: only the pictures' prompts, free) and,
+//                                                   with --send, posted by his bot; nothing is saved
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check),
-// CHRISTOPHER_DILDO_BOT_TOKEN (his bot posts the day, its pictures and the week's heroes: dildo.js). Without
+// CHRISTOPHER_DILDO_BOT_TOKEN (his bot posts the day, its pictures and the week's heroes: dildo.js),
+// TREVOR_MATOLOG_BOT_TOKEN (his bot posts the report from the infirmary: trevor-matolog.js). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
 // own); when the cards cannot be drawn or sent, its text goes instead.
@@ -59,6 +68,7 @@ import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCa
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
+import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -327,6 +337,62 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
  }catch(e){console.warn(`${day}: Mike Roffon failed (${e.message}).`);return {status:'failed'};}
 }
 
+// --- Trevor Matolog (trevor-matolog.js): 20 minutes after Mike's flash interview, his report from the infirmary by his own
+// bot (TREVOR_MATOLOG_BOT_TOKEN): ESPN's injury report as it is now, the FBL rosters' patients, their comments in Russian
+// (the site's translations; the missing ones translated now by Claude), his opener and afterword written by Claude, and
+// the ward's pictures (prompts written by Claude, drawn by OpenAI, about $0.03 each, at most two). Without his token there
+// is no report. send: posted by his bot (sent: {status, cost, patients, at}); else printed. draw: the pictures (paid);
+// prompts: only their prompts written by Claude and printed, nothing drawn (free).
+const TREVOR=env.TREVOR_MATOLOG_BOT_TOKEN;
+const TRANSLATIONS='https://raw.githubusercontent.com/RuslanMunasipov/Nba-draft-simulator/data/translations/translations.json';
+async function infirmary(day,ctx,{send=live&&!!TREVOR,draw=true,prompts:only=false}={}){
+ let report;
+ try{report=await json(ESPN+'injuries');}catch(e){console.warn(`${day}: no ESPN injury report (${e.message}): no infirmary.`);return {status:'failed'};}
+ // A report that lists nobody is a broken feed, never an empty infirmary.
+ if(!report?.injuries?.some?.(t=>t?.injuries?.length)){console.warn(`${day}: ESPN's injury report lists nobody: no infirmary.`);return {status:'failed'};}
+ const list=patients(report,ctx.rosters,ctx.who),tr=await json(TRANSLATIONS).catch(()=>null);
+ const ru=Object.fromEntries(Object.entries(tr?.texts||{}).map(([k,v])=>[k,v.text])),todo=untranslated(list,tr),writes=claudeConfigured(env);
+ if(todo.length&&writes)Object.assign(ru,await translateNow(todo));
+ const facts=list.map(x=>patientFacts(x,ru));
+ let words=null,spent=0;const pics=[],prompts=[];
+ if(facts.length&&writes){
+  try{words=await writeWords(infirmaryFacts(facts));}catch(e){console.warn(`${day}: Claude did not write Trevor's words (${e.message}).`);}
+  if((draw&&OPENAI_KEY)||only){
+   const {headshot}=await import('./render.mjs');
+   for(const group of pictureGroups(facts)){
+    const faces=new Map((await Promise.all(group.map(async p=>[p.espnId,await headshot(p.espnId)]))).filter(([,f])=>f));
+    let written=null;
+    try{written=await writeWardPicture(group,wardCast(group,faces));}catch(e){console.warn(`${day}: Claude did not write the ward's picture (${e.message}).`);}
+    if(!written)continue;
+    prompts.push(written);
+    if(!draw||!OPENAI_KEY)continue;
+    try{const r=await generate(written,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});pics.push(r.png);spent+=cost(r.usage);}
+    catch(e){console.warn(`${day}: the ward's picture failed (${e.message}).`);}
+   }
+  }
+ }
+ const text=infirmaryText(facts,words,day),caption=infirmaryCaption(facts,day);
+ if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});pics.forEach((p,i)=>fs.writeFileSync(path.join(CARDS_DIR,`infirmary-${day}-${i+1}.png`),p));
+  fs.writeFileSync(path.join(CARDS_DIR,`infirmary-${day}.txt`),caption+'\n\n'+text+'\n');}
+ if(!send){console.log(`\n===== Trevor Matolog's infirmary (preview, ${pics.length} picture(s), $${spent.toFixed(3)}) =====\n${caption}\n\n${text}\n`);
+  // The pictures' prompts as they go to the image model, Claude's own.
+  for(const w of prompts)console.log(`\n===== The ward's picture (written by Claude, ${w.images.length} references: ${w.images.map(i=>i.name).join(', ')}) =====\n${w.prompt}\n`);
+  return {status:'preview',cost:spent};}
+ try{
+  let shown=null;
+  if(pics.length===1){const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',caption);form.append('parse_mode','HTML');
+   form.append('photo',new Blob([pics[0]],{type:'image/png'}),`infirmary-${day}.png`);shown=await telegram(TREVOR,'sendPhoto',form);}
+  else if(pics.length>1){const form=new FormData();form.append('chat_id',String(CHAT));
+   form.append('media',JSON.stringify(pics.map((_,i)=>({type:'photo',media:`attach://p${i}`,...i?{}:{caption,parse_mode:'HTML'}}))));
+   pics.forEach((p,i)=>form.append(`p${i}`,new Blob([p],{type:'image/png'}),`infirmary-${day}-${i+1}.png`));
+   shown=(await telegram(TREVOR,'sendMediaGroup',form))[0];}
+  for(const [i,part] of split(text).entries())await telegram(TREVOR,'sendMessage',{chat_id:CHAT,text:part,parse_mode:'HTML',disable_web_page_preview:true,
+   ...i===0&&shown?{reply_parameters:{message_id:shown.message_id}}:{}});
+  console.log(`${day}: Trevor Matolog's infirmary sent: ${facts.length} patient(s), ${pics.length} picture(s), $${spent.toFixed(3)}.`);
+  return {status:'sent',cost:Math.round(spent*1e4)/1e4,patients:facts.length,at:new Date(now()).toISOString()};
+ }catch(e){console.warn(`${day}: Trevor Matolog's infirmary failed (${e.message}).`);return {status:'failed'};}
+}
+
 // --- The day's pictures (images.js): the heroes in one picture and the flops in another, their prompts written by Claude
 // through the owner's subscription (free; without it, or when he cannot write one, no picture), drawn by OpenAI (about
 // $0.03 each) and sent by Christopher Dildo's bot (the awards bot's without it) after the day's album, before Mike
@@ -394,6 +460,8 @@ async function watchDay(day,ctx,archive,state){
     const recent=Object.keys(state.posted.pictures||{}).sort().slice(-7).flatMap(d=>state.posted.pictures[d].ideas||[]);
     (state.posted.pictures||={})[day]=await picturesPost(day,archive.lines,ctx,{recent});pushState(state,archive);}
    if(!state.posted.mike?.[day]){const m=await mikeInterview(day,archive.lines,ctx,state);if(m){(state.posted.mike||={})[day]=m;pushState(state,archive);}}
+   // Trevor's report from the infirmary, 20 minutes after Mike's interview (below, once the week and the month are posted).
+   if(live&&TREVOR&&!state.posted.infirmary?.[day]){(state.posted.infirmary||={})[day]={status:'due',at:new Date(now()+INFIRMARY_DELAY_MS).toISOString()};pushState(state,archive);}
    break;
   }
   if(step.do==='later'){console.log(`${day}: the last game tips off at ${step.until?new Date(step.until).toISOString():'?'}; a later run follows it.`);return false;}
@@ -406,6 +474,14 @@ async function watchDay(day,ctx,archive,state){
  save(state,archive);
  if(isSunday(day)&&!state.posted.weekly[weekOf(day).start]){await weekly(day,ctx,archive,state,true);pushState(state,archive);}
  if(isMonthEnd(day)&&!state.posted.monthly[day.slice(0,7)]){await monthly(day,ctx,archive,state,true);pushState(state,archive);}
+ const inf=state.posted.infirmary?.[day];
+ if(inf?.status==='due'){
+  const at=Date.parse(inf.at),wait=at-now();
+  if(now()-START+wait>WATCH_MS-2*60e3){console.log(`${day}: the infirmary's time (${inf.at}) goes past this run; the next run posts it.`);return true;}
+  if(wait>0){console.log(`${day}: the infirmary at ${inf.at}.`);save(state,archive);await sleep(wait);}
+  state.posted.infirmary[day]=now()>at+INFIRMARY_LATE_MS?{status:'late',at:inf.at}:await infirmary(day,ctx);
+  pushState(state,archive);
+ }
  return true;
 }
 // One pass: archive what finished, then follow yesterday's and today's games (US Eastern) to their posts, in order: last
@@ -460,6 +536,7 @@ async function preview(day){
  await dayPost(day,archive.lines,ctx,[]);
  if(flag('--prompts')||flag('--pictures'))await picturesPost(day,archive.lines,ctx,{send:false,draw:flag('--pictures')});
  await mikeInterview(day,archive.lines,ctx,state);
+ if(flag('--infirmary'))await infirmary(day,ctx,{send:false,draw:flag('--pictures'),prompts:flag('--prompts')});
  if(flag('--week')||isSunday(day))await weekly(day,ctx,archive,state,false);
  if(flag('--month')||isMonthEnd(day))await monthly(day,ctx,archive,state,false);
 }
@@ -484,6 +561,16 @@ async function mikeByHand(day){
  const ctx=await loadLeague(),m=only?await mikePictureOnly(day,archive.lines,ctx,state,send):await mikeInterview(day,archive.lines,ctx,state,{send,write:true});
  if(!m)throw Error(`${day}: no hero of the day`);
  if(m.status!==(send?'sent':'preview'))process.exitCode=1;
+}
+
+// Trevor Matolog's report from the infirmary by hand: ESPN's injury report as it is now, drawn and, with --send, posted by
+// his bot. Nothing is saved, so each run with --send posts again.
+async function trevorByHand(day){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('--trevor-day: a US day, YYYY-MM-DD');
+ const send=flag('--send');
+ if(send){const missing=[['TREVOR_MATOLOG_BOT_TOKEN',TREVOR],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);}
+ const r=await infirmary(day,await loadLeague(),{send,draw:!flag('--prompts'),prompts:flag('--prompts')});
+ if(r.status!==(send?'sent':'preview'))process.exitCode=1;
 }
 
 // --- Inside FBL (inside-fbl.js): Mike Roffon's weekly long read. The awards bot's state is only read; the long reads keep
@@ -620,10 +707,11 @@ async function insideFbl(){
  }
 }
 
-const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day');
+const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day'),trevorDay=opt('--trevor-day');
 if(flag('--inside-fbl')&&STATE_DIR)await insideFbl();
 else if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
+else if(trevorDay)await trevorByHand(trevorDay);
 else if(day)await preview(day);
 else if(STATE_DIR&&again)await resend(again);
 else if(STATE_DIR)await scheduled();
-else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD | --mike-day YYYY-MM-DD [--send]] | --preview YYYY-MM-DD [--week] [--month]');process.exit(2);}
+else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD | --mike-day YYYY-MM-DD [--send]] | --trevor-day YYYY-MM-DD [--send] | --preview YYYY-MM-DD [--week] [--month] [--infirmary]');process.exit(2);}
