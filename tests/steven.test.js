@@ -144,3 +144,15 @@ test('Steven Ex Pert\'s picture: its caption is the album\'s title, his name and
  assert.match(src,/await steven\(t=>telegram\(t,'sendPhoto',form\)\)/,'from his bot, the awards bot behind it');
  assert.match(src,/draw=preview\?flag\('--pictures'\):!!OPENAI_KEY/,'a preview draws only with --pictures');
 });
+
+test('Steven Ex Pert introduces himself: his photo, his words in one caption, no number, from his own bot only',async()=>{
+ const {HELLO_PHOTO,HELLO_CAPTION,SIGNATURE:sig}=await import('../awards-bot/steven.js');
+ assert.ok(fs.existsSync(HELLO_PHOTO));assert.match(HELLO_PHOTO,/steven-ex-pert\.jpg$/);
+ assert.ok(HELLO_CAPTION.length<=1024,'one photo caption');assert.ok(HELLO_CAPTION.includes(sig));
+ assert.doesNotMatch(HELLO_CAPTION,/\d/);assert.match(HELLO_CAPTION,/#inside_fbl #гонка_за_награды$/);
+ const src=fs.readFileSync(new URL('../awards-bot/bot.mjs',import.meta.url),'utf8');
+ const hello=src.match(/async function stevenHello\(\)\{[\s\S]*?\n\}/)[0];
+ assert.match(hello,/telegram\(env\.STEVEN_EX_PERT_BOT_TOKEN,'sendPhoto',form\)/);assert.doesNotMatch(hello,/steven\(|\(TOKEN,/,'never the awards bot');
+ const wf=fs.readFileSync(new URL('../.github/workflows/steven-ex-pert.yml',import.meta.url),'utf8');
+ assert.match(wf,/--steven-hello \$SEND/);assert.match(wf,/STEVEN_EX_PERT_BOT_TOKEN: \$\{\{ secrets\.STEVEN_EX_PERT_BOT_TOKEN \}\}/);
+});

@@ -1,0 +1,32 @@
+name: Steven Ex Pert
+# Steven Ex Pert, the league's expert (awards-bot/steven.js), introduces himself to the league, by hand: his photo and his
+# words (HELLO_CAPTION), posted into the league chat by his own bot (STEVEN_EX_PERT_BOT_TOKEN), never by another one.
+# Without "send" the words are only printed in the run's log. Each run with "send" posts again.
+on:
+  workflow_dispatch:
+    inputs:
+      send:
+        description: 'Post the introduction into the league chat (unticked: only printed)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: steven-ex-pert
+  cancel-in-progress: false
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Introduce himself
+        env:
+          SEND: ${{ inputs.send && '--send' || '' }}
+          AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          STEVEN_EX_PERT_BOT_TOKEN: ${{ secrets.STEVEN_EX_PERT_BOT_TOKEN }}
+        run: node awards-bot/bot.mjs --steven-hello $SEND
