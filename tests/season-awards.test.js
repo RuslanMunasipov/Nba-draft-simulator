@@ -30,3 +30,15 @@ test('Season awards: the rookie of the year, the defender by steals and blocks, 
  const t=seasonAwardsText(x);assert.match(t,/<b>Первая сборная FBL<\/b>\nPG: RU Ace \(DEN\) · Texas 76 Citrus — \d+ ФО\nSG: —/);
  assert.match(t,/<b>🛡 Лучший защитник \(перехваты \+ блоки\)<\/b>\n1\. RU Bee \(BOS\) — 8 \(8 перехв\., 0 блок\.\)/);assert.match(t,/<b>🦾 Железный человек<\/b>\n1\. RU Bee \(BOS\) — 3 матча, 108 мин/);
 });
+test('Season records: the season totals and the single games of every category, the anti records apart',()=>{
+ const r=Object.fromEntries(x.records.map(c=>[c.key,c]));
+ assert.deepEqual(Object.keys(r),['fo','pts','reb','ast','stl','blk','fgm','ftm','min','tov','pf','miss']);
+ assert.deepEqual(r.pts.total.map(p=>[p.name,p.value,p.games]),[['RU Ace',58,2],['RU Bee',50,3],['RU Eve',22,1]]);
+ assert.deepEqual(r.pts.game.map(p=>[p.name,p.value,p.date]),[['RU Ace',30,'2026-10-21'],['RU Ace',28,'2026-10-22'],['RU Bee',25,'2026-10-21']]);
+ assert.deepEqual(r.blk.total.map(p=>[p.name,p.value]),[['RU Eve',6],['RU Fox',3]],'nobody with none');
+ assert.equal(r.min.total[0].value,108);assert.equal(r.fo.game[0].value,lines[0].p);assert.ok(r.tov.anti&&!r.pts.anti);
+ assert.deepEqual(r.pts.game[0].fblTeams,['Texas 76 Citrus']);
+ const t=seasonAwardsText(x);
+ assert.match(t,/<b>📈 Очки<\/b>\nЗа сезон:\n1\. RU Ace \(DEN\) · Texas 76 Citrus — <b>58<\/b> за 2 матча\n[^]*За матч:\n1\. RU Ace \(DEN\) · Texas 76 Citrus — <b>30<\/b> \(21\.10\)/);
+ assert.ok(t.indexOf('🗑 <b>Антирекорды сезона</b>')<t.indexOf('<b>🗑 Потери</b>'));
+});
