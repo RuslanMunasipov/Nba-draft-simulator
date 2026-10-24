@@ -291,7 +291,7 @@ async function weekly(day,ctx,archive,state,mark){
  // The week's heroes, flops and free agents first: Christopher Dildo's album, marked apart (a run cut short between the
  // two albums posts only the race next time).
  if(!mark||!state.posted.weekHeroes?.[week.start]){
-  const comment=await dildoComment(weekFacts(week,wb,ctx.who));
+  const comment=await dildoComment(weekFacts(week,wb,ctx.who,{lines:all.filter(l=>l.d>=week.start)}));
   await postAlbum(`week-${week.n}-heroes`,Object.values(wb).flat().map(x=>x.a),(look,fonts)=>{const a=weekHeroesAlbum(week,wb,ctx.who,look,fonts,{holiday:holidayFor(day)});return {...a,caption:signCaption(a.caption,comment)};},
    signText(weeklyText(week,wb,ctx.who),comment),{via:dildo});
   if(mark){(state.posted.weekHeroes||={})[week.start]=live?'sent':'preview';pushState(state,archive);}
@@ -494,7 +494,7 @@ async function dayPost(day,lines,ctx,postponed){
  const text=dailyText(day,blocks,ctx.who,{news,postponed,today:moscowDay(now())});
  if(!text)return;
  const shown=[...Object.values(blocks).flat(),...news.map(x=>x.line)].map(x=>x.a),f=form(lines,day);
- const comment=await dildoComment(dayFacts(blocks,ctx.who,{form:f,news}));
+ const comment=await dildoComment(dayFacts(blocks,ctx.who,{form:f,news,lines:mine}));
  return postAlbum(`day-${day}`,shown,(look,fonts)=>{const a=dayAlbum(day,blocks,ctx.who,look,fonts,{news,postponed,form:f,holiday:holidayFor(day),week:weekOf(day)});return {...a,caption:signCaption(a.caption,comment)};},
   signText(text,comment),{via:dildo});
 }

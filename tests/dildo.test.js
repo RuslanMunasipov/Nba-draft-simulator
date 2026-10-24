@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
+import {LEAGUE_TEAMS} from '../src/teams.js';
 import {dailyBlocks,weeklyBlocks,form} from '../awards-bot/core.js';
 import {dayAlbum,weekHeroesAlbum} from '../awards-bot/cards.js';
-import {refused,asDildo,dayFacts,weekFacts,commentMessages,commentProblems,commentFor,signCaption,signText,SIGNATURE,CAPTION_LIMIT} from '../awards-bot/dildo.js';
+import {refused,asDildo,teamFacts,dayFacts,weekFacts,commentMessages,commentProblems,commentFor,signCaption,signText,SIGNATURE,CAPTION_LIMIT} from '../awards-bot/dildo.js';
 
 const s={pts:31,reb:14,ast:11,stl:2,blk:1,tov:3,fgm:12,fga:19,ftm:5,fta:6,pf:2};
 const bad={pts:6,reb:2,ast:1,stl:0,blk:0,tov:5,fgm:2,fga:14,ftm:2,fta:6,pf:5};
@@ -56,6 +57,29 @@ test('Christopher Dildo: the facts carry the FBL points of the league formula, n
  const w=weekFacts(week,weeklyBlocks(lines),who);assert.equal(w.week,1);assert.equal(w.heroes[0].games,1);
  const {system,prompt}=commentMessages(facts);
  assert.match(system,/Кристофер Дилдо/);assert.match(system,/Только числа из данных/);assert.match(prompt,/"fo": 44/);
+});
+
+test('Christopher Dildo: the numbers of our teams and GMs are the code\'s, a player counted for his first holder',()=>{
+ const shared=line('4',bad,[3,0]),day=[...lines,shared,line('5',s,[3])];
+ const teams=teamFacts(day,who,{heroes:dailyBlocks(day).heroes,flops:dailyBlocks(day).flops});
+ assert.equal(teams.length,8,'all eight teams, the idle ones too');
+ assert.deepEqual(teams.map(t=>t.place),[1,2,3,4,5,6,7,8]);
+ const balkan=teams.find(t=>t.team==='The Balkan Murderers'),t3=teams.find(t=>t.team===LEAGUE_TEAMS[3].name);
+ assert.equal(balkan.gm,'Franky Murder');assert.equal(balkan.fo,fblFormula(s),'the shared player scores for his first holder only');
+ assert.equal(balkan.playersPlayed,1);assert.equal(balkan.worst,null,'one player: no worst');
+ assert.equal(t3.fo,fblFormula(bad)*2+fblFormula(s));assert.equal(t3.missedShots,12+12+7);assert.equal(t3.turnovers,5+5+3);
+ assert.deepEqual(t3.best,{name:'RU P5',fo:44});assert.equal(t3.worst.fo,fblFormula(bad));
+ assert.equal(teams[0].fo,44);assert.ok(teams.slice(1).every((t,i)=>t.fo<=teams[i].fo),'ranked by FBL points');
+ assert.ok(teams.filter(t=>t.playersPlayed===0).every(t=>t.fo===0&&t.best===null));
+ const facts=dayFacts(dailyBlocks(lines),who,{lines});
+ assert.equal(facts.heroes[0].percentOfFblTeamDay,100,'his team\'s whole day');
+ const week2=weekFacts(week,weeklyBlocks(day),who,{lines:day});assert.equal(week2.fblTeams.find(t=>t.team==='The Balkan Murderers').fo,44);
+});
+
+test('Christopher Dildo: a narrow specialist, numbers only, hunting the numbers of our teams and GMs',()=>{
+ const {system}=commentMessages(dayFacts(dailyBlocks(lines),who,{lines}));
+ assert.match(system,/узкий специалист/);assert.match(system,/кроме математики и цифр/);assert.match(system,/наши команды FBL и их GM/);
+ assert.match(system,/уже посчитано в данных/);
 });
 
 test('Christopher Dildo: a comment with a number of its own is caught, in digits and in words',()=>{

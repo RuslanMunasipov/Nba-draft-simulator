@@ -3,7 +3,9 @@
 // sender of his posts changes: the day's album, the day's two pictures and the week's heroes, flops and free agents go
 // out by his own bot (CHRISTOPHER_DILDO_BOT_TOKEN) into the same chat, and by the awards bot when he has no token or
 // Telegram refuses it, so no post is lost. To the captions of the day's and the week's albums he adds a line or two of
-// his own: a young analyst in glasses with a notebook, numbers and trends, hard banter on the flops, delight in the hot.
+// his own: a young analyst in glasses with a notebook, a narrow specialist who knows nothing but maths and numbers and
+// hunts for the most striking numbers of the game, above all those of the league's teams and their GMs (owner,
+// 24.10.2026): hard banter on the flops, delight in the hot. Those numbers are the code's (teamFacts), never his own sums.
 // Claude writes it through the owner's subscription (scripts/claude-text.mjs, nothing billed per call); every number in
 // it is a number of the facts (the FBL points come from core.js, scored by fblFormula), else it is written again, and the
 // second time without a comment. A comment never holds a post.
@@ -44,29 +46,53 @@ export async function asDildo(send,{dildo,awards,label='Christopher Dildo',warn=
 const box=s=>s?{pts:s.pts,reb:s.reb,ast:s.ast,stl:s.stl,blk:s.blk,tov:s.tov,fgm:s.fgm,fga:s.fga,fgMissed:s.fga-s.fgm,ftm:s.ftm,fta:s.fta,ftMissed:s.fta-s.ftm,pf:s.pf}:null;
 const fblTeam=r=>Number.isInteger(r.h?.[0])?LEAGUE_TEAMS[r.h[0]]?.name||null:null;
 const player=(who,r,extra={})=>({name:who(r.a,r.n),club:r.c||null,fblTeam:fblTeam(r),fo:Math.round(r.p),...extra,game:box(r.s)});
-// The day (core.js dailyBlocks), the players' form (core.js form()) and the record alerts (core.js recordNews). No date:
-// a date brings the season and its numbers into the comment.
-export function dayFacts(blocks,who,{form=new Map(),news=[]}={}){
+// The league's eight teams over some lines (the day's or the week's), as the league scores them: a player counts for the
+// team that held him first at tip-off (as teamPoints in src/season.js), each line's FBL points by fblFormula (core.js).
+// Per team: its GM, its FBL points and place among the eight, the players who played and their games, the best and the
+// worst of them, the shots they missed and the balls they lost; heroes, flops: the day's blocks, counted per team.
+export function teamFacts(lines,who,{heroes=null,flops=null}={}){
+ const teams=LEAGUE_TEAMS.map((t,i)=>({i,team:t.name,gm:t.gm||null,fo:0,players:new Map(),games:0,missedShots:0,missedFreeThrows:0,turnovers:0}));
+ for(const l of lines){
+  const t=teams[l.h?.[0]];if(!t)continue;
+  const x=t.players.get(l.a)||{name:who(l.a,l.n),fo:0,games:0};
+  x.fo+=l.p;x.games++;t.players.set(l.a,x);
+  t.fo+=l.p;t.games++;
+  if(l.s){t.missedShots+=l.s.fga-l.s.fgm;t.missedFreeThrows+=l.s.fta-l.s.ftm;t.turnovers+=l.s.tov;}
+ }
+ const order=[...teams].sort((a,b)=>b.fo-a.fo||a.i-b.i),count=(list,i)=>list.filter(l=>l.h?.[0]===i).length;
+ return order.map((t,k)=>{const ps=[...t.players.values()].sort((a,b)=>b.fo-a.fo);
+  const name=x=>x?{name:x.name,fo:Math.round(x.fo),...x.games>1?{games:x.games}:{}}:null;
+  return {place:k+1,team:t.team,gm:t.gm,fo:Math.round(t.fo),playersPlayed:ps.length,games:t.games,missedShots:t.missedShots,missedFreeThrows:t.missedFreeThrows,turnovers:t.turnovers,
+   best:name(ps[0]),worst:ps.length>1?name(ps.at(-1)):null,...heroes?{heroesOfTheDay:count(heroes,t.i)}:{},...flops?{flopsOfTheDay:count(flops,t.i)}:{}};});
+}
+// A hero's part of his team's day: the per cent of its FBL points he brought (none when the team's day is not positive).
+const share=(l,teams)=>{const t=teams.find(x=>x.team===fblTeam(l));return t&&t.fo>0?Math.round(100*l.p/t.fo):null;};
+// The day (core.js dailyBlocks; lines: all the day's lines, for the teams), the players' form (core.js form()) and the
+// record alerts (core.js recordNews). No date: a date brings the season and its numbers into the comment.
+export function dayFacts(blocks,who,{form=new Map(),news=[],lines=[]}={}){
+ const teams=teamFacts(lines,who,{heroes:blocks.heroes,flops:blocks.flops});
  const formOf=a=>{const f=form.get(a);return f?{heroDaysLast7:f.hero,flopDaysLast7:f.flop,heroDaysInARow:f.heroRun,onFire:!!f.fire,frozen:!!f.ice}:null;};
- const rows=(list,kind)=>list.map(l=>player(who,l,{minutes:Math.round(l.m||0),form:formOf(l.a),...kind==='flop'&&l.s?{bricks:bricks(l)}:{}}));
- return {post:'итоги игрового дня',heroes:rows(blocks.heroes,'hero'),flops:rows(blocks.flops,'flop'),
+ const rows=(list,kind)=>list.map(l=>{const pct=kind==='hero'?share(l,teams):null;
+  return player(who,l,{minutes:Math.round(l.m||0),form:formOf(l.a),...pct!==null?{percentOfFblTeamDay:pct}:{},...kind==='flop'&&l.s?{bricks:bricks(l)}:{}});});
+ return {post:'итоги игрового дня',fblTeams:teams,heroes:rows(blocks.heroes,'hero'),flops:rows(blocks.flops,'flop'),
   freeAgents:rows(blocks.gold,'gold').map(({fblTeam,...x})=>x),nbaAntitop:rows(blocks.antitop,'flop'),
   seasonRecords:news.slice(0,1).map(x=>({kind:x.rank===1?(x.kind==='best'?'рекорд сезона':'антирекорд сезона'):(x.kind==='best'?'топ сезона':'антитоп сезона'),
    place:x.rank,name:who(x.line.a,x.line.n),fo:Math.round(x.line.p)}))};
 }
-// The week (core.js weeklyBlocks): the players' sums over their games.
-export function weekFacts(week,wb,who){
+// The week (core.js weeklyBlocks; lines: the week's lines, for the teams): the players' sums over their games.
+export function weekFacts(week,wb,who,{lines=[]}={}){
  const rows=list=>list.map(r=>player(who,r,{games:r.games}));
- return {post:'итоги недели',week:week.n,heroes:rows(wb.heroes),flops:rows(wb.flops),freeAgents:rows(wb.gold).map(({fblTeam,...x})=>x)};
+ return {post:'итоги недели',week:week.n,fblTeams:teamFacts(lines,who),heroes:rows(wb.heroes),flops:rows(wb.flops),freeAgents:rows(wb.gold).map(({fblTeam,...x})=>x)};
 }
 
-const VOICE=`Ты — Кристофер Дилдо, молодой аналитик рубрики Inside FBL фэнтези-баскетбольной лиги друзей FBL (Fantasy Brothers League): прямоугольные очки, клетчатая рубашка, блокнот, где всё посчитано. Ты живёшь цифрами и трендами: кто горит, кто остыл, что торчит в статлайне.
-Твой стиль: коротко и метко, как пометка на полях блокнота. Горячим — неприкрытый восторг. Провалам — жёсткий стёб: кирпичи, потери, фолы, пустые графы, лёд в венах. Стебёшь игру, а не человека: ни слова о внешности, теле, происхождении, семье, здоровье и личной жизни.
+const VOICE=`Ты — Кристофер Дилдо, молодой аналитик рубрики Inside FBL фэнтези-баскетбольной лиги друзей FBL (Fantasy Brothers League): прямоугольные очки, клетчатая рубашка, блокнот, где всё посчитано.
+Ты очень узкий специалист: кроме математики и цифр толком ничего не знаешь — ни кино, ни истории, ни музыки, ни житейских премудростей, и не делаешь вид, что знаешь. Всё, что тебя волнует, — аналитика. Ты постоянно в поиске по-настоящему интересных цифр из мира баскетбола, и больше всего — про наши команды FBL и их GM (fblTeams): чья команда собрала больше всех и кто её вытащил, у кого вечер держится на одном игроке, у какого GM больше всего кирпичей и потерь, у кого никто не вышел, где лидер и аутсайдер дня разошлись сильнее всего.
+Твой стиль: найди в данных самую неожиданную цифру и построй на ней комментарий — коротко и сухо, как пометка на полях блокнота. Сравнения и образы — только из твоего мира: графики, таблицы, выборки, выбросы, медиана, тренды, погрешность, корреляция, формулы. Горячим — восторг аналитика, нашедшего выброс. Провалам — жёсткий стёб цифрами: кирпичи, потери, фолы, пустые графы. GM подкалывай за его команду и его выбор, а не за что-то другое. Стебёшь игру, а не человека: ни слова о внешности, теле, происхождении, семье, здоровье и личной жизни.
 В лиге очки называются ФО (фэнтези-очки), формула лиги: очки + подборы + передачи + перехваты + блоки − промахи с игры − промахи штрафных − 2×потери − фолы + 1 за матч. form: сколько раз за последние 7 игровых дней игрок был в героях (heroDaysLast7) и в провалах (flopDaysLast7), onFire — горит, frozen — заморожен; bricks — провал из-за промахов с игры.`;
 const RULES=`Правила:
 - Комментарий к посту лиги: 1–2 предложения, не длиннее ${COMMENT_LIMIT - 40} знаков. Без приветствия, без хэштегов, без подписи, не больше одного эмодзи.
-- Только числа из данных; никаких других чисел (ни процентов, ни средних, ни сумм и разниц, ни своих подсчётов, ни дат). Числа словами тоже проверяются. Можно не называть числа вовсе.
-- Имена пиши так, как в данных (name).
+- Только числа из данных; никаких других чисел (ни своих процентов, средних, сумм и разниц, ни своих подсчётов, ни дат). Всё, что можно посчитать, уже посчитано в данных: суммы и места команд, доля героя в ФО его команды (percentOfFblTeamDay), промахи и потери команд. Числа словами тоже проверяются.
+- Имена игроков, команд и GM пиши так, как в данных (name, team, gm).
 - Ответь строго JSON: {"comment": "..."}`;
 export const COMMENT_SCHEMA={type:'object',additionalProperties:false,required:['comment'],properties:{comment:{type:'string'}}};
 // fix: what was wrong with the last try, for the next one.
