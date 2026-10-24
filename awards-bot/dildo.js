@@ -66,13 +66,13 @@ export function teamFacts(lines,who,{heroes=null,flops=null}={}){
    best:name(ps[0]),worst:ps.length>1?name(ps.at(-1)):null,...heroes?{heroesOfTheDay:count(heroes,t.i)}:{},...flops?{flopsOfTheDay:count(flops,t.i)}:{}};});
 }
 // A hero's part of his team's day: the per cent of its FBL points he brought (none when the team's day is not positive).
-const share=(l,teams)=>{const t=teams.find(x=>x.team===fblTeam(l));return t&&t.fo>0?Math.round(100*l.p/t.fo):null;};
+export const teamShare=(l,teams)=>{const t=teams.find(x=>x.team===fblTeam(l));return t&&t.fo>0?Math.round(100*l.p/t.fo):null;};
 // The day (core.js dailyBlocks; lines: all the day's lines, for the teams), the players' form (core.js form()) and the
 // record alerts (core.js recordNews). No date: a date brings the season and its numbers into the comment.
 export function dayFacts(blocks,who,{form=new Map(),news=[],lines=[]}={}){
  const teams=teamFacts(lines,who,{heroes:blocks.heroes,flops:blocks.flops});
  const formOf=a=>{const f=form.get(a);return f?{heroDaysLast7:f.hero,flopDaysLast7:f.flop,heroDaysInARow:f.heroRun,onFire:!!f.fire,frozen:!!f.ice}:null;};
- const rows=(list,kind)=>list.map(l=>{const pct=kind==='hero'?share(l,teams):null;
+ const rows=(list,kind)=>list.map(l=>{const pct=kind==='hero'?teamShare(l,teams):null;
   return player(who,l,{minutes:Math.round(l.m||0),form:formOf(l.a),...pct!==null?{percentOfFblTeamDay:pct}:{},...kind==='flop'&&l.s?{bricks:bricks(l)}:{}});});
  return {post:'итоги игрового дня',fblTeams:teams,heroes:rows(blocks.heroes,'hero'),flops:rows(blocks.flops,'flop'),
   freeAgents:rows(blocks.gold,'gold').map(({fblTeam,...x})=>x),nbaAntitop:rows(blocks.antitop,'flop'),
