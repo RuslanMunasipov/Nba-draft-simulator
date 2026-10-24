@@ -131,6 +131,18 @@ class WatchTests(unittest.TestCase):
   self.assertIsNone(sw.main_moved({**env,'GITHUB_SHA':'old'},lambda cmd,**kw:subprocess.CompletedProcess(cmd,128,'','fatal')))
   self.assertIsNone(sw.main_moved({**env,'GITHUB_SHA':'old'},lambda cmd,**kw:subprocess.CompletedProcess(cmd,0,'','')))
 
+ def test_a_fresh_snapshot_starts_the_translation_of_its_injury_comments(self):
+  import scripts.season_watch as sw,subprocess
+  calls=[]
+  def run(cmd,**kw):calls.append(cmd);return subprocess.CompletedProcess(cmd,0,'','')
+  # Local runs never start it.
+  self.assertFalse(sw.translate_now({},run));self.assertFalse(sw.translate_now({'GITHUB_REPOSITORY':'o/r'},run));self.assertEqual(calls,[])
+  env={'GITHUB_REPOSITORY':'o/r','GH_TOKEN':'t','GITHUB_REF_NAME':'main'}
+  self.assertTrue(sw.translate_now(env,run));self.assertEqual(calls[0],['gh','workflow','run','translate-espn.yml','--ref','main'])
+  # A failed start is only logged: the schedule still translates.
+  self.assertFalse(sw.translate_now(env,lambda cmd,**kw:subprocess.CompletedProcess(cmd,1,'','HTTP 403')))
+  def boom(cmd,**kw):raise subprocess.TimeoutExpired(cmd,60)
+  self.assertFalse(sw.translate_now(env,boom))
  def test_a_player_taken_from_a_roster_survives_the_full_collection_merge(self):
   cur={'players':{'9':{'name':'Новый','fromRoster':True},'1':{'name':'A','price':1}},'teams':{}}
   out=merge_full({'players':{'1':{'name':'A','price':2}},'teams':{}},cur)

@@ -70,8 +70,8 @@ export const liveAgeHours=()=>live?(Date.now()-Date.parse(live.collectedAt))/36e
 
 // ---------- Data ----------
 export async function fetchJson(url,opts){const r=await fetch(url,opts);if(!r.ok)throw Error(String(r.status));return r.json();}
-// ESPN's news and injury comments in Russian (scripts/translate-espn.mjs, the branch data/translations): loaded once,
-// when a view first needs them; without them the originals are shown.
+// ESPN's news and injury comments in Russian (scripts/translate-espn.mjs, the branch data/translations): loaded when a
+// view first needs them and again with every refresh of the season data; without them the originals are shown.
 export const TRANSLATIONS_URL=`https://raw.githubusercontent.com/${REPO}/data/translations/translations.json`;
 export let translations=null;let translationsLoad=null;
 export function loadTranslations(){return translationsLoad??=fetchJson(TRANSLATIONS_URL,{cache:'no-cache'}).then(t=>translations=t).catch(()=>{translationsLoad=null;return null;});}
@@ -84,6 +84,9 @@ export async function refreshSeason(){
  for(const f of refreshHooks)f();
  loading=Promise.all([fetchLive(),fetchJson(INJURY_URL).catch(()=>null),fetchJson(LEAGUE_URL,{cache:'no-cache'}).catch(()=>null)]).then(async([l,inj,lg])=>{
   if(l){rawLive=live=l;src.live='ok';addMarket();}else src.live=live?'stale':'error';
+  // The comments just read may have been translated since the page opened: read again, drawn when they come; the kept
+  // translations stay meanwhile.
+  if(translations){translationsLoad=null;loadTranslations().then(t=>{if(t)renderSeason();});}
   // A report that lists nobody is a broken feed, never «all healthy» (the collector's rule, espn_injuries): like a
   // failed fetch it falls back to the collector's kept report.
   if(hasInjuryRows(inj)){injuries=parseInjuries(inj);src.injuries='ok';src.injuriesAt=new Date().toISOString();}
