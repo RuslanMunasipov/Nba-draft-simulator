@@ -264,7 +264,7 @@ export function shameNominees(d,{breaches=[],max=4}={}){
  const tidx=name=>LEAGUE_TEAMS.findIndex(x=>x.name===name),desc=k=>[...d.teams].sort((a,b)=>b[k]-a[k])[0];
  const tov=desc('turnovers');if(tov)gm(tidx(tov.team),'потери команды',`${tov.turnovers} потерь у команды`,{turnovers:tov.turnovers});
  const miss=desc('missedShots');if(miss)gm(tidx(miss.team),'кирпичный завод',`${miss.missedShots} промахов с игры у команды`,{missedShots:miss.missedShots});
- return [...players,...gms].map((x,i)=>({id:`n${i+1}`,...x,option:(x.gmNominee?`${x.name} (${x.team}) — ${x.stat}`:`${x.name} — ${x.stat}`).slice(0,100)}));
+ return [...players,...gms].map((x,i)=>({id:`n${i+1}`,...x,key:x.gmNominee?`gm:${x.t}`:`player:${x.a}`,option:(x.gmNominee?`${x.name} (${x.team}) — ${x.stat}`:`${x.name} — ${x.stat}`).slice(0,100)}));
 }
 // The prizes of shame of the year so far: the weeks' winners counted. results: the shows' shameResult, oldest first.
 export function shameOfTheYear(results=[]){
@@ -274,7 +274,7 @@ export function shameOfTheYear(results=[]){
 }
 // seasonFinal: the season's last show, when the prizes of the year are given (the leaders of shameOfTheYear).
 export function shameFacts(d,nominees,{year={players:[],gms:[]},seasonFinal=d.week.end>=SEASON_END}={}){
- const out=n=>n.map(({a,en,t,option,...x})=>x),top=list=>list.filter(x=>x.wins===list[0]?.wins);
+ const out=n=>n.map(({a,en,t,option,key,...x})=>x),top=list=>list.filter(x=>x.wins===list[0]?.wins);
  return {week:weekLabel(d),players:out(nominees.filter(n=>!n.gmNominee)),gms:out(nominees.filter(n=>n.gmNominee)),
   shameOfTheYear:year,...seasonFinal?{seasonFinal:{player:top(year.players),gm:top(year.gms)}}:{},
   nextFriday:'в пятницу — большое интервью Майка Роффона',nextShow:seasonFinal?'это последний выпуск сезона':'следующий выпуск Inside FBL — в понедельник'};
@@ -471,7 +471,8 @@ export function quizPoll(quiz,explanation){
 export const guestPoll=candidates=>candidates.length>=2?{question:'🎤 К кому Майк Роффон поедет в гости в пятницу?',options:candidates.map(c=>c.label),is_anonymous:true}:null;
 // The two votes of shame: {key, poll, names (whom each option stands for: the year's count goes by them)}.
 export function shamePolls(nominees){
- const one=(key,list,question)=>list.length>=2?{key,poll:{question,options:list.map(n=>n.option),is_anonymous:true},names:list.map(n=>n.name)}:null;
+ // names: whom each option stands for, by a key that never collides (player:<ESPN id>, gm:<team>): the ledger counts by it.
+ const one=(key,list,question)=>list.length>=2?{key,poll:{question,options:list.map(n=>n.option),is_anonymous:true},names:list.map(n=>n.key)}:null;
  return [one('shamePlayer',nominees.filter(n=>!n.gmNominee),'🏆 Позор недели среди игроков: кому лига вручает приз?'),
   one('shameGm',nominees.filter(n=>n.gmNominee),'🏆 Позор недели среди GM: кому лига вручает приз?')].filter(Boolean);
 }
@@ -774,4 +775,52 @@ export function votesSummary(week,closed){
  const q=closed.numbers?.poll,qi=q?.correct_option_id,quiz=q&&Number.isInteger(qi)?`🧮 Задачка Дилдо: верный ответ — <b>${esc(q.options[qi].text)}</b>, угадали ${q.options[qi].voter_count} из ${q.total_voter_count}`:null;
  const rows=[line('🎤','В пятницу Майк Роффон едет в гости к','mike'),line('🏆','Позор недели среди игроков','shamePlayer',t=>t),line('🏆','Позор недели среди GM','shameGm',t=>t),quiz].filter(Boolean);
  return rows.length?[`🗳 <b>Inside FBL • Итоги голосований выпуска ${week.n}</b>`,'',...rows,'','Опрос завершён, всем спасибо!','',`#inside_fbl #неделя_${week.n} #итоги_голосования`].join('\n'):null;
+}
+
+// --- The ledger of the awards (owner, 24.10.2026: the season's prizes are given by it): every issue as it went out, its
+// tops and antitops of the week, its nominations with their nominees and, once the votes are closed, their winners. Every
+// player is kept by his ESPN id and every GM by his team, with the names as the league knew them then, so no two of the
+// same name are ever counted as one. d: showData; nominees: shameNominees; quiz: quizOf; candidates: guestCandidates.
+const pl=(d,r)=>r&&{key:`player:${r.a}`,name:d.who(r.a,r.n||r.name),club:r.c||r.club||null,fo:round(r.p??r.fo),games:r.games,
+ teams:(r.h||r.teams||[]).filter(Number.isInteger).map(t=>LEAGUE_TEAMS[t]?.name)};
+const tm=x=>x&&{key:`gm:${x.t}`,team:x.team,gm:x.gm,fo:x.fo??x.weekFo};
+export function ledgerEntry(d,{nominees=[],guests=[],quiz=null,candidates=[]}={}){
+ const w=d.week,row=a=>a&&d.weekRows.get(a),teamOf=name=>{const t=LEAGUE_TEAMS.findIndex(x=>x.name===name);return t>=0?t:null;};
+ const best=[...d.deals].sort((a,b)=>b.difference-a.difference),deal=x=>x&&{key:`gm:${x.t}`,team:x.team,gm:x.gm,bought:x.bought.name,sold:x.sold.name,difference:x.difference};
+ const nomination=list=>({nominees:list.map(n=>({key:n.key,name:n.name,team:n.team,kind:n.kind,stat:n.stat})),winner:null});
+ return {week:w.n,start:w.start,end:w.end,guests:guests.map(g=>({id:g.id,name:g.name})),
+  top:{heroOfTheWeek:pl(d,row(d.heroes[0]?.a)),bestTeam:tm({...d.teams[0],t:teamOf(d.teams[0]?.team)}),mvpLeader:pl(d,d.mvp[0]),rookieLeader:pl(d,d.roy[0]),bestDeal:deal(best[0]?.difference>0?best[0]:null)},
+  antitop:{flopOfTheWeek:pl(d,row(d.flops[0]?.a)),worstTeam:tm({...d.teams.at(-1),t:teamOf(d.teams.at(-1)?.team)}),worstDeal:deal(best.at(-1)?.difference<0?best.at(-1):null)},
+  nominations:{shamePlayer:nomination(nominees.filter(n=>!n.gmNominee)),shameGm:nomination(nominees.filter(n=>n.gmNominee))},
+  guestVote:{options:candidates.map(c=>({key:c.force,label:c.label})),winner:null},
+  quiz:quiz&&{question:quiz.question,answer:quiz.options[quiz.correct],right:null,voters:null}};
+}
+// The winners of an issue's votes into its ledger entry. closed: key -> {result (pollWinner's: key, votes, total), poll}.
+export function ledgerWinners(entry,closed){
+ const win=(nom,c)=>{const r=c?.result;if(!nom||!r)return;const n=nom.nominees.find(x=>x.key===r.key);nom.winner={key:r.key,name:n?.name||r.option,team:n?.team||null,votes:r.votes,total:r.total};};
+ win(entry.nominations?.shamePlayer,closed.shamePlayer);win(entry.nominations?.shameGm,closed.shameGm);
+ const g=closed.mike?.result;if(g)entry.guestVote.winner={key:g.key,label:g.option,votes:g.votes,total:g.total};
+ const q=closed.numbers?.poll;if(q&&entry.quiz&&Number.isInteger(q.correct_option_id)){entry.quiz.right=q.options[q.correct_option_id].voter_count;entry.quiz.voters=q.total_voter_count;}
+ return entry;
+}
+// The season by the ledger (weeks: its entries, oldest first): the prizes of shame won (players, GMs), the weeks as the
+// hero and as the flop, the teams' best and worst weeks, the guests. Each list: [{key, name, count}], the most first.
+export function seasonTally(weeks=[]){
+ const count=pick=>{const m=new Map();for(const w of weeks)for(const x of [pick(w)].flat().filter(Boolean)){const k=x.key||x.id;if(!k)continue;const o=m.get(k)||{key:k,name:x.name||x.gm||x.team,count:0};o.count++;o.name=x.name||x.gm||x.team||o.name;m.set(k,o);}
+  return [...m.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));};
+ return {weeks:weeks.length,shamePlayer:count(w=>w.nominations?.shamePlayer?.winner),shameGm:count(w=>w.nominations?.shameGm?.winner&&{...w.nominations.shameGm.winner,name:w.nominations.shameGm.winner.name}),
+  heroOfTheWeek:count(w=>w.top?.heroOfTheWeek),flopOfTheWeek:count(w=>w.antitop?.flopOfTheWeek),
+  bestTeam:count(w=>w.top?.bestTeam&&{...w.top.bestTeam,name:w.top.bestTeam.team}),worstTeam:count(w=>w.antitop?.worstTeam&&{...w.antitop.worstTeam,name:w.antitop.worstTeam.team}),
+  guests:count(w=>w.guests)};
+}
+// The year's race of shame for the hosts (shameFacts year): the ledger's counts as {name, wins}.
+export const shameYear=tally=>({players:tally.shamePlayer.map(x=>({name:x.name,wins:x.count})),gms:tally.shameGm.map(x=>({name:x.name,wins:x.count}))});
+// The season's ledger for the owner (Telegram HTML): the races of shame, the heroes and flops of the weeks, the teams, the guests.
+export function ledgerText(tally,{season='2026/27'}={}){
+ const list=(rows,n=5)=>rows.length?rows.slice(0,n).map((x,i)=>`${i+1}. ${esc(x.name)} — ${x.count}`).join('\n'):'—';
+ return [`📒 <b>Inside FBL • Журнал наград сезона ${season}</b>\nВыпусков: ${tally.weeks}`,
+  `<b>🏆 Позор года — игроки</b>\n${list(tally.shamePlayer)}`,`<b>🏆 Позор года — GM</b>\n${list(tally.shameGm)}`,
+  `<b>⭐ Герой недели</b>\n${list(tally.heroOfTheWeek)}`,`<b>💩 Антигерой недели</b>\n${list(tally.flopOfTheWeek)}`,
+  `<b>📈 Лучшая неделя команды</b>\n${list(tally.bestTeam)}`,`<b>📉 Худшая неделя команды</b>\n${list(tally.worstTeam)}`,
+  `<b>🌟 Гости студии</b>\n${list(tally.guests,20)}`].join('\n\n');
 }

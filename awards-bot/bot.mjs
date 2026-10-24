@@ -86,8 +86,8 @@ import {generate,cost} from '../scripts/image-pipeline.mjs';
 import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime,telegraph,VOTED} from './inside-fbl.js';
 import {showData,openingFacts,numbersFacts,quizOf,infirmaryFacts as showInfirmary,lawFacts,weekStatements,mikeFacts,guestCandidates,shameNominees,shameFacts,
- writeSegment,segmentCast,writeSegmentPicture,quizPoll,guestPoll,shamePolls,shameOfTheYear,writeStudio,blockSteps,pollWinner,segmentCaption,segmentText,showNodes,showTitle,airTime,announceTime,reviewTime,
- rundownOf,guestFacts,saidOf,guestById,votesSummary,writeClosingPicture,closingCaption,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
+ writeSegment,segmentCast,writeSegmentPicture,quizPoll,guestPoll,shamePolls,writeStudio,blockSteps,pollWinner,segmentCaption,segmentText,showNodes,showTitle,airTime,announceTime,reviewTime,
+ rundownOf,guestFacts,saidOf,guestById,votesSummary,ledgerEntry,ledgerWinners,seasonTally,shameYear,ledgerText,writeClosingPicture,closingCaption,STUDIO_PHOTO,guestPool,pickShowGuests,guestCheck,MAX_GUESTS,GUEST_REPEAT_WEEKS,announceFacts,writeAnnouncement,announceCaption,announceCast,writeAnnouncePicture} from './inside-show.js';
 import {espnHeadshot} from '../scripts/image-pipeline.mjs';
 import {checkRules,verdict} from '../src/rules.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
@@ -828,6 +828,11 @@ const TEST=opt('--action')==='test';
 const SHOW_DIR=opt('--show'),DRY=flag('--dry'),REPO=env.GITHUB_REPOSITORY||'RuslanMunasipov/Nba-draft-simulator';
 const SHOW_RAW=`https://raw.githubusercontent.com/${REPO}/data/inside-show/`,INSIDE_RAW=`https://raw.githubusercontent.com/${REPO}/data/inside-fbl/`;
 const SHOW_GAP_MS=(Number(env.INSIDE_SHOW_GAP_SECONDS)||40)*1e3;
+// The ledger of the awards (inside-show.js ledgerEntry): ledger.json on the same branch, every issue's tops, antitops,
+// nominees and winners, kept for the season's prizes.
+const ledgerRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(SHOW_DIR,'ledger.json'),'utf8'));}catch{return {version:1,season:'2026/27',weeks:{}};}};
+const ledgerSave=l=>{if(TEST)return;fs.mkdirSync(SHOW_DIR,{recursive:true});fs.writeFileSync(path.join(SHOW_DIR,'ledger.json'),JSON.stringify(l,null,1));};
+const ledgerAired=l=>Object.entries(l.weeks).sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x).filter(x=>x.aired);
 const showRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(SHOW_DIR,'state.json'),'utf8'));}catch{return {version:1,shows:{}};}};
 function branchPush(dir,branch,message){
  const token=env.GH_TOKEN,repo=env.GITHUB_REPOSITORY;if(DRY||!token||!repo)return;
@@ -920,11 +925,16 @@ async function showDraft(w,st,rec){
  // Last week's vote for the prize of shame, closed now and counted once.
  const prev=st.shows[addDays(w.start,-7)];
  // Last week's votes for the prizes of shame (a player's and a GM's), closed now and counted once.
- if(prev&&!prev.shameResult&&(prev.polls?.shamePlayer||prev.polls?.shameGm)&&!DRY&&!TEST){
-  prev.shameResult={player:await closePoll(prev.polls.shamePlayer),gm:await closePoll(prev.polls.shameGm)};showPush(st,`Inside FBL show ${addDays(w.start,-7)}: the votes of shame closed`);}
- const won=r=>r?{winner:r.key||r.option,option:r.option,votes:r.votes,totalVotes:r.total}:null;
- const lastShame=prev?.shameResult?{player:won(prev.shameResult.player),gm:won(prev.shameResult.gm)}:null;
- const year=shameOfTheYear(Object.entries(st.shows).filter(([k])=>k<w.start).sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x.shameResult).filter(Boolean));
+ // (Closed on Friday with all its votes; here, silently, when they were not.)
+ const ledger=ledgerRead(),prevKey=addDays(w.start,-7);
+ if(prev&&!prev.votesClosedAt&&prev.polls&&Object.keys(prev.polls).length&&!DRY&&!TEST){
+  const closed=await closeAll(prev.polls);prev.votesClosedAt=new Date().toISOString();
+  prev.shameResult={player:closed.shamePlayer?.result||null,gm:closed.shameGm?.result||null};prev.guestVote=closed.mike?.result||null;
+  if(ledger.weeks[prevKey]){ledgerWinners(ledger.weeks[prevKey],closed);ledgerSave(ledger);}
+  showPush(st,`Inside FBL show ${prevKey}: the votes closed`);}
+ const won=x=>x?{winner:x.name,votes:x.votes,totalVotes:x.total}:null,pn=ledger.weeks[prevKey]?.nominations;
+ const lastShame=pn&&(pn.shamePlayer?.winner||pn.shameGm?.winner)?{player:won(pn.shamePlayer?.winner),gm:won(pn.shameGm?.winner)}:null;
+ const year=shameYear(seasonTally(ledgerAired(ledger).filter(x=>x.start<w.start)));
  const holiday=holidaysBetween(w.start,addDays(w.end,1))[0]||null;
  // The facts of every block.
  const lr=await longreadOf(w.start),candidates=guestCandidates(d,lr.recent);
@@ -1020,7 +1030,7 @@ async function showDraft(w,st,rec){
   catch(e){console.warn(`Inside FBL show: no Telegraph page (${e.message}).`);return null;}})();
  console.log(`Inside FBL show, week ${w.n}: draft of ${plan.length} blocks, ${plan.filter(s=>s.picture).length} pictures, announcement ${announce?'written':'none'}, $${spent.toFixed(3)}${page?`, ${page}`:''}.`);
  if(announce?.idea)st.ideas=[...(st.ideas||[]),announce.idea].slice(-20);
- return {status:'draft',held:false,n:w.n,tag,title:first.title,url:page,guests:guests.map(g=>g.id),
+ return {status:'draft',held:false,n:w.n,tag,title:first.title,url:page,guests:guests.map(g=>g.id),ledger:ledgerEntry(d,{nominees,guests,quiz,candidates}),
   announce:announce&&{caption:announce.caption,picture:announce.picture||null,prompt:announce.prompt||null},plan,polls:{},posted:{},
   cost:Math.round(((rec?.cost||0)+spent)*1e4)/1e4,at:new Date().toISOString(),drafts:[...(rec?.drafts||[]),...rec?.url?[rec.url]:[]]};
 }
@@ -1129,6 +1139,7 @@ async function showVotes(w,st){
  const closed=await closeAll(rec.polls);
  rec.guestVote=closed.mike?.result||null;rec.shameResult={player:closed.shamePlayer?.result||null,gm:closed.shameGm?.result||null};
  rec.voteResults=Object.fromEntries(Object.entries(closed).map(([k,x])=>[k,x.result]));rec.votesClosedAt=new Date().toISOString();
+ const l=ledgerRead();l.weeks[w.start]=ledgerWinners(l.weeks[w.start]||{...rec.ledger,aired:true},closed);ledgerSave(l);
  showPush(st,`Inside FBL show ${w.start}: the votes closed`);
  const text=votesSummary(w,closed);
  if(text&&CHAT){try{const sender=await viaFirst(hostSenders('steven'),t=>tg(t,'sendMessage',{chat_id:CHAT,text,parse_mode:'HTML',...reply(rec.posted?.closing?.last||rec.posted?.shame?.last)}),{label:'Inside FBL votes'});
@@ -1162,7 +1173,10 @@ async function showAir(w,st){
   Object.assign(rec.polls,r.polls);last=r.last;showPush(st,`Inside FBL show ${w.start}: ${s.key} on air`);
   if(r.sender)console.log(`Inside FBL show, ${s.key}: on air from ${r.sender}.`);
  }
- if(!DRY){rec.status='sent';rec.sentAt=new Date().toISOString();showPush(st,`Inside FBL show ${w.start}: sent`);}
+ if(!DRY){rec.status='sent';rec.sentAt=new Date().toISOString();
+  // On air: the issue's tops, antitops and nominees into the season's ledger.
+  const l=ledgerRead();l.weeks[w.start]={...l.weeks[w.start]||rec.ledger||{},aired:true,airedAt:rec.sentAt};ledgerSave(l);
+  showPush(st,`Inside FBL show ${w.start}: sent`);}
  console.log(`Inside FBL show, week ${w.n}: ${DRY?'previewed':'sent'}.`);
 }
 // Wait for a moment of the show's Monday (never in a dry run); false when that Monday is over.
@@ -1175,9 +1189,13 @@ async function until(at,what){
 async function insideShow(){
  if(!SHOW_DIR)throw Error('--inside-show: --show DIR (a clone of the branch data/inside-show, or an empty directory)');
  let action=opt('--action')||'draft';if(action==='approve')action='release';
- if(!['draft','redo','hold','release','announce','post','test','votes'].includes(action))throw Error(`--action: draft, redo, hold, release, announce, post, test or votes, not ${action}`);
+ if(!['draft','redo','hold','release','announce','post','test','votes','ledger'].includes(action))throw Error(`--action: draft, redo, hold, release, announce, post, test, votes or ledger, not ${action}`);
  const st=showRead(),w=showWeek(),rec=st.shows[w.start];
  if(action==='votes'){await showVotes(w,st);return;}
+ // ledger: the season's ledger of the awards so far, sent to the owner by Mike's bot (printed with --dry).
+ if(action==='ledger'){const text=ledgerText(seasonTally(ledgerAired(ledgerRead())));
+  if(DRY||!(REVIEW&&MIKE))console.log(text.replace(/<[^>]+>/g,''));else await tg(MIKE,'sendMessage',{chat_id:REVIEW,text,parse_mode:'HTML'});
+  if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL: журнал наград\n\n\`\`\`\n${text.replace(/<[^>]+>/g,'')}\n\`\`\`\n`);return;}
  // test: the show of the week made anew and sent to the owner's chat by Mike's bot with its real polls, which are read
  // as he votes, answered, closed after --minutes and counted. Nothing is pushed, published or posted to the league, and
  // the week's real draft stays as it is.
@@ -1224,7 +1242,7 @@ async function insideShow(){
   if(!sundayPosted(w)){console.log(`Inside FBL show, week ${w.n}: the week's Sunday never came; no draft.`);return;}
  }
  const entry=await showDraft(w,st,rec);
- st.shows[w.start]=entry;showPush(st,`Inside FBL show ${w.start}: draft`);
+ st.shows[w.start]=entry;const l=ledgerRead();l.weeks[w.start]={...entry.ledger,status:'draft'};ledgerSave(l);showPush(st,`Inside FBL show ${w.start}: draft`);
  if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,`### Inside FBL, выпуск ${w.n}\n\n${entry.url?`[${entry.title}](${entry.url})`:entry.title}\n\nГости: ${entry.guests.map(id=>guestById(id)?.name||id).join(', ')||'—'}\n\n${entry.plan.map(s=>`- ${s.key}: ${s.title}${s.picture?'':' (без картинки)'}`).join('\n')}\n\n`);
  // The owner's preview: at 09:00 for the scheduled draft, at once for one by hand.
  if(!flag('--wait-review')||(await until(reviewTime(w),'preview')))await showReview(w,st,entry);
