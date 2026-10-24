@@ -75,7 +75,8 @@ const RULES=`Правила:
 - Числа — только из данных (сроки «до ~ДД.ММ» можно повторить); никаких других чисел, ни цифрами, ни словами. Можно не называть числа вовсе.
 - Имена игроков, команд и GM — как в данных.
 - opener — 1–3 предложения: Тревор вваливается на обход и ставит общий диагноз лиге (чьи составы пострадали сильнее).
-- notes — по одной реплике Тревора на каждого пациента, до 25 слов: его диагноз и бред о нём. name — ровно как name пациента в данных.
+- notes — по одной реплике Тревора на каждого пациента, до 25 слов. name — ровно как name пациента в данных.
+- Реплика — сразу бред и смешное в манере безумного гения: статус, срок, часть тела и вид травмы уже стоят строкой выше, не повторяй их и не начинай с них. Например: «А знаешь, почему ты травмирован? Да потому что…» — и дальше заведомо абсурдная теория; или обращение к игроку или его GM, выдуманный синдром, теория заговора, параллельная вселенная, нелепое назначение. Это только пример: формы каждый раз разные, реплики не по одному шаблону.
 - afterword — одно предложение, ударная фраза.
 - Строки пациентов и комментарии ESPN вёрстка добавит сама: не пересказывай их.
 - Ответь строго JSON: {"opener": "...", "notes": [{"name": "...", "note": "..."}], "afterword": "..."}`;
@@ -91,11 +92,15 @@ export function wordsProblems(x,facts){
  const out=[],t=wordsOf(x),stray=strayNumbersIn(t,allowedNumbers(facts)),copied=copiedIn(t),stale=staleIn(t);
  const names=new Set((facts.patients||[]).map(p=>p.name)),unknown=notesOf(x).filter(n=>!names.has(n?.name)).map(n=>n?.name);
  const long=notesOf(x).filter(n=>String(n?.note||'').length>220).map(n=>n.name),hic=(t.match(/\*ик\*/gi)||[]).length;
+ // His line goes straight into the nonsense: the status is the line above it, never repeated at its start.
+ const status=new Map((facts.patients||[]).map(p=>[p.name,String(p.status||'').toLowerCase()]));
+ const repeated=notesOf(x).filter(n=>{const st=status.get(n?.name);return st&&String(n?.note||'').toLowerCase().slice(0,60).includes(st);}).map(n=>n.name);
  if(stray.length)out.push(`числа не из данных (${stray.join(', ')})`);
  if(copied.length)out.push(`дословные фразы старых выпусков (${copied.join(' | ')})`);
  if(stale.length)out.push(`чужая тема — время года и урожай (${stale.join(', ')})`);
  if(unknown.length)out.push(`реплики о тех, кого нет в данных (${unknown.join(', ')}): name — ровно как в данных`);
  if(long.length)out.push(`слишком длинные реплики (${long.join(', ')}): до 25 слов`);
+ if(repeated.length)out.push(`реплики повторяют статус (${repeated.join(', ')}): он уже строкой выше, сразу бред`);
  if(hic>3)out.push(`*ик* ${hic} раз, не больше трёх`);
  if(x.opener.length+x.afterword.length>700)out.push(`вступление и концовка слишком длинные (${x.opener.length+x.afterword.length} знаков, до 700)`);
  return out;
