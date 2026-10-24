@@ -1,5 +1,5 @@
 {
- "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. role: lawyer, commissioner, gm, reporter, expert, analyst, insider, bot-maker. org and job: the club or organisation and what the person does, in the league owner's own words (23.10.2026). team: the league team's index (0-7, src/teams.js) of a GM.",
+ "about": "The league's people for the pictures (league chat, 22.10.2026): who they are and their photo in scripts/assets/. A face is always preserved; clothes follow the scene (outfit: their usual look) unless keep says what never changes. style: how a person is always drawn, whatever the scene. role: lawyer, commissioner, gm, reporter, expert, analyst, insider, bot-maker, medic. org and job: the club or organisation and what the person does, in the league owner's own words (23.10.2026). team: the league team's index (0-7, src/teams.js) of a GM.",
  "league": "FBL — Fantasy Brothers League",
  "people": [
   {
@@ -187,6 +187,18 @@
    "photo": "people/mike-roffon.jpg",
    "keep": "white gloves and a vintage chrome microphone, always",
    "outfit": "dressed as a sports reporter, his clothes fit the scene (a blazer or a suit with a press badge, a coat outside); the camouflage helmet and the PRESS vest of his photo are worn only in a war-correspondent scene, never at an arena or a press conference"
+  },
+  {
+   "id": "trevor-matolog",
+   "name": "Тревор Матолог",
+   "en": "Trevor Matolog",
+   "role": "medic",
+   "org": "FBL",
+   "job": "Травматолог лиги: травмы и готовность игроков к матчам",
+   "photo": "people/trevor-matolog.jpg",
+   "keep": "a big bushy grey walrus moustache, a balding head with a white adhesive bandage stuck on top, half-moon reading glasses, a grave serious face; always a beige foam cervical neck brace and a white plaster cast on his right arm covered in black marker autographs of basketball players",
+   "outfit": "an open white doctor's coat over a navy team tracksuit, a stethoscope and a whistle around his neck, an injury-report clipboard, an X-ray held up to the light",
+   "lore": "Тридцать лет врачом при командах НБА, ни одной пропущенной игры. Его метод: каждую травму он сначала проверяет на себе, чтобы знать срок восстановления не по учебнику (отсюда шейный корсет, гипс и пластырь на макушке). Расписаться на гипсе — традиция каждого, кого он отправил в лазарет. Своих болячек не замечает, о чужих говорит предельно серьёзно, как хирург на брифинге. Фраза «Поверьте, я это проходил» — не чаще раза за выпуск."
   }
  ]
 }
