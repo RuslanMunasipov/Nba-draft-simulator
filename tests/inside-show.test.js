@@ -6,7 +6,8 @@ import {weekOf} from '../awards-bot/core.js';
 import {pickGuest,VOTED} from '../awards-bot/inside-fbl.js';
 import {showData,dealsOf,openingFacts,numbersFacts,quizOf,infirmaryFacts,lawFacts,weekStatements,mikeFacts,guestCandidates,shameNominees,shameFacts,
  RUNDOWN,HOSTS,SCHEMAS,segmentMessages,segmentProblems,writeSegment,segmentCast,quizPoll,guestPoll,shamePoll,pollWinner,segmentCaption,segmentText,
- patientLines,dossierLines,showNodes,showTitle,airTime,airEnd} from '../awards-bot/inside-show.js';
+ patientLines,dossierLines,showNodes,showTitle,airTime,airEnd,reviewTime,announceTime,GUESTS,MAX_GUESTS,guestById,rundownOf,speaker,kindOf,guestFacts,saidOf,
+ guestPool,pickShowGuests,lifeOf,guestCheck,guestWords,announceFacts,announceProblems,announceCaption,writeAnnouncement,announceCast,writeAnnouncePicture,writeSegmentPicture} from '../awards-bot/inside-show.js';
 import {weekTableCard,dossierCard,showOpener} from '../awards-bot/show-cards.js';
 import {promptProblems} from '../scripts/picture-prompt.mjs';
 
@@ -187,7 +188,7 @@ test('Inside FBL show: the hosts in its pictures: the five at the round table, w
  assert.equal(segmentCast('mike',{d}).refs.length,1,'no faces: only Mike');
 });
 
-test('Inside FBL show: its page on Telegraph, its hour: Monday 19:00 Moscow, on air until the end of that Monday',()=>{
+test('Inside FBL show: its page on Telegraph, its Monday: the owner\'s preview at 09:00, the announcement at 12:00, the show at 18:00 Moscow',()=>{
  const nodes=showNodes(week,[{key:'opening',title:'Неделя',text:segmentText('opening',blocks.opening,{}),picture:'https://x/1.jpg',cards:[],polls:[]},
   {key:'numbers',title:'Цифры',text:segmentText('numbers',blocks.numbers,{}),picture:null,cards:['https://x/c.png'],polls:[quizPoll(quizOf(d),'')]},
   {key:'law',title:'Дело',text:segmentText('law',blocks.law,law),picture:null,cards:[],polls:[]}]);
@@ -196,7 +197,8 @@ test('Inside FBL show: its page on Telegraph, its hour: Monday 19:00 Moscow, on 
  assert.ok(nodes.some(n=>n.tag==='p'&&n.children.some(c=>c.tag==='br')),'line breaks within a paragraph');
  assert.doesNotMatch(JSON.stringify(nodes),/<b>|&lt;/);
  assert.equal(showTitle(week,blocks.opening),'Inside FBL — выпуск 2: Неделя лимонов');
- assert.equal(new Date(airTime(week)).toISOString(),'2026-11-02T16:00:00.000Z');assert.equal(new Date(airEnd(week)).toISOString(),'2026-11-02T20:59:00.000Z');
+ assert.equal(new Date(reviewTime(week)).toISOString(),'2026-11-02T06:00:00.000Z');assert.equal(new Date(announceTime(week)).toISOString(),'2026-11-02T09:00:00.000Z');
+ assert.equal(new Date(airTime(week)).toISOString(),'2026-11-02T15:00:00.000Z');assert.equal(new Date(airEnd(week)).toISOString(),'2026-11-02T20:59:00.000Z');
 });
 
 test('Inside FBL show: the cards: Dildo\'s table of the week, Zak\'s case file without a point in it, the opener',()=>{
@@ -206,4 +208,79 @@ test('Inside FBL show: the cards: Dildo\'s table of the week, Zak\'s case file w
  const z=dossierCard(week,law,look,fonts);
  assert.match(z,/Досье на неделю/);assert.match(z,/НАРУШЕНИЕ/);assert.match(z,/ПРОВЕРКА/);assert.match(z,/СДЕЛКИ 3 ИЗ 3/);assert.doesNotMatch(z,/ФО/);
  assert.match(showOpener(week,look,fonts),/Выпуск 2/);
+});
+
+// --- The special guests (owner, 24.10.2026): living NBA legends and coaches, at most two an issue.
+const shaq=guestById('shaq'),pop=guestById('pop');
+test('Inside FBL show: the guests\' list: legends and coaches, each with his manner and how the hosts call him',()=>{
+ assert.ok(GUESTS.length>=40);assert.equal(new Set(GUESTS.map(g=>g.id)).size,GUESTS.length);
+ for(const g of GUESTS){assert.ok(['legend','coach'].includes(g.kind),g.id);assert.ok(g.style.length>80&&g.known&&g.wiki&&g.en&&g.calls?.length,g.id);}
+ assert.ok(GUESTS.some(g=>g.kind==='coach'));assert.equal(MAX_GUESTS,2);
+ for(const gone of ['Bill Walton','Dikembe Mutombo','Jerry Sloan','Lenny Wilkens','Kobe Bryant','Jerry West'])assert.ok(!GUESTS.some(g=>g.en===gone),`${gone} is not alive`);
+});
+test('Inside FBL show: the guests sit after Mike and before the prizes of shame, the host gives them the word',()=>{
+ assert.deepEqual(rundownOf([shaq,pop]).map(s=>s.key),['opening','numbers','infirmary','law','mike','guest1','guest2','shame']);
+ assert.deepEqual(rundownOf([shaq,pop,guestById('kg')||guestById('garnett')]).filter(s=>s.guest).length,2,'never more than two');
+ assert.deepEqual(rundownOf().map(s=>s.key),RUNDOWN.map(s=>s.key));
+ const g=rundownOf([shaq])[5];assert.equal(g.host,'steven');assert.equal(kindOf(g.key),'guest');
+ assert.deepEqual(speaker(g).calls,['Шак','Шакил',"Шакил О'Нил"]);assert.equal(speaker(g).sign,"— Шакил О'Нил, гость студии Inside FBL");
+ const m=segmentMessages('mike',{},{guests:[shaq]});assert.match(m.prompt,/next: Шакил О'Нил \(Гость студии: Шакил О'Нил\)/);assert.match(m.prompt,/studioGuests: Шакил О'Нил \(легенда НБА\)/);
+ const gm=segmentMessages('guest1',{},{guests:[shaq]});assert.match(gm.system,/Ты — Шакил О'Нил \(Shaquille O'Neal\), легенда НБА/);assert.match(gm.system,/Сохраняй свой стиль повествования/);assert.match(gm.prompt,/next: Стивен Экс Перт/);
+ const o=openingFacts(d,{guests:[shaq]});assert.equal(o.studioGuests[0].name,"Шакил О'Нил");assert.ok(o.rundown.some(r=>r.host==="Шакил О'Нил"));
+});
+test('Inside FBL show: a guest\'s block: the week of our league and what the hosts said, his handoff by name',()=>{
+ const said=[saidOf('opening',blocks.opening,[shaq])];assert.equal(said[0].host,'Стивен Экс Перт');
+ const f=guestFacts(d,{said});assert.equal(f.heroOfTheWeek.name,'Эдвардс');assert.equal(f.saidInTheStudio[0].title,'Неделя лимонов');
+ const x={title:'Шак не прощает кирпичей',paragraphs:[para('Шак видел многое, но такой недели не видел никто, лига.'),para('Texas 76 Citrus — вот кто играет как большой.')],handoff:'Стивен, держи микрофон, Шак всё сказал.'};
+ assert.deepEqual(segmentProblems('guest1',x,f,{guests:[shaq]}),[]);
+ assert.match(segmentProblems('guest1',{...x,handoff:'Всё.'},f,{guests:[shaq]}).join(),/по имени передать слово: Стивен Экс Перт/);
+ assert.deepEqual(segmentProblems('mike',{title:'Т',afterLongread:[para('Майк в студии и всё видел своими глазами.')],best:{prologue:para('Пролог.'),qa:[{q:'В?',a:'О.'},{q:'В?',a:'О.'}],remark:''},worst:{prologue:'П',qa:[{q:'В?',a:'О.'},{q:'В?',a:'О.'}],remark:''},pollLine:'',handoff:'Шак, твой выход.'},mikeFacts(d,{}),{guests:[shaq]}).filter(p=>/handoff/.test(p)),[],'Mike hands the word to the guest');
+ const t=segmentText('guest1',x,f,{guests:[shaq]});assert.match(t,/^<b>🌟 Гость студии: Шакил О'Нил<\/b>/);assert.match(t,/Слова гостя вымышлены/);assert.ok(t.endsWith("— Шакил О'Нил, гость студии Inside FBL"));
+ assert.match(segmentCaption('guest1',x,week,{guests:[shaq]}),/^<b>🌟 Inside FBL • Гость студии: Шакил О'Нил<\/b>\nШакил О'Нил, легенда НБА, гость студии/);
+ assert.match(segmentCaption('opening',blocks.opening,week,{guests:[shaq,pop]}),/🌟 Гости студии: Шакил О'Нил, Грегг Попович\./);
+ const img={bytes:Buffer.from('x'),name:'g.jpg',type:'image/jpeg'};
+ const c=segmentCast('guest1',{d,guests:[shaq],guestFaces:new Map([['shaq',img]])});assert.match(c.list[0].is,/Shaquille O'Neal, the NBA legend/);assert.equal(c.list[0].mustUse,true);
+ assert.equal(segmentCast('guest1',{d,guests:[pop]}).list.filter(r=>r.mustUse).length,0,'no photo: no face to keep');
+});
+test('Inside FBL show: the guests are chosen by Claude from the list, none of the last weeks, by hand first',async()=>{
+ const calls=[],claude=data=>async o=>{calls.push(o);return {data};};
+ assert.deepEqual((await pickShowGuests({},{claude:claude({guests:[{id:'shaq',why:'центровые'},{id:'pop',why:'GM'}]}),log:()=>{}})).map(g=>g.id),['shaq','pop']);
+ assert.match(calls[0].system,/живых легенд НБА и легендарных тренеров, не больше двух/);
+ assert.deepEqual((await pickShowGuests({},{recent:['shaq'],claude:claude({guests:[{id:'shaq',why:''},{id:'nobody',why:''}]}),log:()=>{}})).map(g=>g.id),[guestPool(['shaq'])[0].id],'a recent or unknown guest is not taken');
+ assert.ok(!JSON.stringify(calls.at(-1).prompt).includes('"id": "shaq"'),'a recent guest is not offered');
+ assert.deepEqual((await pickShowGuests({},{force:['pop','shaq','iverson'],claude:()=>{throw Error('no');}})).map(g=>g.id),['pop','shaq']);
+ assert.equal((await pickShowGuests({},{claude:async()=>{throw Error('down');},n:3,log:()=>{}}))[0].id,GUESTS[2].id);
+});
+test('Inside FBL show: a guest is alive by Wikipedia, his photo from there when ESPN has none',async()=>{
+ assert.equal(lifeOf({description:'American basketball player (born 1976)'}),true);
+ assert.equal(lifeOf({description:'American basketball player and coach (1937–2025)'}),false);
+ assert.equal(lifeOf({description:'American basketball coach',extract:'Larry Brown (born September 14, 1940) is an American basketball coach.'}),true);
+ assert.equal(lifeOf({description:'',extract:'John Doe (May 1, 1950 – June 2, 2025) was an American basketball player.'}),false);
+ assert.equal(lifeOf({}),null);
+ const at=[];const fetchImpl=async u=>{at.push(u);return {ok:true,json:async()=>({description:'(born 1972)',thumbnail:{source:'https://upload/s.jpg'}})};};
+ assert.deepEqual(await guestCheck(shaq,{fetchImpl}),{alive:true,photo:'https://upload/s.jpg'});assert.match(at[0],/en\.wikipedia\.org\/api\/rest_v1\/page\/summary\/Shaquille_O'Neal/);
+ assert.deepEqual(await guestCheck(shaq,{fetchImpl:async()=>{throw Error('offline');}}),{alive:null,photo:null},'Wikipedia down: the list is trusted');
+});
+test('Inside FBL show: the announcement at 12:00: the topics, the secret guests never named, in its words or its picture',async()=>{
+ const segs=[{key:'opening',x:blocks.opening},{key:'numbers',x:blocks.numbers}],f=announceFacts(week,{segments:segs,guests:[shaq],holiday:{name:'Хэллоуин'}});
+ assert.equal(f.holiday,'Хэллоуин');assert.equal(f.blocks[1].host,'Кристофер Дилдо');assert.equal(f.secretGuests[0].realName,"Шакил О'Нил");
+ const x={title:'Сегодня студия трещит по швам',topics:['Лимоны держат вершину.','Дилдо нашёл выброс.','Позор недели уже отлит.'],guestHints:['Самый большой человек в истории студии, и штрафные ему не друзья.'],teaser:'В 18:00 — все к экранам.'};
+ assert.deepEqual(announceProblems(x,f,[shaq],week),[]);
+ assert.match(announceProblems({...x,guestHints:['Шаку есть что сказать.']},f,[shaq],week).join(),/гости секретные.*Шак/);
+ assert.match(announceProblems({...x,topics:[...x.topics,"Shaquille O'Neal в студии"]},f,[shaq],week).join(),/гости секретные/);
+ assert.match(announceProblems({...x,guestHints:[]},f,[shaq],week).join(),/ровно по одной загадке/);
+ assert.match(announceProblems({...x,teaser:'Ровно 777 причин смотреть.'},f,[shaq],week).join(),/числа не из данных: 777/);
+ assert.ok(!guestWords([pop]).some(w=>w.length<3));assert.ok(guestWords([pop]).includes('Поп'));
+ const cap=announceCaption(x,week,[shaq]);
+ assert.match(cap,/^<b>🎙 Inside FBL • Анонс выпуска 2<\/b>/);assert.match(cap,/Сегодня в 18:00 по Москве/);assert.match(cap,/<b>🕵️ Секретный гость студии:<\/b>\n• Самый большой/);assert.match(cap,/#inside_fbl #неделя_2 #анонс$/);
+ assert.match(announceCaption(x,week,[]),/^(?![\s\S]*Секретн)/);
+ const calls=[];const fixed=await writeAnnouncement(f,[shaq],week,{claude:async o=>{calls.push(o);return {data:calls.length===1?{...x,guestHints:['Это Шак.']}:x};},log:()=>{}});
+ assert.deepEqual(fixed.problems,[]);assert.equal(fixed.tries,2);assert.match(calls[0].system,/НИКОГДА не его имя/);
+ // Its picture: the five hosts, the guests only hinted; a prompt that names one goes back.
+ const c=announceCast();assert.equal(c.list.filter(r=>r.mustUse).length,5);
+ const hosts=c.list.map((r,i)=>`the person from reference image ${i+1}`).join(', ');
+ const good=`Behind the scenes of a studio recording, LEGO-minifigure style: ${hosts}; Zak in his red cap "God Bless America", Mike's white gloves and microphone, Trevor's neck brace and cast, Dildo's glasses and notebook; two guests hidden under black sheets, a giant size sneaker and a free-throw chart beside one of them. No other text.`;
+ const prompts=[];const pic=await writeAnnouncePicture(x,f,c,{guests:[shaq],recent:['old idea'],claude:async o=>{prompts.push(o);return {data:{prompt:prompts.length===1?good.replace('two guests',"Shaquille O'Neal and a guest"):good,idea:'lego'}};},log:()=>{}});
+ assert.ok(pic);assert.equal(prompts.length,2);assert.match(prompts[1].prompt,/the guests are secret: never name them/);assert.match(prompts[0].prompt,/old idea/);
+ assert.match(prompts[0].system,/фигурками LEGO/);assert.match(prompts[0].system,/Никогда не называй гостей в промпте/);
 });
