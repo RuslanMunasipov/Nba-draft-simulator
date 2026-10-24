@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -167,6 +168,120 @@ class SportsCurrentTest(unittest.TestCase):
             {'date': '2026-10-18', 'buy': {'name': 'Дж. Мюррэй', 'price': 2200}, 'sell': None},
             {'date': '2026-10-25', 'buy': {'name': 'Зайон', 'price': 2000}, 'sell': {'name': 'Рэндл', 'price': 1800}}])
 
+
+def market(n=464, clubs=30, **row):
+    """A market list as team/create/150.json gives it: integer ids and positions, prices as text."""
+    return json.dumps({'players': [{'id': 2176000 + i, 'amplua': i % 5 + 1, 'club': f'Клуб {i % clubs}', 'club_id': 4000 + i % clubs,
+                                    'price': str(1000 + i), 'start_value': 1000, 'name': f'Игрок {i}', **row} for i in range(n)],
+                       'teams': [{'id': 4000 + i, 'name': f'Клуб {i}'} for i in range(clubs)]}, ensure_ascii=False)
+
+
+class MarketListTests(unittest.TestCase):
+    """Sports.ru's market list: the pool gets every card on sale, each collected row its onSale (Kenrich Williams's card
+    reached the site only by hand, 23.10.2026; Lonnie Walker's stayed priced at «Бешикташ», 24.10.2026)."""
+
+    def test_the_list_gives_every_card_on_sale(self):
+        cards = collector.parse_market(market())
+        self.assertEqual((len(cards), len({c['club'] for c in cards.values()})), (464, 30))
+        self.assertEqual(cards['2176002'], {'sportsId': '2176002', 'name': 'Игрок 2', 'club': 'Клуб 2', 'clubId': '4002', 'position': 'SF', 'price': 1002})
+        # Positions and prices come as numbers or as text alike.
+        raw = json.loads(market())
+        raw['players'][0].update(amplua='5', price=992)
+        self.assertEqual({k: collector.parse_market(json.dumps(raw))['2176000'][k] for k in ('position', 'price')}, {'position': 'C', 'price': 992})
+
+    def test_a_list_below_the_floor_or_no_list_at_all_is_refused(self):
+        for raw in (market(399), market(clubs=27), market(price=''), market(amplua=0), market(id=None), None, '', '<html>Ошибка</html>', '[]',
+                    '{"players": "x"}', '{"players": [1, null, "x"]}'):
+            with self.assertRaises(ValueError, msg=str(raw)[:40]):
+                collector.parse_market(raw)
+        # Cards without a price do not count toward the floor: 399 of 470 priced.
+        raw = json.loads(market(470))
+        for p in raw['players'][:71]:
+            p['price'] = None
+        with self.assertRaises(ValueError):
+            collector.parse_market(json.dumps(raw))
+
+    def test_the_list_is_read_once_and_a_failure_leaves_an_error(self):
+        asked, real = [], collector.fetch
+        try:
+            collector.fetch = lambda url, compressed=False: asked.append((url, compressed)) or market()
+            errors = []
+            self.assertEqual(len(collector.market_list(errors)), 464)
+            self.assertEqual((asked, errors), ([('https://www.sports.ru/fantasy/basketball/team/create/150.json', True)], []))
+            for fake in (lambda url, compressed=False: None, lambda url, compressed=False: market(100)):
+                collector.fetch = fake
+                self.assertIsNone(collector.market_list(errors))
+
+            def down(url, compressed=False):
+                raise RuntimeError('timeout')
+            collector.fetch = down
+            self.assertIsNone(collector.market_list(errors))
+        finally:
+            collector.fetch = real
+        self.assertEqual(len(errors), 3)
+        self.assertTrue(all(e['error'].startswith('Sports.ru market list unread') for e in errors))
+        self.assertIn('100 priced cards of 30 clubs', errors[1]['error'])
+
+    def test_a_card_on_sale_joins_the_pool_and_every_row_is_stamped(self):
+        cards = collector.parse_market(market())
+        pool = [{'sportsId': '2176000', 'name': 'Каталог', 'clubId': '4000'}, {'sportsId': '1', 'name': 'Пустая'}]
+        added = collector.add_market(pool, cards)
+        self.assertEqual((len(added), len(pool)), (463, 465))
+        self.assertEqual(pool[0], {'sportsId': '2176000', 'name': 'Каталог', 'clubId': '4000'}, 'the catalog row stays as it is')
+        self.assertEqual(pool[2], {'sportsId': '2176001', 'name': 'Игрок 1', 'club': 'Клуб 1', 'clubId': '4001', 'marketAddition': 'MARKET'})
+        self.assertEqual(collector.add_market(pool, cards), [])
+        self.assertEqual((collector.add_market(pool, None), len(pool)), ([], 465))
+        players = {'2176000': {'price': 1000}, '1': {'fullName': 'Пустая'}}
+        collector.stamp_on_sale(players, None)
+        self.assertNotIn('onSale', players['1'], 'without the list the site judges for itself')
+        collector.stamp_on_sale(players, cards)
+        self.assertEqual((players['2176000']['onSale'], players['1']['onSale']), (True, False))
+
+    def test_quality_is_of_the_cards_on_sale(self):
+        cards = {str(i): {} for i in range(10)}
+        pool = [{'sportsId': str(i)} for i in range(12)]
+        players = {str(i): {'price': 1000, 'position': 'C'} for i in range(10)}
+        players.update({'10': {'fullName': 'x'}, '11': {'fullName': 'y'}})
+        # Two emptied cards off the market have no price: they drag the whole pool's share, never the market's.
+        self.assertEqual(collector.quality(pool, players), (1.0, 10 / 12))
+        self.assertEqual(collector.quality(pool, players, cards), (1.0, 1.0))
+        players['3'] = {'name': 'x'}
+        del players['4']
+        self.assertEqual(collector.quality(pool, players, cards), (0.9, 0.8))
+
+    def test_a_collection_reads_every_card_on_sale_and_stamps_it(self):
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / 'prices.json').write_text(json.dumps({'players': [{'sportsId': '1', 'name': 'Йокич', 'club': 'Денвер', 'clubId': '4181'},
+                                                                 {'sportsId': '3', 'name': 'Пустой', 'club': 'Денвер', 'clubId': '4181'}]}), encoding='utf-8')
+        (tmp / 'additions.json').write_text(json.dumps({'players': []}), encoding='utf-8')
+        (tmp / 'teams.json').write_text(json.dumps({'teams': {}}), encoding='utf-8')
+        out = tmp / 'sports-current.json'
+        listed = json.dumps({'players': [{'id': 1, 'amplua': 5, 'club': 'Денвер', 'club_id': 4181, 'price': '3600', 'name': 'Йокич'},
+                                         {'id': 2, 'amplua': 3, 'club': 'Денвер', 'club_id': 4181, 'price': '1200', 'name': 'Новый'}]})
+
+        def fake(url, compressed=False):
+            if url == collector.MARKET_URL.format(t=150):
+                return listed
+            if 'espn' in url:
+                raise RuntimeError('ESPN down')
+            # Card 3 was emptied: its page has no club, position or price.
+            return (INFO if not url.endswith('/3.html') else '<h1><b>Пустой</b></h1>') if 'player/info' in url else None
+        keys = ('fetch', 'PRICES', 'ADDITIONS', 'TEAMS', 'OUT', 'MIN_CLUBS', 'MIN_MARKET')
+        saved = {k: getattr(collector, k) for k in keys}
+        collector.fetch, collector.PRICES, collector.ADDITIONS, collector.TEAMS, collector.OUT = fake, tmp / 'prices.json', tmp / 'additions.json', tmp / 'teams.json', out
+        collector.MIN_CLUBS, collector.MIN_MARKET = 1, 2
+        try:
+            collector.main()
+        finally:
+            for k, v in saved.items():
+                setattr(collector, k, v)
+        snap = json.loads(out.read_text(encoding='utf-8'))
+        # Without the list the emptied card (1 of 3 unpriced) would have refused the collection.
+        self.assertEqual({sid: (p.get('onSale'), p.get('marketAddition'), p.get('price')) for sid, p in snap['players'].items()},
+                         {'1': (True, None, 3600), '2': (True, 'MARKET', 3600), '3': (False, None, None)})
+        self.assertEqual({k: snap['market'][k] for k in ('cards', 'added', 'ids')}, {'cards': 2, 'added': ['2'], 'ids': ['1', '2']})
+        self.assertFalse(any('market list' in e['error'] for e in snap['errors']))
 
 
 class InjuryHistoryTests(unittest.TestCase):
