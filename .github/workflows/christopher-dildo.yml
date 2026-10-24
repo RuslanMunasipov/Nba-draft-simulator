@@ -1,0 +1,38 @@
+name: Christopher Dildo
+# Manual only: posts one of Christopher Dildo's own words (a file of data/dildo/, written once and kept there: his
+# introduction to the league, awards-bot/dildo.js) as it is, the caption of his photo, into the league chat by his own bot.
+# Never from another bot: without CHRISTOPHER_DILDO_BOT_TOKEN the run fails. Run it once per file; send off prints it only.
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: 'File in data/dildo/'
+        default: '2026-10-24-intro.html'
+      send:
+        description: 'Post it into the league chat (off: printed only)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: christopher-dildo
+  cancel-in-progress: false
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Post to the league chat
+        env:
+          CHRISTOPHER_DILDO_BOT_TOKEN: ${{ secrets.CHRISTOPHER_DILDO_BOT_TOKEN }}
+          AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
+          FILE: ${{ inputs.file }}
+          SEND: ${{ inputs.send && '1' || '' }}
+        run: |
+          case "$FILE" in */*|..*) echo "file name only"; exit 1;; esac
+          node awards-bot/bot.mjs --dildo-post "data/dildo/$FILE" ${SEND:+--send}

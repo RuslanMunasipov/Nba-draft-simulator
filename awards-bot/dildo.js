@@ -13,7 +13,7 @@ import {esc} from './messages.js';
 import {allowedNumbers,strayNumbersIn} from './mike-roffon.js';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
 import {LEAGUE_TEAMS} from '../src/teams.js';
-import {bricks} from './core.js';
+import {bricks,records} from './core.js';
 
 export const DILDO_MODEL=process.env.DILDO_MODEL||CLAUDE_MODEL;
 export const SIGNATURE='— Кристофер Дилдо, аналитик Inside FBL';
@@ -142,3 +142,57 @@ export function signCaption(caption,comment=null){
 }
 // The same at the end of the post's text (the album's fallback).
 export const signText=(text,comment=null)=>text?`${text}\n\n${note(comment)}`:text;
+
+// --- His introduction to the league (owner, 24.10.2026: «разрешаю Крису представить себя лиге»): who he is and what he
+// will post, in his voice, on the numbers of the season so far (the awards bot's archive: every line by fblFormula, the
+// teams by teamFacts). Written once, kept in data/dildo/ and posted from there as it is (the workflow christopher-dildo.yml).
+export const HIS_POSTS=['итоги каждого игрового дня: герои, провалы, золотая жила, антитоп НБА, рекорды дня',
+ 'две картинки дня: герои и провалы','итоги недели после воскресенья: герои, провалы и золотая жила недели'];
+export function introFacts(lines,who){
+ // A game's FBL team is the one at its tip-off; a free agent picked up later says by whom (as of his last archived game).
+ const later=l=>{const t=lines.filter(x=>x.a===l.a&&x.t>l.t&&x.h?.length).sort((a,b)=>a.t.localeCompare(b.t)).at(-1)?.h[0];return Number.isInteger(t)?LEAGUE_TEAMS[t]?.name||null:null;};
+ const rec=records(lines,1),game=l=>{if(!l)return null;const {fblTeam,...x}=player(who,l,{minutes:Math.round(l.m||0)}),next=!fblTeam?later(l):null;
+  return {...x,fblTeamAtTipOff:fblTeam||'свободный агент',...next?{pickedUpLaterBy:next}:{}};};
+ return {post:'представление лиге',season:{gameDays:new Set(lines.map(l=>l.d)).size,nbaGames:new Set(lines.map(l=>l.e)).size,playerGames:lines.length},
+  fblTeams:teamFacts(lines,who),bestGameOfTheSeason:game(rec.best[0]),worstGameOfTheSeason:game(rec.worst[0]),hisPosts:HIS_POSTS};
+}
+export const INTRO_LIMIT=750;
+const INTRO_RULES=`Правила:
+- Это твоё первое слово в чате лиги: ты представляешься. Кто ты такой (одной-двумя фразами, свысока), что теперь будешь публиковать (hisPosts, своими словами, без чисел) и почему всем стоит бояться твоего блокнота. Сразу докажи цифрами сезона (season, fblTeams, bestGameOfTheSeason, worstGameOfTheSeason), что ты умнее всех: ядовито пройдись по командам и GM — лидеру достанется тоже. Одной фразой — твой страх ФБР (ты уверен, что за тобой следят), без настоящих ведомств и людей кроме этого.
+- fblTeamAtTipOff — команда игрока FBL на момент того матча; pickedUpLaterBy — кто из GM подобрал его позже. Не путай одно с другим.
+- 4–6 коротких абзацев, вместе не длиннее ${INTRO_LIMIT - 50} знаков. Без хэштегов, без подписи, не больше двух эмодзи.
+- Только числа из данных; никаких других чисел (ни своих процентов, средних, сумм и разниц, ни своих подсчётов, ни дат). Числа словами тоже проверяются.
+- Имена игроков, команд и GM пиши так, как в данных (name, team, gm).
+- Ответь строго JSON: {"title": "его первая фраза-заголовок, до 70 знаков, без чисел", "paragraphs": ["...", "..."]}`;
+export const INTRO_SCHEMA={type:'object',additionalProperties:false,required:['title','paragraphs'],properties:{title:{type:'string'},paragraphs:{type:'array',minItems:3,maxItems:7,items:{type:'string'}}}};
+export function introMessages(facts,fix=''){
+ return {system:`${VOICE}\n\n${INTRO_RULES}`,prompt:`Твоё представление лиге. Данные:\n${JSON.stringify(facts,null,1)}${fix?`\n\nПрошлый вариант отклонён: ${fix}. Напиши заново.`:''}`};
+}
+const introWords=x=>[x?.title,...(x?.paragraphs||[])].filter(Boolean).join(' ');
+export function introProblems(x,facts){
+ const words=introWords(x).trim();
+ if(!x?.title?.trim()||!(x?.paragraphs||[]).filter(p=>p.trim()).length)return ['пустое представление'];
+ const out=[],stray=strayNumbersIn(words,allowedNumbers(facts));
+ if(stray.length)out.push(`числа не из данных (${stray.join(', ')})`);
+ if(strayNumbersIn(x.title,new Set()).length)out.push('числа в заголовке');
+ if(introText(x).length>CAPTION_LIMIT)out.push(`длиннее ${INTRO_LIMIT} знаков: не влезает в подпись фото`);
+ return out;
+}
+// The introduction as it goes out (Telegram HTML, the caption of his photo): his title, his paragraphs, his signature.
+export function introText(x){
+ const tidy=t=>String(t||'').replace(/\s+/g,' ').trim();
+ return [`<b>📓 Inside FBL • Кристофер Дилдо представляется</b>`,`<i>«${esc(tidy(x.title).replace(/^[«"„“]+|[»"“”]+$/g,''))}»</i>`,'',
+  (x.paragraphs||[]).map(tidy).filter(Boolean).map(esc).join('\n\n'),'',SIGNATURE,'','#inside_fbl #кристофер_дилдо'].join('\n');
+}
+// Written until it holds no number of its own and fits his photo's caption (tries, each told what was wrong); the text,
+// or null.
+export async function introFor(facts,{claude=claudeJSON,model=DILDO_MODEL,timeoutMs=180e3,tries=3,warn=console.warn}={}){
+ let fix='';
+ for(let i=0;i<tries;i++){
+  const {data}=await claude({...introMessages(facts,fix),schema:INTRO_SCHEMA,model,timeoutMs});
+  const problems=introProblems(data,facts);
+  if(!problems.length)return introText(data);
+  fix=problems.join('; ');warn(`Christopher Dildo's introduction: ${fix}${i+1<tries?', written again':', none'}.`);
+ }
+ return null;
+}

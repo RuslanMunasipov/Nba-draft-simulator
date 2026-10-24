@@ -4,6 +4,8 @@ import {fblFormula} from '../src/fbl-scoring.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {dailyBlocks,weeklyBlocks,form} from '../awards-bot/core.js';
 import {dayAlbum,weekHeroesAlbum} from '../awards-bot/cards.js';
+import fs from 'node:fs';
+import {introFacts,introMessages,introProblems,introText,introFor} from '../awards-bot/dildo.js';
 import {refused,asDildo,lines as noteLines,COMMENT_LIMIT,teamFacts,dayFacts,weekFacts,commentMessages,commentProblems,commentFor,signCaption,signText,SIGNATURE,CAPTION_LIMIT} from '../awards-bot/dildo.js';
 
 const s={pts:31,reb:14,ast:11,stl:2,blk:1,tov:3,fgm:12,fga:19,ftm:5,fta:6,pf:2};
@@ -133,4 +135,30 @@ test('Christopher Dildo: an evil nerd laughing at everyone with maths, in 3 or 4
  const {caption}=dayAlbum('2026-10-21',dailyBlocks(lines),who,look,fonts,{week});
  const signed=signCaption(caption,'х'.repeat(COMMENT_LIMIT));
  assert.ok(signed.length<=CAPTION_LIMIT);assert.match(signed,/📓/,'the longest comment he may write still fits the caption');
+});
+
+test('Christopher Dildo introduces himself: the season\'s numbers only, his photo\'s caption, a free agent picked up later said so',async()=>{
+ const later={...line('3',s,[1]),d:'2026-10-22',e:'g9',t:'2026-10-23T00:00Z'},season=[...lines,later];
+ const facts=introFacts(season,who);
+ assert.equal(facts.season.gameDays,2);assert.equal(facts.season.playerGames,4);assert.equal(facts.fblTeams.length,8);
+ assert.equal(facts.bestGameOfTheSeason.fo,44);assert.equal(facts.worstGameOfTheSeason.fo,fblFormula(bad));assert.equal(facts.worstGameOfTheSeason.fblTeamAtTipOff,LEAGUE_TEAMS[3].name);
+ const free=introFacts([line('3',s,[]),later],who).bestGameOfTheSeason;
+ assert.equal(free.fblTeamAtTipOff,'свободный агент');assert.equal(free.pickedUpLaterBy,LEAGUE_TEAMS[1].name,'never "nobody took him" when someone did');
+ const {system}=introMessages(facts);assert.match(system,/представляешься/);assert.match(system,/ФБР/);assert.match(system,/злобный ботан/);
+ const good={title:'Блокнот открыт',paragraphs:['Я Кристофер Дилдо, считаю за вас.','RU P1: 44 ФО. Выброс.','ФБР, я вас вижу.']};
+ assert.deepEqual(introProblems(good,facts),[]);
+ assert.match(introProblems({...good,paragraphs:[...good.paragraphs,'Средние 17 ФО.']},facts).join(),/17/);
+ assert.match(introProblems({...good,title:'44 причины'},facts).join(),/числа в заголовке/);
+ assert.match(introProblems({...good,paragraphs:['х'.repeat(1100)]},facts).join(),/не влезает в подпись фото/);
+ const text=introText(good);
+ assert.match(text,/^<b>📓 Inside FBL • Кристофер Дилдо представляется<\/b>\n<i>«Блокнот открыт»<\/i>\n\nЯ Кристофер Дилдо/);
+ assert.ok(text.endsWith(`${SIGNATURE}\n\n#inside_fbl #кристофер_дилдо`));
+ const answers=[{...good,paragraphs:['RU P1 — 99 ФО']},good],calls=[];
+ assert.equal(await introFor(facts,{claude:async x=>{calls.push(x.prompt);return {data:answers.shift()};},warn:quiet}),text);
+ assert.match(calls[1],/числа не из данных \(99\)/);
+});
+
+test('Christopher Dildo: his introduction kept in data/dildo fits his photo and holds only checked numbers',()=>{
+ const file=new URL('../data/dildo/2026-10-24-intro.html',import.meta.url),text=fs.readFileSync(file,'utf8').trim();
+ assert.ok(text.length<=1024);assert.match(text,/Кристофер Дилдо представляется/);assert.ok(text.includes(SIGNATURE));
 });

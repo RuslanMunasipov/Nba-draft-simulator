@@ -41,6 +41,12 @@
 //                                                   trevor-matolog.yml): ESPN's injury report as it is now, drawn
 //                                                   (~$0.06; --prompts: only the pictures' prompts, free) and,
 //                                                   with --send, posted by his bot; nothing is saved
+//   node awards-bot/bot.mjs --dildo-intro FILE --state DIR
+//                                                   Christopher Dildo's introduction to the league written by Claude on
+//                                                   the archived season, saved to FILE (data/dildo/); nothing sent
+//   node awards-bot/bot.mjs --dildo-post FILE [--send]
+//                                                   that file posted as it is with his photo by his bot (workflow
+//                                                   christopher-dildo.yml); without --send printed
 //   node awards-bot/bot.mjs --trevor-hello [--send]  Trevor introduces himself (data/trevor/hello.html with his photo)
 //   node awards-bot/bot.mjs --steven-hello [--send]  Steven Ex Pert introduces himself (steven.js HELLO_CAPTION, his photo)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check),
@@ -70,7 +76,7 @@ import {picture} from '../scripts/picture-prompt.mjs';
 import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCast,writeChapterPicture,publishPage,editPage,longreadCaption,postTime} from './inside-fbl.js';
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
-import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
+import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText,introFacts,introFor} from './dildo.js';
 import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption,HELLO_PHOTO,HELLO_CAPTION} from './steven.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
@@ -779,6 +785,30 @@ async function insideFbl(){
  }
 }
 
+// --- Christopher Dildo's own words (dildo.js), by hand. --dildo-intro FILE: his introduction to the league written by
+// Claude on the season so far (the archive of --state), its numbers checked, saved to FILE (data/dildo/) and printed;
+// nothing is sent. --dildo-post FILE [--send]: that file posted as it is, the caption of his photo, by his own bot only
+// (his word never goes from another bot); without --send it is printed.
+const DILDO_PHOTO=new URL('../scripts/assets/people/christopher-dildo.jpg',import.meta.url);
+async function dildoIntro(file){
+ const archive=read('archive.json',{lines:[]});
+ if(!archive.lines.length)throw Error('--dildo-intro: no archived games in --state');
+ const ctx=await loadLeague(),text=await introFor(introFacts(archive.lines,ctx.who));
+ if(!text)throw Error('--dildo-intro: Claude could not write it with the numbers of the facts');
+ fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text+'\n');
+ console.log(`\n===== Christopher Dildo's introduction (${text.length} characters): ${file} =====\n${text}\n`);
+}
+async function dildoPost(file,send){
+ const text=fs.readFileSync(file,'utf8').trim();
+ if(text.length>1024)throw Error(`--dildo-post: ${text.length} characters, a photo's caption takes 1024`);
+ if(!send){console.log(`\n===== Christopher Dildo (preview) =====\n${text}\n`);return;}
+ const missing=[['CHRISTOPHER_DILDO_BOT_TOKEN',DILDO],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);
+ if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);
+ const body=new FormData();body.append('chat_id',String(CHAT));body.append('caption',text);body.append('parse_mode','HTML');
+ body.append('photo',new Blob([fs.readFileSync(DILDO_PHOTO)],{type:'image/jpeg'}),'christopher-dildo.jpg');
+ await telegram(DILDO,'sendPhoto',body);console.log(`Christopher Dildo: ${file} sent.`);
+}
+
 // Steven Ex Pert introduces himself to the league (steven.js): his photo and his words, by his own bot only (an
 // introduction from another bot would not be his); without --send only printed.
 async function stevenHello(){
@@ -793,6 +823,8 @@ async function stevenHello(){
 
 const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day'),trevorDay=opt('--trevor-day');
 if(flag('--steven-hello'))await stevenHello();
+else if(opt('--dildo-intro')&&STATE_DIR)await dildoIntro(opt('--dildo-intro'));
+else if(opt('--dildo-post'))await dildoPost(opt('--dildo-post'),flag('--send'));
 else if(flag('--inside-fbl')&&STATE_DIR)await insideFbl();
 else if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
 else if(flag('--trevor-hello'))await trevorHello();
@@ -800,4 +832,4 @@ else if(trevorDay)await trevorByHand(trevorDay);
 else if(day)await preview(day);
 else if(STATE_DIR&&again)await resend(again);
 else if(STATE_DIR)await scheduled();
-else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD | --mike-day YYYY-MM-DD [--send]] | --trevor-day YYYY-MM-DD [--send] | --preview YYYY-MM-DD [--week] [--month] [--infirmary]');process.exit(2);}
+else{console.error('Usage: bot.mjs --state DIR [--resend YYYY-MM-DD | --mike-day YYYY-MM-DD [--send] | --dildo-intro FILE] | --dildo-post FILE [--send] | --trevor-day YYYY-MM-DD [--send] | --preview YYYY-MM-DD [--week] [--month] [--infirmary]');process.exit(2);}
