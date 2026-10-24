@@ -27,7 +27,30 @@ export function seasonAwards(lines,{who=(a,n)=>n,positionOf=()=>null,rookies=new
   .map(r=>entry(r,ctx,{steals:r.s.stl,blocks:r.s.blk,stocks:stocks(r)}));
  // The most games of the season; at equal ones the more minutes.
  const ironMan=[...rows].sort((a,b)=>b.games-a.games||b.m-a.m||a.a.localeCompare(b.a)).slice(0,top).map(r=>entry(r,ctx,{minutes:round(r.m)}));
- return {games:new Set(lines.map(l=>l.d)).size,allFbl,roy,dpoy,ironMan};
+ return {games:new Set(lines.map(l=>l.d)).size,allFbl,roy,dpoy,ironMan,records:seasonRecords(lines,{who,heldBy,top})};
+}
+
+// The season's records by category (owner, 24.10.2026): the season's totals (rec.total) and the single games (rec.game).
+// of(s, line): the number of a box score; anti: a record nobody wants. At equal totals the fewer games ranks higher, at
+// equal games the earlier one.
+export const RECORD_CATEGORIES=[
+ {key:'fo',label:'ФО',of:(s,l)=>l.p},{key:'pts',label:'Очки',of:s=>s.pts},{key:'reb',label:'Подборы',of:s=>s.reb},
+ {key:'ast',label:'Передачи',of:s=>s.ast},{key:'stl',label:'Перехваты',of:s=>s.stl},{key:'blk',label:'Блоки',of:s=>s.blk},
+ {key:'fgm',label:'Попадания с игры',of:s=>s.fgm},{key:'ftm',label:'Штрафные',of:s=>s.ftm},{key:'min',label:'Минуты',of:(s,l)=>l.m},
+ {key:'tov',label:'Потери',of:s=>s.tov,anti:true},{key:'pf',label:'Фолы',of:s=>s.pf,anti:true},
+ {key:'miss',label:'Промахи с игры',of:s=>s.fga-s.fgm,anti:true},
+];
+export function seasonRecords(lines,{who=(a,n)=>n,heldBy=new Map(),top=3}={}){
+ const rows=perPlayer(lines),num=x=>Math.round(10*(Number(x)||0))/10;
+ const held=a=>(heldBy.get(a)||[]).map(t=>LEAGUE_TEAMS[t]?.name).filter(Boolean);
+ return RECORD_CATEGORIES.map(({key,label,of,anti})=>{
+  const sum=r=>key==='fo'?r.p:key==='min'?r.m:of(r.s,r);
+  const total=rows.filter(r=>sum(r)>0).sort((a,b)=>sum(b)-sum(a)||a.games-b.games||a.a.localeCompare(b.a)).slice(0,top)
+   .map(r=>({key:`player:${r.a}`,name:who(r.a,r.n),club:r.c||null,fblTeams:held(r.a),value:num(sum(r)),games:r.games}));
+  const game=lines.filter(l=>of(l.s,l)>0).sort((a,b)=>of(b.s,b)-of(a.s,a)||a.t.localeCompare(b.t)||a.a.localeCompare(b.a)).slice(0,top)
+   .map(l=>({key:`player:${l.a}`,name:who(l.a,l.n),club:l.c||null,fblTeams:held(l.a),value:num(of(l.s,l)),date:l.d,game:l.e}));
+  return {key,label,anti:!!anti,total,game};
+ });
 }
 
 // The awards as the owner reads them (Telegram HTML).
@@ -37,5 +60,14 @@ export function seasonAwardsText(x){
  const team=t=>`<b>${['Первая','Вторая','Третья'][t.team-1]} сборная FBL</b>\n${t.players.map(p=>`${p.position}: ${who(p)}${p.name?` — ${p.fo} ФО`:''}`).join('\n')}`;
  return [`🏅 <b>Награды сезона на сегодня</b> (игровых дней: ${x.games})`,...x.allFbl.map(team),
   `<b>🌱 Новичок года</b>\n${list(x.roy,p=>`${p.fo} ФО`)}`,`<b>🛡 Лучший защитник (перехваты + блоки)</b>\n${list(x.dpoy,p=>`${p.stocks} (${p.steals} перехв., ${p.blocks} блок.)`)}`,
-  `<b>🦾 Железный человек</b>\n${list(x.ironMan,p=>`${p.games} ${plural(p.games,'матч','матча','матчей')}, ${p.minutes} мин`)}`].join('\n\n');
+  `<b>🦾 Железный человек</b>\n${list(x.ironMan,p=>`${p.games} ${plural(p.games,'матч','матча','матчей')}, ${p.minutes} мин`)}`,
+  ...x.records?[seasonRecordsText(x.records)]:[]].join('\n\n');
+}
+// The records as the owner reads them: a category a block, the season's leaders, then the best single games.
+const DAY=d=>`${d.slice(8,10)}.${d.slice(5,7)}`;
+export function seasonRecordsText(rec){
+ const who=p=>`${esc(p.name)}${p.club?` (${esc(p.club)})`:''}${p.fblTeams?.length?` · ${esc(p.fblTeams.join(', '))}`:''}`;
+ const rows=(list,tail)=>list.length?list.map((p,i)=>`${i+1}. ${who(p)} — <b>${p.value}</b>${tail(p)}`).join('\n'):'—';
+ const block=c=>`<b>${c.anti?'🗑':'📈'} ${c.label}</b>\nЗа сезон:\n${rows(c.total,p=>` за ${p.games} ${plural(p.games,'матч','матча','матчей')}`)}\nЗа матч:\n${rows(c.game,p=>` (${DAY(p.date)})`)}`;
+ return [`📚 <b>Рекорды сезона</b>`,...rec.filter(c=>!c.anti).map(block),`🗑 <b>Антирекорды сезона</b>`,...rec.filter(c=>c.anti).map(block)].join('\n\n');
 }
