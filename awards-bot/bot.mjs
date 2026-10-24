@@ -69,7 +69,7 @@ import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCa
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
-import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText} from './steven.js';
+import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption} from './steven.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
@@ -251,13 +251,43 @@ async function stevenVerdict(kind,facts){
  if(verdict)console.log(`Steven Ex Pert on the ${kind}:\n${verdict.join('\n')}`);
  return verdict;
 }
+// His picture (steven.js), right after his album, from his bot: its prompt written by Claude from his barbs, drawn by
+// OpenAI (about $0.03). A scheduled run draws it with OPENAI_API_KEY; a preview prints its prompt with --prompts (free)
+// and draws it with --pictures (paid). null: no picture. Never holds a post: a failure is logged.
+async function stevenPicture(name,kind,facts,verdict,players){
+ const preview=flag('--preview'),draw=preview?flag('--pictures'):!!OPENAI_KEY;
+ if(!claudeConfigured(env)||!(draw||preview&&flag('--prompts')))return null;
+ try{
+  const {headshot}=await import('./render.mjs');
+  const faces=new Map((await Promise.all(players.map(async p=>[p.a,await headshot(p.a)]))).filter(([,f])=>f));
+  const written=await writeStevenPicture(kind,facts,verdict,stevenCast(players,{faces}));
+  if(!written){console.warn(`${name}: Claude wrote no picture of Steven Ex Pert: none.`);return null;}
+  console.log(`\n===== ${name}: Steven Ex Pert's picture (written by Claude, ${written.images.length} references: ${written.images.map(i=>i.name).join(', ')}) =====\n${written.prompt}\n`);
+  if(!draw)return null;
+  const r=await generate(written,{key:OPENAI_KEY,timeoutMs:180e3,attempts:2});
+  console.log(`${name}: Steven Ex Pert's picture drawn, $${cost(r.usage).toFixed(3)}.`);
+  return r.png;
+ }catch(e){console.warn(`${name}: Steven Ex Pert's picture failed (${e.message}): none.`);return null;}
+}
+async function stevenPhoto(name,png,caption){
+ if(!png)return;
+ if(CARDS_DIR){fs.mkdirSync(CARDS_DIR,{recursive:true});fs.writeFileSync(path.join(CARDS_DIR,`${name}-steven.png`),png);fs.writeFileSync(path.join(CARDS_DIR,`${name}-steven.txt`),caption+'\n');}
+ if(!live||!CHAT){console.log(`\n===== ${name}: Steven Ex Pert's picture (preview) =====\n${caption}\n`);return;}
+ const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',caption);form.append('parse_mode','HTML');
+ form.append('photo',new Blob([png],{type:'image/png'}),`${name}-steven.png`);
+ try{await steven(t=>telegram(t,'sendPhoto',form));console.log(`${name}: Steven Ex Pert's picture sent.`);}
+ catch(e){console.warn(`${name}: Steven Ex Pert's picture not sent (${e.message}).`);}
+}
+// An album's caption without drawing it (its builders are pure: the caption needs no photos or fonts).
+const captionOf=build=>build({photo:()=>null,logo:()=>null,emoji:e=>e},{manrope:'',oswald:''}).caption;
 async function weekly(day,ctx,archive,state,mark){
  const week=weekOf(day),days=Array.from({length:7},(_,i)=>addDays(week.start,i)),today=moscowDay(now());
  await refresh(days,archive);
  const all=archive.lines.filter(l=>l.d<=day),r=races(all,{rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
  const wb=weeklyBlocks(all.filter(l=>l.d>=week.start)),rec=records(all);
- // Steven Ex Pert's verdict on the race is written first, so the week's two albums go one right after the other.
- const verdict=await stevenVerdict('race',raceFacts(week,r,rec,ctx.who,state.ranks));
+ // Steven Ex Pert's verdict and picture of the race come first, so the week's two albums go one right after the other.
+ const facts=raceFacts(week,r,rec,ctx.who,state.ranks),verdict=await stevenVerdict('race',facts);
+ const pic=await stevenPicture(`race-${week.n}`,'race',facts,verdict,picturePlayers('race',{r,previous:state.ranks},ctx.who));
  // The week's heroes, flops and free agents first: Christopher Dildo's album, marked apart (a run cut short between the
  // two albums posts only the race next time).
  if(!mark||!state.posted.weekHeroes?.[week.start]){
@@ -269,7 +299,9 @@ async function weekly(day,ctx,archive,state,mark){
  // The awards race: Steven Ex Pert's album (steven.js), from his bot.
  const shown=[...Object.values(r).flat(),...rec.best,...rec.worst].map(x=>x.a);
  const text=verdictText([racesText(week,r,ctx.who,state.ranks),recordsText(rec,ctx.who,today)].join('\n\n'),verdict);
- await postAlbum(`race-${week.n}`,shown,(look,fonts)=>{const a=raceAlbum(week,r,rec,ctx.who,look,fonts,{previous:state.ranks,holiday:holidayFor(day)});return {...a,caption:withVerdict(a.caption,verdict)};},text,{via:steven});
+ const album=(look,fonts)=>raceAlbum(week,r,rec,ctx.who,look,fonts,{previous:state.ranks,holiday:holidayFor(day)});
+ await postAlbum(`race-${week.n}`,shown,(look,fonts)=>{const a=album(look,fonts);return {...a,caption:withVerdict(a.caption,verdict)};},text,{via:steven});
+ await stevenPhoto(`race-${week.n}`,pic,pictureCaption(captionOf(album)));
  if(mark){state.posted.weekly[week.start]=live?'sent':'preview';state.ranks=ranksOf(r);}
  const missing=withoutRookie(ctx.rosters,p=>p?.isRookie===true);
  if(missing.length&&(!mark||!state.posted.rookies[week.start])){
@@ -283,10 +315,13 @@ async function monthly(day,ctx,archive,state,mark){
  const end=Date.parse(`${addDays(day,1)}T08:00:00+03:00`)-1,heldAtEnd=new Map();
  for(const p of ctx.league.players){const e=ctx.league.espnOf(p),t=ctx.league.teamsAtTime(p,end);if(e&&t.length)heldAtEnd.set(e,t);}
  const five=monthFive(lines,{heldAtEnd,positionOf:a=>ctx.league.positionOf(ctx.league.player(a))});
- // Steven Ex Pert's album (steven.js), from his bot, with his verdict on the five.
- const verdict=await stevenVerdict('five',fiveFacts(month,five,ctx.who));
- await postAlbum(`month-${month}`,five.filter(x=>x.row).map(x=>x.row.a),(look,fonts)=>{const a=monthAlbum(month,five,ctx.who,look,fonts,{holiday:holidayFor(day)});return {...a,caption:withVerdict(a.caption,verdict)};},
+ // Steven Ex Pert's album (steven.js), from his bot, with his verdict on the five, then his picture.
+ const facts=fiveFacts(month,five,ctx.who),verdict=await stevenVerdict('five',facts);
+ const pic=await stevenPicture(`month-${month}`,'five',facts,verdict,picturePlayers('five',{five},ctx.who));
+ const album=(look,fonts)=>monthAlbum(month,five,ctx.who,look,fonts,{holiday:holidayFor(day)});
+ await postAlbum(`month-${month}`,five.filter(x=>x.row).map(x=>x.row.a),(look,fonts)=>{const a=album(look,fonts);return {...a,caption:withVerdict(a.caption,verdict)};},
   verdictText(monthText(month,five,ctx.who),verdict),{via:steven});
+ await stevenPhoto(`month-${month}`,pic,pictureCaption(captionOf(album)));
  if(mark)state.posted.monthly[month]=live?'sent':'preview';
 }
 // --- Mike Roffon (mike-roffon.js): after the day's post, his flash interview with the hero of the day, from his own bot

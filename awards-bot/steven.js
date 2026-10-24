@@ -6,14 +6,18 @@
 // 24.10.2026), written by Claude through the owner's subscription (scripts/claude-text.mjs, free): the favourite, who
 // flew up, who fell out, who earned a place in the five. Every number of it is a number of the facts (places, FBL points by the league's formula from core.js, the
 // sixth man's index, Mef prices); a verdict that brings its own is written again, then left out. The verdict never holds
-// a post: without it the album goes as it is.
+// a post: without it the album goes as it is. Right after the album, his picture: the punchline of his barbs, its prompt
+// written whole by Claude (owner, 23.10.2026, scripts/picture-prompt.mjs), the code giving only the references (his face,
+// the players' ESPN faces), drawn by OpenAI; no prompt or no drawing, no picture.
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {esc,dayLabel,raceKey} from './messages.js';
 import {moved} from './core.js';
 import {refused} from './dildo.js';
 import {allowedNumbers,strayNumbersIn} from './mike-roffon.js';
-import {person} from '../scripts/image-pipeline.mjs';
+import path from 'node:path';
+import {person,readImage,ASSETS} from '../scripts/image-pipeline.mjs';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
+import {about,cast,playerRef,promptProblems,writePicture,CRAFT} from '../scripts/picture-prompt.mjs';
 
 export const STEVEN=person('steven-ex-pert');
 export const STEVEN_MODEL=process.env.STEVEN_MODEL||CLAUDE_MODEL;
@@ -130,3 +134,45 @@ export function withVerdict(caption,lines,limit=CAPTION_LIMIT){
 }
 // The same at the end of a post's text (the fallback when its cards fail).
 export const verdictText=(text,lines)=>lines?.length?`${text}\n\n${words(lines)}`:text;
+
+// --- His picture. Who is in it, besides him: for the race the MVP leader, the one who flew up the MVP list the most and
+// the one who dropped the most (last week's order: previous); with no previous order, the rookie leader instead of
+// them. For the five, its players. [{a: ESPN id, en: ESPN name, name: the league's, role, teams}]
+export function picturePlayers(kind,{r,five,previous={}},who){
+ const one=(x,role)=>x&&{a:String(x.a),en:x.n,name:who(x.a,x.n),role,teams:x.teams||[]};
+ if(kind==='five')return five.filter(x=>x.row).map(({pos,row:x})=>one(x,`the ${pos} of the month's all-position five`));
+ const list=r.mvp,moves=previous.mvp?list.map(x=>({x,m:moved(raceKey(x),list,previous.mvp)})).filter(y=>y.m):[];
+ const up=moves.filter(y=>y.m>0).sort((a,b)=>b.m-a.m)[0],down=moves.filter(y=>y.m<0).sort((a,b)=>a.m-b.m)[0];
+ const out=[one(list[0],'the leader of the MVP race'),
+  up&&one(up.x,`flew up the MVP race by ${up.m} place(s)`),down&&one(down.x,`dropped ${-down.m} place(s) in the MVP race`),
+  !previous.mvp&&one(r.roy[0],'the leader of the rookie of the year race')].filter(Boolean);
+ return out.filter((p,i)=>out.findIndex(q=>q.a===p.a)===i);
+}
+// His references: his photo first (always), then the players' faces (faces: ESPN id -> headshot); a player without one
+// stays out of the picture.
+export function stevenRef(root=ASSETS){
+ return {image:readImage(path.join(root,STEVEN.photo)),is:'the photo of Steven Ex Pert, the league expert',facts:about(STEVEN),need:true};
+}
+export function stevenCast(players,{faces=new Map(),root=ASSETS}={}){
+ return cast([stevenRef(root),...players.map(p=>playerRef(faces.get(p.a)||null,p.en,{need:false,role:p.role,leagueName:p.name,
+  fantasyTeamColors:LEAGUE_TEAMS[p.teams[0]]?.kit||null}))]);
+}
+const PICTURE_SYSTEM=`Ты — бильд-редактор Inside FBL, рубрики фэнтези-баскетбольной лиги друзей FBL. Эксперт Стивен Экс Перт ведёт свою студию в духе Shaqtin' a Fool: колкие комментарии к гонке за награды и к символической пятёрке месяца, подколы, шуточные «призы за позор», театральное возмущение. К его посту выходит одна фотореалистичная смешная картинка — панчлайн его комментариев. Ты придумываешь её целиком и пишешь её промпт для ChatGPT.
+- Картинка — из этих комментариев и этих фактов: его подколы, его прозвища, его шуточные награды. Где, как и в каком стиле — решаешь ты, каждый раз по-новому.
+- Стивен Экс Перт — всегда в кадре и всегда собой (лицо с его фото, его неизменное и обычный вид — в референсе): уверенный эксперт с серьёзным лицом, который еле сдерживает смех.
+- Игроки — с лицами с референсов, в форме цветов своей фэнтези-команды (fantasyTeamColors), без логотипов НБА. Стебём игру и цифры, а не человека: ничего унизительного о внешности, семье, национальности.
+- Ни реальных телеведущих, ни названий, логотипов и заставок реальных шоу и каналов: студия, награды и выкрики — свои.
+- Надписи — только в кавычках, по-русски, заглавными, до 6 слов; числа в них — только из данных.
+
+${CRAFT}`;
+// Claude's picture ({images, prompt, idea}) or null. kind: race or five; facts: raceFacts/fiveFacts; verdict: his lines
+// (null: from the facts alone); c: stevenCast.
+export async function writeStevenPicture(kind,facts,verdict,c,{claude=claudeJSON,model=STEVEN_MODEL,timeoutMs=180e3,log=console.warn}={}){
+ const brief=`${kind==='race'?'Гонка за награды после недели.':'Символическая пятёрка месяца.'}\n${verdict?.length?`Комментарии Стивена:\n${verdict.join('\n')}\n\n`:''}Данные:\n${JSON.stringify(facts,null,1)}`;
+ return writePicture({system:PICTURE_SYSTEM,brief,c,check:t=>promptProblems(t,c,{numbers:allowedNumbers(facts)}),write:claude,model,timeoutMs,label:'Steven Ex Pert',log});
+}
+// The caption under his picture: the album's title (its first line), his signature and the album's hashtags.
+export function pictureCaption(caption){
+ const lines=caption.split('\n'),i=caption.lastIndexOf('\n\n');
+ return `${lines[0]}\n🎬 ${SIGNATURE.replace(/^— /,'')}${i<0?'':caption.slice(i)}`;
+}
