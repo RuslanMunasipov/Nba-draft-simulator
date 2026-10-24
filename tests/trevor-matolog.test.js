@@ -64,3 +64,10 @@ test('Infirmary: the pictures, a few patients each, at most two; Trevor and each
  const c=wardCast(g[0],new Map([['0',face],['2',face]]));
  assert.equal(c.images.length,3,'Trevor and the two patients with a face');assert.match(c.refs[0].is,/Trevor Matolog/);assert.deepEqual(c.refs[0].say,['neck brace','cast']);assert.match(c.refs[1].is,/P0/);assert.equal(c.list[1].injury,'Knee, Sprain');
 });
+
+test('Trevor\'s introduction: one Telegram message, his signature, balanced tags',async()=>{
+ const t=(await import('node:fs')).readFileSync(new URL('../data/trevor/hello.html',import.meta.url),'utf8').trim();
+ assert.ok(t.length<4096,'one message');assert.match(t,/<i>— Тревор Матолог, травматолог лиги FBL<\/i>\n\n#лазарет #травмы$/);
+ for(const tag of ['b','i'])assert.equal((t.match(new RegExp(`<${tag}>`,'g'))||[]).length,(t.match(new RegExp(`</${tag}>`,'g'))||[]).length,tag);
+ assert.ok(!/[<>](?!\/?[bi]>)/.test(t.replace(/<\/?[bi]>/g,'')),'no stray brackets for Telegram HTML');
+});

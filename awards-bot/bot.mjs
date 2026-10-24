@@ -47,6 +47,8 @@
 //   node awards-bot/bot.mjs --dildo-post FILE [--send]
 //                                                   that file posted as it is with his photo by his bot (workflow
 //                                                   christopher-dildo.yml); without --send printed
+//   node awards-bot/bot.mjs --trevor-hello [--send]  Trevor introduces himself (data/trevor/hello.html with his photo)
+//   node awards-bot/bot.mjs --steven-hello [--send]  Steven Ex Pert introduces himself (steven.js HELLO_CAPTION, his photo)
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check),
 // CHRISTOPHER_DILDO_BOT_TOKEN (his bot posts the day, its pictures and the week's heroes: dildo.js),
 // STEVEN_EX_PERT_BOT_TOKEN (his bot posts the awards race and the month's five: steven.js),
@@ -75,7 +77,7 @@ import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCa
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText,introFacts,introFor} from './dildo.js';
-import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption} from './steven.js';
+import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption,HELLO_PHOTO,HELLO_CAPTION} from './steven.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
@@ -635,6 +637,20 @@ async function trevorByHand(day){
  if(r.status!==(send?'sent':'preview'))process.exitCode=1;
 }
 
+// Trevor introduces himself to the league (owner, 24.10.2026), once, by hand: his photo, then his words of
+// data/trevor/hello.html as a reply under it, from his bot with --send; printed without it.
+const TREVOR_HELLO_CAPTION='🏥 <b>Тревор Матолог</b>, травматолог лиги FBL, заступает на смену.';
+async function trevorHello(){
+ const text=fs.readFileSync(new URL('data/trevor/hello.html',ROOT),'utf8').trim(),send=flag('--send');
+ if(!send){console.log(`\n===== Trevor Matolog's introduction (preview) =====\n${TREVOR_HELLO_CAPTION}\n\n${text}\n`);return;}
+ const missing=[['TREVOR_MATOLOG_BOT_TOKEN',TREVOR],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);
+ const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',TREVOR_HELLO_CAPTION);form.append('parse_mode','HTML');
+ form.append('photo',new Blob([fs.readFileSync(new URL('scripts/assets/people/trevor-matolog.jpg',ROOT))],{type:'image/jpeg'}),'trevor-matolog.jpg');
+ const shown=await telegram(TREVOR,'sendPhoto',form);
+ await telegram(TREVOR,'sendMessage',{chat_id:CHAT,text,parse_mode:'HTML',disable_web_page_preview:true,reply_parameters:{message_id:shown.message_id}});
+ console.log('Trevor Matolog introduced himself to the league.');
+}
+
 // --- Inside FBL (inside-fbl.js): Mike Roffon's weekly long read. The awards bot's state is only read; the long reads keep
 // their own state and pictures on the branch data/inside-fbl (--inside DIR, a clone of it): the pictures must be there
 // before the Telegraph page shows them (by their raw.githubusercontent.com URLs, as Telegraph takes no uploads now).
@@ -793,11 +809,25 @@ async function dildoPost(file,send){
  await telegram(DILDO,'sendPhoto',body);console.log(`Christopher Dildo: ${file} sent.`);
 }
 
+// Steven Ex Pert introduces himself to the league (steven.js): his photo and his words, by his own bot only (an
+// introduction from another bot would not be his); without --send only printed.
+async function stevenHello(){
+ if(!flag('--send')){console.log(`\n===== Steven Ex Pert's introduction (preview, ${path.basename(HELLO_PHOTO)}) =====\n${HELLO_CAPTION}\n`);return;}
+ const missing=[['STEVEN_EX_PERT_BOT_TOKEN',env.STEVEN_EX_PERT_BOT_TOKEN],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);
+ if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);
+ const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',HELLO_CAPTION);form.append('parse_mode','HTML');
+ form.append('photo',new Blob([fs.readFileSync(HELLO_PHOTO)],{type:'image/jpeg'}),'steven-ex-pert.jpg');
+ await telegram(env.STEVEN_EX_PERT_BOT_TOKEN,'sendPhoto',form);
+ console.log('Steven Ex Pert introduced himself to the league.');
+}
+
 const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day'),trevorDay=opt('--trevor-day');
-if(opt('--dildo-intro')&&STATE_DIR)await dildoIntro(opt('--dildo-intro'));
+if(flag('--steven-hello'))await stevenHello();
+else if(opt('--dildo-intro')&&STATE_DIR)await dildoIntro(opt('--dildo-intro'));
 else if(opt('--dildo-post'))await dildoPost(opt('--dildo-post'),flag('--send'));
 else if(flag('--inside-fbl')&&STATE_DIR)await insideFbl();
 else if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
+else if(flag('--trevor-hello'))await trevorHello();
 else if(trevorDay)await trevorByHand(trevorDay);
 else if(day)await preview(day);
 else if(STATE_DIR&&again)await resend(again);
