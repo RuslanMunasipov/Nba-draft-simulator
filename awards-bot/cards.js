@@ -24,6 +24,7 @@ const TONE={hero:'#f5b301',flop:'#ff4d5e',gold:'#22c55e',antitop:'#a06bff',recor
 export const NOMINATION={
  day:{key:'day',icon:'⭐',title:'Итоги игрового дня',ring:['#ffcf40','#ff8a1f'],tag:'итоги_дня'},
  week:{key:'week',icon:'🗓️',title:'Итоги недели',ring:['#3ea6ff','#7c5cff'],tag:'итоги_недели'},
+ race:{key:'race',icon:'🏆',title:'Гонка за награды',ring:['#3ea6ff','#22d3ee'],tag:'гонка_за_награды'},
  month:{key:'month',icon:'🏅',title:'Символическая пятёрка',ring:['#22c55e','#ffcf40'],tag:'пятёрка_месяца'},
 };
 // Slots per block: a block always has them all, an empty one is drawn as a dash, so the layout never moves.
@@ -264,17 +265,17 @@ export function weekHeroesAlbum(week,wb,who,look,fonts,{holiday=null}={}){
   [`#${NOMINATION.week.tag}`,weekTag(week.n),monthTag(week.end)].join(' ')])};
 }
 
-// --- The week's awards race (after its Sunday): opener, the MVP and rookie of the year; Mef player, the sixth man and the
-// season records. Arrows: places moved since last week's race.
+// --- The week's awards race (after its Sunday): Steven Ex Pert's album (steven.js), its own opener, the MVP and rookie
+// of the year; Mef player, the sixth man and the season records. Arrows: places moved since last week's race.
 const arrow=n=>n===null?'<span class="move new">NEW</span>':n>0?`<span class="move up">▲${n}</span>`:n<0?`<span class="move down">▼${-n}</span>`:'';
 const raceKey=r=>r.key||r.a;
-export function weekAlbum(week,wb,r,rec,who,look,fonts,{previous={},holiday=null}={}){
+export function raceAlbum(week,r,rec,who,look,fonts,{previous={},holiday=null}={}){
  const span=weekSpan(week);
  const mv=(list,key,x)=>previous[key]?arrow(moved(raceKey(x),list,previous[key])):'';
  const race=(list,key,o=()=>({}))=>(x,i)=>{const {row:shown=x,...rest}=o(x);return row(look,who,shown,i,{tone:TONE.race,medals:true,list:x.teams,stats:false,short:true,move:mv(list,key,x),...rest});};
  const recRow=(tone,best)=>(l,i)=>row(look,who,l,i,{tone,medals:best,free:true,short:true,stats:false,extra:dayLabel(l.d)+(special(l.d)?' '+special(l.d):'')});
  const raceSub=`после ${week.n}-й недели<br>${esc(span)}`;
- const cards=[opener(look,fonts,{nom:NOMINATION.week,date:`Неделя ${week.n} · ${range(week.start,week.end)}`,sub:`итоги недели и гонка за награды · ${year(week.end)}`,holiday}),
+ const cards=[opener(look,fonts,{nom:NOMINATION.race,date:`Неделя ${week.n} · ${range(week.start,week.end)}`,sub:`после ${week.n}-й недели · ${year(week.end)}`,holiday}),
   page(look,fonts,{title:'Гонка за награды',sub:raceSub,foot:'1 / 2',holiday},
    grid(look,'MVP','🏆',TONE.race,r.mvp,SLOTS.mvp,race(r.mvp,'mvp'))+grid(look,'Новичок года','🌱',TONE.race,r.roy,SLOTS.roy,race(r.roy,'roy'))),
   page(look,fonts,{title:'Гонка за награды',sub:raceSub,foot:'2 / 2',holiday},
@@ -283,8 +284,8 @@ export function weekAlbum(week,wb,r,rec,who,look,fonts,{previous={},holiday=null
    +grid(look,'Шестой игрок','🪑',TONE.race,r.sixth,SLOTS.sixth,race(r.sixth,'sixth',x=>({row:{...x,p:x.index},list:[x.team],unit:'индекс',extra:`${int(x.p)} ФО · запас ${x.bench}/${x.games}`})))
    +`<div class="block">${head(look,'Рекорды сезона','🔥',TONE.record)}<div class="grid2"><div class="block">${cells(rec.best,SLOTS.record,recRow(TONE.record,true))}</div><div class="block">${cells(rec.worst,SLOTS.record,recRow(TONE.flop,false))}</div></div></div>`)];
  const mvp=r.mvp[0];
- return {cards,caption:caption([`<b>🗓 Итоги недели ${week.n} · ${esc(span)}</b>`,mvp?`Лидер гонки MVP: ${esc(who(mvp.a,mvp.n))} — ${int(mvp.p)} ФО`:null,'',
-  [`#${NOMINATION.week.tag}`,'#гонка_за_награды',weekTag(week.n),monthTag(week.end)].join(' ')])};
+ return {cards,caption:caption([`<b>🏆 Гонка за награды · после ${week.n}-й недели</b>`,mvp?`Лидер гонки MVP: ${esc(who(mvp.a,mvp.n))} — ${int(mvp.p)} ФО`:null,'',
+  [`#${NOMINATION.race.tag}`,weekTag(week.n),monthTag(week.end)].join(' ')])};
 }
 
 // --- The month's all-position five (after its last game day): opener and the five, a slot per position.

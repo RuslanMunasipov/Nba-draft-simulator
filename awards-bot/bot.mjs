@@ -34,7 +34,8 @@
 //                                                   by his bot with --send (--picture-only: only his picture, for
 //                                                   an interview that went without one); the state is only read
 // Env: AWARDS_BOT_TOKEN and AWARDS_CHAT_ID (the league chat), AWARDS_COMMISSIONER_CHAT_ID (the rookie check),
-// CHRISTOPHER_DILDO_BOT_TOKEN (his bot posts the day, its pictures and the week's heroes: dildo.js). Without
+// CHRISTOPHER_DILDO_BOT_TOKEN (his bot posts the day, its pictures and the week's heroes: dildo.js),
+// STEVEN_EX_PERT_BOT_TOKEN (his bot posts the awards race and the month's five: steven.js). Without
 // the token and chat the posts are printed and kept in the state as previews, never sent. Every post of the day, the week
 // and the month goes as one album of cards (cards.js, drawn by render.mjs with Chromium: CHROMIUM_PATH for one of its
 // own); when the cards cannot be drawn or sent, its text goes instead.
@@ -49,7 +50,7 @@ import {SEASON_START,SEASON_END,MEF_PRICE,RECORD_ALERTS_FROM_DAY,LEAD_MS,nextSte
  isSunday,isMonthEnd,parseScoreboard,parseSummary,makeLeague,settle,dailyBlocks,weeklyBlocks,records,recordNews,races,monthFive,
  withoutRookie,siteSummary,byCard} from './core.js';
 import {dailyText,weeklyText,racesText,recordsText,monthText,rookieAlert,split,raceKey,esc} from './messages.js';
-import {dayAlbum,weekAlbum,weekHeroesAlbum,monthAlbum} from './cards.js';
+import {dayAlbum,weekHeroesAlbum,raceAlbum,monthAlbum} from './cards.js';
 import {holidayOf,HOLIDAYS} from './holidays.js';
 import {dayPictures,momentFacts,blockCast,givenMoments,writeMoments} from './images.js';
 import {interviewFacts,interviewFor,interviewText,interviewCaption,mikeCast,writeMikePicture} from './mike-roffon.js';
@@ -59,6 +60,7 @@ import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCa
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
+import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText} from './steven.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const env=process.env,START=Date.now(),now=()=>env.NOW?Date.parse(env.NOW)+Date.now()-START:Date.now();
@@ -228,11 +230,24 @@ async function refresh(days,archive){
 }
 const ranksOf=r=>Object.fromEntries(Object.entries(r).map(([k,list])=>[k,list.map(raceKey)]));
 
+// --- Steven Ex Pert (steven.js): the awards race and the month's five go from his bot (STEVEN_EX_PERT_BOT_TOKEN), else
+// from the awards bot, with his verdict written by Claude through the subscription (free); without the subscription, or
+// when Claude cannot write one with the facts' numbers only, the post goes without it.
+const STEVEN_SENDERS=stevenSenders({steven:env.STEVEN_EX_PERT_BOT_TOKEN,awards:TOKEN});
+const steven=send=>viaFirst(STEVEN_SENDERS,send,{label:'Steven Ex Pert'});
+async function stevenVerdict(kind,facts){
+ if(!claudeConfigured(env)){console.log(`Steven Ex Pert: no Claude subscription, the ${kind} goes without his verdict.`);return null;}
+ const {verdict}=await verdictFor(kind,facts);
+ if(verdict)console.log(`Steven Ex Pert on the ${kind}:\n${verdict.join('\n')}`);
+ return verdict;
+}
 async function weekly(day,ctx,archive,state,mark){
  const week=weekOf(day),days=Array.from({length:7},(_,i)=>addDays(week.start,i)),today=moscowDay(now());
  await refresh(days,archive);
  const all=archive.lines.filter(l=>l.d<=day),r=races(all,{rostered:ctx.league.rostered(),rookies:ctx.rookies,mef:ctx.mef});
  const wb=weeklyBlocks(all.filter(l=>l.d>=week.start)),rec=records(all);
+ // Steven Ex Pert's verdict on the race is written first, so the week's two albums go one right after the other.
+ const verdict=await stevenVerdict('race',raceFacts(week,r,rec,ctx.who,state.ranks));
  // The week's heroes, flops and free agents first: Christopher Dildo's album, marked apart (a run cut short between the
  // two albums posts only the race next time).
  if(!mark||!state.posted.weekHeroes?.[week.start]){
@@ -241,9 +256,10 @@ async function weekly(day,ctx,archive,state,mark){
    signText(weeklyText(week,wb,ctx.who),comment),{via:dildo});
   if(mark){(state.posted.weekHeroes||={})[week.start]=live?'sent':'preview';pushState(state,archive);}
  }
- const text=[racesText(week,r,ctx.who,state.ranks),recordsText(rec,ctx.who,today)].join('\n\n');
+ // The awards race: Steven Ex Pert's album (steven.js), from his bot.
  const shown=[...Object.values(r).flat(),...rec.best,...rec.worst].map(x=>x.a);
- await postAlbum(`week-${week.n}`,shown,(look,fonts)=>weekAlbum(week,wb,r,rec,ctx.who,look,fonts,{previous:state.ranks,holiday:holidayFor(day)}),text);
+ const text=verdictText([racesText(week,r,ctx.who,state.ranks),recordsText(rec,ctx.who,today)].join('\n\n'),verdict);
+ await postAlbum(`race-${week.n}`,shown,(look,fonts)=>{const a=raceAlbum(week,r,rec,ctx.who,look,fonts,{previous:state.ranks,holiday:holidayFor(day)});return {...a,caption:withVerdict(a.caption,verdict)};},text,{via:steven});
  if(mark){state.posted.weekly[week.start]=live?'sent':'preview';state.ranks=ranksOf(r);}
  const missing=withoutRookie(ctx.rosters,p=>p?.isRookie===true);
  if(missing.length&&(!mark||!state.posted.rookies[week.start])){
@@ -257,7 +273,10 @@ async function monthly(day,ctx,archive,state,mark){
  const end=Date.parse(`${addDays(day,1)}T08:00:00+03:00`)-1,heldAtEnd=new Map();
  for(const p of ctx.league.players){const e=ctx.league.espnOf(p),t=ctx.league.teamsAtTime(p,end);if(e&&t.length)heldAtEnd.set(e,t);}
  const five=monthFive(lines,{heldAtEnd,positionOf:a=>ctx.league.positionOf(ctx.league.player(a))});
- await postAlbum(`month-${month}`,five.filter(x=>x.row).map(x=>x.row.a),(look,fonts)=>monthAlbum(month,five,ctx.who,look,fonts,{holiday:holidayFor(day)}),monthText(month,five,ctx.who));
+ // Steven Ex Pert's album (steven.js), from his bot, with his verdict on the five.
+ const verdict=await stevenVerdict('five',fiveFacts(month,five,ctx.who));
+ await postAlbum(`month-${month}`,five.filter(x=>x.row).map(x=>x.row.a),(look,fonts)=>{const a=monthAlbum(month,five,ctx.who,look,fonts,{holiday:holidayFor(day)});return {...a,caption:withVerdict(a.caption,verdict)};},
+  verdictText(monthText(month,five,ctx.who),verdict),{via:steven});
  if(mark)state.posted.monthly[month]=live?'sent':'preview';
 }
 // --- Mike Roffon (mike-roffon.js): after the day's post, his flash interview with the hero of the day, from his own bot
