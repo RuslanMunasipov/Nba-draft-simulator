@@ -5,6 +5,7 @@ name: Trevor Matolog
 # owner's subscription, the ward's pictures drawn by OpenAI (about $0.03 each, at most two) and, with "send", posted into
 # the league chat by Trevor's bot. Nothing is saved, so every run with "send" posts again. Without "send": the report in
 # the run's log and its pictures in the run's artifact. "prompts_only": the pictures' prompts in the log, nothing drawn.
+# "hello": his introduction to the league instead (data/trevor/hello.html under his photo), posted once with "send".
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +18,10 @@ on:
         default: false
       prompts_only:
         description: 'Only the pictures'' prompts, nothing drawn (free)'
+        type: boolean
+        default: false
+      hello:
+        description: 'His introduction to the league instead of the report (data/trevor/hello.html with his photo)'
         type: boolean
         default: false
 permissions:
@@ -41,12 +46,14 @@ jobs:
           DAY: ${{ inputs.day }}
           SEND: ${{ inputs.send && '--send' || '' }}
           PROMPTS: ${{ inputs.prompts_only && '--prompts' || '' }}
+          HELLO: ${{ inputs.hello }}
           AWARDS_CHAT_ID: ${{ secrets.AWARDS_CHAT_ID || secrets.LEAGUE_TELEGRAM_CHAT_ID }}
           TREVOR_MATOLOG_BOT_TOKEN: ${{ secrets.TREVOR_MATOLOG_BOT_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           DAY="${DAY:-$(TZ=America/New_York date +%F)}"
+          if [ "$HELLO" = "true" ]; then node awards-bot/bot.mjs --trevor-hello $SEND; exit; fi
           node awards-bot/bot.mjs --trevor-day "$DAY" --cards "$RUNNER_TEMP/trevor/out" $SEND $PROMPTS
       - uses: actions/upload-artifact@v4
         if: always()
