@@ -35,10 +35,12 @@ test('Steven Ex Pert: a post goes from the first bot Telegram takes, once; a ref
  assert.deepEqual(sent,['S'],'his bot took it: the awards bot sends nothing');assert.deepEqual(logs,[]);
  const tried=[],refused=async t=>{tried.push(t);if(t==='S')throw Error('Telegram album: 403 Forbidden: bot is not a member of the chat');};
  assert.equal(await viaFirst(senders,refused,{label:'race-3',log:m=>logs.push(m)}),'awards bot');
- assert.deepEqual(tried,['S','A'],'each bot once');assert.match(logs[0],/race-3: not sent by Steven Ex Pert \(.*403.*\); awards bot sends it\./);
+ assert.deepEqual(tried,['S','A'],'each bot once');assert.match(logs[0],/race-3: Telegram refused Steven Ex Pert \(.*403.*\); awards bot sends it\./);
+ const once=[];await assert.rejects(viaFirst(senders,async t=>{once.push(t);throw Error('Telegram album: 502 Bad Gateway');},{log:()=>{}}),/502/);
+ assert.deepEqual(once,['S'],'a failure that is not a refusal may have posted: never a second bot (no double post)');
  const none=[],noToken=await viaFirst(stevenSenders({awards:'A'}),async t=>{none.push(t);});
  assert.equal(noToken,'awards bot');assert.deepEqual(none,['A'],'without his token the awards bot posts as before');
- await assert.rejects(viaFirst(senders,async t=>{throw Error('down '+t);},{log:()=>{}}),/down A/,'both refused: the last refusal, for the text fallback');
+ await assert.rejects(viaFirst(senders,async t=>{throw Error(`Telegram album: 401 Unauthorized ${t}`);},{log:()=>{}}),/401 Unauthorized A/,'both refused: the last refusal, for the text fallback');
  await assert.rejects(viaFirst([],ok),/no bot/);
 });
 
@@ -93,10 +95,10 @@ test('Steven Ex Pert: his words go under the caption before its hashtags, never 
 test('Steven Ex Pert: the bot sends the race and the five from his bot, keeps the state\'s keys and the rookie check',()=>{
  const src=fs.readFileSync(new URL('../awards-bot/bot.mjs',import.meta.url),'utf8');
  assert.match(src,/stevenSenders\(\{steven:env\.STEVEN_EX_PERT_BOT_TOKEN,awards:TOKEN\}\)/);
- assert.match(src,/postAlbum\(`race-\$\{week\.n\}`[^\n]*raceAlbum[^\n]*STEVEN_SENDERS\);/);
- assert.match(src,/postAlbum\(`week-\$\{week\.n\}`[^\n]*weekAlbum\(week,wb,ctx\.who[^\n]*\);\n/);
- assert.doesNotMatch(src.match(/postAlbum\(`week-\$\{week\.n\}`[^\n]*/)[0],/STEVEN/,'the week\'s heroes are not his');
- assert.match(src,/postAlbum\(`month-\$\{month\}`[\s\S]{0,400}?STEVEN_SENDERS\);/);
+ assert.match(src,/const steven=send=>viaFirst\(STEVEN_SENDERS,send/);
+ assert.match(src,/postAlbum\(`race-\$\{week\.n\}`[^\n]*raceAlbum[^\n]*\{via:steven\}\);/);
+ assert.doesNotMatch(src.match(/postAlbum\(`week-\$\{week\.n\}-heroes`[\s\S]*?\);\n/)[0],/steven/,'the week\'s heroes are not his');
+ assert.match(src,/postAlbum\(`month-\$\{month\}`[\s\S]{0,400}?\{via:steven\}\);/);
  for(const key of ['state.posted.weekly[week.start]=live?\'sent\':\'preview\'','state.ranks=ranksOf(r)','state.posted.monthly[month]=live?\'sent\':\'preview\''])
   assert.equal(src.split(key).length,2,key);
  assert.match(src,/await post\(rookieAlert\(missing\),COMMISSIONER,'commissioner'\);/,'the rookie check stays the awards bot\'s');

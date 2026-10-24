@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fblFormula} from '../src/fbl-scoring.js';
 import {form,dailyBlocks,bricks,FORM_DAYS} from '../awards-bot/core.js';
-import {dayAlbum,weekAlbum,raceAlbum,monthAlbum,markOf,statsHtml,shotsHtml,dateTag,weekTag,monthTag,SLOTS,CARD_EMOJI} from '../awards-bot/cards.js';
+import {dayAlbum,weekHeroesAlbum,raceAlbum,monthAlbum,markOf,statsHtml,shotsHtml,dateTag,weekTag,monthTag,SLOTS,CARD_EMOJI} from '../awards-bot/cards.js';
 import {holidayOf,westernEaster,orthodoxEaster,HOLIDAYS,HOLIDAY_EMOJI} from '../awards-bot/holidays.js';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -40,7 +40,7 @@ test('awards cards: the opener carries the league\'s logo and name, the nominati
 
 test('awards cards: hashtags navigate by type, week, month and date',()=>{
  assert.equal(dateTag('2027-01-07'),'#дата_07_01_2027');assert.equal(weekTag(12),'#неделя_12');assert.equal(monthTag('2027-02-11'),'#февраль_2027');
- const wk=weekAlbum(week,{heroes:[],flops:[],gold:[]},who,look,fonts);
+ const wk=weekHeroesAlbum(week,{heroes:[],flops:[],gold:[]},who,look,fonts);
  assert.match(wk.caption,/#итоги_недели #неделя_1 #октябрь_2026$/);assert.doesNotMatch(wk.caption,/гонка/,'the race is an album of its own');
  const rc=raceAlbum(week,{mvp:[],roy:[],mef:[],sixth:[]},{best:[],worst:[]},who,look,fonts);
  assert.match(rc.caption,/\n\n#гонка_за_награды #неделя_1 #октябрь_2026$/);
@@ -51,7 +51,7 @@ test('awards cards: the week album is its opener and the week, the race an album
  const row=(a,p)=>({a,n:'P'+a,c:'DEN',games:2,m:60,p,s,h:[1]});
  const r={mvp:[row('1',70),row('2',60)].map(x=>({...x,teams:[1]})),roy:[],mef:[{...row('3',40),teams:[],price:1400}],
   sixth:[{key:'2:5',team:2,a:'5',n:'P5',c:'BOS',games:2,bench:1,p:30,index:15}]};
- const wk=weekAlbum(week,{heroes:[row('1',70)],flops:[],gold:[]},who,look,fonts);
+ const wk=weekHeroesAlbum(week,{heroes:[row('1',70)],flops:[],gold:[]},who,look,fonts);
  assert.equal(wk.cards.length,2);assert.match(wk.cards[0],/Итоги недели/);
  assert.match(wk.cards[1],/\+70/);assert.match(wk.cards[1],/2\sматча/);assert.doesNotMatch(wk.cards.join(''),/Гонка за награды|MVP/);
  const {cards,caption}=raceAlbum(week,r,{best:[line('9',50)],worst:[line('8',-12)]},who,look,fonts,{previous:{mvp:['2','1']}});
@@ -144,7 +144,7 @@ test('awards cards: a holiday\'s own layers take the opener\'s emblem and title,
  assert.match(day[0],/<div class="odate">31 октября 2026<\/div>/,'the date is drawn by the code');
  for(const card of day)assert.match(card,/class="bg" style="background-image:url\(data:image\/png;base64,BG\)"/,'the background under every card');
  assert.doesNotMatch(day[1],/EMBLEM|TITLE/,'the layers only dress the opener');
- const wk=weekAlbum(week,{heroes:[],flops:[],gold:[]},who,layers,fonts,{holiday:halloween}).cards[0];
+ const wk=weekHeroesAlbum(week,{heroes:[],flops:[],gold:[]},who,layers,fonts,{holiday:halloween}).cards[0];
  assert.match(wk,/TITLE-week/);
  assert.match(raceAlbum(week,{mvp:[],roy:[],mef:[],sixth:[]},{best:[],worst:[]},who,layers,fonts,{holiday:halloween}).cards[0],/TITLE-race/);
  const mo=monthAlbum('2026-10',[{pos:'PG',row:null}],who,layers,fonts,{holiday:halloween}).cards[0];

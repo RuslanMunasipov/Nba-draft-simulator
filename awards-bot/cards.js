@@ -249,24 +249,28 @@ export function dayAlbum(day,blocks,who,look,fonts,{news=[],postponed=[],form:f=
   [`#${NOMINATION.day.tag}`,week&&weekTag(week.n),monthTag(day),dateTag(day)].filter(Boolean).join(' ')])};
 }
 
-// --- The week (after its Sunday): opener and the week's heroes, flops and free agents.
-export function weekAlbum(week,wb,who,look,fonts,{holiday=null}={}){
- const span=`${range(week.start,week.end)} ${year(week.end)}`,games=x=>count(x.games,'матч','матча','матчей');
+// --- The week's heroes, flops and free agents (after its Sunday): Christopher Dildo's album (dildo.js), an opener and
+// one card, apart from the awards race.
+const weekSpan=week=>`${range(week.start,week.end)} ${year(week.end)}`;
+export function weekHeroesAlbum(week,wb,who,look,fonts,{holiday=null}={}){
+ const span=weekSpan(week),games=x=>count(x.games,'матч','матча','матчей');
  const wrow=(kind,free)=>(x,i)=>row(look,who,free?{...x,h:[]}:x,i,{tone:TONE[kind],medals:kind!=='flop',free,extra:games(x),sign:true,stats:false});
- const cards=[opener(look,fonts,{nom:NOMINATION.week,date:`Неделя ${week.n} · ${range(week.start,week.end)}`,sub:`итоги недели · ${year(week.end)}`,holiday}),
+ const cards=[opener(look,fonts,{nom:NOMINATION.week,date:`Неделя ${week.n} · ${range(week.start,week.end)}`,sub:`герои, провалы и золотая жила · ${year(week.end)}`,holiday}),
   page(look,fonts,{title:`Неделя ${week.n}`,sub:`${esc(span)}<br>итоги недели`,holiday},
    block(look,'Герои недели','⭐',TONE.hero,wb.heroes,SLOTS.weekHero,wrow('hero'),'compact')+block(look,'Провалы недели','💩',TONE.flop,wb.flops,SLOTS.weekFlop,wrow('flop'),'compact')
    +block(look,'Золотая жила недели','🆓',TONE.gold,wb.gold,SLOTS.weekGold,wrow('gold',true),'compact'))];
- return {cards,caption:caption([`<b>🗓 Итоги недели ${week.n} · ${esc(span)}</b>`,'',
+ const top=wb.heroes[0],low=wb.flops[0];
+ return {cards,caption:caption([`<b>🗓 Итоги недели ${week.n} · ${esc(span)}</b>`,
+  [top&&`Герой недели: ${esc(who(top.a,top.n))} — ${signed(top.p)} ФО`,low&&`провал недели: ${esc(who(low.a,low.n))} — ${signed(low.p)} ФО`].filter(Boolean).join(' · ')||null,'',
   [`#${NOMINATION.week.tag}`,weekTag(week.n),monthTag(week.end)].join(' ')])};
 }
 
-// --- The awards race (after the week's Sunday, Steven Ex Pert's post: steven.js): opener, the MVP and rookie of the
-// year; Mef player, the sixth man and the season records. Arrows: places moved since last week's race.
+// --- The week's awards race (after its Sunday): Steven Ex Pert's album (steven.js), its own opener, the MVP and rookie
+// of the year; Mef player, the sixth man and the season records. Arrows: places moved since last week's race.
 const arrow=n=>n===null?'<span class="move new">NEW</span>':n>0?`<span class="move up">▲${n}</span>`:n<0?`<span class="move down">▼${-n}</span>`:'';
 const raceKey=r=>r.key||r.a;
 export function raceAlbum(week,r,rec,who,look,fonts,{previous={},holiday=null}={}){
- const span=`${range(week.start,week.end)} ${year(week.end)}`;
+ const span=weekSpan(week);
  const mv=(list,key,x)=>previous[key]?arrow(moved(raceKey(x),list,previous[key])):'';
  const race=(list,key,o=()=>({}))=>(x,i)=>{const {row:shown=x,...rest}=o(x);return row(look,who,shown,i,{tone:TONE.race,medals:true,list:x.teams,stats:false,short:true,move:mv(list,key,x),...rest});};
  const recRow=(tone,best)=>(l,i)=>row(look,who,l,i,{tone,medals:best,free:true,short:true,stats:false,extra:dayLabel(l.d)+(special(l.d)?' '+special(l.d):'')});

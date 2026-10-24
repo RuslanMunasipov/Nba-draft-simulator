@@ -10,6 +10,7 @@
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {esc,dayLabel,raceKey} from './messages.js';
 import {moved} from './core.js';
+import {refused} from './dildo.js';
 import {allowedNumbers,strayNumbersIn} from './mike-roffon.js';
 import {person} from '../scripts/image-pipeline.mjs';
 import {claudeJSON,CLAUDE_MODEL} from '../scripts/claude-text.mjs';
@@ -28,13 +29,15 @@ export function stevenSenders({steven,awards}={}){
  for(const [name,token] of [['Steven Ex Pert',steven],['awards bot',awards]]){const t=String(token||'').trim();if(t&&!seen.has(t)){seen.add(t);out.push({name,token:t});}}
  return out;
 }
-// send(token) with the first sender Telegram takes; the next one when it refuses. Answers the sender's name, or throws
-// the last refusal. A post goes once: the next sender only tries what the last one could not send.
+// send(token) with the first sender Telegram takes; the next one only when Telegram refuses the bot (dildo.js refused():
+// an unknown token, a bot not in the chat or without the right to post), when nothing was posted. Any other failure is
+// the post's own and is thrown as it is (the album's text fallback goes on from there): a second sender would post it
+// twice. Answers the sender's name.
 export async function viaFirst(senders,send,{label='post',log=console.warn}={}){
  let last=Error(`${label}: no bot to send it`);
  for(const [i,s] of senders.entries()){
   try{await send(s.token);return s.name;}
-  catch(e){last=e;if(i<senders.length-1)log(`${label}: not sent by ${s.name} (${e.message}); ${senders[i+1].name} sends it.`);}
+  catch(e){last=e;if(!refused(e)||i===senders.length-1)throw e;log(`${label}: Telegram refused ${s.name} (${e.message}); ${senders[i+1].name} sends it.`);}
  }
  throw last;
 }
