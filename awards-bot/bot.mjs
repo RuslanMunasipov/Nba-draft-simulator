@@ -577,6 +577,10 @@ async function pass(state,archive,ctx){
   await archiveDay(day,state,archive,ctx.league);
   save(state,archive);
  }
+ // Lines archived before the bot kept threes (fg3a): their box scores once more, the rest of each line as it was.
+ const noThrees=[...new Set(archive.lines.filter(l=>l.s.fg3a===undefined).map(l=>l.d))];
+ if(noThrees.length)try{await refresh(noThrees,archive);for(const l of archive.lines)if(l.s.fg3a===undefined)Object.assign(l.s,{fg3m:0,fg3a:0});save(state,archive);}
+  catch(e){console.warn(`Threes of the archived days not filled in (${e.message}): the next run tries again.`);}
  for(const day of [addDays(today,-1),today])if(day>=state.firstDay&&day>=SEASON_START&&!(await watchDay(day,ctx,archive,state)))break;
  save(state,archive);
 }
@@ -834,7 +838,10 @@ const SHOW_GAP_MS=(Number(env.INSIDE_SHOW_GAP_SECONDS)||40)*1e3;
 const ledgerRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(SHOW_DIR,'ledger.json'),'utf8'));}catch{return {version:1,season:'2026/27',weeks:{}};}};
 const ledgerSave=l=>{if(TEST)return;fs.mkdirSync(SHOW_DIR,{recursive:true});fs.writeFileSync(path.join(SHOW_DIR,'ledger.json'),JSON.stringify(l,null,1));};
 // The season's awards after the NBA's (season-awards.js) on the archive's lines so far, every NBA player counted.
-const awardsOf=(ctx,lines)=>seasonAwards(lines,{who:ctx.who,positionOf:a=>ctx.league.positionOf(ctx.league.player(a)),rookies:ctx.rookies,heldBy:ctx.league.rostered()});
+const awardsOf=(ctx,lines)=>{const byId=new Map(ctx.players.map(p=>[p.id,p]));
+ const nameOf=id=>{const p=byId.get(id);return p?ctx.who(ctx.league.espnOf(p),ctx.live.players?.[p.sportsId]?.name||p.name):String(id);};
+ return seasonAwards(lines,{who:ctx.who,positionOf:a=>ctx.league.positionOf(ctx.league.player(a)),rookies:ctx.rookies,heldBy:ctx.league.rostered(),
+  transfers:ctx.transfers,espnOf:id=>ctx.league.espnOf(byId.get(id)),nameOf,table:teamPoints({players:ctx.players,live:ctx.live},ctx.transfers)});};
 const ledgerAired=l=>Object.entries(l.weeks).sort(([a],[b])=>a.localeCompare(b)).map(([,x])=>x).filter(x=>x.aired);
 const showRead=()=>{try{return JSON.parse(fs.readFileSync(path.join(SHOW_DIR,'state.json'),'utf8'));}catch{return {version:1,shows:{}};}};
 function branchPush(dir,branch,message){
