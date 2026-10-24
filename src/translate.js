@@ -31,3 +31,7 @@ export const DETAIL={sprain:'растяжение',strain:'надрыв мышц
  'not specified':'не уточнено',stress:'стрессовая реакция',impingement:'импинджмент',subluxation:'подвывих',hyperextension:'переразгибание',
  'injury recovery':'восстановление',recovery:'восстановление',rest:'отдых',illness:'болезнь',concussion:'сотрясение'};
 export const injuryDetail=d=>d?DETAIL[String(d).trim().toLowerCase()]||d:'';
+
+// ESPN's body parts of an injury (its type: "Knee", "Ankle"), in Russian.
+export const BODY={'lower leg':'голень',mouth:'рот',forearm:'предплечье',thigh:'бедро',quadricep:'квадрицепс',jaw:'челюсть',nose:'нос',hamstring:'бицепс бедра',knee:'колено',ankle:'голеностоп',foot:'стопа',back:'спина',groin:'пах',shoulder:'плечо',hip:'бедро',calf:'икроножная',achilles:'ахиллово сухожилие',wrist:'запястье',hand:'кисть',finger:'палец',thumb:'большой палец',toe:'палец стопы',elbow:'локоть',illness:'болезнь',concussion:'сотрясение',personal:'личные причины',rest:'отдых',neck:'шея',quadriceps:'квадрицепс',abdomen:'пресс',oblique:'косые мышцы',shin:'голень',leg:'нога',chest:'грудь',rib:'ребро',head:'голова',eye:'глаз',face:'лицо',lower_leg:'голень',heel:'пятка',undisclosed:'не раскрыто','not injury related':'не травма'};
+export const bodyPart=t=>t?BODY[String(t).toLowerCase()]||t:'';

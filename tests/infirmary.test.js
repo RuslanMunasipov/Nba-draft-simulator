@@ -1,0 +1,59 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {patients,untranslated,translateNow,patientFacts,infirmaryFacts,wordsProblems,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,INFIRMARY_DELAY_MS,PER_PICTURE,MAX_PICTURES} from '../awards-bot/infirmary.js';
+import {textKey} from '../src/translate.js';
+
+const row=(id,name,status,{type='Knee',detail='Sprain',date='2026-10-24T01:00Z',comment=`${name} (knee) will miss 2 games.`,returnDate=null}={})=>
+ ({athlete:{displayName:name,links:[{href:`https://www.espn.com/nba/player/_/id/${id}/x`}]},status,date,shortComment:comment,details:{type,detail,returnDate}});
+const report={injuries:[{injuries:[row('1','Jayson Tatum','Out',{type:'Achilles',detail:'Surgery',returnDate:'2026-11-05'}),row('2','Cade Cunningham','Day-To-Day'),row('3','Free Agent','Out'),row('4','Joel Embiid','Out',{date:'2026-10-20T01:00Z'})]}]};
+const rosters=[[{espnId:2,name:'C. Cunningham',team:'DET'}],[],[{espnId:'1',name:'J. Tatum',team:'BOS'},{espnId:4,name:'J. Embiid',team:'PHI'}],[{espnId:'2',team:'DET'}]];
+const who=(a,n)=>({1:'Тейтум',2:'Каннингем',4:'Эмбиид'})[a]||n;
+
+test('Infirmary: only the FBL rosters\' patients, by team, the most serious first; a shared player once with every team',()=>{
+ const list=patients(report,rosters,who);
+ assert.deepEqual(list.map(x=>[x.name,x.teams]),[['Каннингем',[0,3]],['Тейтум',[2]],['Эмбиид',[2]]]);
+ assert.ok(!list.some(x=>x.en==='Free Agent'),'a free player is not the league\'s');
+ assert.equal(INFIRMARY_DELAY_MS,20*60e3,'20 minutes after the flash interview');
+});
+
+test('Infirmary: ESPN\'s comment in Russian (the site\'s translation, else one written now), the facts of the report',async()=>{
+ const list=patients(report,rosters,who),tr={texts:{[textKey('Jayson Tatum (knee) will miss 2 games.')]:{text:'Тейтум пропустит 2 матча.'}}};
+ const todo=untranslated(list,tr);assert.deepEqual(todo.map(x=>x.story),['Cade Cunningham (knee) will miss 2 games.','Joel Embiid (knee) will miss 2 games.']);
+ const ru={...Object.fromEntries(Object.entries(tr.texts).map(([k,v])=>[k,v.text])),...await translateNow(todo,{translate:async b=>Object.fromEntries(b.map(x=>[x.id,{story:'перевод '+x.story.split(' ')[1]}]))})};
+ const f=list.map(x=>patientFacts(x,ru)),tatum=f.find(x=>x.en==='Jayson Tatum');
+ assert.equal(tatum.comment,'Тейтум пропустит 2 матча.');assert.equal(tatum.status,'Не играет');assert.equal(tatum.until,'до ~05.11');
+ assert.equal(tatum.where,'ахиллово сухожилие');assert.equal(tatum.what,'операция');assert.deepEqual(tatum.fblTeams,[{team:'Black Jacks',gm:'Jack Pott'}]);
+ assert.equal(f[0].comment,'перевод Cunningham');
+ assert.deepEqual(await translateNow(todo,{translate:async()=>{throw Error('429');},log:()=>{}}),{},'a failed batch leaves English');
+ assert.ok(!('espnId' in infirmaryFacts(f).patients[0]),'the writers see no ids');
+});
+
+test('Infirmary: the report team by team with ESPN\'s comments, Mike\'s words around it; an empty ward said so',()=>{
+ const f=patients(report,rosters,who).map(x=>patientFacts(x,{}));
+ const t=infirmaryText(f,{opener:'Майк входит в лазарет.',afterword:'Держитесь, GM.'},'2026-10-23');
+ assert.match(t,/^<b>🏥 Inside FBL • Лазарет<\/b> · 23 октября\n\nМайк входит в лазарет\.\n\n<b>The Balkan Murderers<\/b> \(GM Franky Murder\) · <b>Команда им\. Алачаняна А\.М\.<\/b>/);
+ assert.match(t,/🔴 <b>Тейтум<\/b> \(BOS\) — не играет до ~05\.11 · ахиллово сухожилие, операция\n<i>ESPN, 24\.10: Jayson Tatum \(knee\) will miss 2 games\.<\/i>/);
+ assert.match(t,/🟡 <b>Каннингем<\/b>/);assert.match(t,/Держитесь, GM\.\n\n— Майк Роффон, специально для Inside FBL\n\n#inside_fbl #лазарет #дата_23_10_2026$/);
+ assert.ok(t.indexOf('Тейтум')<t.indexOf('Эмбиид'));
+ assert.match(infirmaryText([],null,'2026-10-23'),/Лазарет лиги пуст/);assert.match(infirmaryCaption(f,'2026-10-23'),/3 в палатах/);
+ assert.ok(!infirmaryText(f,null,'2026-10-23').includes('undefined'),'without Mike\'s words the list goes alone');
+});
+
+test('Infirmary: Mike\'s words only with the facts\' numbers, no stale themes, rewritten once with what was wrong',async()=>{
+ const facts=infirmaryFacts(patients(report,rosters,who).map(x=>patientFacts(x,{})));
+ assert.deepEqual(wordsProblems({opener:'Тейтум выбыл до ~05.11.',afterword:'Black Jacks дышат через раз.'},facts),[]);
+ assert.match(wordsProblems({opener:'Минус 40 очков у GM.',afterword:'.'},facts).join(),/числа не из данных \(40\)/);
+ assert.match(wordsProblems({opener:'Урожай травм.',afterword:'.'},facts).join(),/чужая тема/);
+ const seen=[];const claude=async o=>{seen.push(o.prompt);return {data:seen.length===1?{opener:'Минус 40.',afterword:'.'}:{opener:'Лазарет полон.',afterword:'Держитесь.'}};};
+ assert.deepEqual(await writeWords(facts,{claude,log:()=>{}}),{opener:'Лазарет полон.',afterword:'Держитесь.'});
+ assert.match(seen[1],/Прошлый вариант отклонён: числа не из данных/);assert.ok(!seen[0].includes('2026-10'),'no date for the writer');
+});
+
+test('Infirmary: the pictures, a few patients each, at most two; Mike and each patient\'s face as references',()=>{
+ const many=Array.from({length:11},(_,i)=>({espnId:String(i),en:`P${i}`,out:true,bodyPartEn:'Knee',injuryEn:'Sprain',fblTeams:[]}));
+ const g=pictureGroups(many);assert.equal(g.length,MAX_PICTURES);assert.equal(g[0].length,PER_PICTURE);assert.equal(g[1][0].en,`P${PER_PICTURE}`);
+ assert.deepEqual(pictureGroups([]),[]);
+ const face={bytes:Buffer.from('x'),name:'f.png',type:'image/png'};
+ const c=wardCast(g[0],new Map([['0',face],['2',face]]));
+ assert.equal(c.images.length,3,'Mike and the two patients with a face');assert.match(c.refs[0].is,/Mike Roffon/);assert.match(c.refs[1].is,/P0/);assert.equal(c.list[1].injury,'Knee, Sprain');
+});

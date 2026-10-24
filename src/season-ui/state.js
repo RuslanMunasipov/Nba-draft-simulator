@@ -129,8 +129,7 @@ export function addMarket(){if(!basePlayers.length)return;players=withMarket(bas
 export function currentWeek(today){const w=weekOf(today,gameWeeks(live));return w?.n?w:null;}
 // ESPN's English injury words, in Russian. A return date is shown only for players who are out, never for day-to-day,
 // and never for a season-ending injury, whose date is ESPN's placeholder (forecast-text.js injuryUntil).
-export const BODY={'lower leg':'голень',mouth:'рот',forearm:'предплечье',thigh:'бедро',quadricep:'квадрицепс',jaw:'челюсть',nose:'нос',hamstring:'бицепс бедра',knee:'колено',ankle:'голеностоп',foot:'стопа',back:'спина',groin:'пах',shoulder:'плечо',hip:'бедро',calf:'икроножная',achilles:'ахиллово сухожилие',wrist:'запястье',hand:'кисть',finger:'палец',thumb:'большой палец',toe:'палец стопы',elbow:'локоть',illness:'болезнь',concussion:'сотрясение',personal:'личные причины',rest:'отдых',neck:'шея',quadriceps:'квадрицепс',abdomen:'пресс',oblique:'косые мышцы',shin:'голень',leg:'нога',chest:'грудь',rib:'ребро',head:'голова',eye:'глаз',face:'лицо',lower_leg:'голень',heel:'пятка',undisclosed:'не раскрыто','not injury related':'не травма'};
-export const bodyPart=t=>t?BODY[String(t).toLowerCase()]||t:'';
+export {BODY,bodyPart} from '../translate.js';
 export function injuryInfo(p){
  const i=injuries.get(String(p.espnId));if(!i)return null;const s=injuryStatus(i.status);
  const until=injuryUntil(i);
