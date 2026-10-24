@@ -69,7 +69,7 @@ import {weekData,pickGuest,longreadFacts,writeLongread,guestReference,longreadCa
 import {LEAGUE_TEAMS} from '../src/teams.js';
 import {claudeConfigured} from '../scripts/claude-text.mjs';
 import {asDildo,teamFacts,dayFacts,weekFacts,commentFor,signCaption,signText} from './dildo.js';
-import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption} from './steven.js';
+import {stevenSenders,viaFirst,raceFacts,fiveFacts,verdictFor,withVerdict,verdictText,picturePlayers,stevenCast,writeStevenPicture,pictureCaption,HELLO_PHOTO,HELLO_CAPTION} from './steven.js';
 import {INFIRMARY_DELAY_MS,INFIRMARY_LATE_MS,patients,untranslated,translateNow,patientFacts,infirmaryFacts,writeWords,infirmaryText,infirmaryCaption,pictureGroups,wardCast,writeWardPicture} from './trevor-matolog.js';
 
 const args=process.argv.slice(2),flag=f=>args.includes(f),opt=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
@@ -763,8 +763,21 @@ async function insideFbl(){
  }
 }
 
+// Steven Ex Pert introduces himself to the league (steven.js): his photo and his words, by his own bot only (an
+// introduction from another bot would not be his); without --send only printed.
+async function stevenHello(){
+ if(!flag('--send')){console.log(`\n===== Steven Ex Pert's introduction (preview, ${path.basename(HELLO_PHOTO)}) =====\n${HELLO_CAPTION}\n`);return;}
+ const missing=[['STEVEN_EX_PERT_BOT_TOKEN',env.STEVEN_EX_PERT_BOT_TOKEN],['AWARDS_CHAT_ID',CHAT]].filter(x=>!x[1]).map(x=>x[0]);
+ if(missing.length)throw Error(`--send: missing ${missing.join(', ')}`);
+ const form=new FormData();form.append('chat_id',String(CHAT));form.append('caption',HELLO_CAPTION);form.append('parse_mode','HTML');
+ form.append('photo',new Blob([fs.readFileSync(HELLO_PHOTO)],{type:'image/jpeg'}),'steven-ex-pert.jpg');
+ await telegram(env.STEVEN_EX_PERT_BOT_TOKEN,'sendPhoto',form);
+ console.log('Steven Ex Pert introduced himself to the league.');
+}
+
 const day=opt('--preview'),again=opt('--resend'),mikeDay=opt('--mike-day'),trevorDay=opt('--trevor-day');
-if(flag('--inside-fbl')&&STATE_DIR)await insideFbl();
+if(flag('--steven-hello'))await stevenHello();
+else if(flag('--inside-fbl')&&STATE_DIR)await insideFbl();
 else if(mikeDay&&STATE_DIR)await mikeByHand(mikeDay);
 else if(trevorDay)await trevorByHand(trevorDay);
 else if(day)await preview(day);

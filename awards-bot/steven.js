@@ -176,3 +176,23 @@ export function pictureCaption(caption){
  const lines=caption.split('\n'),i=caption.lastIndexOf('\n\n');
  return `${lines[0]}\n🎬 ${SIGNATURE.replace(/^— /,'')}${i<0?'':caption.slice(i)}`;
 }
+
+// --- His introduction to the league (owner, 24.10.2026: allowed once, by hand: workflow steven-ex-pert.yml): his photo of
+// the people base and these words, from his own bot. Written by Claude in his voice; no number in it.
+export const HELLO_PHOTO=path.join(ASSETS,STEVEN?.photo||'people/steven-ex-pert.jpg');
+export const HELLO_CAPTION=`<b>🎙 Inside FBL • Знакомьтесь: Стивен Экс Перт</b>
+
+Добрый вечер, лига. Да, это тот самый костюм. Да, бумаги настоящие. Нет, автографы — после эфира.
+
+Я — Стивен Экс Перт, эксперт Inside FBL. Моя студия открывается после каждого воскресенья: гонка за награды — MVP, новичок года, Mef player, шестой игрок и рекорды сезона. А после последнего игрового дня месяца — символическая пятёрка.
+
+Правила студии простые:
+— цифры только настоящие, ФО по формуле лиги;
+— взлетел — похвалю, выпал из гонки — вручу приз за позор;
+— стебём игру, а не человека. Почти всегда.
+
+Фаворитов я уже записал. Блокнот опечатан. Вскроем в воскресенье. 🏆
+
+${SIGNATURE}
+
+#inside_fbl #гонка_за_награды`;
