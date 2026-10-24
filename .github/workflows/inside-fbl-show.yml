@@ -9,7 +9,9 @@ name: Inside FBL show
 #     Mike's bot (INSIDE_FBL_REVIEW_CHAT_ID, else his personal TELEGRAM_CHAT_ID);
 #   - 12:00 the announcement in the league: the studio's photo with the secret guests and the issue's topics (runs from
 #     10:07 wait for it);
-#   - 18:00 the show on air (runs from 14:07 wait for it).
+#   - 18:00 the show on air (runs from 14:07 wait for it);
+#   - Friday 07:07 Moscow, before the long read's draft: the show's votes closed together and told to the league in one
+#     message by Steven's bot (whom Mike visits, the prizes of shame, the quiz's answer); the long read takes Mike's guest.
 # By hand: hold (nothing more goes out), release (it goes out again; what is past its hour goes at once), redo (written
 # and drawn anew: notes, the owner's wishes; guests, other guests), draft, announce, post.
 # GitHub's schedule is best-effort, so every run starts hours early and waits.
@@ -19,12 +21,13 @@ on:
     - cron: '7 2,3,4,5 * * 1'
     - cron: '7 7,8 * * 1'
     - cron: '7 11,12,13 * * 1'
+    - cron: '7 4,5 * * 5'
   workflow_dispatch:
     inputs:
       action:
         description: 'hold: nothing more goes out; release: it goes out again; redo: written anew; test: the whole show to the owner alone by Mike''s bot, its polls read; draft; announce: at 12:00; post: at 18:00'
         type: choice
-        options: [hold, release, redo, test, draft, announce, post]
+        options: [hold, release, redo, test, draft, announce, post, votes]
         default: hold
       notes:
         description: 'For redo: what to change (the hosts get it as the editor''s wishes)'
@@ -77,7 +80,7 @@ jobs:
           fi
       - name: Draft, approve or air
         env:
-          ACTION: ${{ github.event.schedule == '7 11,12,13 * * 1' && 'post' || github.event.schedule == '7 7,8 * * 1' && 'announce' || github.event.schedule == '7 2,3,4,5 * * 1' && 'draft' || inputs.action }}
+          ACTION: ${{ github.event.schedule == '7 11,12,13 * * 1' && 'post' || github.event.schedule == '7 7,8 * * 1' && 'announce' || github.event.schedule == '7 2,3,4,5 * * 1' && 'draft' || github.event.schedule == '7 4,5 * * 5' && 'votes' || inputs.action }}
           AFTER: ${{ github.event.schedule == '7 2,3,4,5 * * 1' && '--wait-sunday --wait-review' || '' }}
           GUESTS: ${{ inputs.guests }}
           MINUTES: ${{ inputs.minutes }}

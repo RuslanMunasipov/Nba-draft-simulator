@@ -351,3 +351,13 @@ test('Inside FBL show: at 18:00 the guests sit at the desk on the cover; the sho
  const seen=[];await writeSegmentPicture('opening',blocks.opening,openingFacts(d,{guests:[shaq]}),c,{guests:[shaq],claude:async o=>{seen.push(o);return {data:{prompt:good,idea:'x'}};},log:()=>{}});
  assert.match(seen[0].system,/они за столом вместе с ведущими/);
 });
+
+test('Inside FBL show: the votes closed together, told to the league in one message',async()=>{
+ const {votesSummary}=await import('../awards-bot/inside-show.js');
+ const q={question:'Q',options:[{text:'Karagali Brothers (Фы Жил)',voter_count:1},{text:'Texas 76 Citrus (Лемариус)',voter_count:3}],total_voter_count:4,correct_option_id:1};
+ const t=votesSummary(week,{numbers:{result:{option:'Texas 76 Citrus (Лемариус)',votes:3,total:4},poll:q},
+  mike:{result:{option:'Franky Murder (The Balkan Murderers) — худшая неделя',key:'gm:1',votes:2,total:3},poll:null},
+  shamePlayer:{result:{option:'Эдвардс — 18 промахов с игры',votes:1,total:1},poll:null},shameGm:{result:null,poll:null}});
+ assert.match(t,/^🗳 <b>Inside FBL • Итоги голосований выпуска 2<\/b>\n\n🎤 В пятницу Майк Роффон едет в гости к: <b>Franky Murder \(The Balkan Murderers\)<\/b> \(2 из 3\)\n🏆 Позор недели среди игроков: <b>Эдвардс — 18 промахов с игры<\/b> \(1 из 1\)\n🏆 Позор недели среди GM: голосов нет\n🧮 Задачка Дилдо: верный ответ — <b>Texas 76 Citrus \(Лемариус\)<\/b>, угадали 3 из 4\n\nОпрос завершён, всем спасибо!/);
+ assert.match(t,/#inside_fbl #неделя_2 #итоги_голосования$/);assert.equal(votesSummary(week,{}),null,'no votes: no message');
+});

@@ -763,3 +763,15 @@ export async function writeClosingPicture(segments,facts,c,{guests=[],claude=cla
  return writePicture({system:PICTURE_SYSTEM('closing'),brief:brief('closing',x,facts,guests),c,check:t=>promptProblems(t,c,{numbers:allowedNumbers(facts)}),write:claude,model,timeoutMs,label:'Inside FBL show, closing',log});
 }
 export const closingCaption=(week,guests=[])=>`<b>🎬 Inside FBL • Конец выпуска ${week.n}</b>\nЭфир окончен. Спасибо ${guests.length?`гостям студии — ${guests.map(g=>esc(g.name)).join(' и ')} — и `:''}всей лиге.\nДо понедельника! А в пятницу — большое интервью Майка Роффона.\n\n#inside_fbl #неделя_${week.n}`;
+
+// --- The votes of a show, closed together on Friday morning (owner, 24.10.2026): one message for the league with all their
+// results, never a message a vote. closed: key -> {result: pollWinner's or null, poll: Telegram's stopped Poll or null}
+// (numbers: Dildo's quiz, mike: whom Mike visits, shamePlayer, shameGm).
+const lead=t=>String(t||'').split(' — ')[0].trim();
+export function votesSummary(week,closed){
+ const res=k=>closed[k]?.result,line=(icon,label,k,what=lead)=>{const r=res(k);if(!closed[k])return null;
+  return `${icon} ${label}: ${r?`<b>${esc(what(r.option))}</b> (${r.votes} из ${r.total})`:'голосов нет'}`;};
+ const q=closed.numbers?.poll,qi=q?.correct_option_id,quiz=q&&Number.isInteger(qi)?`🧮 Задачка Дилдо: верный ответ — <b>${esc(q.options[qi].text)}</b>, угадали ${q.options[qi].voter_count} из ${q.total_voter_count}`:null;
+ const rows=[line('🎤','В пятницу Майк Роффон едет в гости к','mike'),line('🏆','Позор недели среди игроков','shamePlayer',t=>t),line('🏆','Позор недели среди GM','shameGm',t=>t),quiz].filter(Boolean);
+ return rows.length?[`🗳 <b>Inside FBL • Итоги голосований выпуска ${week.n}</b>`,'',...rows,'','Опрос завершён, всем спасибо!','',`#inside_fbl #неделя_${week.n} #итоги_голосования`].join('\n'):null;
+}
