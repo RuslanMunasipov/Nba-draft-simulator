@@ -60,9 +60,13 @@ TEAMS = ROOT / 'data' / 'fbl-sports-teams.json'
 TEAM_URL = 'https://www.sports.ru/fantasy/basketball/team/{id}.html'
 JOURNAL_URL = 'https://www.sports.ru/fantasy/basketball/team/journal/{id}.html'
 ROSTER_URL = 'https://www.sports.ru/fantasy/basketball/team/points/{id}/0.json'
+# Sports.ru's market list, the page a new team picks from: every card it sells now, with its club, position and price.
+MARKET_URL = 'https://www.sports.ru/fantasy/basketball/team/create/{t}.json'
 AMPLUA = {'1': 'PG', '2': 'SG', '3': 'SF', '4': 'PF', '5': 'C'}
 # Below these shares of the pool a collection is a broken page layout, not data: nothing is published.
 MIN_COLLECTED, MIN_PRICED = 0.9, 0.9
+# A market list with fewer priced cards (464 on 24.10.2026) is a broken page, not the market: the pool goes without it.
+MIN_MARKET = 400
 # The same for games: the club calendars of fewer than MIN_CLUBS of the 30 clubs, a tenth of the upcoming calendar games
 # or of the played games of the same players gone since the previous snapshot, or game tables without points or minutes.
 MIN_CLUBS, MIN_KEPT = 28, 0.9
@@ -996,6 +1000,59 @@ def parse_roster(raw):
     return out
 
 
+def parse_market(raw):
+    """Sports.ru's market list (MARKET_URL): {sportsId: {sportsId, name, club, clubId, position, price}} of every card it
+    sells. ValueError when it is no market: no JSON, or fewer than MIN_MARKET cards with an id, a price and a position,
+    or over fewer than MIN_CLUBS clubs (a broken or cut page would take cards off sale that are on it)."""
+    try:
+        data = json.loads(raw)
+    except (TypeError, ValueError):
+        raise ValueError('no JSON') from None
+    rows = data.get('players') if isinstance(data, dict) else None
+    cards = {}
+    for p in rows if isinstance(rows, list) else []:
+        p = p if isinstance(p, dict) else {}
+        sid, price, position = str(p.get('id') or ''), str(p.get('price') or ''), AMPLUA.get(str(p.get('amplua')))
+        if sid.isdigit() and price.isdigit() and int(price) > 0 and position:
+            cards[sid] = {'sportsId': sid, 'name': p.get('name'), 'club': p.get('club'), 'clubId': str(p.get('club_id') or '') or None,
+                          'position': position, 'price': int(price)}
+    clubs = {c['club'] for c in cards.values() if c['club']}
+    if len(cards) < MIN_MARKET or len(clubs) < MIN_CLUBS:
+        raise ValueError(f'{len(cards)} priced cards of {len(clubs)} clubs')
+    return cards
+
+
+def market_list(errors):
+    """parse_market of the market list, read once; None, with an error, when it cannot be read or is no market: the
+    collection then goes on without it (the catalog and the FBL rosters, no onSale)."""
+    try:
+        return parse_market(fetch(MARKET_URL.format(t=TOURNAMENT), compressed=True))
+    except Exception as e:  # noqa: BLE001
+        errors.append({'error': f'Sports.ru market list unread ({str(e)[:160]}); no onSale, new cards reach the pool only through FBL rosters'})
+        print(f'Sports.ru market list: {e}')
+        return None
+
+
+def add_market(pool, market):
+    """Every card of the market list the pool lacks joins it (marketAddition MARKET), as a card new on an FBL roster does:
+    a card Sports.ru opened for a player on no FBL roster never reached the site (Kenrich Williams's, added by hand on
+    23.10.2026). Returns the ids added."""
+    known = {p['sportsId'] for p in pool}
+    added = [sid for sid in market or {} if sid not in known]
+    pool.extend({'sportsId': sid, 'name': market[sid]['name'], 'club': market[sid]['club'], 'clubId': market[sid]['clubId'], 'marketAddition': 'MARKET'}
+                for sid in added)
+    return added
+
+
+def stamp_on_sale(players, market):
+    """onSale of every collected card: on the market list or not, only when the list was read. The site prefers it to its
+    own guess (not emptied, at an NBA club: Lonnie Walker's card stayed priced at «Бешикташ», 24.10.2026)."""
+    if market is None:
+        return
+    for sid, info in players.items():
+        info['onSale'] = sid in market
+
+
 def collect_teams(previous=None, errors=None):
     """Profile, journal and roster of every FBL team. A team whose pages fail keeps its previous entry, and a journal
     with fewer events than the published one is a failed parse, never a reversal of transfers (events, not rows: the
@@ -1068,8 +1125,13 @@ def week_ranges(calendars):
     return out
 
 
-def quality(pool, players):
-    """Shares of the pool collected and carrying a price and a position: a page redesign shows up here, not as empty data."""
+def quality(pool, players, market=None):
+    """Shares of the pool collected and carrying a price and a position: a page redesign shows up here, not as empty data.
+    With the market list, shares of the cards on sale: each must be read and priced, while a card Sports.ru emptied rightly
+    has none (17 of them on 24.10.2026; some 30 in-season waivers more would have refused every collection)."""
+    if market:
+        got = [players[sid] for sid in market if sid in players]
+        return len(got) / len(market), sum(1 for p in got if isinstance(p.get('price'), int) and p.get('position')) / len(market)
     collected = len(players) / max(1, len(pool))
     priced = sum(1 for p in players.values() if isinstance(p.get('price'), int) and p.get('position')) / max(1, len(pool))
     return collected, priced
@@ -1082,6 +1144,7 @@ def main():
     except (FileNotFoundError, ValueError):
         previous = {}
     errors = []
+    market = market_list(errors)
     teams = collect_teams(previous.get('teams'), errors)
     # Players new to the Sports.ru market reach the pool through FBL rosters: their exact ids come with the roster JSON.
     known = {p['sportsId'] for p in pool}
@@ -1090,6 +1153,8 @@ def main():
             if r['sportsId'] not in known:
                 known.add(r['sportsId'])
                 pool.append({'sportsId': r['sportsId'], 'name': r['name'], 'club': r['club'], 'marketAddition': 'FBL_ROSTER'})
+    # And through the market list, which has every card on sale whoever holds it.
+    added = add_market(pool, market)
     players, calendars = {}, {}
     with ThreadPoolExecutor(WORKERS) as ex:
         futures = [ex.submit(collect, p) for p in pool]
@@ -1112,10 +1177,11 @@ def main():
                 votes[key] = votes.get(key, 0) + 1
     # A traded player's page can carry another club's calendar: each club keeps the one most of its players show.
     clubs = {club: json.loads(max(votes, key=votes.get)) for club, votes in calendars.items()}
-    collected, priced = quality(pool, players)
+    stamp_on_sale(players, market)
+    collected, priced = quality(pool, players, market)
     if collected < MIN_COLLECTED or priced < MIN_PRICED:
-        raise SystemExit(f'Only {collected:.0%} of {len(pool)} Sports.ru players collected and {priced:.0%} with a price and position; '
-                         'refusing to publish.')
+        raise SystemExit(f"Only {collected:.0%} of {len(market or pool)} Sports.ru {'cards on sale' if market else 'players'} collected and "
+                         f'{priced:.0%} with a price and position; refusing to publish.')
     today = (datetime.now(timezone.utc) + timedelta(hours=3)).date().isoformat()
     reason = refuse_reason(previous, players, clubs, today)
     if reason:
@@ -1167,6 +1233,9 @@ def main():
                           **points},
            'tips': {'source': SCHEDULE_URL.format(abbr='<club>', year=SEASON_LABEL[-4:]), 'clubs': len(schedules), 'games': tipped, 'of': sum(len(g) for g in clubs.values()),
                     'fetchedAt': datetime.now(timezone.utc).isoformat(timespec='seconds') if schedules else (previous.get('tips') or {}).get('fetchedAt')}}
+    # The market list behind every onSale: the watcher stamps by it the rows it keeps from an earlier snapshot.
+    if market:
+        out['market'] = {'source': MARKET_URL.format(t=TOURNAMENT), 'cards': len(market), 'added': added, 'ids': sorted(market)}
     # Whether the injury report was fetched now; a failed fetch publishes the last good one (espnInjuriesAt), never none.
     injuries, out['espnInjuriesOk'] = keep_injuries(fresh_injuries, previous, out['collectedAt'])
     last_good = (injuries or {}).get('fetchedAt') or previous.get('espnInjuriesAt') or (previous.get('espnInjuries') or {}).get('fetchedAt')
@@ -1182,7 +1251,7 @@ def main():
         archive.write_text(json.dumps(update_injury_history(history, injuries, out['collectedAt']), ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
-    print(f"Sports.ru: {len(players)} players, {len(clubs)} club calendars ({tipped} games with a tip-off time), {points['played']} played games "
+    print(f"Sports.ru: {len(players)} players ({f'{len(market)} on the market list' if market else 'no market list'}, {len(added)} new to the pool), {len(clubs)} club calendars ({tipped} games with a tip-off time), {points['played']} played games "
           f"({from_espn} scored from ESPN box scores, {box_read} read now; {points['awaitingEspn']} awaiting ESPN, {points['uncounted']} not counted by Sports.ru yet, {points['mismatches']} mismatches), "
           f"{len(errors)} errors -> {OUT}")
 

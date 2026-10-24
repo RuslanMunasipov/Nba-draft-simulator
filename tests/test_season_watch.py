@@ -135,6 +135,15 @@ class WatchTests(unittest.TestCase):
   cur={'players':{'9':{'name':'Новый','fromRoster':True},'1':{'name':'A','price':1}},'teams':{}}
   out=merge_full({'players':{'1':{'name':'A','price':2}},'teams':{}},cur)
   self.assertEqual(out['players'],{'1':{'name':'A','price':2},'9':{'name':'Новый','fromRoster':True}})
+ def test_a_full_collection_merge_keeps_onsale_and_stamps_stale_rows_by_the_market_list(self):
+  # A MARKET addition is a collected row like any other; a card emptied since the last snapshot left the pool with it.
+  cur={'players':{'5':{'name':'Пустой','price':900,'onSale':True,'marketAddition':'MARKET','games':[]},'6':{'name':'Сбой','onSale':True,'games':[]},'1':{'name':'A','onSale':True}}}
+  full={'players':{'1':{'name':'A','onSale':False},'2':{'name':'Новый','onSale':True,'marketAddition':'MARKET'}},'market':{'ids':['2','6']}}
+  out=merge_full(json.loads(json.dumps(full)),cur)['players']
+  self.assertEqual((out['1'],out['2']),(full['players']['1'],full['players']['2']))
+  self.assertEqual({sid:(out[sid]['stale'],out[sid]['onSale']) for sid in ('5','6')},{'5':(True,False),'6':(True,True)})
+  # Without the list the stale rows keep what they had.
+  out=merge_full({'players':{}},cur)['players'];self.assertEqual((out['5']['onSale'],out['6']['onSale']),(True,True))
  def test_the_minute_read_keeps_the_name_of_a_player_whose_card_was_emptied(self):
   # Karagali Brothers, 23.10.2026: the full collection named Wagler's blank rows, the minute read did not, and each read
   # renamed them back: a «new» journal every time, its round trip posted again.
