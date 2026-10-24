@@ -2,8 +2,8 @@
 // (scripts/image-pipeline.mjs) and sent after the day's album. One for the heroes, one for the flops: the block's players
 // together in one scene, the first of the block in the centre, each a character of a world of his own (any theme in the
 // world, never three takes on one; one work of art, not a collage: owner, 24.10.2026) picked from his stat line (a great
-// night is celebrated, a bad one laughed at). Every player wears the kit of the league team that held him at tip-off, in the colours of its logo, with that logo on his chest. Claude writes each picture's prompt whole (owner,
-// 23.10.2026, scripts/picture-prompt.mjs); the code gives him the players' lines and the references (their faces, their
+// night is celebrated, a bad one laughed at). Every player wears the kit of the league team that held him at tip-off,
+// in the colours of its logo, with that logo on his chest. Claude writes each picture's prompt whole (owner, 23.10.2026, scripts/picture-prompt.mjs); the code gives him the players' lines and the references (their faces, their
 // teams' logos, the GM of the star) and checks what he wrote; a picture he cannot write is not drawn. The awards are the
 // league's, not Зак Онн's: he is the law and stays out of them. The numbers in a picture and its caption are the line's
 // FBL points (core.js scores every line with the league's formula, fblFormula) and the box score's own counts.
