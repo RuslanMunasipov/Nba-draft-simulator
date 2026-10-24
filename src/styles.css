@@ -728,6 +728,12 @@ body:has(.sheet[open]){overflow:hidden}
 .mk-panel{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s3);padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface-2)}
 .mk-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s3)}
 .mk-head h3{margin:0}
+.mk-count{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;margin:0;font-size:var(--fs-sm);color:var(--text-2)}
+.mk-count strong{color:var(--text)}
+.mk-count .btn-sm{min-height:32px;padding:4px 6px}
+.mk-unsold p{margin:0}
+.mk-unsold ul{columns:2 200px;column-gap:var(--s4);margin:var(--s2) 0 0;padding-left:1.1em}
+.mk-unsold li{margin:0 0 2px;break-inside:avoid}
 .mk-search input{width:100%;padding-left:40px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238496a7' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 4.5 4.5'/%3E%3C/svg%3E") no-repeat 12px center/18px}
 .mk-filters{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:flex-end}
 .mk-seg{flex:none;max-width:100%;overflow-x:auto;scrollbar-width:none}
@@ -761,6 +767,8 @@ body:has(.sheet[open]){overflow:hidden}
 .mk-tags .chip{min-height:20px;padding:1px 7px;font-size:11px}
 .mk-meta{display:none}
 .mk-club,.mk-pos{font-size:var(--fs-sm);font-weight:700;color:var(--text-2)}
+/* Sports.ru's Russian club name (a player without an ESPN club) is wider than the 48px track: clipped, the whole name in its title. */
+.mk-club{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mk-avg{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2)}
 .mk-fig{display:grid;justify-items:end;text-align:right}
 .mk-fig strong{font-size:var(--fs-lg);font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}

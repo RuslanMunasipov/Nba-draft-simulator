@@ -69,10 +69,13 @@ def merge_full(full,cur):
     # A player the watcher took from a roster (new to the market) stays known: the collection may have started before.
     # One whose page failed keeps his last entry, marked stale, with only its box-scored games as FBL points: an older
     # collector's rows (Sports.ru's ФО, 0 till it counts a game) cannot be scored again without the page. A card Sports.ru
-    # replaced (collect_sports_current.retired_cards) is not read any more and goes.
+    # replaced (collect_sports_current.retired_cards) is not read any more and goes. A stale row is on sale as the
+    # collection's market list says, when it read one: a card Sports.ru emptied leaves the pool, and its last read must
+    # not keep it on sale. Collected rows (a MARKET addition among them) come whole, with their own onSale.
     players,retired=full.setdefault('players',{}),sports.retired_cards()
+    listed=(full.get('market') or {}).get('ids');listed=set(listed) if listed is not None else None
     for sid,p in (cur.get('players') or {}).items():
-        if sid not in players and sid not in retired:players[sid]=p if p.get('fromRoster') else {**p,'stale':True,'games':sports.unscored([dict(g) for g in p.get('games') or []])}
+        if sid not in players and sid not in retired:players[sid]=p if p.get('fromRoster') else {**p,'stale':True,'games':sports.unscored([dict(g) for g in p.get('games') or []]),**({'onSale':sid in listed} if listed is not None else {})}
     return full
 def unscore_old_rows(snapshot):
     """The snapshot a run starts from may be an older collector's: its played rows carry Sports.ru's ФО (0 till it counts
