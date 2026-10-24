@@ -330,9 +330,9 @@ async function mikeInterview(day,lines,ctx,state,{send=live&&MIKE&&claudeConfigu
 // --- The day's pictures (images.js): the heroes in one picture and the flops in another, their prompts written by Claude
 // through the owner's subscription (free; without it, or when he cannot write one, no picture), drawn by OpenAI (about
 // $0.03 each) and sent by Christopher Dildo's bot (the awards bot's without it) after the day's album, before Mike
-// Roffon. recent: the ideas of the last days, not to repeat. Only with DAY_PICTURES=1 and OPENAI_API_KEY. A preview prints their prompts with --prompts (free) and
-// draws them with --pictures (paid; without the key the request goes out bare, for a proxy that adds it). Never holds the
-// awards: a failure is logged.
+// Roffon. recent: the ideas of the last days, not to repeat. Only with DAY_PICTURES=1 and OPENAI_API_KEY. A preview
+// prints their prompts with --prompts (free) and draws them with --pictures (paid; without the key the request goes out
+// bare, for a proxy that adds it). Never holds the awards: a failure is logged.
 const PICTURES=env.DAY_PICTURES==='1'&&!!OPENAI_KEY;
 async function picturesPost(day,lines,ctx,{send=live&&!!CHAT,draw=true,recent=[]}={}){
  const blocks=dailyBlocks(lines.filter(l=>l.d===day)),f=form(lines,day),written={};
